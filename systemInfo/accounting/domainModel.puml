@@ -1,0 +1,347 @@
+@startuml
+title ATLAS - Modelo relacional / ER maestro
+hide circle
+skinparam linetype ortho
+skinparam entity { BackgroundColor #F8F9FB; BorderColor #1F2A44 }
+
+entity LEGAL_ENTITY {
+  *id : uuid
+  code : varchar
+  legal_name : varchar
+  tax_id : varchar
+  base_currency : char(3)
+}
+entity BRANCH {
+  *id : uuid
+  legal_entity_id : uuid
+  code : varchar
+  name : varchar
+}
+entity FISCAL_YEAR {
+  *id : uuid
+  legal_entity_id : uuid
+  year_label : varchar
+  start_date : date
+  end_date : date
+}
+entity ACCOUNTING_PERIOD {
+  *id : uuid
+  fiscal_year_id : uuid
+  period_no : smallint
+  is_open : bool
+}
+entity LEDGER {
+  *id : uuid
+  legal_entity_id : uuid
+  code : varchar
+  accounting_basis : varchar
+}
+entity CHART_OF_ACCOUNTS {
+  *id : uuid
+  code : varchar
+  version_no : int
+}
+entity GL_ACCOUNT {
+  *id : uuid
+  coa_id : uuid
+  account_no : varchar
+  account_type : varchar
+  normal_balance : char
+}
+entity COST_CENTER {
+  *id : uuid
+  legal_entity_id : uuid
+  code : varchar
+  name : varchar
+}
+entity PROFIT_CENTER {
+  *id : uuid
+  legal_entity_id : uuid
+  code : varchar
+  segment_code : varchar
+}
+entity BUSINESS_PARTNER {
+  *id : uuid
+  partner_no : varchar
+  partner_type : varchar
+  legal_name : varchar
+  tax_id : varchar
+}
+entity BUSINESS_PARTNER_ROLE {
+  *id : uuid
+  business_partner_id : uuid
+  legal_entity_id : uuid
+  role_code : varchar
+}
+entity BP_ADDRESS {
+  *id : uuid
+  business_partner_id : uuid
+  address_type : varchar
+}
+entity BP_BANK_ACCOUNT {
+  *id : uuid
+  business_partner_id : uuid
+  account_no_hash : varchar
+}
+entity CONTRACT_HEADER {
+  *id : uuid
+  contract_no : varchar
+  contract_type : varchar
+  counterparty_bp_id : uuid
+}
+entity CONTRACT_TERM {
+  *id : uuid
+  contract_id : uuid
+  term_code : varchar
+  term_value_json : jsonb
+}
+entity TAX_CODE {
+  *id : uuid
+  code : varchar
+  tax_type : varchar
+  rate : numeric
+}
+entity POSTING_RULE_VERSION {
+  *id : uuid
+  rule_code : varchar
+  version_no : int
+  rule_json : jsonb
+}
+entity ACCOUNTING_DOCUMENT {
+  *id : uuid
+  legal_entity_id : uuid
+  source_type : varchar
+  document_no : varchar
+  posting_date : date
+  status : varchar
+}
+entity JOURNAL_ENTRY {
+  *id : uuid
+  accounting_document_id : uuid
+  journal_no : varchar
+  posting_status : varchar
+}
+entity JOURNAL_ENTRY_LINE {
+  *id : uuid
+  journal_entry_id : uuid
+  gl_account_id : uuid
+  debit : numeric
+  credit : numeric
+}
+entity DOCUMENT_ATTACHMENT {
+  *id : uuid
+  accounting_document_id : uuid
+  sha256 : varchar
+}
+entity DOCUMENT_AUDIT_LOG {
+  *id : bigserial
+  accounting_document_id : uuid
+  event_type : varchar
+}
+entity BILLING_RULE {
+  *id : uuid
+  contract_id : uuid
+  fee_type : varchar
+  calc_method : varchar
+}
+entity BILLING_EVENT {
+  *id : uuid
+  contract_id : uuid
+  event_type : varchar
+  base_amount : numeric
+}
+entity AR_INVOICE {
+  *id : uuid
+  customer_bp_id : uuid
+  invoice_no : varchar
+  gross_amount : numeric
+}
+entity AR_INVOICE_LINE {
+  *id : uuid
+  ar_invoice_id : uuid
+  revenue_account_id : uuid
+  line_amount : numeric
+}
+entity ELECTRONIC_TAX_DOCUMENT {
+  *id : uuid
+  ar_invoice_id : uuid
+  cuf : varchar
+  siat_status : varchar
+}
+entity RECEIPT {
+  *id : uuid
+  payer_bp_id : uuid
+  amount : numeric
+  bank_account_id : uuid
+}
+entity RECEIPT_ALLOCATION {
+  *id : uuid
+  receipt_id : uuid
+  ar_invoice_id : uuid
+  allocated_amount : numeric
+}
+entity AP_INVOICE {
+  *id : uuid
+  supplier_bp_id : uuid
+  invoice_no : varchar
+  gross_amount : numeric
+}
+entity AP_INVOICE_LINE {
+  *id : uuid
+  ap_invoice_id : uuid
+  expense_account_id : uuid
+  line_amount : numeric
+}
+entity SUPPLIER_PAYMENT {
+  *id : uuid
+  ap_invoice_id : uuid
+  payment_order_id : uuid
+  amount : numeric
+}
+entity BANK_ACCOUNT {
+  *id : uuid
+  legal_entity_id : uuid
+  account_no_hash : varchar
+  currency_code : char
+}
+entity BANK_STATEMENT {
+  *id : uuid
+  bank_account_id : uuid
+  statement_no : varchar
+  statement_date : date
+}
+entity BANK_STATEMENT_LINE {
+  *id : uuid
+  bank_statement_id : uuid
+  amount : numeric
+  match_status : varchar
+}
+entity PAYMENT_ORDER {
+  *id : uuid
+  payee_bp_id : uuid
+  requested_amount : numeric
+  status : varchar
+}
+entity LOAN_CONTRACT {
+  *id : uuid
+  lender_bp_id : uuid
+  loan_no : varchar
+  principal_amount : numeric
+}
+entity LOAN_SCHEDULE {
+  *id : uuid
+  loan_contract_id : uuid
+  due_date : date
+  principal_due : numeric
+}
+entity LOAN_ACCRUAL {
+  *id : uuid
+  loan_contract_id : uuid
+  accrual_date : date
+  interest_amount : numeric
+}
+entity FIXED_ASSET {
+  *id : uuid
+  asset_no : varchar
+  asset_class : varchar
+  cost : numeric
+}
+entity ASSET_DEPRECIATION_RUN {
+  *id : uuid
+  fixed_asset_id : uuid
+  period_id : uuid
+  depreciation_amount : numeric
+}
+entity PROVISION_CASE {
+  *id : uuid
+  case_type : varchar
+  best_estimate : numeric
+}
+entity PROVISION_MOVEMENT {
+  *id : uuid
+  provision_case_id : uuid
+  movement_type : varchar
+  amount : numeric
+}
+entity CLOSE_RUN {
+  *id : uuid
+  period_id : uuid
+  close_type : varchar
+  status : varchar
+}
+entity FINANCIAL_STATEMENT_SNAPSHOT {
+  *id : uuid
+  close_run_id : uuid
+  statement_type : varchar
+  snapshot_json : jsonb
+}
+entity RECONCILIATION_RUN {
+  *id : uuid
+  reconciliation_type : varchar
+  status : varchar
+}
+entity RECONCILIATION_ITEM {
+  *id : uuid
+  reconciliation_run_id : uuid
+  difference_amount : numeric
+}
+entity EVENT_OUTBOX {
+  *id : bigserial
+  topic : varchar
+  event_key : varchar
+  payload : jsonb
+}
+LEGAL_ENTITY ||--o{ BRANCH
+LEGAL_ENTITY ||--o{ FISCAL_YEAR
+FISCAL_YEAR ||--o{ ACCOUNTING_PERIOD
+LEGAL_ENTITY ||--o{ LEDGER
+CHART_OF_ACCOUNTS ||--o{ GL_ACCOUNT
+LEGAL_ENTITY ||--o{ COST_CENTER
+LEGAL_ENTITY ||--o{ PROFIT_CENTER
+BUSINESS_PARTNER ||--o{ BUSINESS_PARTNER_ROLE
+BUSINESS_PARTNER ||--o{ BP_ADDRESS
+BUSINESS_PARTNER ||--o{ BP_BANK_ACCOUNT
+LEGAL_ENTITY ||--o{ CONTRACT_HEADER
+BUSINESS_PARTNER ||--o{ CONTRACT_HEADER
+CONTRACT_HEADER ||--o{ CONTRACT_TERM
+CONTRACT_HEADER ||--o{ BILLING_RULE
+CONTRACT_HEADER ||--o{ BILLING_EVENT
+BILLING_EVENT o|--o{ AR_INVOICE_LINE
+AR_INVOICE ||--|{ AR_INVOICE_LINE
+BUSINESS_PARTNER ||--o{ AR_INVOICE
+AR_INVOICE ||--o| ELECTRONIC_TAX_DOCUMENT
+BUSINESS_PARTNER ||--o{ AP_INVOICE
+AP_INVOICE ||--|{ AP_INVOICE_LINE
+LEGAL_ENTITY ||--o{ ACCOUNTING_DOCUMENT
+LEDGER ||--o{ ACCOUNTING_DOCUMENT
+ACCOUNTING_PERIOD ||--o{ ACCOUNTING_DOCUMENT
+ACCOUNTING_DOCUMENT ||--o{ JOURNAL_ENTRY
+JOURNAL_ENTRY ||--|{ JOURNAL_ENTRY_LINE
+GL_ACCOUNT ||--o{ JOURNAL_ENTRY_LINE
+BUSINESS_PARTNER o|--o{ JOURNAL_ENTRY_LINE
+COST_CENTER o|--o{ JOURNAL_ENTRY_LINE
+PROFIT_CENTER o|--o{ JOURNAL_ENTRY_LINE
+TAX_CODE o|--o{ JOURNAL_ENTRY_LINE
+ACCOUNTING_DOCUMENT ||--o{ DOCUMENT_ATTACHMENT
+ACCOUNTING_DOCUMENT ||--o{ DOCUMENT_AUDIT_LOG
+BUSINESS_PARTNER ||--o{ RECEIPT
+RECEIPT ||--o{ RECEIPT_ALLOCATION
+AR_INVOICE ||--o{ RECEIPT_ALLOCATION
+AP_INVOICE ||--o{ SUPPLIER_PAYMENT
+BANK_ACCOUNT o|--o{ RECEIPT
+BANK_ACCOUNT ||--o{ BANK_STATEMENT
+BANK_STATEMENT ||--|{ BANK_STATEMENT_LINE
+BANK_ACCOUNT o|--o{ PAYMENT_ORDER
+BUSINESS_PARTNER ||--o{ LOAN_CONTRACT
+LEGAL_ENTITY ||--o{ LOAN_CONTRACT
+LOAN_CONTRACT ||--|{ LOAN_SCHEDULE
+LOAN_CONTRACT ||--o{ LOAN_ACCRUAL
+LEGAL_ENTITY ||--o{ FIXED_ASSET
+FIXED_ASSET ||--o{ ASSET_DEPRECIATION_RUN
+ACCOUNTING_PERIOD ||--o{ ASSET_DEPRECIATION_RUN
+LEGAL_ENTITY ||--o{ PROVISION_CASE
+PROVISION_CASE ||--o{ PROVISION_MOVEMENT
+ACCOUNTING_PERIOD ||--o{ CLOSE_RUN
+CLOSE_RUN ||--o{ FINANCIAL_STATEMENT_SNAPSHOT
+RECONCILIATION_RUN ||--o{ RECONCILIATION_ITEM
+@enduml

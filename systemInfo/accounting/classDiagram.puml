@@ -1,0 +1,344 @@
+@startuml
+title ATLAS - Modelo de clases de dominio contable
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+skinparam shadowing false
+
+package "Shared Kernel" {
+  class Money {
+    +amount: Decimal
+    +currency: CurrencyCode
+    +add(other: Money): Money
+    +negate(): Money
+  }
+  class PeriodRef {
+    +fiscalYear: String
+    +periodNo: Int
+    +isOpen: Boolean
+  }
+  class AuditStamp {
+    +createdAt: Instant
+    +createdBy: UserId
+    +updatedAt: Instant
+  }
+  class EntityId
+  enum DocumentStatus {
+    DRAFT
+    APPROVED
+    POSTED
+    REVERSED
+    CANCELLED
+  }
+  enum NormalBalance {
+    DEBIT
+    CREDIT
+  }
+}
+
+package "Maestros financieros" {
+  class LegalEntity {
+    +id: LegalEntityId
+    +code: String
+    +legalName: String
+    +baseCurrency: CurrencyCode
+    +timezone: String
+    +status: Status
+  }
+  class Ledger {
+    +id: LedgerId
+    +code: String
+    +basis: AccountingBasis
+    +isDefault: Boolean
+  }
+  class AccountingPeriod {
+    +id: PeriodId
+    +periodNo: Int
+    +startDate: LocalDate
+    +endDate: LocalDate
+    +isOpen: Boolean
+    +close()
+    +reopen(approval: Approval)
+  }
+  class ChartOfAccounts {
+    +id: CoaId
+    +code: String
+    +versionNo: Int
+  }
+  class GlAccount {
+    +id: GlAccountId
+    +accountNo: String
+    +name: String
+    +type: AccountType
+    +normalBalance: NormalBalance
+    +isControlAccount: Boolean
+    +validateAssignment(line: JournalEntryLine)
+  }
+  class CostCenter {
+    +id: CostCenterId
+    +code: String
+    +name: String
+  }
+  class ProfitCenter {
+    +id: ProfitCenterId
+    +code: String
+    +segmentCode: String
+  }
+}
+
+package "Business Partner y contratos" {
+  class BusinessPartner {
+    +id: BusinessPartnerId
+    +partnerNo: String
+    +legalName: String
+    +taxId: String
+    +kybStatus: KybStatus
+    +addRole(role: PartnerRole)
+    +block(reason: String)
+  }
+  class PartnerRole {
+    +roleCode: String
+    +effectiveFrom: LocalDate
+    +effectiveTo: LocalDate
+  }
+  class Contract {
+    +id: ContractId
+    +contractNo: String
+    +type: ContractType
+    +counterparty: BusinessPartnerId
+    +currency: CurrencyCode
+    +status: ContractStatus
+    +approve(approval: Approval)
+  }
+  class ContractTerm {
+    +code: String
+    +value: Json
+    +effectiveFrom: LocalDate
+  }
+}
+
+package "Contabilidad general" {
+  class AccountingDocument {
+    +id: AccountingDocumentId
+    +documentNo: String
+    +source: SourceRef
+    +documentDate: LocalDate
+    +postingDate: LocalDate
+    +status: DocumentStatus
+    +reverse(reason: String): AccountingDocument
+  }
+  class JournalEntry {
+    +id: JournalEntryId
+    +journalNo: String
+    +status: PostingStatus
+    +lines: List<JournalEntryLine>
+    +validateBalanced()
+    +post()
+    +reverse(): JournalEntry
+  }
+  class JournalEntryLine {
+    +lineNo: Int
+    +account: GlAccountId
+    +debit: Money
+    +credit: Money
+    +partnerId: BusinessPartnerId
+    +costCenterId: CostCenterId
+    +profitCenterId: ProfitCenterId
+    +reference: SourceRef
+    +isDebit(): Boolean
+  }
+  class PostingRuleVersion {
+    +ruleCode: String
+    +versionNo: Int
+    +triggerType: String
+    +ruleJson: Json
+    +isEffectiveAt(date: Instant): Boolean
+  }
+  class PostingEngine {
+    +buildDocument(event: FinancialEvent): AccountingDocument
+    +generateJournal(doc: AccountingDocument): JournalEntry
+    +post(doc: AccountingDocument): JournalEntry
+  }
+  class DoubleEntryValidator { +assertBalanced(entry: JournalEntry) }
+  class PeriodGuard { +assertOpen(period: AccountingPeriod) }
+}
+
+package "Facturación y AR/AP" {
+  class BillingEvent {
+    +id: BillingEventId
+    +contractId: ContractId
+    +eventType: String
+    +baseAmount: Money
+    +status: EventStatus
+  }
+  class BillingRule {
+    +feeType: String
+    +calcMethod: String
+    +rate: Decimal
+    +deferRevenue: Boolean
+  }
+  class ArInvoice {
+    +id: ArInvoiceId
+    +invoiceNo: String
+    +customerId: BusinessPartnerId
+    +grossAmount: Money
+    +status: InvoiceStatus
+    +issue()
+    +credit(reason: String)
+  }
+  class ArInvoiceLine {
+    +lineNo: Int
+    +description: String
+    +lineAmount: Money
+  }
+  class ElectronicTaxDocument {
+    +cuf: String
+    +cufd: String
+    +siatStatus: String
+    +xmlHash: String
+  }
+  class Receipt {
+    +receiptNo: String
+    +payerId: BusinessPartnerId
+    +amount: Money
+    +allocate(invoice: ArInvoice)
+  }
+  class ApInvoice {
+    +invoiceNo: String
+    +supplierId: BusinessPartnerId
+    +grossAmount: Money
+    +approve()
+  }
+  class PaymentOrder {
+    +payeeId: BusinessPartnerId
+    +amount: Money
+    +approve()
+    +execute()
+  }
+}
+
+package "Tesorería, deuda, activos y provisiones" {
+  class BankAccount {
+    +id: BankAccountId
+    +currency: CurrencyCode
+    +glAccountId: GlAccountId
+    +status: Status
+  }
+  class BankStatement {
+    +statementNo: String
+    +statementDate: LocalDate
+    +importLines(lines: List<BankStatementLine>)
+  }
+  class BankStatementLine {
+    +amount: Money
+    +bankRef: String
+    +matchStatus: MatchStatus
+  }
+  class LoanContract {
+    +loanNo: String
+    +principal: Money
+    +interestRate: Decimal
+    +currentPrincipal: Money
+    +createSchedule()
+  }
+  class LoanSchedule {
+    +installmentNo: Int
+    +dueDate: LocalDate
+    +principalDue: Money
+    +interestDue: Money
+  }
+  class LoanAccrual {
+    +accrualDate: LocalDate
+    +interestAmount: Money
+    +post()
+  }
+  class FixedAsset {
+    +assetNo: String
+    +assetClass: String
+    +cost: Money
+    +usefulLifeMonths: Int
+    +placeInService(date: LocalDate)
+  }
+  class DepreciationRun {
+    +periodId: PeriodId
+    +amount: Money
+    +post()
+  }
+  class ProvisionCase {
+    +caseType: String
+    +bestEstimate: Money
+    +probabilityBucket: String
+    +updateEstimate(newAmount: Money)
+  }
+  class ProvisionMovement {
+    +movementType: String
+    +amount: Money
+    +post()
+  }
+}
+
+package "Cierre, conciliación, auditoría e integración" {
+  class CloseRun {
+    +periodId: PeriodId
+    +status: CloseStatus
+    +executeChecklist()
+    +freezeSnapshots()
+  }
+  class ReconciliationRun {
+    +type: ReconciliationType
+    +status: Status
+    +match()
+    +markDifference()
+  }
+  class ReconciliationItem {
+    +leftRef: SourceRef
+    +rightRef: SourceRef
+    +differenceAmount: Money
+    +status: String
+  }
+  class FinancialStatementSnapshot {
+    +statementType: String
+    +snapshotJson: Json
+    +hash: String
+  }
+  class EventOutbox {
+    +topic: String
+    +eventKey: String
+    +payload: Json
+    +markPublished()
+  }
+  class AuditLog {
+    +eventType: String
+    +payload: Json
+    +createdAt: Instant
+  }
+}
+
+LegalEntity "1" o-- "many" Ledger
+LegalEntity "1" o-- "many" AccountingPeriod
+ChartOfAccounts "1" o-- "many" GlAccount
+BusinessPartner "1" o-- "many" PartnerRole
+Contract "1" o-- "many" ContractTerm
+Contract "1" o-- "many" BillingRule
+Contract "1" o-- "many" BillingEvent
+AccountingDocument "1" o-- "1..many" JournalEntry
+JournalEntry "1" o-- "2..many" JournalEntryLine
+ArInvoice "1" o-- "1..many" ArInvoiceLine
+ArInvoice "1" o-- "0..1" ElectronicTaxDocument
+Receipt "1" --> "many" ArInvoice : allocates
+ApInvoice "1" --> "many" PaymentOrder : settled by
+BankAccount "1" o-- "many" BankStatement
+BankStatement "1" o-- "many" BankStatementLine
+LoanContract "1" o-- "many" LoanSchedule
+LoanContract "1" o-- "many" LoanAccrual
+FixedAsset "1" o-- "many" DepreciationRun
+ProvisionCase "1" o-- "many" ProvisionMovement
+CloseRun "1" o-- "many" FinancialStatementSnapshot
+ReconciliationRun "1" o-- "many" ReconciliationItem
+
+PostingEngine ..> PostingRuleVersion
+PostingEngine ..> DoubleEntryValidator
+PostingEngine ..> PeriodGuard
+PostingEngine ..> EventOutbox
+DoubleEntryValidator ..> JournalEntry
+PeriodGuard ..> AccountingPeriod
+@enduml

@@ -1,0 +1,219 @@
+openapi: 3.0.3
+info:
+  title: ATLAS Accounting Module API
+  version: 1.1.0
+  description: API contable SAP-like liviana para ATLAS con journal universal, submayores, BP central, cierres y outbox.
+servers:
+  - url: http://localhost:3000/api/v1
+security:
+  - bearerAuth: []
+paths:
+  /health:
+    get:
+      security: []
+      summary: Health check
+      responses:
+        '200': { description: API activa }
+  /ready:
+    get:
+      security: []
+      summary: Readiness check
+      responses:
+        '200': { description: Dependencias listas }
+  /accounting/financial-structure/legal-entities:
+    post:
+      summary: Crear entidad legal
+      description: Requiere rol admin. Crea la company code base del módulo.
+      responses:
+        '201': { description: Entidad legal creada }
+        '403': { description: Rol insuficiente }
+  /accounting/financial-structure/branches:
+    post:
+      summary: Crear sucursal
+      description: Valida alcance por entidad legal.
+      responses:
+        '201': { description: Sucursal creada }
+        '403': { description: Entidad legal no autorizada }
+  /accounting/financial-structure/fiscal-years:
+    post:
+      summary: Crear año fiscal
+      description: Valida rango de fechas y alcance por entidad legal.
+      responses:
+        '201': { description: Año fiscal creado }
+        '400': { description: Rango inválido }
+        '403': { description: Entidad legal no autorizada }
+  /accounting/financial-structure/periods:
+    post:
+      summary: Crear período contable
+      description: Valida que el período pertenezca al año fiscal, no se solape y respete alcance por entidad legal.
+      responses:
+        '201': { description: Período creado }
+        '400': { description: Período fuera del año fiscal }
+        '409': { description: Solapamiento de período }
+  /accounting/financial-structure/ledgers:
+    post:
+      summary: Crear ledger
+      description: Crea ledger LOCAL_BO, MANAGEMENT o IFRS y valida alcance por entidad legal.
+      responses:
+        '201': { description: Ledger creado }
+        '409': { description: Ya existe ledger default para entidad/base }
+  /accounting/financial-structure/charts-of-accounts:
+    post:
+      summary: Crear plan de cuentas versionado
+      responses:
+        '201': { description: Plan de cuentas creado }
+  /accounting/financial-structure/gl-accounts:
+    get:
+      summary: Listar cuentas GL
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200': { description: Lista paginada }
+    post:
+      summary: Crear cuenta GL
+      description: Valida naturaleza deudora/acreedora según tipo de cuenta.
+      responses:
+        '201': { description: Cuenta creada }
+        '400': { description: Naturaleza inválida }
+  /accounting/financial-structure/tax-codes:
+    post:
+      summary: Crear código tributario
+      responses:
+        '201': { description: Código tributario creado }
+  /accounting/business-partners:
+    get:
+      summary: Listar business partners
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200': { description: Lista paginada }
+    post:
+      summary: Crear business partner
+      responses:
+        '201': { description: Business partner creado }
+  /accounting/business-partners/roles:
+    post:
+      summary: Agregar rol a business partner
+      description: Si el rol se limita a entidad legal, valida alcance por entidad.
+      responses:
+        '201': { description: Rol agregado }
+        '403': { description: Entidad legal no autorizada }
+  /accounting/contracts:
+    post:
+      summary: Crear contrato
+      description: Valida rol BP requerido por tipo de contrato y alcance por entidad legal.
+      responses:
+        '201': { description: Contrato creado }
+        '400': { description: Fechas inválidas }
+        '403': { description: Entidad legal no autorizada }
+  /accounting/contracts/terms:
+    post:
+      summary: Agregar término contractual versionado
+      description: Deriva la entidad legal desde el contrato y valida alcance.
+      responses:
+        '201': { description: Término creado }
+        '404': { description: Contrato no encontrado }
+  /accounting/documents:
+    post:
+      summary: Crear documento contable draft
+      description: Valida doble partida, período abierto, ledger, cuentas, dimensiones y alcance por entidad legal.
+      responses:
+        '201': { description: Documento creado }
+        '400': { description: Validación fallida }
+        '403': { description: Entidad legal no autorizada }
+        '409': { description: Período cerrado, ledger inválido o cuenta inconsistente }
+  /accounting/documents/{id}:
+    get:
+      summary: Obtener documento contable con journal y líneas
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200': { description: Documento encontrado }
+        '404': { description: Documento no existe }
+  /accounting/documents/{id}/post:
+    patch:
+      summary: Publicar documento contable
+      description: Calcula y persiste hash SHA-256 del asiento. No permite publicar si el documento no está en DRAFT.
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200': { description: Documento publicado }
+        '403': { description: Entidad legal no autorizada }
+        '409': { description: Documento no publicable }
+  /accounting/documents/{id}/reverse:
+    post:
+      summary: Reversar documento contable publicado
+      description: Crea documento reverso, impide doble reversión y marca el original como REVERSED.
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '201': { description: Reverso creado y publicado }
+        '403': { description: Entidad legal no autorizada }
+        '409': { description: Documento no publicado o ya reversado }
+  /accounting/billing/events:
+    post:
+      summary: Registrar evento facturable
+      description: Deriva entidad legal desde el contrato y valida alcance.
+      responses:
+        '201': { description: Evento facturable registrado }
+        '404': { description: Contrato no encontrado }
+  /accounting/billing/ar-invoices:
+    post:
+      summary: Emitir factura AR y asiento automático
+      description: Mantiene separado billing, factura comercial, documento fiscal y documento contable. Valida trazabilidad SIAT cuando el documento está aceptado.
+      responses:
+        '201': { description: Factura emitida y contabilizada }
+        '400': { description: Datos tributarios incompletos }
+        '409': { description: Contrato no activo o incompatibilidad }
+  /accounting/receipts:
+    post:
+      summary: Registrar recibo y aplicar AR
+      description: Usa locks de factura para evitar sobreasignación concurrente.
+      responses:
+        '201': { description: Recibo registrado y contabilizado }
+        '409': { description: Saldo abierto insuficiente }
+  /accounting/closings/periods/close:
+    post:
+      summary: Cerrar período
+      description: Valida que período y entidad legal coincidan, ejecuta controles y congela período.
+      responses:
+        '201': { description: Cierre completado }
+        '409': { description: Controles de cierre fallidos }
+  /accounting/closings/periods/reopen:
+    patch:
+      summary: Reabrir período
+      description: Deriva entidad legal desde el período y exige motivo.
+      responses:
+        '200': { description: Período reabierto }
+        '409': { description: Período ya abierto }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    Id:
+      in: path
+      name: id
+      required: true
+      schema:
+        type: string
+        format: uuid
+    Page:
+      in: query
+      name: page
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    PageSize:
+      in: query
+      name: pageSize
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20

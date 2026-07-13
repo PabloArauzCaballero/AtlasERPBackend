@@ -1,0 +1,15 @@
+
+> atlas-integrated-backend@1.0.0 test:e2e
+> jest --config ./test/jest-e2e.json
+
+PASS test/health.e2e-spec.ts (5.635 s)
+  Health endpoints (e2e)
+    ✓ GET /api/v1/health devuelve estado operativo normalizado (45 ms)
+    ✓ GET /api/v1/ready valida dependencia de base de datos (11 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       2 passed, 2 total
+Snapshots:   0 total
+Time:        6.151 s
+Ran all test suites.
+exit_code=0

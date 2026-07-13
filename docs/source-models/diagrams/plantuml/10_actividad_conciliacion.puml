@@ -1,0 +1,27 @@
+@startuml
+start
+:Ejecutar reconciliation_run por periodo;
+:Comparar compras confirmadas vs cargos MDR;
+if (¿Diferencias MDR?) then (Sí)
+  :Crear reconciliation_item MDR;
+endif
+:Comparar facturas B2B vs pagos comercio;
+if (¿Diferencias CxC?) then (Sí)
+  :Crear reconciliation_item CxC;
+endif
+:Comparar cuotas vencidas vs merchant_payables;
+if (¿Diferencias CxP comercio?) then (Sí)
+  :Crear reconciliation_item CxP;
+endif
+:Comparar merchant_payables pagados vs consumer_recovery_receivables;
+if (¿Faltan recuperaciones?) then (Sí)
+  :Crear reconciliation_item Recovery;
+endif
+:Finanzas/Operaciones revisan diferencias;
+if (¿Todas resueltas?) then (Sí)
+  :Cerrar reconciliation_run;
+else (No)
+  :Mantener run con items abiertos;
+endif
+stop
+@enduml

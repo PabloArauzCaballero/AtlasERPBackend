@@ -1,0 +1,179 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+hide circle
+
+package "SalesCRM" {
+  class B2BAccount {
+    +UUID id
+    +String legalName
+    +String tradeName
+    +String taxId
+    +AccountStatus lifecycleStatus
+    +qualify()
+    +activateAsCustomer()
+    +suspend(reason)
+  }
+  class B2BContact {
+    +UUID id
+    +String fullName
+    +String email
+    +String phone
+    +String decisionRole
+  }
+  class SalesOpportunity {
+    +UUID id
+    +OpportunityStage stage
+    +Decimal expectedMonthlyVolume
+    +Decimal expectedMdrRate
+    +estimateRevenue()
+    +closeWon()
+    +closeLost(reason)
+  }
+  class CommercialActivity
+  class CommercialProposal {
+    +UUID id
+    +String proposalNumber
+    +ProposalStatus status
+    +requiresApproval()
+    +markSent()
+    +accept()
+  }
+  class ProposalLine {
+    +TermType termType
+    +Decimal ratePercent
+    +Decimal fixedAmount
+  }
+}
+
+package "CommercialContracting" {
+  class B2BContract {
+    +UUID id
+    +String contractNumber
+    +ContractStatus status
+    +Date startDate
+    +Date endDate
+    +getActiveVersion(date)
+  }
+  class ContractVersion {
+    +Integer versionNumber
+    +Date validFrom
+    +Date validTo
+    +approve()
+    +isValidAt(date)
+  }
+  class CommercialTerm {
+    +TermType termType
+    +Decimal ratePercent
+    +Decimal fixedAmount
+    +calculateCharge(baseAmount)
+  }
+  class MDRRule {
+    +String productCategory
+    +String riskSegment
+    +Decimal ratePercent
+  }
+  class ApprovalRequest {
+    +String approvalType
+    +String status
+    +approve()
+    +reject()
+  }
+}
+
+package "MerchantOnboarding" {
+  class MerchantBranch {
+    +UUID id
+    +String name
+    +String city
+    +Boolean canOriginateBnpl
+    +activate()
+    +disableOrigination(reason)
+  }
+  class MerchantUser
+  class MerchantOnboardingCase
+  class OnboardingChecklistItem
+}
+
+package "B2BBilling" {
+  class MerchantInvoice {
+    +String invoiceNumber
+    +Decimal totalAmount
+    +InvoiceStatus status
+    +issue()
+    +markPaid()
+  }
+  class MerchantInvoiceLine
+  class MerchantReceivable {
+    +String sourceType
+    +Decimal amountOriginal
+    +Decimal amountOpen
+    +ReceivableStatus status
+    +applyPayment(amount)
+    +close()
+  }
+  class MerchantPayment
+  class MerchantPaymentAllocation
+  class MerchantCreditNote
+}
+
+package "BNPLCoreLink" {
+  class ConsumerRef
+  class BNPLPurchase {
+    +Decimal purchaseAmount
+    +Decimal downPaymentAmount
+    +Decimal financedAmount
+    +String riskTierAtOrigination
+  }
+  class BNPLInstallment {
+    +Integer installmentNumber
+    +Date dueDate
+    +Decimal amount
+    +String status
+  }
+  class MerchantPayable {
+    +Decimal amount
+    +Date scheduledPaymentDate
+    +PayableStatus status
+    +markPaid()
+  }
+  class ConsumerRecoveryReceivable {
+    +Decimal amountCoveredByAtlas
+    +Decimal amountRecovered
+    +RecoveryStatus recoveryStatus
+    +applyRecoveryPayment(amount)
+  }
+}
+
+package "ReconciliationAudit" {
+  class ReconciliationRun
+  class ReconciliationItem
+  class AuditLog
+}
+
+B2BAccount "1" o-- "0..*" B2BContact
+B2BAccount "1" o-- "0..*" SalesOpportunity
+SalesOpportunity "1" o-- "0..*" CommercialActivity
+SalesOpportunity "1" o-- "0..*" CommercialProposal
+CommercialProposal "1" o-- "1..*" ProposalLine
+CommercialProposal "0..1" --> "0..*" ApprovalRequest
+B2BAccount "1" o-- "0..*" B2BContract
+B2BContract "1" o-- "1..*" ContractVersion
+ContractVersion "1" o-- "1..*" CommercialTerm
+ContractVersion "1" o-- "0..*" MDRRule
+B2BAccount "1" o-- "0..*" MerchantBranch
+B2BAccount "1" o-- "0..*" MerchantUser
+B2BAccount "1" o-- "0..*" MerchantOnboardingCase
+MerchantOnboardingCase "1" o-- "1..*" OnboardingChecklistItem
+B2BAccount "1" o-- "0..*" MerchantInvoice
+MerchantInvoice "1" o-- "1..*" MerchantInvoiceLine
+MerchantInvoice "1" --> "0..*" MerchantReceivable
+MerchantPayment "1" o-- "1..*" MerchantPaymentAllocation
+MerchantPaymentAllocation "*" --> "1" MerchantReceivable
+B2BAccount "1" --> "0..*" BNPLPurchase
+BNPLPurchase "1" o-- "1..*" BNPLInstallment
+BNPLPurchase "*" --> "1" ContractVersion : pricing histórico
+BNPLInstallment "0..1" --> "0..1" MerchantPayable : cuota impaga cubierta
+MerchantPayable "0..1" --> "0..1" ConsumerRecoveryReceivable : nace después de pago ATLAS
+ReconciliationRun "1" o-- "0..*" ReconciliationItem
+@enduml

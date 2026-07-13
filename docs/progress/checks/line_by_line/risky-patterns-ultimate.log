@@ -1,0 +1,4 @@
+src/database/README.md:3:Configura Sequelize y registra los modelos del módulo. La aplicación no usa `sync({ force: true })` ni `sync({ alter: true })`; los cambios estructurales se aplican con migraciones SQL versionadas.
+src/database/migrations/README.md:7:- No usar `sequelize.sync({ force: true })` ni `sequelize.sync({ alter: true })` en producción.
+.eslintrc.cjs:17:    '@typescript-eslint/no-explicit-any': 'error',
+eslint.config.cjs:25:      '@typescript-eslint/no-explicit-any': 'error',

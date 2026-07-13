@@ -1,0 +1,358 @@
+openapi: 3.0.3
+info:
+  title: ATLAS Ads API
+  version: 1.1.0
+  description: API administrativa e interna para publicidad externa B2B ATLAS.
+servers:
+  - url: http://localhost:3000/api/v1
+security:
+  - bearerAuth: []
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    SuccessResponse:
+      type: object
+      required: [success, requestId, data]
+      properties:
+        success: { type: boolean, example: true }
+        requestId: { type: string }
+        data: {}
+    ErrorResponse:
+      type: object
+      required: [success, requestId, error]
+      properties:
+        success: { type: boolean, example: false }
+        requestId: { type: string }
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            details: {}
+    CreateAdvertiserRequest:
+      type: object
+      required: [legalName, tradeName, taxId]
+      properties:
+        legalName: { type: string, minLength: 2, maxLength: 180 }
+        tradeName: { type: string, minLength: 2, maxLength: 120 }
+        taxId: { type: string, minLength: 3, maxLength: 40 }
+        businessCategory: { type: string }
+        country: { type: string, minLength: 2, maxLength: 2, default: BO }
+        city: { type: string }
+        websiteUrl: { type: string, format: uri }
+        primaryContactName: { type: string }
+        primaryContactEmail: { type: string, format: email }
+        billingMode: { type: string, enum: [PREPAID, POSTPAID], default: POSTPAID }
+        currency: { type: string, default: BOB }
+        creditLimitMicros: { type: integer, minimum: 0 }
+    CreateBillingProfileRequest:
+      type: object
+      required: [fiscalName, taxId, billingEmail]
+      properties:
+        fiscalName: { type: string, minLength: 2, maxLength: 180 }
+        taxId: { type: string, minLength: 3, maxLength: 40 }
+        billingEmail: { type: string, format: email }
+        addressLine: { type: string }
+        country: { type: string, default: BO }
+        city: { type: string }
+        taxRegime: { type: string }
+        sinCustomerCode: { type: string }
+        isDefault: { type: boolean, default: true }
+    AdvertiserStatusRequest:
+      type: object
+      required: [status, reason]
+      properties:
+        status: { type: string, enum: [PENDING_REVIEW, ACTIVE, SUSPENDED, REJECTED] }
+        riskStatus: { type: string, enum: [NORMAL, WATCHLIST, BLOCKED] }
+        reason: { type: string, minLength: 8 }
+    CampaignStatusRequest:
+      type: object
+      required: [status, reason]
+      properties:
+        status:
+          {
+            type: string,
+            enum: [DRAFT, PENDING_REVIEW, APPROVED, ACTIVE, PAUSED, ENDED, REJECTED, ARCHIVED],
+          }
+        reason: { type: string, minLength: 8 }
+    ModerationDecisionRequest:
+      type: object
+      required: [reviewStatus, reasonCode]
+      properties:
+        reviewStatus: { type: string, enum: [APPROVED, REJECTED, CHANGES_REQUESTED, ESCALATED] }
+        reasonCode: { type: string }
+        notes: { type: string }
+        requiresAdvertiserChanges: { type: boolean, default: false }
+    CreateInventoryPlacementRequest:
+      type: object
+      required: [placementCode, surface, allowedFormats]
+      properties:
+        placementCode: { type: string }
+        surface: { type: string }
+        allowedFormats: { type: array, items: { type: string } }
+        floorPriceMicros: { type: integer, minimum: 0 }
+        billingModel: { type: string, enum: [CPM, CPC, CPA, FIXED] }
+        status: { type: string, enum: [ACTIVE, INACTIVE] }
+        widthPx: { type: integer, minimum: 1 }
+        heightPx: { type: integer, minimum: 1 }
+    CreatePolicyRuleRequest:
+      type: object
+      required: [policyCode, category, ruleType]
+      properties:
+        policyCode: { type: string }
+        category: { type: string }
+        ruleType:
+          { type: string, enum: [AUTO_REJECT, MANUAL_REVIEW_REQUIRED, WARNING, BLOCK_DELIVERY] }
+        severity: { type: string, enum: [LOW, MEDIUM, HIGH, CRITICAL], default: MEDIUM }
+        description: { type: string }
+        isActive: { type: boolean, default: true }
+    PeriodCloseRequest:
+      type: object
+      required: [periodStart, periodEnd]
+      properties:
+        periodStart: { type: string, format: date }
+        periodEnd: { type: string, format: date }
+        advertiserId: { type: string, format: uuid }
+    RegisterPaymentRequest:
+      type: object
+      required: [amountMicros, paymentDate, paymentMethod]
+      properties:
+        amountMicros: { type: integer, minimum: 1 }
+        currency: { type: string, default: BOB }
+        paymentDate: { type: string, format: date }
+        paymentMethod: { type: string }
+        reference: { type: string }
+    BillableStatusRequest:
+      type: object
+      required: [isBillable, reason]
+      properties:
+        isBillable: { type: boolean }
+        reason: { type: string, minLength: 8 }
+    DeliveryRequest:
+      type: object
+      required: [placementCode]
+      properties:
+        placementCode: { type: string }
+        corporateClientHash: { type: string }
+        contextHash: { type: string }
+        surface: { type: string }
+    TrackEventRequest:
+      type: object
+      required: [eventType, deliveryDecisionId]
+      properties:
+        eventType: { type: string, enum: [IMPRESSION, CLICK, CONVERSION] }
+        deliveryDecisionId: { type: string, format: uuid }
+        requestId: { type: string, format: uuid }
+        eventTime: { type: string, format: date-time }
+        corporateClientHash: { type: string }
+        sessionHash: { type: string }
+        ipHash: { type: string }
+        userAgentHash: { type: string }
+        fraudScore: { type: number, minimum: 0, maximum: 1 }
+        metadata: { type: object }
+paths:
+  /health:
+    get:
+      security: []
+      responses:
+        '200': { description: Servidor vivo }
+  /ready:
+    get:
+      security: []
+      responses:
+        '200': { description: Dependencias listas }
+  /admin/ads/dashboard:
+    get:
+      summary: Dashboard administrativo de Ads
+      parameters:
+        - { in: query, name: from, schema: { type: string, format: date } }
+        - { in: query, name: to, schema: { type: string, format: date } }
+        - { in: query, name: advertiserId, schema: { type: string, format: uuid } }
+        - { in: query, name: placementId, schema: { type: string, format: uuid } }
+        - { in: query, name: status, schema: { type: string } }
+      responses:
+        '200':
+          {
+            description: KPIs agregados,
+            content:
+              { application/json: { schema: { $ref: '#/components/schemas/SuccessResponse' } } },
+          }
+        '401': { description: Token ausente o inválido }
+        '403': { description: Rol insuficiente }
+  /admin/ads/advertisers:
+    get:
+      summary: Listar anunciantes
+      responses:
+        '200': { description: Lista paginada }
+    post:
+      summary: Crear anunciante
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateAdvertiserRequest' }
+      responses:
+        '201': { description: Anunciante creado con auditId }
+        '409': { description: NIT duplicado }
+  /admin/ads/advertisers/{advertiserId}/billing-profiles:
+    post:
+      summary: Crear perfil fiscal del anunciante
+      parameters:
+        - { in: path, name: advertiserId, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateBillingProfileRequest' }
+      responses:
+        '201': { description: Perfil fiscal creado con auditId }
+        '404': { description: Anunciante inexistente }
+  /admin/ads/advertisers/{advertiserId}:
+    get:
+      summary: Detalle de anunciante
+      parameters:
+        - { in: path, name: advertiserId, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: Detalle 360 }
+  /admin/ads/advertisers/{advertiserId}/status:
+    patch:
+      summary: Cambiar estado de anunciante
+      parameters:
+        - { in: path, name: advertiserId, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AdvertiserStatusRequest' }
+      responses:
+        '200': { description: Estado actualizado con auditId }
+  /admin/ads/campaigns:
+    get:
+      summary: Listar campañas globales
+      responses:
+        '200': { description: Lista paginada }
+  /admin/ads/campaigns/{campaignId}:
+    get:
+      summary: Detalle de campaña
+      parameters:
+        - { in: path, name: campaignId, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: Detalle de campaña }
+  /admin/ads/campaigns/{campaignId}/status:
+    patch:
+      summary: Cambiar estado de campaña
+      parameters:
+        - { in: path, name: campaignId, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CampaignStatusRequest' }
+      responses:
+        '200': { description: Campaña actualizada con auditId }
+  /admin/ads/moderation/queue:
+    get:
+      summary: Cola de moderación
+      responses:
+        '200': { description: Revisiones paginadas }
+  /admin/ads/moderation/{reviewId}/decision:
+    post:
+      summary: Decidir revisión
+      parameters:
+        - { in: path, name: reviewId, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ModerationDecisionRequest' }
+      responses:
+        '200': { description: Decisión registrada }
+  /admin/ads/inventory:
+    get:
+      summary: Listar placements
+      responses:
+        '200': { description: Placements }
+    post:
+      summary: Crear placement
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateInventoryPlacementRequest' }
+      responses:
+        '201': { description: Placement creado }
+  /admin/ads/policies:
+    get:
+      summary: Listar políticas
+      responses:
+        '200': { description: Políticas }
+    post:
+      summary: Crear política
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreatePolicyRuleRequest' }
+      responses:
+        '201': { description: Política creada }
+  /admin/ads/billing/period-close:
+    post:
+      summary: Cierre de periodo desde ledger
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PeriodCloseRequest' }
+      responses:
+        '201': { description: Facturas draft generadas }
+        '409': { description: Periodo ya cerrado o sin ledger }
+  /admin/ads/invoices/{invoiceId}/payments:
+    post:
+      summary: Registrar pago
+      parameters:
+        - { in: path, name: invoiceId, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RegisterPaymentRequest' }
+      responses:
+        '201': { description: Pago registrado }
+        '409': { description: Moneda inválida, factura cerrada o sobrepago }
+  /admin/ads/delivery-monitor:
+    get:
+      summary: Monitor delivery/eventos
+      responses:
+        '200': { description: KPIs y eventos }
+  /admin/ads/events/{eventId}/billable-status:
+    patch:
+      summary: Marcar evento facturable/no facturable
+      parameters:
+        - { in: path, name: eventId, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BillableStatusRequest' }
+      responses:
+        '200': { description: Evento actualizado con auditId }
+  /admin/ads/audit:
+    get:
+      summary: Consultar auditoría
+      responses:
+        '200': { description: Bitácora paginada }
+  /ads/delivery/select:
+    post:
+      summary: Seleccionar anuncio elegible
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DeliveryRequest' }
+      responses:
+        '201': { description: Decisión de delivery }
+  /ads/events:
+    post:
+      summary: Registrar evento publicitario
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TrackEventRequest' }
+      responses:
+        '201': { description: Evento registrado con idempotencia }

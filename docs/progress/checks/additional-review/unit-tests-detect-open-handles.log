@@ -1,0 +1,12 @@
+PASS test/common-roles.guard.spec.ts
+PASS test/accounting-legal-entity-access.service.spec.ts
+PASS test/accounting-double-entry.validator.spec.ts
+PASS test/accounting-zod-validation.pipe.spec.ts
+PASS src/modules/ads/ads.schemas.spec.ts
+PASS src/modules/b2b-sales-crm/b2b-sales-crm.schemas.spec.ts
+
+Test Suites: 6 passed, 6 total
+Tests:       28 passed, 28 total
+Snapshots:   0 total
+Time:        3.952 s, estimated 61 s
+Ran all test suites.

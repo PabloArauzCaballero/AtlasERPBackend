@@ -1,0 +1,22 @@
+@startuml
+start
+:Vence cuota del consumidor;
+:Sistema verifica pago directo consumidor -> comercio;
+if (¿Cuota pagada al comercio?) then (Sí)
+  :Marcar installment como PAID_TO_MERCHANT;
+  stop
+else (No)
+  :Marcar installment como OVERDUE;
+  :Crear merchant_payable ATLAS -> comercio por esa cuota;
+  :Programar pago en fecha original/acordada;
+  :Finanzas ejecuta pago al comercio;
+  if (¿Pago ATLAS confirmado?) then (Sí)
+    :Marcar merchant_payable como PAID;
+    :Crear consumer_recovery_receivable;
+    :Iniciar cobranza/recuperación al consumidor;
+  else (No)
+    :Mantener payable DUE/DISPUTED;
+  endif
+endif
+stop
+@enduml

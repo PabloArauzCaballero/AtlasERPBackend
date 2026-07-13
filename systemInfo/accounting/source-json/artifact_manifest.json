@@ -1,0 +1,12 @@
+{
+  "total_modules": 18,
+  "total_use_cases": 258,
+  "total_actors": 38,
+  "plantuml_files": [
+    "01_use_cases_master.puml",
+    "02_er_model_master.puml",
+    "03_class_model_master.puml"
+  ],
+  "sql_tables_estimated": 53,
+  "include_extend_relations": 62
+}

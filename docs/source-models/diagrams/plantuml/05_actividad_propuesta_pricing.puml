@@ -1,0 +1,27 @@
+@startuml
+start
+:Ejecutivo abre oportunidad;
+:Define producto comercial y volumen estimado;
+:Sistema sugiere MDR/fees base;
+:Ejecutivo arma propuesta;
+:Sistema valida mínimos comerciales;
+if (¿Hay excepción de pricing?) then (Sí)
+  :Crear approval_request;
+  :Jefe comercial revisa margen y justificación;
+  :Finanzas valida impacto;
+  if (¿Aprobado?) then (Sí)
+    :Registrar aprobación auditada;
+  else (No)
+    :Rechazar propuesta o solicitar ajuste;
+    stop
+  endif
+endif
+:Generar commercial_proposal;
+:Enviar propuesta al comercio;
+if (¿Comercio acepta?) then (Sí)
+  :Pasar oportunidad a CONTRACTING;
+else (No)
+  :Registrar rechazo o renegociar;
+endif
+stop
+@enduml

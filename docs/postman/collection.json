@@ -1,0 +1,2887 @@
+{
+  "info": {
+    "name": "ATLAS Integrated Backend API - Production/Postman Local Testing",
+    "description": "Colección actualizada para backend integrado ATLAS con CRM, contabilidad, publicidad externa, Business Action Logs y endpoints BULK. Para pruebas locales sin token: AUTH_DISABLED_FOR_LOCAL_TESTING=true en .env y reiniciar API. Esta bandera no puede activarse en production por validación de entorno.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "noauth"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "accountId",
+      "value": "00000000-0000-4000-8000-000000000001",
+      "type": "string"
+    },
+    {
+      "key": "contactId",
+      "value": "00000000-0000-4000-8000-000000000002",
+      "type": "string"
+    },
+    {
+      "key": "opportunityId",
+      "value": "00000000-0000-4000-8000-000000000003",
+      "type": "string"
+    },
+    {
+      "key": "proposalId",
+      "value": "00000000-0000-4000-8000-000000000004",
+      "type": "string"
+    },
+    {
+      "key": "contractId",
+      "value": "00000000-0000-4000-8000-000000000005",
+      "type": "string"
+    },
+    {
+      "key": "onboardingCaseId",
+      "value": "00000000-0000-4000-8000-000000000006",
+      "type": "string"
+    },
+    {
+      "key": "branchId",
+      "value": "00000000-0000-4000-8000-000000000007",
+      "type": "string"
+    },
+    {
+      "key": "consumerId",
+      "value": "00000000-0000-4000-8000-000000000008",
+      "type": "string"
+    },
+    {
+      "key": "installmentId",
+      "value": "00000000-0000-4000-8000-000000000009",
+      "type": "string"
+    },
+    {
+      "key": "payableId",
+      "value": "00000000-0000-4000-8000-000000000010",
+      "type": "string"
+    },
+    {
+      "key": "recoveryId",
+      "value": "00000000-0000-4000-8000-000000000011",
+      "type": "string"
+    },
+    {
+      "key": "receivableId",
+      "value": "00000000-0000-4000-8000-000000000012",
+      "type": "string"
+    },
+    {
+      "key": "invoiceId",
+      "value": "00000000-0000-4000-8000-000000000013",
+      "type": "string"
+    },
+    {
+      "key": "legalEntityId",
+      "value": "00000000-0000-4000-8000-000000000101",
+      "type": "string"
+    },
+    {
+      "key": "fiscalYearId",
+      "value": "00000000-0000-4000-8000-000000000102",
+      "type": "string"
+    },
+    {
+      "key": "periodId",
+      "value": "00000000-0000-4000-8000-000000000103",
+      "type": "string"
+    },
+    {
+      "key": "ledgerId",
+      "value": "00000000-0000-4000-8000-000000000104",
+      "type": "string"
+    },
+    {
+      "key": "coaId",
+      "value": "00000000-0000-4000-8000-000000000105",
+      "type": "string"
+    },
+    {
+      "key": "glAccountId",
+      "value": "00000000-0000-4000-8000-000000000106",
+      "type": "string"
+    },
+    {
+      "key": "glAccountId2",
+      "value": "00000000-0000-4000-8000-000000000107",
+      "type": "string"
+    },
+    {
+      "key": "bpId",
+      "value": "00000000-0000-4000-8000-000000000108",
+      "type": "string"
+    },
+    {
+      "key": "billingEventId",
+      "value": "00000000-0000-4000-8000-000000000109",
+      "type": "string"
+    },
+    {
+      "key": "documentId",
+      "value": "00000000-0000-4000-8000-000000000110",
+      "type": "string"
+    },
+    {
+      "key": "arInvoiceId",
+      "value": "00000000-0000-4000-8000-000000000111",
+      "type": "string"
+    },
+    {
+      "key": "advertiserId",
+      "value": "00000000-0000-4000-8000-000000000201",
+      "type": "string"
+    },
+    {
+      "key": "campaignId",
+      "value": "00000000-0000-4000-8000-000000000202",
+      "type": "string"
+    },
+    {
+      "key": "reviewId",
+      "value": "00000000-0000-4000-8000-000000000203",
+      "type": "string"
+    },
+    {
+      "key": "adInvoiceId",
+      "value": "00000000-0000-4000-8000-000000000204",
+      "type": "string"
+    },
+    {
+      "key": "eventId",
+      "value": "00000000-0000-4000-8000-000000000205",
+      "type": "string"
+    },
+    {
+      "key": "deliveryDecisionId",
+      "value": "00000000-0000-4000-8000-000000000206",
+      "type": "string"
+    },
+    {
+      "key": "requestId",
+      "value": "00000000-0000-4000-8000-000000000207",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "00 - Diagnóstico y configuración local",
+      "description": "Antes de usar esta colección para pruebas manuales sin tokens, configurar AUTH_DISABLED_FOR_LOCAL_TESTING=true en .env local y reiniciar la API. Esta bandera está bloqueada por validación en NODE_ENV=production.",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            },
+            "description": "Endpoint público de salud. No requiere token."
+          }
+        },
+        {
+          "name": "Ready",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ready",
+              "host": ["{{baseUrl}}"],
+              "path": ["ready"]
+            },
+            "description": "Endpoint público de readiness. Valida dependencias críticas."
+          }
+        },
+        {
+          "name": "Verificar bypass local de auth",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/b2b/accounts?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["b2b", "accounts"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Debe responder sin Authorization si AUTH_DISABLED_FOR_LOCAL_TESTING=true en .env."
+          }
+        }
+      ]
+    },
+    {
+      "name": "01 - CRM / Ventas B2B",
+      "description": "",
+      "item": [
+        {
+          "name": "Listar cuentas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/b2b/accounts?page=1&limit=25&sortBy=createdAt&sortOrder=DESC",
+              "host": ["{{baseUrl}}"],
+              "path": ["b2b", "accounts"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "25"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "createdAt"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "DESC"
+                }
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Obtener cuenta por ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/b2b/accounts/{{accountId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["b2b", "accounts", "{{accountId}}"]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Crear cuenta B2B",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/b2b/accounts",
+              "host": ["{{baseUrl}}"],
+              "path": ["b2b", "accounts"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"legalName\": \"Comercial Demo S.R.L.\",\n  \"tradeName\": \"Comercial Demo\",\n  \"taxId\": \"NIT-DEMO-001\",\n  \"accountType\": \"MERCHANT\",\n  \"industry\": \"Retail\",\n  \"expectedMonthlyVolume\": 50000,\n  \"notes\": \"Cuenta de prueba creada desde Postman.\",\n  \"primaryContact\": {\n    \"fullName\": \"Ana Responsable\",\n    \"roleTitle\": \"Gerente General\",\n    \"email\": \"ana.demo@example.com\",\n    \"phone\": \"+59170000001\",\n    \"decisionRole\": \"DECISOR\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Crear cuenta B2B BULK",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/b2b/accounts/bulk",
+              "host": ["{{baseUrl}}"],
+              "path": ["b2b", "accounts", "bulk"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"batchExternalId\": \"postman-b2b-accounts-001\",\n  \"items\": [\n    {\n      \"legalName\": \"Comercial Demo S.R.L.\",\n      \"tradeName\": \"Comercial Demo\",\n      \"taxId\": \"NIT-DEMO-001\",\n      \"accountType\": \"MERCHANT\",\n      \"industry\": \"Retail\",\n      \"expectedMonthlyVolume\": 50000,\n      \"notes\": \"Cuenta de prueba creada desde Postman.\",\n      \"primaryContact\": {\n        \"fullName\": \"Ana Responsable\",\n        \"roleTitle\": \"Gerente General\",\n        \"email\": \"ana.demo@example.com\",\n        \"phone\": \"+59170000001\",\n        \"decisionRole\": \"DECISOR\"\n      }\n    },\n    {\n      \"legalName\": \"Comercial Demo S.R.L.\",\n      \"tradeName\": \"Comercial Demo 2\",\n      \"taxId\": \"NIT-DEMO-002\",\n      \"accountType\": \"MERCHANT\",\n      \"industry\": \"Retail\",\n      \"expectedMonthlyVolume\": 50000,\n      \"notes\": \"Cuenta de prueba creada desde Postman.\",\n      \"primaryContact\": {\n        \"fullName\": \"Ana Responsable\",\n        \"roleTitle\": \"Gerente General\",\n        \"email\": \"ana.demo2@example.com\",\n        \"phone\": \"+59170000001\",\n        \"decisionRole\": \"DECISOR\"\n      }\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Crear contacto de cuenta",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/b2b/accounts/{{accountId}}/contacts",
+              "host": ["{{baseUrl}}"],
+              "path": ["b2b", "accounts", "{{accountId}}", "contacts"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Carlos Contacto\",\n  \"roleTitle\": \"Jefe de Finanzas\",\n  \"email\": \"carlos.contacto@example.com\",\n  \"phone\": \"+59170000002\",\n  \"decisionRole\": \"INFLUENCER\",\n  \"isPrimary\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Calificar cuenta y crear oportunidad",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/b2b/accounts/{{accountId}}/qualify",
+              "host": ["{{baseUrl}}"],
+              "path": ["b2b", "accounts", "{{accountId}}", "qualify"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"hasCommercialFit\": true,\n  \"createOpportunity\": true,\n  \"opportunity\": {\n    \"name\": \"Implementación BNPL 2026\",\n    \"opportunityType\": \"BNPL\",\n    \"expectedMonthlyVolume\": 75000,\n    \"expectedMdrRate\": 3.1,\n    \"probability\": 60,\n    \"expectedCloseDate\": \"2026-08-31\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Crear oportunidad",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/b2b/opportunities",
+              "host": ["{{baseUrl}}"],
+              "path": ["b2b", "opportunities"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": \"{{accountId}}\",\n  \"ownerUserId\": \"{{accountId}}\",\n  \"name\": \"Oportunidad Postman\",\n  \"opportunityType\": \"BNPL\",\n  \"expectedMonthlyVolume\": 50000,\n  \"expectedMdrRate\": 3,\n  \"probability\": 40,\n  \"expectedCloseDate\": \"2026-08-15\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Mover etapa de oportunidad",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/b2b/opportunities/{{opportunityId}}/stage",
+              "host": ["{{baseUrl}}"],
+              "path": ["b2b", "opportunities", "{{opportunityId}}", "stage"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stage\": \"PROPOSAL\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Crear propuesta",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/b2b/proposals",
+              "host": ["{{baseUrl}}"],
+              "path": ["b2b", "proposals"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"opportunityId\": \"{{opportunityId}}\",\n  \"proposalNumber\": \"PROP-PM-001\",\n  \"validUntil\": \"2026-08-31\",\n  \"totalEstimatedMonthlyRevenue\": 2500,\n  \"lines\": [\n    {\n      \"termType\": \"MDR\",\n      \"description\": \"Comisión MDR estándar\",\n      \"ratePercent\": 3.2,\n      \"currency\": \"BOB\",\n      \"billingTiming\": \"MONTHLY\",\n      \"minimumMonthlyAmount\": 0\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Enviar propuesta",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/b2b/proposals/{{proposalId}}/send",
+              "host": ["{{baseUrl}}"],
+              "path": ["b2b", "proposals", "{{proposalId}}", "send"]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Aceptar propuesta",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/b2b/proposals/{{proposalId}}/accept",
+              "host": ["{{baseUrl}}"],
+              "path": ["b2b", "proposals", "{{proposalId}}", "accept"]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Rechazar propuesta",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/b2b/proposals/{{proposalId}}/reject",
+              "host": ["{{baseUrl}}"],
+              "path": ["b2b", "proposals", "{{proposalId}}", "reject"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Condiciones comerciales rechazadas por el cliente.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Decidir aprobación de propuesta",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/b2b/proposals/approvals/{{proposalId}}/decision",
+              "host": ["{{baseUrl}}"],
+              "path": ["b2b", "proposals", "approvals", "{{proposalId}}", "decision"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"APPROVED\",\n  \"reason\": \"Aprobación manual desde Postman.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Crear contrato desde propuesta",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/b2b/contracts/from-proposal",
+              "host": ["{{baseUrl}}"],
+              "path": ["b2b", "contracts", "from-proposal"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"proposalId\": \"{{proposalId}}\",\n  \"contractNumber\": \"CTR-PM-001\",\n  \"startDate\": \"2026-09-01\",\n  \"endDate\": \"2027-09-01\",\n  \"billingCycle\": \"MONTHLY\",\n  \"settlementPolicy\": \"PER_CONTRACT\",\n  \"documentUrl\": \"https://example.com/contracts/ctr-pm-001.pdf\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Firmar y activar contrato",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/b2b/contracts/{{contractId}}/sign-and-activate",
+              "host": ["{{baseUrl}}"],
+              "path": ["b2b", "contracts", "{{contractId}}", "sign-and-activate"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"signedAt\": \"2026-09-01T10:00:00.000Z\",\n  \"approvedByUserId\": \"{{accountId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Crear caso onboarding",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/b2b/onboarding/cases",
+              "host": ["{{baseUrl}}"],
+              "path": ["b2b", "onboarding", "cases"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": \"{{accountId}}\",\n  \"ownerUserId\": \"{{accountId}}\",\n  \"checklistItems\": [\n    {\n      \"itemType\": \"KYB\",\n      \"description\": \"Validar documentos legales\"\n    },\n    {\n      \"itemType\": \"TECH_SETUP\",\n      \"description\": \"Configurar credenciales técnicas\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Crear sucursal onboarding",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/b2b/onboarding/branches",
+              "host": ["{{baseUrl}}"],
+              "path": ["b2b", "onboarding", "branches"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": \"{{accountId}}\",\n  \"name\": \"Sucursal Central\",\n  \"city\": \"Santa Cruz\",\n  \"address\": \"Av. Demo #123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Crear usuario comercio",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/b2b/onboarding/merchant-users",
+              "host": ["{{baseUrl}}"],
+              "path": ["b2b", "onboarding", "merchant-users"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": \"{{accountId}}\",\n  \"branchId\": \"{{branchId}}\",\n  \"email\": \"usuario.comercio@example.com\",\n  \"fullName\": \"Usuario Comercio\",\n  \"roleCode\": \"MERCHANT_ADMIN\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Completar checklist onboarding",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/b2b/onboarding/cases/{{onboardingCaseId}}/checklist",
+              "host": ["{{baseUrl}}"],
+              "path": ["b2b", "onboarding", "cases", "{{onboardingCaseId}}", "checklist"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"checklistItemId\": \"{{onboardingCaseId}}\",\n  \"status\": \"COMPLETED\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Activar caso onboarding",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/b2b/onboarding/cases/{{onboardingCaseId}}/activate",
+              "host": ["{{baseUrl}}"],
+              "path": ["b2b", "onboarding", "cases", "{{onboardingCaseId}}", "activate"]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Registrar compra BNPL",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/b2b/bnpl/purchases",
+              "host": ["{{baseUrl}}"],
+              "path": ["b2b", "bnpl", "purchases"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchantAccountId\": \"{{accountId}}\",\n  \"branchId\": \"{{branchId}}\",\n  \"consumerId\": \"{{consumerId}}\",\n  \"consumerExternalRef\": \"CONS-001\",\n  \"purchaseAmount\": 1000,\n  \"downPaymentAmount\": 600,\n  \"downPaymentPaidAt\": \"2026-07-09T12:00:00.000Z\",\n  \"downPaymentEvidenceRef\": \"PAY-001\",\n  \"financedAmount\": 400,\n  \"riskTierAtOrigination\": \"A\",\n  \"cohortId\": \"2026-07\",\n  \"productCategory\": \"Electrodomésticos\",\n  \"mdrReceivableDueDate\": \"2026-07-31\",\n  \"installments\": [\n    {\n      \"installmentNumber\": 1,\n      \"dueDate\": \"2026-08-31\",\n      \"amount\": 200\n    },\n    {\n      \"installmentNumber\": 2,\n      \"dueDate\": \"2026-09-30\",\n      \"amount\": 200\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Emitir factura B2B",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/b2b/billing/invoices",
+              "host": ["{{baseUrl}}"],
+              "path": ["b2b", "billing", "invoices"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": \"{{accountId}}\",\n  \"contractId\": \"{{contractId}}\",\n  \"invoiceNumber\": \"INV-B2B-PM-001\",\n  \"invoiceDate\": \"2026-07-09\",\n  \"dueDate\": \"2026-07-31\",\n  \"receivableIds\": [\n    \"{{receivableId}}\"\n  ],\n  \"externalTaxRef\": \"SIAT-PM-001\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Registrar pago comercio",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/b2b/billing/merchant-payments",
+              "host": ["{{baseUrl}}"],
+              "path": ["b2b", "billing", "merchant-payments"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": \"{{accountId}}\",\n  \"amount\": 100,\n  \"currency\": \"BOB\",\n  \"paidAt\": \"2026-07-09T12:00:00.000Z\",\n  \"paymentMethod\": \"TRANSFER\",\n  \"externalRef\": \"TRX-PM-001\",\n  \"allocations\": [\n    {\n      \"receivableId\": \"{{receivableId}}\",\n      \"amountApplied\": 100\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Programar cobertura",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/b2b/coverage/payables",
+              "host": ["{{baseUrl}}"],
+              "path": ["b2b", "coverage", "payables"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"installmentId\": \"{{installmentId}}\",\n  \"scheduledPaymentDate\": \"2026-08-05\",\n  \"reason\": \"CUSTOMER_INSTALLMENT_DEFAULT_COVERAGE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Marcar cobertura pagada",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/b2b/coverage/payables/{{payableId}}/paid",
+              "host": ["{{baseUrl}}"],
+              "path": ["b2b", "coverage", "payables", "{{payableId}}", "paid"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paidAt\": \"2026-08-05T12:00:00.000Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Aplicar recuperación",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/b2b/coverage/recoveries/{{recoveryId}}/apply-payment",
+              "host": ["{{baseUrl}}"],
+              "path": ["b2b", "coverage", "recoveries", "{{recoveryId}}", "apply-payment"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 100\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Ejecutar conciliación",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/b2b/reconciliation/runs",
+              "host": ["{{baseUrl}}"],
+              "path": ["b2b", "reconciliation", "runs"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"periodStart\": \"2026-07-01\",\n  \"periodEnd\": \"2026-07-31\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Contabilidad",
+      "description": "",
+      "item": [
+        {
+          "name": "Crear entidad legal",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/accounting/financial-structure/legal-entities",
+              "host": ["{{baseUrl}}"],
+              "path": ["accounting", "financial-structure", "legal-entities"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"ATLASBO\",\n  \"legalName\": \"ATLAS Bolivia S.R.L.\",\n  \"taxId\": \"123456789\",\n  \"countryCode\": \"BO\",\n  \"baseCurrency\": \"BOB\",\n  \"timezone\": \"America/La_Paz\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Crear sucursal contable",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/accounting/financial-structure/branches",
+              "host": ["{{baseUrl}}"],
+              "path": ["accounting", "financial-structure", "branches"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"legalEntityId\": \"{{legalEntityId}}\",\n  \"code\": \"SCZ\",\n  \"name\": \"Sucursal Santa Cruz\",\n  \"city\": \"Santa Cruz\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Crear año fiscal",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/accounting/financial-structure/fiscal-years",
+              "host": ["{{baseUrl}}"],
+              "path": ["accounting", "financial-structure", "fiscal-years"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"legalEntityId\": \"{{legalEntityId}}\",\n  \"yearLabel\": \"2026\",\n  \"startDate\": \"2026-01-01T00:00:00.000Z\",\n  \"endDate\": \"2026-12-31T00:00:00.000Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Crear periodo contable",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/accounting/financial-structure/periods",
+              "host": ["{{baseUrl}}"],
+              "path": ["accounting", "financial-structure", "periods"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fiscalYearId\": \"{{fiscalYearId}}\",\n  \"periodNo\": 7,\n  \"startDate\": \"2026-07-01T00:00:00.000Z\",\n  \"endDate\": \"2026-07-31T00:00:00.000Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Crear ledger",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/accounting/financial-structure/ledgers",
+              "host": ["{{baseUrl}}"],
+              "path": ["accounting", "financial-structure", "ledgers"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"legalEntityId\": \"{{legalEntityId}}\",\n  \"code\": \"LOCAL\",\n  \"name\": \"Ledger local BO\",\n  \"accountingBasis\": \"LOCAL_BO\",\n  \"isDefault\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Crear plan de cuentas",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/accounting/financial-structure/charts-of-accounts",
+              "host": ["{{baseUrl}}"],
+              "path": ["accounting", "financial-structure", "charts-of-accounts"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"COA-BO-2026\",\n  \"name\": \"Plan de cuentas Bolivia 2026\",\n  \"versionNo\": 1,\n  \"effectiveFrom\": \"2026-01-01T00:00:00.000Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Crear cuenta GL",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/accounting/financial-structure/gl-accounts",
+              "host": ["{{baseUrl}}"],
+              "path": ["accounting", "financial-structure", "gl-accounts"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"coaId\": \"{{coaId}}\",\n  \"accountNo\": \"110101\",\n  \"name\": \"Caja Moneda Nacional\",\n  \"accountType\": \"ASSET\",\n  \"normalBalance\": \"D\",\n  \"isControlAccount\": false,\n  \"requiresCostCenter\": false,\n  \"requiresProfitCenter\": false,\n  \"requiresPartner\": false,\n  \"requiresTaxCode\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Listar cuentas GL",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/accounting/financial-structure/gl-accounts?page=1&pageSize=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["accounting", "financial-structure", "gl-accounts"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Crear código tributario",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/accounting/financial-structure/tax-codes",
+              "host": ["{{baseUrl}}"],
+              "path": ["accounting", "financial-structure", "tax-codes"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"IVA13\",\n  \"taxType\": \"IVA\",\n  \"rate\": 13,\n  \"recoverablePercent\": 100,\n  \"effectiveFrom\": \"2026-01-01T00:00:00.000Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Crear business partner",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/accounting/business-partners",
+              "host": ["{{baseUrl}}"],
+              "path": ["accounting", "business-partners"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"partnerNo\": \"BP-PM-001\",\n  \"partnerType\": \"COMPANY\",\n  \"legalName\": \"Cliente Contable Demo S.R.L.\",\n  \"tradeName\": \"Cliente Demo\",\n  \"taxId\": \"NIT-BP-001\",\n  \"countryCode\": \"BO\",\n  \"kybStatus\": \"PENDING\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Listar business partners",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/accounting/business-partners?page=1&pageSize=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["accounting", "business-partners"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Agregar rol a business partner",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/accounting/business-partners/roles",
+              "host": ["{{baseUrl}}"],
+              "path": ["accounting", "business-partners", "roles"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"businessPartnerId\": \"{{bpId}}\",\n  \"roleCode\": \"CUSTOMER\",\n  \"legalEntityId\": \"{{legalEntityId}}\",\n  \"effectiveFrom\": \"2026-07-01T00:00:00.000Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Crear contrato contable",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/accounting/contracts",
+              "host": ["{{baseUrl}}"],
+              "path": ["accounting", "contracts"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contractNo\": \"ACC-CTR-PM-001\",\n  \"contractType\": \"CUSTOMER_BILLING\",\n  \"legalEntityId\": \"{{legalEntityId}}\",\n  \"counterpartyBpId\": \"{{bpId}}\",\n  \"startDate\": \"2026-07-01T00:00:00.000Z\",\n  \"currencyCode\": \"BOB\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Agregar término de contrato",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/accounting/contracts/terms",
+              "host": ["{{baseUrl}}"],
+              "path": ["accounting", "contracts", "terms"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contractId\": \"{{contractId}}\",\n  \"termCode\": \"MDR_RATE\",\n  \"termValueJson\": {\n    \"ratePercent\": 3.2\n  },\n  \"effectiveFrom\": \"2026-07-01T00:00:00.000Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Crear evento de facturación",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/accounting/billing/events",
+              "host": ["{{baseUrl}}"],
+              "path": ["accounting", "billing", "events"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contractId\": \"{{contractId}}\",\n  \"eventType\": \"MDR\",\n  \"eventTime\": \"2026-07-09T12:00:00.000Z\",\n  \"quantity\": 1,\n  \"baseAmount\": 1000,\n  \"currencyCode\": \"BOB\",\n  \"externalRef\": \"BILL-EVT-PM-001\",\n  \"payload\": {\n    \"origin\": \"postman\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Emitir AR invoice contable",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/accounting/billing/ar-invoices",
+              "host": ["{{baseUrl}}"],
+              "path": ["accounting", "billing", "ar-invoices"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"legalEntityId\": \"{{legalEntityId}}\",\n  \"customerBpId\": \"{{bpId}}\",\n  \"contractId\": \"{{contractId}}\",\n  \"invoiceNo\": \"AR-PM-001\",\n  \"invoiceDate\": \"2026-07-09T00:00:00.000Z\",\n  \"dueDate\": \"2026-07-31T00:00:00.000Z\",\n  \"currencyCode\": \"BOB\",\n  \"netAmount\": 1000,\n  \"taxAmount\": 130,\n  \"arAccountId\": \"{{glAccountId}}\",\n  \"revenueAccountId\": \"{{glAccountId2}}\",\n  \"description\": \"Factura de prueba Postman\",\n  \"accountingPeriodId\": \"{{periodId}}\",\n  \"ledgerId\": \"{{ledgerId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Crear documento contable draft",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/accounting/documents",
+              "host": ["{{baseUrl}}"],
+              "path": ["accounting", "documents"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"legalEntityId\": \"{{legalEntityId}}\",\n  \"sourceSystem\": \"POSTMAN\",\n  \"sourceType\": \"MANUAL_TEST\",\n  \"sourceId\": \"PM-001\",\n  \"documentType\": \"GL\",\n  \"documentNo\": \"PM-GL-001\",\n  \"documentDate\": \"2026-07-09T00:00:00.000Z\",\n  \"postingDate\": \"2026-07-09T00:00:00.000Z\",\n  \"accountingPeriodId\": \"{{periodId}}\",\n  \"ledgerId\": \"{{ledgerId}}\",\n  \"currencyCode\": \"BOB\",\n  \"approvalStatus\": \"NOT_REQUIRED\",\n  \"lines\": [\n    {\n      \"glAccountId\": \"{{glAccountId}}\",\n      \"debit\": 100,\n      \"credit\": 0,\n      \"currencyCode\": \"BOB\",\n      \"amountLc\": 100,\n      \"description\": \"Débito prueba\"\n    },\n    {\n      \"glAccountId\": \"{{glAccountId2}}\",\n      \"debit\": 0,\n      \"credit\": 100,\n      \"currencyCode\": \"BOB\",\n      \"amountLc\": -100,\n      \"description\": \"Crédito prueba\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Crear documentos contables BULK",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/accounting/documents/bulk",
+              "host": ["{{baseUrl}}"],
+              "path": ["accounting", "documents", "bulk"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"batchExternalId\": \"postman-accounting-documents-001\",\n  \"items\": [\n    {\n      \"legalEntityId\": \"{{legalEntityId}}\",\n      \"sourceSystem\": \"POSTMAN\",\n      \"sourceType\": \"MANUAL_TEST\",\n      \"sourceId\": \"PM-001\",\n      \"documentType\": \"GL\",\n      \"documentNo\": \"PM-GL-001\",\n      \"documentDate\": \"2026-07-09T00:00:00.000Z\",\n      \"postingDate\": \"2026-07-09T00:00:00.000Z\",\n      \"accountingPeriodId\": \"{{periodId}}\",\n      \"ledgerId\": \"{{ledgerId}}\",\n      \"currencyCode\": \"BOB\",\n      \"approvalStatus\": \"NOT_REQUIRED\",\n      \"lines\": [\n        {\n          \"glAccountId\": \"{{glAccountId}}\",\n          \"debit\": 100,\n          \"credit\": 0,\n          \"currencyCode\": \"BOB\",\n          \"amountLc\": 100,\n          \"description\": \"Débito prueba\"\n        },\n        {\n          \"glAccountId\": \"{{glAccountId2}}\",\n          \"debit\": 0,\n          \"credit\": 100,\n          \"currencyCode\": \"BOB\",\n          \"amountLc\": -100,\n          \"description\": \"Crédito prueba\"\n        }\n      ]\n    },\n    {\n      \"legalEntityId\": \"{{legalEntityId}}\",\n      \"sourceSystem\": \"POSTMAN\",\n      \"sourceType\": \"MANUAL_TEST\",\n      \"sourceId\": \"PM-002\",\n      \"documentType\": \"GL\",\n      \"documentNo\": \"PM-GL-002\",\n      \"documentDate\": \"2026-07-09T00:00:00.000Z\",\n      \"postingDate\": \"2026-07-09T00:00:00.000Z\",\n      \"accountingPeriodId\": \"{{periodId}}\",\n      \"ledgerId\": \"{{ledgerId}}\",\n      \"currencyCode\": \"BOB\",\n      \"approvalStatus\": \"NOT_REQUIRED\",\n      \"lines\": [\n        {\n          \"glAccountId\": \"{{glAccountId}}\",\n          \"debit\": 100,\n          \"credit\": 0,\n          \"currencyCode\": \"BOB\",\n          \"amountLc\": 100,\n          \"description\": \"Débito prueba\"\n        },\n        {\n          \"glAccountId\": \"{{glAccountId2}}\",\n          \"debit\": 0,\n          \"credit\": 100,\n          \"currencyCode\": \"BOB\",\n          \"amountLc\": -100,\n          \"description\": \"Crédito prueba\"\n        }\n      ]\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Postear documento contable",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/accounting/documents/{{documentId}}/post",
+              "host": ["{{baseUrl}}"],
+              "path": ["accounting", "documents", "{{documentId}}", "post"]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Reversar documento contable",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/accounting/documents/{{documentId}}/reverse",
+              "host": ["{{baseUrl}}"],
+              "path": ["accounting", "documents", "{{documentId}}", "reverse"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reversalDocumentNo\": \"REV-PM-001\",\n  \"reversalDate\": \"2026-07-10T00:00:00.000Z\",\n  \"accountingPeriodId\": \"{{periodId}}\",\n  \"reason\": \"Reverso de prueba desde Postman.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Obtener documento contable",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/accounting/documents/{{documentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["accounting", "documents", "{{documentId}}"]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Registrar recibo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/accounting/receipts",
+              "host": ["{{baseUrl}}"],
+              "path": ["accounting", "receipts"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"legalEntityId\": \"{{legalEntityId}}\",\n  \"payerBpId\": \"{{bpId}}\",\n  \"receiptNo\": \"REC-PM-001\",\n  \"receiptDate\": \"2026-07-09T00:00:00.000Z\",\n  \"amount\": 1000,\n  \"currencyCode\": \"BOB\",\n  \"bankGlAccountId\": \"{{glAccountId}}\",\n  \"arControlGlAccountId\": \"{{glAccountId2}}\",\n  \"accountingPeriodId\": \"{{periodId}}\",\n  \"ledgerId\": \"{{ledgerId}}\",\n  \"allocations\": [\n    {\n      \"arInvoiceId\": \"{{arInvoiceId}}\",\n      \"allocatedAmount\": 1000\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Cerrar periodo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/accounting/closings/periods/close",
+              "host": ["{{baseUrl}}"],
+              "path": ["accounting", "closings", "periods", "close"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"legalEntityId\": \"{{legalEntityId}}\",\n  \"periodId\": \"{{periodId}}\",\n  \"closeType\": \"MONTHLY\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Reabrir periodo",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/accounting/closings/periods/reopen",
+              "host": ["{{baseUrl}}"],
+              "path": ["accounting", "closings", "periods", "reopen"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"periodId\": \"{{periodId}}\",\n  \"reason\": \"Reapertura de prueba solicitada desde Postman.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Publicidad externa / Admin",
+      "description": "",
+      "item": [
+        {
+          "name": "Dashboard Ads",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/ads/dashboard?from=2026-07-01&to=2026-07-31",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "ads", "dashboard"],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2026-07-01"
+                },
+                {
+                  "key": "to",
+                  "value": "2026-07-31"
+                }
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Listar anunciantes",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/ads/advertisers?page=1&limit=25",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "ads", "advertisers"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "25"
+                }
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Obtener anunciante",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/ads/advertisers/{{advertiserId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "ads", "advertisers", "{{advertiserId}}"]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Crear anunciante",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/ads/advertisers",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "ads", "advertisers"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"legalName\": \"Anunciante Demo S.R.L.\",\n  \"tradeName\": \"Anunciante Demo\",\n  \"taxId\": \"NIT-ADS-001\",\n  \"businessCategory\": \"Retail\",\n  \"country\": \"BO\",\n  \"city\": \"Santa Cruz\",\n  \"websiteUrl\": \"https://example.com\",\n  \"primaryContactName\": \"Luis Ads\",\n  \"primaryContactEmail\": \"luis.ads@example.com\",\n  \"billingMode\": \"POSTPAID\",\n  \"currency\": \"BOB\",\n  \"creditLimitMicros\": 100000000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Crear anunciantes BULK",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/ads/advertisers/bulk",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "ads", "advertisers", "bulk"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"batchExternalId\": \"postman-advertisers-001\",\n  \"items\": [\n    {\n      \"legalName\": \"Anunciante Demo S.R.L.\",\n      \"tradeName\": \"Anunciante Demo\",\n      \"taxId\": \"NIT-ADS-001\",\n      \"businessCategory\": \"Retail\",\n      \"country\": \"BO\",\n      \"city\": \"Santa Cruz\",\n      \"websiteUrl\": \"https://example.com\",\n      \"primaryContactName\": \"Luis Ads\",\n      \"primaryContactEmail\": \"luis.ads@example.com\",\n      \"billingMode\": \"POSTPAID\",\n      \"currency\": \"BOB\",\n      \"creditLimitMicros\": 100000000\n    },\n    {\n      \"legalName\": \"Anunciante Demo S.R.L.\",\n      \"tradeName\": \"Anunciante Demo 2\",\n      \"taxId\": \"NIT-ADS-002\",\n      \"businessCategory\": \"Retail\",\n      \"country\": \"BO\",\n      \"city\": \"Santa Cruz\",\n      \"websiteUrl\": \"https://example.com\",\n      \"primaryContactName\": \"Luis Ads\",\n      \"primaryContactEmail\": \"luis.ads2@example.com\",\n      \"billingMode\": \"POSTPAID\",\n      \"currency\": \"BOB\",\n      \"creditLimitMicros\": 100000000\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Crear perfil de facturación",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/ads/advertisers/{{advertiserId}}/billing-profiles",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "ads", "advertisers", "{{advertiserId}}", "billing-profiles"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fiscalName\": \"Anunciante Demo S.R.L.\",\n  \"taxId\": \"NIT-ADS-001\",\n  \"billingEmail\": \"billing.ads@example.com\",\n  \"addressLine\": \"Av. Demo #456\",\n  \"country\": \"BO\",\n  \"city\": \"Santa Cruz\",\n  \"taxRegime\": \"GENERAL\",\n  \"sinCustomerCode\": \"SIN-001\",\n  \"isDefault\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Actualizar estado de anunciante",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/ads/advertisers/{{advertiserId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "ads", "advertisers", "{{advertiserId}}", "status"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ACTIVE\",\n  \"riskStatus\": \"LOW\",\n  \"reason\": \"Activación validada desde Postman.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Listar campañas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/ads/campaigns?page=1&limit=25",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "ads", "campaigns"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "25"
+                }
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Obtener campaña",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/ads/campaigns/{{campaignId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "ads", "campaigns", "{{campaignId}}"]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Actualizar estado de campaña",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/ads/campaigns/{{campaignId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "ads", "campaigns", "{{campaignId}}", "status"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ACTIVE\",\n  \"reason\": \"Campaña activada desde Postman.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Cola de moderación",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/ads/moderation/queue?page=1&limit=25&status=PENDING_REVIEW",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "ads", "moderation", "queue"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "25"
+                },
+                {
+                  "key": "status",
+                  "value": "PENDING_REVIEW"
+                }
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Decidir moderación",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/ads/moderation/{{reviewId}}/decision",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "ads", "moderation", "{{reviewId}}", "decision"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reviewStatus\": \"APPROVED\",\n  \"reasonCode\": \"CONTENT_OK\",\n  \"notes\": \"Aprobado manualmente en Postman.\",\n  \"requiresAdvertiserChanges\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Listar inventario",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/ads/inventory?page=1&limit=25",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "ads", "inventory"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "25"
+                }
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Crear placement inventario",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/ads/inventory",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "ads", "inventory"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"placementCode\": \"HOME_BANNER_TOP\",\n  \"surface\": \"HOME\",\n  \"allowedFormats\": [\n    \"IMAGE\",\n    \"HTML5\"\n  ],\n  \"floorPriceMicros\": 1000000,\n  \"billingModel\": \"CPM\",\n  \"status\": \"ACTIVE\",\n  \"widthPx\": 1200,\n  \"heightPx\": 300\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Listar políticas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/ads/policies?page=1&limit=25",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "ads", "policies"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "25"
+                }
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Crear política",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/ads/policies",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "ads", "policies"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"policyCode\": \"NO_MISLEADING_HEALTH\",\n  \"category\": \"CONTENT\",\n  \"ruleType\": \"CONTENT_POLICY\",\n  \"severity\": \"HIGH\",\n  \"description\": \"Evita claims engañosos en anuncios.\",\n  \"isActive\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Cerrar periodo de facturación Ads",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/ads/billing/period-close",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "ads", "billing", "period-close"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"periodStart\": \"2026-07-01\",\n  \"periodEnd\": \"2026-07-31\",\n  \"advertiserId\": \"{{advertiserId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Registrar pago factura Ads",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/ads/invoices/{{adInvoiceId}}/payments",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "ads", "invoices", "{{adInvoiceId}}", "payments"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amountMicros\": 100000000,\n  \"currency\": \"BOB\",\n  \"paymentDate\": \"2026-07-31\",\n  \"paymentMethod\": \"TRANSFER\",\n  \"reference\": \"PAY-ADS-PM-001\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Monitor de delivery",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/ads/delivery-monitor?page=1&limit=25&from=2026-07-01&to=2026-07-31",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "ads", "delivery-monitor"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "25"
+                },
+                {
+                  "key": "from",
+                  "value": "2026-07-01"
+                },
+                {
+                  "key": "to",
+                  "value": "2026-07-31"
+                }
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Actualizar facturabilidad evento",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/ads/events/{{eventId}}/billable-status",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "ads", "events", "{{eventId}}", "billable-status"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isBillable\": false,\n  \"reason\": \"Evento marcado como no facturable por prueba Postman.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Auditoría Ads",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/ads/audit?page=1&limit=25",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "ads", "audit"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "25"
+                }
+              ]
+            },
+            "description": ""
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Publicidad externa / Delivery",
+      "description": "",
+      "item": [
+        {
+          "name": "Seleccionar anuncio",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ads/delivery/select",
+              "host": ["{{baseUrl}}"],
+              "path": ["ads", "delivery", "select"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"placementCode\": \"HOME_BANNER_TOP\",\n  \"corporateClientHash\": \"client_hash_1234567890\",\n  \"contextHash\": \"context_hash_1234567890\",\n  \"surface\": \"HOME\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Registrar evento Ads",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ads/events",
+              "host": ["{{baseUrl}}"],
+              "path": ["ads", "events"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventType\": \"IMPRESSION\",\n  \"deliveryDecisionId\": \"{{deliveryDecisionId}}\",\n  \"requestId\": \"{{requestId}}\",\n  \"eventTime\": \"2026-07-09T12:00:00.000Z\",\n  \"corporateClientHash\": \"client_hash_1234567890\",\n  \"sessionHash\": \"session_hash_1234567890\",\n  \"fraudScore\": 0.1,\n  \"metadata\": {\n    \"source\": \"postman\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Registrar eventos Ads BULK",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ads/events/bulk",
+              "host": ["{{baseUrl}}"],
+              "path": ["ads", "events", "bulk"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"batchExternalId\": \"postman-ads-events-001\",\n  \"items\": [\n    {\n      \"eventType\": \"IMPRESSION\",\n      \"deliveryDecisionId\": \"{{deliveryDecisionId}}\",\n      \"requestId\": \"{{requestId}}\",\n      \"eventTime\": \"2026-07-09T12:00:00.000Z\",\n      \"corporateClientHash\": \"client_hash_1234567890\",\n      \"sessionHash\": \"session_hash_1234567890\",\n      \"fraudScore\": 0.1,\n      \"metadata\": {\n        \"source\": \"postman\"\n      }\n    },\n    {\n      \"eventType\": \"CLICK\",\n      \"deliveryDecisionId\": \"{{deliveryDecisionId}}\",\n      \"requestId\": \"00000000-0000-4000-8000-000000000208\",\n      \"eventTime\": \"2026-07-09T12:00:00.000Z\",\n      \"corporateClientHash\": \"client_hash_1234567890\",\n      \"sessionHash\": \"session_hash_1234567890\",\n      \"fraudScore\": 0.1,\n      \"metadata\": {\n        \"source\": \"postman\"\n      }\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - Auditoría de negocio",
+      "description": "",
+      "item": [
+        {
+          "name": "Listar Business Action Logs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/audit/business-actions?page=1&pageSize=25",
+              "host": ["{{baseUrl}}"],
+              "path": ["audit", "business-actions"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "25"
+                }
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Filtrar Business Action Logs por módulo",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/audit/business-actions?page=1&pageSize=25&moduleCode=B2B_SALES_CRM&status=SUCCESS",
+              "host": ["{{baseUrl}}"],
+              "path": ["audit", "business-actions"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "25"
+                },
+                {
+                  "key": "moduleCode",
+                  "value": "B2B_SALES_CRM"
+                },
+                {
+                  "key": "status",
+                  "value": "SUCCESS"
+                }
+              ]
+            },
+            "description": ""
+          }
+        }
+      ]
+    }
+  ]
+}

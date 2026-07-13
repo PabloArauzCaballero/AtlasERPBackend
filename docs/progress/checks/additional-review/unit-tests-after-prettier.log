@@ -1,0 +1,17 @@
+
+> atlas-integrated-backend@1.0.0 test
+> jest --config ./jest.config.cjs
+
+PASS src/modules/b2b-sales-crm/b2b-sales-crm.schemas.spec.ts (8.475 s)
+PASS src/modules/ads/ads.schemas.spec.ts (9.612 s)
+PASS test/accounting-zod-validation.pipe.spec.ts (10.504 s)
+PASS test/accounting-double-entry.validator.spec.ts (10.515 s)
+PASS test/accounting-legal-entity-access.service.spec.ts (10.607 s)
+PASS test/common-roles.guard.spec.ts (10.932 s)
+A worker process has failed to exit gracefully and has been force exited. This is likely caused by tests leaking due to improper teardown. Try running with --detectOpenHandles to find leaks. Active timers can also cause this, ensure that .unref() was called on them.
+
+Test Suites: 6 passed, 6 total
+Tests:       28 passed, 28 total
+Snapshots:   0 total
+Time:        14.039 s
+Ran all test suites.

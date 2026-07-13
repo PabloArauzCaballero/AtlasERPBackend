@@ -1,0 +1,1970 @@
+openapi: 3.0.3
+info:
+  title: ATLAS Integrated Backend API
+  version: 1.0.0
+  description: API integrada para CRM/Ventas B2B, Contabilidad y Publicidad externa.
+    Todos los paths se sirven bajo el prefijo global /api/v1.
+servers:
+  - url: http://localhost:3000/api/v1
+tags:
+  - name: CRM / Ventas B2B
+  - name: Contabilidad
+  - name: Publicidad externa
+  - name: Auditoría
+paths:
+  /health:
+    get:
+      security: []
+      summary: Health check HTTP
+      responses:
+        '200':
+          description: OK
+      tags:
+        - CRM / Ventas B2B
+  /ready:
+    get:
+      security: []
+      summary: Readiness con base de datos
+      responses:
+        '200':
+          description: Ready
+      tags:
+        - CRM / Ventas B2B
+  /b2b/accounts:
+    post:
+      summary: Crear cuenta B2B lead con contacto principal
+      tags:
+        - Accounts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrmCreateAccountRequest'
+      responses:
+        '201':
+          description: Cuenta creada
+        '400':
+          $ref: '#/components/responses/CrmValidationError'
+        '409':
+          description: Cuenta duplicada
+    get:
+      summary: Listar cuentas B2B
+      tags:
+        - Accounts
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 25
+            maximum: 100
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/CrmAccountLifecycleStatus'
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Lista paginada
+  /b2b/accounts/{id}:
+    get:
+      summary: Obtener cuenta B2B
+      tags:
+        - Accounts
+      parameters:
+        - $ref: '#/components/parameters/CrmIdPath'
+      responses:
+        '200':
+          description: Cuenta encontrada
+        '404':
+          description: Cuenta no encontrada
+  /b2b/accounts/{accountId}/contacts:
+    post:
+      summary: Crear contacto B2B
+      tags:
+        - Accounts
+      parameters:
+        - $ref: '#/components/parameters/CrmAccountIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrmCreateContactRequest'
+      responses:
+        '201':
+          description: Contacto creado
+  /b2b/accounts/{accountId}/qualify:
+    post:
+      summary: Calificar o descalificar cuenta B2B
+      tags:
+        - Accounts
+      parameters:
+        - $ref: '#/components/parameters/CrmAccountIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrmQualifyAccountRequest'
+      responses:
+        '201':
+          description: Resultado de calificación
+  /b2b/opportunities:
+    post:
+      summary: Crear oportunidad comercial
+      tags:
+        - Opportunities
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrmCreateOpportunityRequest'
+      responses:
+        '201':
+          description: Oportunidad creada
+  /b2b/opportunities/{id}/stage:
+    patch:
+      summary: Cambiar etapa de oportunidad
+      tags:
+        - Opportunities
+      parameters:
+        - $ref: '#/components/parameters/CrmIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - stage
+              properties:
+                stage:
+                  $ref: '#/components/schemas/CrmOpportunityStage'
+                lossReason:
+                  type: string
+      responses:
+        '200':
+          description: Etapa actualizada
+  /b2b/proposals:
+    post:
+      summary: Crear propuesta comercial
+      tags:
+        - Proposals
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrmCreateProposalRequest'
+      responses:
+        '201':
+          description: Propuesta creada
+  /b2b/proposals/{proposalId}/send:
+    patch:
+      summary: Enviar propuesta
+      tags:
+        - Proposals
+      parameters:
+        - $ref: '#/components/parameters/CrmProposalIdPath'
+      responses:
+        '200':
+          description: Propuesta enviada
+  /b2b/proposals/{proposalId}/accept:
+    patch:
+      summary: Aceptar propuesta
+      tags:
+        - Proposals
+      parameters:
+        - $ref: '#/components/parameters/CrmProposalIdPath'
+      responses:
+        '200':
+          description: Propuesta aceptada
+  /b2b/proposals/{proposalId}/reject:
+    patch:
+      summary: Rechazar propuesta
+      tags:
+        - Proposals
+      parameters:
+        - $ref: '#/components/parameters/CrmProposalIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: Propuesta rechazada
+  /b2b/proposals/approvals/{id}/decision:
+    patch:
+      summary: Decidir aprobación comercial
+      tags:
+        - Approvals
+      parameters:
+        - $ref: '#/components/parameters/CrmIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+                - reason
+              properties:
+                status:
+                  type: string
+                  enum:
+                    - APPROVED
+                    - REJECTED
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: Aprobación decidida
+  /b2b/contracts/from-proposal:
+    post:
+      summary: Crear contrato desde propuesta aceptada
+      tags:
+        - Contracts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrmCreateContractFromProposalRequest'
+      responses:
+        '201':
+          description: Contrato creado
+  /b2b/contracts/{contractId}/sign-and-activate:
+    patch:
+      summary: Firmar y activar contrato
+      tags:
+        - Contracts
+      parameters:
+        - $ref: '#/components/parameters/CrmContractIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - approvedByUserId
+              properties:
+                signedAt:
+                  type: string
+                  format: date-time
+                approvedByUserId:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: Contrato activo
+  /b2b/onboarding/cases:
+    post:
+      summary: Crear caso de onboarding
+      tags:
+        - Onboarding
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrmCreateOnboardingCaseRequest'
+      responses:
+        '201':
+          description: Caso creado
+  /b2b/onboarding/branches:
+    post:
+      summary: Crear sucursal de comercio
+      tags:
+        - Onboarding
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrmCreateBranchRequest'
+      responses:
+        '201':
+          description: Sucursal creada
+  /b2b/onboarding/merchant-users:
+    post:
+      summary: Crear usuario de comercio
+      tags:
+        - Onboarding
+      responses:
+        '201':
+          description: Usuario creado
+  /b2b/onboarding/cases/{onboardingCaseId}/checklist:
+    patch:
+      summary: Completar checklist de onboarding
+      tags:
+        - Onboarding
+      parameters:
+        - $ref: '#/components/parameters/CrmOnboardingCaseIdPath'
+      responses:
+        '200':
+          description: Checklist actualizado
+  /b2b/onboarding/cases/{onboardingCaseId}/activate:
+    patch:
+      summary: Activar comercio tras onboarding
+      tags:
+        - Onboarding
+      parameters:
+        - $ref: '#/components/parameters/CrmOnboardingCaseIdPath'
+      responses:
+        '200':
+          description: Comercio activado
+  /b2b/bnpl/purchases:
+    post:
+      summary: Registrar compra BNPL y cargo MDR
+      tags:
+        - BNPL
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrmRegisterPurchaseRequest'
+      responses:
+        '201':
+          description: Compra registrada
+  /b2b/billing/invoices:
+    post:
+      summary: Emitir factura desde CxC B2B
+      tags:
+        - Billing
+      responses:
+        '201':
+          description: Factura emitida
+  /b2b/billing/merchant-payments:
+    post:
+      summary: Registrar pago y aplicar a CxC
+      tags:
+        - Billing
+      responses:
+        '201':
+          description: Pago registrado
+  /b2b/coverage/payables:
+    post:
+      summary: Programar cobertura ATLAS a comercio
+      tags:
+        - Coverage
+      responses:
+        '201':
+          description: CxP creada
+  /b2b/coverage/payables/{payableId}/paid:
+    patch:
+      summary: Marcar CxP como pagada y crear recuperación consumidor
+      tags:
+        - Coverage
+      parameters:
+        - $ref: '#/components/parameters/CrmPayableIdPath'
+      responses:
+        '200':
+          description: CxP pagada
+  /b2b/coverage/recoveries/{recoveryId}/apply-payment:
+    patch:
+      summary: Aplicar recuperación de consumidor
+      tags:
+        - Coverage
+      parameters:
+        - $ref: '#/components/parameters/CrmRecoveryIdPath'
+      responses:
+        '200':
+          description: Recuperación aplicada
+  /b2b/reconciliation/runs:
+    post:
+      summary: Ejecutar conciliación por periodo
+      tags:
+        - Reconciliation
+      responses:
+        '201':
+          description: Conciliación ejecutada
+  /accounting/financial-structure/legal-entities:
+    post:
+      summary: Crear entidad legal
+      description: Requiere rol admin. Crea la company code base del módulo.
+      responses:
+        '201':
+          description: Entidad legal creada
+        '403':
+          description: Rol insuficiente
+      tags:
+        - Contabilidad
+  /accounting/financial-structure/branches:
+    post:
+      summary: Crear sucursal
+      description: Valida alcance por entidad legal.
+      responses:
+        '201':
+          description: Sucursal creada
+        '403':
+          description: Entidad legal no autorizada
+      tags:
+        - Contabilidad
+  /accounting/financial-structure/fiscal-years:
+    post:
+      summary: Crear año fiscal
+      description: Valida rango de fechas y alcance por entidad legal.
+      responses:
+        '201':
+          description: Año fiscal creado
+        '400':
+          description: Rango inválido
+        '403':
+          description: Entidad legal no autorizada
+      tags:
+        - Contabilidad
+  /accounting/financial-structure/periods:
+    post:
+      summary: Crear período contable
+      description: Valida que el período pertenezca al año fiscal, no se solape y
+        respete alcance por entidad legal.
+      responses:
+        '201':
+          description: Período creado
+        '400':
+          description: Período fuera del año fiscal
+        '409':
+          description: Solapamiento de período
+      tags:
+        - Contabilidad
+  /accounting/financial-structure/ledgers:
+    post:
+      summary: Crear ledger
+      description: Crea ledger LOCAL_BO, MANAGEMENT o IFRS y valida alcance por entidad
+        legal.
+      responses:
+        '201':
+          description: Ledger creado
+        '409':
+          description: Ya existe ledger default para entidad/base
+      tags:
+        - Contabilidad
+  /accounting/financial-structure/charts-of-accounts:
+    post:
+      summary: Crear plan de cuentas versionado
+      responses:
+        '201':
+          description: Plan de cuentas creado
+      tags:
+        - Contabilidad
+  /accounting/financial-structure/gl-accounts:
+    get:
+      summary: Listar cuentas GL
+      parameters:
+        - $ref: '#/components/parameters/AccountingPage'
+        - $ref: '#/components/parameters/AccountingPageSize'
+      responses:
+        '200':
+          description: Lista paginada
+      tags:
+        - Contabilidad
+    post:
+      summary: Crear cuenta GL
+      description: Valida naturaleza deudora/acreedora según tipo de cuenta.
+      responses:
+        '201':
+          description: Cuenta creada
+        '400':
+          description: Naturaleza inválida
+      tags:
+        - Contabilidad
+  /accounting/financial-structure/tax-codes:
+    post:
+      summary: Crear código tributario
+      responses:
+        '201':
+          description: Código tributario creado
+      tags:
+        - Contabilidad
+  /accounting/business-partners:
+    get:
+      summary: Listar business partners
+      parameters:
+        - $ref: '#/components/parameters/AccountingPage'
+        - $ref: '#/components/parameters/AccountingPageSize'
+      responses:
+        '200':
+          description: Lista paginada
+      tags:
+        - Contabilidad
+    post:
+      summary: Crear business partner
+      responses:
+        '201':
+          description: Business partner creado
+      tags:
+        - Contabilidad
+  /accounting/business-partners/roles:
+    post:
+      summary: Agregar rol a business partner
+      description: Si el rol se limita a entidad legal, valida alcance por entidad.
+      responses:
+        '201':
+          description: Rol agregado
+        '403':
+          description: Entidad legal no autorizada
+      tags:
+        - Contabilidad
+  /accounting/contracts:
+    post:
+      summary: Crear contrato
+      description: Valida rol BP requerido por tipo de contrato y alcance por entidad
+        legal.
+      responses:
+        '201':
+          description: Contrato creado
+        '400':
+          description: Fechas inválidas
+        '403':
+          description: Entidad legal no autorizada
+      tags:
+        - Contabilidad
+  /accounting/contracts/terms:
+    post:
+      summary: Agregar término contractual versionado
+      description: Deriva la entidad legal desde el contrato y valida alcance.
+      responses:
+        '201':
+          description: Término creado
+        '404':
+          description: Contrato no encontrado
+      tags:
+        - Contabilidad
+  /accounting/documents:
+    post:
+      summary: Crear documento contable draft
+      description: Valida doble partida, período abierto, ledger, cuentas, dimensiones
+        y alcance por entidad legal.
+      responses:
+        '201':
+          description: Documento creado
+        '400':
+          description: Validación fallida
+        '403':
+          description: Entidad legal no autorizada
+        '409':
+          description: Período cerrado
+          ledger inválido o cuenta inconsistente: null
+      tags:
+        - Contabilidad
+  /accounting/documents/{id}:
+    get:
+      summary: Obtener documento contable con journal y líneas
+      parameters:
+        - $ref: '#/components/parameters/AccountingId'
+      responses:
+        '200':
+          description: Documento encontrado
+        '404':
+          description: Documento no existe
+      tags:
+        - Contabilidad
+  /accounting/documents/{id}/post:
+    patch:
+      summary: Publicar documento contable
+      description: Calcula y persiste hash SHA-256 del asiento. No permite publicar
+        si el documento no está en DRAFT.
+      parameters:
+        - $ref: '#/components/parameters/AccountingId'
+      responses:
+        '200':
+          description: Documento publicado
+        '403':
+          description: Entidad legal no autorizada
+        '409':
+          description: Documento no publicable
+      tags:
+        - Contabilidad
+  /accounting/documents/{id}/reverse:
+    post:
+      summary: Reversar documento contable publicado
+      description: Crea documento reverso, impide doble reversión y marca el original
+        como REVERSED.
+      parameters:
+        - $ref: '#/components/parameters/AccountingId'
+      responses:
+        '201':
+          description: Reverso creado y publicado
+        '403':
+          description: Entidad legal no autorizada
+        '409':
+          description: Documento no publicado o ya reversado
+      tags:
+        - Contabilidad
+  /accounting/billing/events:
+    post:
+      summary: Registrar evento facturable
+      description: Deriva entidad legal desde el contrato y valida alcance.
+      responses:
+        '201':
+          description: Evento facturable registrado
+        '404':
+          description: Contrato no encontrado
+      tags:
+        - Contabilidad
+  /accounting/billing/ar-invoices:
+    post:
+      summary: Emitir factura AR y asiento automático
+      description: Mantiene separado billing, factura comercial, documento fiscal
+        y documento contable. Valida trazabilidad SIAT cuando el documento está aceptado.
+      responses:
+        '201':
+          description: Factura emitida y contabilizada
+        '400':
+          description: Datos tributarios incompletos
+        '409':
+          description: Contrato no activo o incompatibilidad
+      tags:
+        - Contabilidad
+  /accounting/receipts:
+    post:
+      summary: Registrar recibo y aplicar AR
+      description: Usa locks de factura para evitar sobreasignación concurrente.
+      responses:
+        '201':
+          description: Recibo registrado y contabilizado
+        '409':
+          description: Saldo abierto insuficiente
+      tags:
+        - Contabilidad
+  /accounting/closings/periods/close:
+    post:
+      summary: Cerrar período
+      description: Valida que período y entidad legal coincidan, ejecuta controles
+        y congela período.
+      responses:
+        '201':
+          description: Cierre completado
+        '409':
+          description: Controles de cierre fallidos
+      tags:
+        - Contabilidad
+  /accounting/closings/periods/reopen:
+    patch:
+      summary: Reabrir período
+      description: Deriva entidad legal desde el período y exige motivo.
+      responses:
+        '200':
+          description: Período reabierto
+        '409':
+          description: Período ya abierto
+      tags:
+        - Contabilidad
+  /admin/ads/dashboard:
+    get:
+      summary: Dashboard administrativo de Ads
+      parameters:
+        - in: query
+          name: from
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: to
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: advertiserId
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: placementId
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: status
+          schema:
+            type: string
+      responses:
+        '200':
+          description: KPIs agregados
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdsSuccessResponse'
+        '401':
+          description: Token ausente o inválido
+        '403':
+          description: Rol insuficiente
+      tags:
+        - Publicidad externa
+  /admin/ads/advertisers:
+    get:
+      summary: Listar anunciantes
+      responses:
+        '200':
+          description: Lista paginada
+      tags:
+        - Publicidad externa
+    post:
+      summary: Crear anunciante
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdsCreateAdvertiserRequest'
+      responses:
+        '201':
+          description: Anunciante creado con auditId
+        '409':
+          description: NIT duplicado
+      tags:
+        - Publicidad externa
+  /admin/ads/advertisers/{advertiserId}/billing-profiles:
+    post:
+      summary: Crear perfil fiscal del anunciante
+      parameters:
+        - in: path
+          name: advertiserId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdsCreateBillingProfileRequest'
+      responses:
+        '201':
+          description: Perfil fiscal creado con auditId
+        '404':
+          description: Anunciante inexistente
+      tags:
+        - Publicidad externa
+  /admin/ads/advertisers/{advertiserId}:
+    get:
+      summary: Detalle de anunciante
+      parameters:
+        - in: path
+          name: advertiserId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Detalle 360
+      tags:
+        - Publicidad externa
+  /admin/ads/advertisers/{advertiserId}/status:
+    patch:
+      summary: Cambiar estado de anunciante
+      parameters:
+        - in: path
+          name: advertiserId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdsAdvertiserStatusRequest'
+      responses:
+        '200':
+          description: Estado actualizado con auditId
+      tags:
+        - Publicidad externa
+  /admin/ads/campaigns:
+    get:
+      summary: Listar campañas globales
+      responses:
+        '200':
+          description: Lista paginada
+      tags:
+        - Publicidad externa
+  /admin/ads/campaigns/{campaignId}:
+    get:
+      summary: Detalle de campaña
+      parameters:
+        - in: path
+          name: campaignId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Detalle de campaña
+      tags:
+        - Publicidad externa
+  /admin/ads/campaigns/{campaignId}/status:
+    patch:
+      summary: Cambiar estado de campaña
+      parameters:
+        - in: path
+          name: campaignId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdsCampaignStatusRequest'
+      responses:
+        '200':
+          description: Campaña actualizada con auditId
+      tags:
+        - Publicidad externa
+  /admin/ads/moderation/queue:
+    get:
+      summary: Cola de moderación
+      responses:
+        '200':
+          description: Revisiones paginadas
+      tags:
+        - Publicidad externa
+  /admin/ads/moderation/{reviewId}/decision:
+    post:
+      summary: Decidir revisión
+      parameters:
+        - in: path
+          name: reviewId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdsModerationDecisionRequest'
+      responses:
+        '200':
+          description: Decisión registrada
+      tags:
+        - Publicidad externa
+  /admin/ads/inventory:
+    get:
+      summary: Listar placements
+      responses:
+        '200':
+          description: Placements
+      tags:
+        - Publicidad externa
+    post:
+      summary: Crear placement
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdsCreateInventoryPlacementRequest'
+      responses:
+        '201':
+          description: Placement creado
+      tags:
+        - Publicidad externa
+  /admin/ads/policies:
+    get:
+      summary: Listar políticas
+      responses:
+        '200':
+          description: Políticas
+      tags:
+        - Publicidad externa
+    post:
+      summary: Crear política
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdsCreatePolicyRuleRequest'
+      responses:
+        '201':
+          description: Política creada
+      tags:
+        - Publicidad externa
+  /admin/ads/billing/period-close:
+    post:
+      summary: Cierre de periodo desde ledger
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdsPeriodCloseRequest'
+      responses:
+        '201':
+          description: Facturas draft generadas
+        '409':
+          description: Periodo ya cerrado o sin ledger
+      tags:
+        - Publicidad externa
+  /admin/ads/invoices/{invoiceId}/payments:
+    post:
+      summary: Registrar pago
+      parameters:
+        - in: path
+          name: invoiceId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdsRegisterPaymentRequest'
+      responses:
+        '201':
+          description: Pago registrado
+        '409':
+          description: Moneda inválida
+          factura cerrada o sobrepago: null
+      tags:
+        - Publicidad externa
+  /admin/ads/delivery-monitor:
+    get:
+      summary: Monitor delivery/eventos
+      responses:
+        '200':
+          description: KPIs y eventos
+      tags:
+        - Publicidad externa
+  /admin/ads/events/{eventId}/billable-status:
+    patch:
+      summary: Marcar evento facturable/no facturable
+      parameters:
+        - in: path
+          name: eventId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdsBillableStatusRequest'
+      responses:
+        '200':
+          description: Evento actualizado con auditId
+      tags:
+        - Publicidad externa
+  /admin/ads/audit:
+    get:
+      summary: Consultar auditoría
+      responses:
+        '200':
+          description: Bitácora paginada
+      tags:
+        - Publicidad externa
+  /ads/delivery/select:
+    post:
+      summary: Seleccionar anuncio elegible
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdsDeliveryRequest'
+      responses:
+        '201':
+          description: Decisión de delivery
+      tags:
+        - Publicidad externa
+  /ads/events:
+    post:
+      summary: Registrar evento publicitario
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdsTrackEventRequest'
+      responses:
+        '201':
+          description: Evento registrado con idempotencia
+      tags:
+        - Publicidad externa
+  /b2b/accounts/bulk:
+    post:
+      summary: Crear cuentas B2B en modo bulk
+      tags:
+        - CRM / Ventas B2B
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - items
+              properties:
+                batchExternalId:
+                  type: string
+                items:
+                  type: array
+                  minItems: 1
+                  maxItems: 100
+                  items:
+                    $ref: '#/components/schemas/CrmCreateAccountRequest'
+      responses:
+        '201':
+          description: Batch creado
+        '400':
+          $ref: '#/components/responses/CrmValidationError'
+  /accounting/documents/bulk:
+    post:
+      summary: Crear documentos contables en borrador en modo bulk
+      tags:
+        - Contabilidad
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - items
+              properties:
+                batchExternalId:
+                  type: string
+                items:
+                  type: array
+                  minItems: 1
+                  maxItems: 50
+                  items:
+                    $ref: '#/components/schemas/AccountingDocumentCreate'
+      responses:
+        '201':
+          description: Batch contable creado
+        '400':
+          description: Datos inválidos
+  /admin/ads/advertisers/bulk:
+    post:
+      summary: Crear anunciantes en modo bulk
+      tags:
+        - Publicidad externa
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - items
+              properties:
+                batchExternalId:
+                  type: string
+                items:
+                  type: array
+                  minItems: 1
+                  maxItems: 100
+                  items:
+                    $ref: '#/components/schemas/AdsCreateAdvertiserRequest'
+      responses:
+        '201':
+          description: Batch de anunciantes creado
+        '400':
+          description: Datos inválidos
+  /ads/events/bulk:
+    post:
+      summary: Registrar eventos publicitarios en modo bulk
+      tags:
+        - Publicidad externa
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - items
+              properties:
+                batchExternalId:
+                  type: string
+                items:
+                  type: array
+                  minItems: 1
+                  maxItems: 500
+                  items:
+                    $ref: '#/components/schemas/AdsTrackEventRequest'
+      responses:
+        '201':
+          description: Eventos registrados
+        '400':
+          description: Datos inválidos
+  /audit/business-actions:
+    get:
+      summary: Consultar acciones de negocio transversales
+      tags:
+        - Auditoría
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+        - name: moduleCode
+          in: query
+          schema:
+            type: string
+        - name: businessProcess
+          in: query
+          schema:
+            type: string
+        - name: actionCode
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [SUCCESS, FAILED, PARTIAL]
+        - name: correlationId
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Lista paginada de acciones de negocio
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    CrmAccountLifecycleStatus:
+      type: string
+      enum:
+        - LEAD
+        - QUALIFIED
+        - CUSTOMER
+        - SUSPENDED
+        - TERMINATED
+        - DISQUALIFIED
+    CrmOpportunityStage:
+      type: string
+      enum:
+        - DISCOVERY
+        - QUALIFICATION
+        - PROPOSAL
+        - NEGOTIATION
+        - CONTRACTING
+        - CLOSED_WON
+        - CLOSED_LOST
+    CrmCreateAccountRequest:
+      type: object
+      required:
+        - legalName
+        - tradeName
+        - primaryContact
+      properties:
+        legalName:
+          type: string
+        tradeName:
+          type: string
+        taxId:
+          type: string
+        accountType:
+          type: string
+          enum:
+            - MERCHANT
+            - PARTNER
+            - DISTRIBUTOR
+            - FINANCIAL_ALLY
+        industry:
+          type: string
+        ownerUserId:
+          type: string
+          format: uuid
+        territoryId:
+          type: string
+          format: uuid
+        primaryContact:
+          type: object
+          required:
+            - fullName
+          properties:
+            fullName:
+              type: string
+            email:
+              type: string
+              format: email
+            phone:
+              type: string
+    CrmCreateContactRequest:
+      type: object
+      required:
+        - fullName
+      properties:
+        fullName:
+          type: string
+        roleTitle:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        isPrimary:
+          type: boolean
+    CrmQualifyAccountRequest:
+      type: object
+      required:
+        - hasCommercialFit
+      properties:
+        hasCommercialFit:
+          type: boolean
+        createOpportunity:
+          type: boolean
+        disqualificationReason:
+          type: string
+    CrmCreateOpportunityRequest:
+      type: object
+      required:
+        - accountId
+        - ownerUserId
+        - name
+        - opportunityType
+      properties:
+        accountId:
+          type: string
+          format: uuid
+        ownerUserId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        opportunityType:
+          type: string
+          enum:
+            - NEW_MERCHANT
+            - RENEWAL
+            - UPSELL
+            - CROSS_SELL
+            - REACTIVATION
+    CrmCreateProposalRequest:
+      type: object
+      required:
+        - opportunityId
+        - proposalNumber
+        - lines
+      properties:
+        opportunityId:
+          type: string
+          format: uuid
+        proposalNumber:
+          type: string
+        validUntil:
+          type: string
+          format: date
+        pricingExceptionReason:
+          type: string
+        lines:
+          type: array
+          items:
+            type: object
+            required:
+              - termType
+              - description
+              - billingTiming
+            properties:
+              termType:
+                type: string
+                enum:
+                  - MDR
+                  - SUBSCRIPTION
+                  - SETUP_FEE
+                  - SERVICE_FEE
+                  - PENALTY
+                  - MINIMUM_MONTHLY_FEE
+              description:
+                type: string
+              ratePercent:
+                type: number
+              fixedAmount:
+                type: number
+              currency:
+                type: string
+                default: BOB
+              billingTiming:
+                type: string
+                enum:
+                  - PER_TRANSACTION
+                  - MONTHLY
+                  - ONE_TIME
+                  - ON_DEMAND
+    CrmCreateContractFromProposalRequest:
+      type: object
+      required:
+        - proposalId
+        - contractNumber
+        - startDate
+      properties:
+        proposalId:
+          type: string
+          format: uuid
+        contractNumber:
+          type: string
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        billingCycle:
+          type: string
+        settlementPolicy:
+          type: string
+        documentUrl:
+          type: string
+          format: uri
+    CrmCreateOnboardingCaseRequest:
+      type: object
+      required:
+        - accountId
+        - ownerUserId
+        - checklistItems
+      properties:
+        accountId:
+          type: string
+          format: uuid
+        ownerUserId:
+          type: string
+          format: uuid
+        checklistItems:
+          type: array
+          items:
+            type: object
+            required:
+              - itemType
+              - description
+            properties:
+              itemType:
+                type: string
+              description:
+                type: string
+    CrmCreateBranchRequest:
+      type: object
+      required:
+        - accountId
+        - name
+        - city
+      properties:
+        accountId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        city:
+          type: string
+        address:
+          type: string
+    CrmRegisterPurchaseRequest:
+      type: object
+      required:
+        - merchantAccountId
+        - branchId
+        - consumerId
+        - purchaseAmount
+        - downPaymentAmount
+        - financedAmount
+        - mdrReceivableDueDate
+        - installments
+      properties:
+        merchantAccountId:
+          type: string
+          format: uuid
+        branchId:
+          type: string
+          format: uuid
+        consumerId:
+          type: string
+          format: uuid
+        purchaseAmount:
+          type: number
+        downPaymentAmount:
+          type: number
+        downPaymentPaidAt:
+          type: string
+          format: date-time
+        downPaymentEvidenceRef:
+          type: string
+          maxLength: 240
+        financedAmount:
+          type: number
+        mdrReceivableDueDate:
+          type: string
+          format: date
+        installments:
+          type: array
+          items:
+            type: object
+            required:
+              - installmentNumber
+              - dueDate
+              - amount
+            properties:
+              installmentNumber:
+                type: integer
+              dueDate:
+                type: string
+                format: date
+              amount:
+                type: number
+    CrmErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: array
+              items: {}
+    AdsSuccessResponse:
+      type: object
+      required:
+        - success
+        - requestId
+        - data
+      properties:
+        success:
+          type: boolean
+          example: true
+        requestId:
+          type: string
+        data: {}
+    AdsErrorResponse:
+      type: object
+      required:
+        - success
+        - requestId
+        - error
+      properties:
+        success:
+          type: boolean
+          example: false
+        requestId:
+          type: string
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details: {}
+    AdsCreateAdvertiserRequest:
+      type: object
+      required:
+        - legalName
+        - tradeName
+        - taxId
+      properties:
+        legalName:
+          type: string
+          minLength: 2
+          maxLength: 180
+        tradeName:
+          type: string
+          minLength: 2
+          maxLength: 120
+        taxId:
+          type: string
+          minLength: 3
+          maxLength: 40
+        businessCategory:
+          type: string
+        country:
+          type: string
+          minLength: 2
+          maxLength: 2
+          default: BO
+        city:
+          type: string
+        websiteUrl:
+          type: string
+          format: uri
+        primaryContactName:
+          type: string
+        primaryContactEmail:
+          type: string
+          format: email
+        billingMode:
+          type: string
+          enum:
+            - PREPAID
+            - POSTPAID
+          default: POSTPAID
+        currency:
+          type: string
+          default: BOB
+        creditLimitMicros:
+          type: integer
+          minimum: 0
+    AdsCreateBillingProfileRequest:
+      type: object
+      required:
+        - fiscalName
+        - taxId
+        - billingEmail
+      properties:
+        fiscalName:
+          type: string
+          minLength: 2
+          maxLength: 180
+        taxId:
+          type: string
+          minLength: 3
+          maxLength: 40
+        billingEmail:
+          type: string
+          format: email
+        addressLine:
+          type: string
+        country:
+          type: string
+          default: BO
+        city:
+          type: string
+        taxRegime:
+          type: string
+        sinCustomerCode:
+          type: string
+        isDefault:
+          type: boolean
+          default: true
+    AdsAdvertiserStatusRequest:
+      type: object
+      required:
+        - status
+        - reason
+      properties:
+        status:
+          type: string
+          enum:
+            - PENDING_REVIEW
+            - ACTIVE
+            - SUSPENDED
+            - REJECTED
+        riskStatus:
+          type: string
+          enum:
+            - NORMAL
+            - WATCHLIST
+            - BLOCKED
+        reason:
+          type: string
+          minLength: 8
+    AdsCampaignStatusRequest:
+      type: object
+      required:
+        - status
+        - reason
+      properties:
+        status:
+          type: string
+          enum:
+            - DRAFT
+            - PENDING_REVIEW
+            - APPROVED
+            - ACTIVE
+            - PAUSED
+            - ENDED
+            - REJECTED
+            - ARCHIVED
+        reason:
+          type: string
+          minLength: 8
+    AdsModerationDecisionRequest:
+      type: object
+      required:
+        - reviewStatus
+        - reasonCode
+      properties:
+        reviewStatus:
+          type: string
+          enum:
+            - APPROVED
+            - REJECTED
+            - CHANGES_REQUESTED
+            - ESCALATED
+        reasonCode:
+          type: string
+        notes:
+          type: string
+        requiresAdvertiserChanges:
+          type: boolean
+          default: false
+    AdsCreateInventoryPlacementRequest:
+      type: object
+      required:
+        - placementCode
+        - surface
+        - allowedFormats
+      properties:
+        placementCode:
+          type: string
+        surface:
+          type: string
+        allowedFormats:
+          type: array
+          items:
+            type: string
+        floorPriceMicros:
+          type: integer
+          minimum: 0
+        billingModel:
+          type: string
+          enum:
+            - CPM
+            - CPC
+            - CPA
+            - FIXED
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - INACTIVE
+        widthPx:
+          type: integer
+          minimum: 1
+        heightPx:
+          type: integer
+          minimum: 1
+    AdsCreatePolicyRuleRequest:
+      type: object
+      required:
+        - policyCode
+        - category
+        - ruleType
+      properties:
+        policyCode:
+          type: string
+        category:
+          type: string
+        ruleType:
+          type: string
+          enum:
+            - AUTO_REJECT
+            - MANUAL_REVIEW_REQUIRED
+            - WARNING
+            - BLOCK_DELIVERY
+        severity:
+          type: string
+          enum:
+            - LOW
+            - MEDIUM
+            - HIGH
+            - CRITICAL
+          default: MEDIUM
+        description:
+          type: string
+        isActive:
+          type: boolean
+          default: true
+    AdsPeriodCloseRequest:
+      type: object
+      required:
+        - periodStart
+        - periodEnd
+      properties:
+        periodStart:
+          type: string
+          format: date
+        periodEnd:
+          type: string
+          format: date
+        advertiserId:
+          type: string
+          format: uuid
+    AdsRegisterPaymentRequest:
+      type: object
+      required:
+        - amountMicros
+        - paymentDate
+        - paymentMethod
+      properties:
+        amountMicros:
+          type: integer
+          minimum: 1
+        currency:
+          type: string
+          default: BOB
+        paymentDate:
+          type: string
+          format: date
+        paymentMethod:
+          type: string
+        reference:
+          type: string
+    AdsBillableStatusRequest:
+      type: object
+      required:
+        - isBillable
+        - reason
+      properties:
+        isBillable:
+          type: boolean
+        reason:
+          type: string
+          minLength: 8
+    AdsDeliveryRequest:
+      type: object
+      required:
+        - placementCode
+      properties:
+        placementCode:
+          type: string
+        corporateClientHash:
+          type: string
+        contextHash:
+          type: string
+        surface:
+          type: string
+    AdsTrackEventRequest:
+      type: object
+      required:
+        - eventType
+        - deliveryDecisionId
+      properties:
+        eventType:
+          type: string
+          enum:
+            - IMPRESSION
+            - CLICK
+            - CONVERSION
+        deliveryDecisionId:
+          type: string
+          format: uuid
+        requestId:
+          type: string
+          format: uuid
+        eventTime:
+          type: string
+          format: date-time
+        corporateClientHash:
+          type: string
+        sessionHash:
+          type: string
+        ipHash:
+          type: string
+        userAgentHash:
+          type: string
+        fraudScore:
+          type: number
+          minimum: 0
+          maximum: 1
+        metadata:
+          type: object
+    AccountingJournalLineCreate:
+      type: object
+      required:
+        - glAccountId
+        - debit
+        - credit
+        - currencyCode
+      properties:
+        glAccountId:
+          type: string
+          format: uuid
+        debit:
+          type: number
+        credit:
+          type: number
+        currencyCode:
+          type: string
+          default: BOB
+        amountLc:
+          type: number
+        partnerId:
+          type: string
+          format: uuid
+        costCenterId:
+          type: string
+          format: uuid
+        profitCenterId:
+          type: string
+          format: uuid
+        taxCodeId:
+          type: string
+          format: uuid
+        referenceType:
+          type: string
+        referenceId:
+          type: string
+          format: uuid
+        description:
+          type: string
+    AccountingDocumentCreate:
+      type: object
+      required:
+        - legalEntityId
+        - sourceSystem
+        - sourceType
+        - sourceId
+        - documentType
+        - documentNo
+        - documentDate
+        - postingDate
+        - accountingPeriodId
+        - ledgerId
+        - currencyCode
+        - lines
+      properties:
+        legalEntityId:
+          type: string
+          format: uuid
+        sourceSystem:
+          type: string
+        sourceType:
+          type: string
+        sourceId:
+          type: string
+        documentType:
+          type: string
+        documentNo:
+          type: string
+        documentDate:
+          type: string
+          format: date-time
+        postingDate:
+          type: string
+          format: date-time
+        accountingPeriodId:
+          type: string
+          format: uuid
+        ledgerId:
+          type: string
+          format: uuid
+        currencyCode:
+          type: string
+          default: BOB
+        approvalStatus:
+          type: string
+          default: NOT_REQUIRED
+        lines:
+          type: array
+          minItems: 2
+          items:
+            $ref: '#/components/schemas/AccountingJournalLineCreate'
+  parameters:
+    CrmIdPath:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    CrmAccountIdPath:
+      name: accountId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    CrmProposalIdPath:
+      name: proposalId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    CrmContractIdPath:
+      name: contractId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    CrmOnboardingCaseIdPath:
+      name: onboardingCaseId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    CrmPayableIdPath:
+      name: payableId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    CrmRecoveryIdPath:
+      name: recoveryId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    AccountingId:
+      in: path
+      name: id
+      required: true
+      schema:
+        type: string
+        format: uuid
+    AccountingPage:
+      in: query
+      name: page
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    AccountingPageSize:
+      in: query
+      name: pageSize
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+  responses:
+    CrmValidationError:
+      description: Datos inválidos
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+security:
+  - bearerAuth: []

@@ -1,0 +1,148 @@
+export const SALES_SCHEMA = 'atlas_sales';
+
+export enum AccountType {
+  MERCHANT = 'MERCHANT',
+  PARTNER = 'PARTNER',
+  DISTRIBUTOR = 'DISTRIBUTOR',
+  FINANCIAL_ALLY = 'FINANCIAL_ALLY',
+}
+
+export enum AccountLifecycleStatus {
+  LEAD = 'LEAD',
+  QUALIFIED = 'QUALIFIED',
+  CUSTOMER = 'CUSTOMER',
+  SUSPENDED = 'SUSPENDED',
+  TERMINATED = 'TERMINATED',
+  DISQUALIFIED = 'DISQUALIFIED',
+}
+
+export enum OpportunityStage {
+  DISCOVERY = 'DISCOVERY',
+  QUALIFICATION = 'QUALIFICATION',
+  PROPOSAL = 'PROPOSAL',
+  NEGOTIATION = 'NEGOTIATION',
+  CONTRACTING = 'CONTRACTING',
+  CLOSED_WON = 'CLOSED_WON',
+  CLOSED_LOST = 'CLOSED_LOST',
+}
+
+export enum OpportunityType {
+  NEW_MERCHANT = 'NEW_MERCHANT',
+  RENEWAL = 'RENEWAL',
+  UPSELL = 'UPSELL',
+  CROSS_SELL = 'CROSS_SELL',
+  REACTIVATION = 'REACTIVATION',
+}
+
+export enum ProposalStatus {
+  DRAFT = 'DRAFT',
+  PENDING_APPROVAL = 'PENDING_APPROVAL',
+  SENT = 'SENT',
+  ACCEPTED = 'ACCEPTED',
+  REJECTED = 'REJECTED',
+}
+
+export enum ApprovalStatus {
+  PENDING = 'PENDING',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED',
+}
+
+export enum ContractStatus {
+  DRAFT = 'DRAFT',
+  PENDING_SIGNATURE = 'PENDING_SIGNATURE',
+  ACTIVE = 'ACTIVE',
+  EXPIRED = 'EXPIRED',
+  TERMINATED = 'TERMINATED',
+  SUSPENDED = 'SUSPENDED',
+}
+
+export enum ContractVersionStatus {
+  DRAFT = 'DRAFT',
+  ACTIVE = 'ACTIVE',
+  SUPERSEDED = 'SUPERSEDED',
+}
+
+export enum TermType {
+  MDR = 'MDR',
+  SUBSCRIPTION = 'SUBSCRIPTION',
+  SETUP_FEE = 'SETUP_FEE',
+  SERVICE_FEE = 'SERVICE_FEE',
+  PENALTY = 'PENALTY',
+  MINIMUM_MONTHLY_FEE = 'MINIMUM_MONTHLY_FEE',
+}
+
+export enum BillingTiming {
+  PER_TRANSACTION = 'PER_TRANSACTION',
+  MONTHLY = 'MONTHLY',
+  ONE_TIME = 'ONE_TIME',
+  ON_DEMAND = 'ON_DEMAND',
+}
+
+export enum BranchStatus {
+  PENDING = 'PENDING',
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
+  SUSPENDED = 'SUSPENDED',
+}
+
+export enum OnboardingStatus {
+  OPEN = 'OPEN',
+  IN_PROGRESS = 'IN_PROGRESS',
+  COMPLETED = 'COMPLETED',
+  BLOCKED = 'BLOCKED',
+}
+
+export enum ChecklistStatus {
+  PENDING = 'PENDING',
+  COMPLETED = 'COMPLETED',
+  WAIVED = 'WAIVED',
+  BLOCKED = 'BLOCKED',
+}
+
+export enum PurchaseStatus {
+  PENDING = 'PENDING',
+  CONFIRMED = 'CONFIRMED',
+  CANCELLED = 'CANCELLED',
+}
+
+export enum InstallmentStatus {
+  SCHEDULED = 'SCHEDULED',
+  PAID_TO_MERCHANT = 'PAID_TO_MERCHANT',
+  OVERDUE = 'OVERDUE',
+  COVERED_BY_ATLAS = 'COVERED_BY_ATLAS',
+}
+
+export enum InvoiceStatus {
+  DRAFT = 'DRAFT',
+  ISSUED = 'ISSUED',
+  PARTIALLY_PAID = 'PARTIALLY_PAID',
+  PAID = 'PAID',
+  OVERDUE = 'OVERDUE',
+  CANCELLED = 'CANCELLED',
+}
+
+export enum ReceivableStatus {
+  PENDING = 'PENDING',
+  PARTIALLY_PAID = 'PARTIALLY_PAID',
+  PAID = 'PAID',
+  OVERDUE = 'OVERDUE',
+  CANCELLED = 'CANCELLED',
+  DISPUTED = 'DISPUTED',
+}
+
+export enum PayableStatus {
+  SCHEDULED = 'SCHEDULED',
+  DUE = 'DUE',
+  PAID = 'PAID',
+  CANCELLED = 'CANCELLED',
+  DISPUTED = 'DISPUTED',
+}
+
+export enum RecoveryStatus {
+  OPEN = 'OPEN',
+  IN_COLLECTION = 'IN_COLLECTION',
+  PARTIALLY_RECOVERED = 'PARTIALLY_RECOVERED',
+  RECOVERED = 'RECOVERED',
+  WRITTEN_OFF = 'WRITTEN_OFF',
+}

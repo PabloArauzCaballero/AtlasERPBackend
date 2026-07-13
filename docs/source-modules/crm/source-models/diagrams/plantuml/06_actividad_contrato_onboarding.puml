@@ -1,0 +1,24 @@
+@startuml
+start
+:Legal prepara contrato B2B;
+:Registrar condiciones comerciales;
+:Crear b2b_contract y contract_version DRAFT;
+:Revisión legal/compliance;
+if (¿Contrato conforme?) then (Sí)
+  :Firmar contrato;
+  :Activar contract_version;
+else (No)
+  :Corregir contrato;
+  stop
+endif
+:Operaciones crea onboarding_case;
+:Registrar sucursales y usuarios comercio;
+:Completar checklist legal, operativo y técnico;
+if (¿Checklist completo?) then (Sí)
+  :Activar cuenta como CUSTOMER;
+  :Activar sucursales can_originate_bnpl=true;
+else (No)
+  :Mantener comercio pendiente;
+endif
+stop
+@enduml

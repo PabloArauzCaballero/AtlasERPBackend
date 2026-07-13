@@ -1,0 +1,22 @@
+@startuml
+start
+:Comercio inicia venta BNPL;
+:Sistema valida comercio activo, sucursal activa y contrato vigente;
+if (¿Comercio habilitado?) then (No)
+  :Rechazar operación;
+  stop
+endif
+:Core BNPL valida consumidor y línea disponible;
+if (¿Consumidor aprobado?) then (No)
+  :Rechazar compra;
+  stop
+endif
+:Cliente paga 60% directo al comercio;
+:Registrar evidencia de pago inicial;
+:Crear bnpl_purchase y cuotas;
+:Guardar cohort_id y risk_tier_at_origination;
+:Guardar contract_version_id vigente;
+:Calcular MDR según contrato histórico;
+:Crear cargo MDR para facturación B2B;
+stop
+@enduml

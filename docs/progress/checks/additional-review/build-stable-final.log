@@ -1,0 +1,4 @@
+
+> atlas-integrated-backend@1.0.0 build
+> nest build && tsc -p tsconfig.scripts.json
+

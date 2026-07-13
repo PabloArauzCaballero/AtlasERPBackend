@@ -1,0 +1,15 @@
+
+> atlas-integrated-backend@1.0.0 test
+> jest --config ./jest.config.cjs
+
+PASS src/modules/b2b-sales-crm/b2b-sales-crm.schemas.spec.ts (6.883 s)
+PASS src/modules/ads/ads.schemas.spec.ts (6.907 s)
+PASS test/accounting-legal-entity-access.service.spec.ts (7.212 s)
+PASS test/accounting-double-entry.validator.spec.ts (7.288 s)
+PASS test/accounting-zod-validation.pipe.spec.ts (7.376 s)
+
+Test Suites: 5 passed, 5 total
+Tests:       25 passed, 25 total
+Snapshots:   0 total
+Time:        10.282 s
+Ran all test suites.

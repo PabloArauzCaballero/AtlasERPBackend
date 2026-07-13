@@ -1,0 +1,967 @@
+@startuml
+title ATLAS - Casos de uso maestro del módulo contable general
+left to right direction
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam actorStyle awesome
+skinparam usecase {
+  BackgroundColor #F8F9FB
+  BorderColor #1F2A44
+  ArrowColor #1F2A44
+}
+skinparam package {
+  BorderColor #1F2A44
+  BackgroundColor #FFFFFF
+}
+
+actor "Contador General" as Contador
+actor "Auxiliar Contable" as AuxContable
+actor "CFO" as CFO
+actor "Gerente Financiero" as GerenteFin
+actor "Tesorero" as Tesorero
+actor "Auditor Interno" as AuditorInterno
+actor "Auditor Externo" as AuditorExterno
+actor "Administrador del Sistema" as AdminSistema
+actor "Equipo de Compras" as Compras
+actor "Equipo de Ventas" as Ventas
+actor "Operaciones ATLAS" as Operaciones
+actor "Equipo de Riesgo" as Riesgo
+actor "Equipo de Cobranza" as Cobranza
+actor "Atención al Cliente" as AtencionCliente
+actor "Legal / Compliance" as Legal
+actor "Data / BI / ML" as DataBI
+actor "Cliente Corporativo" as ClienteCorp
+actor "Comercio Afiliado" as Comercio
+actor "Consumidor Final" as Consumidor
+actor "Proveedor" as Proveedor
+actor "Banco" as Banco
+actor "Lender / Acreedor Financiero" as Lender
+actor "Socio / Accionista" as Socio
+actor "Directorio" as Directorio
+actor "Inversionista" as Inversionista
+actor "SIN Bolivia / SIAT" as SIN
+actor "Regulador Financiero" as ASFI
+actor "API Bancaria" as APIBanco
+actor "API Facturación Electrónica" as APIFiscal
+actor "API Buró / Riesgo" as APIBuro
+actor "Motor Automático de Posting" as MotorPosting
+actor "Scheduler de Cierre" as SchedulerCierre
+actor "Motor de Conciliación" as MotorConciliacion
+actor "Motor de Facturación" as MotorFacturacion
+actor "Motor de Riesgo / Scoring" as MotorRiesgo
+actor "Motor de Cobranza" as MotorCobranza
+actor "Motor de Notificaciones" as MotorNotificaciones
+actor "Outbox / Event Bus" as EventBus
+
+rectangle "ATLAS - Módulo Contable General" {
+  package "Configuración financiera maestra" {
+    usecase "Configurar entidad legal" as UC_ConfigEntidad
+    usecase "Configurar sucursales" as UC_ConfigSucursales
+    usecase "Configurar calendario fiscal" as UC_ConfigCalendario
+    usecase "Abrir y cerrar periodos contables" as UC_Periodos
+    usecase "Configurar ledgers contables Local/Gestión/IFRS" as UC_ConfigLedgers
+    usecase "Configurar plan de cuentas" as UC_PlanCuentas
+    usecase "Crear cuentas contables GL" as UC_CuentasGL
+    usecase "Configurar cuentas de control" as UC_CuentasControl
+    usecase "Configurar centros de costo" as UC_CentrosCosto
+    usecase "Configurar centros de beneficio" as UC_CentrosBeneficio
+    usecase "Configurar monedas y tipos de cambio" as UC_Monedas
+    usecase "Configurar impuestos" as UC_Impuestos
+    usecase "Versionar reglas contables" as UC_VersionReglas
+    usecase "Configurar reglas automáticas de contabilización" as UC_ReglasPosting
+    usecase "Configurar perfiles de aprobación" as UC_PerfilesAprobacion
+    usecase "Configurar matriz de permisos contables" as UC_Permisos
+  }
+  package "Maestro único de terceros / Business Partner" {
+    usecase "Crear Business Partner" as UC_CrearBP
+    usecase "Clasificar rol del tercero" as UC_RolBP
+    usecase "Registrar cliente corporativo" as UC_BPClienteCorp
+    usecase "Registrar comercio afiliado" as UC_BPComercio
+    usecase "Registrar consumidor asociado" as UC_BPConsumidor
+    usecase "Registrar proveedor" as UC_BPProveedor
+    usecase "Registrar banco" as UC_BPBanco
+    usecase "Registrar lender / acreedor" as UC_BPLender
+    usecase "Registrar socio / accionista" as UC_BPSocio
+    usecase "Registrar intercompany" as UC_BPIntercompany
+    usecase "Gestionar datos fiscales del tercero" as UC_DatosFiscalesBP
+    usecase "Gestionar cuentas bancarias del tercero" as UC_CuentasBancariasBP
+    usecase "Validar KYB / KYC del tercero" as UC_ValidarKYC
+    usecase "Bloquear o suspender tercero" as UC_BloquearBP
+    usecase "Consultar historial financiero del tercero" as UC_HistorialBP
+  }
+  package "Contratos, tarifas y condiciones comerciales" {
+    usecase "Crear contrato con comercio" as UC_ContratoComercio
+    usecase "Crear contrato con cliente corporativo" as UC_ContratoCorp
+    usecase "Crear contrato intercompany" as UC_ContratoIntercompany
+    usecase "Crear contrato con proveedor" as UC_ContratoProveedor
+    usecase "Crear contrato de deuda / préstamo" as UC_ContratoDeuda
+    usecase "Definir MDR por comercio" as UC_DefinirMDR
+    usecase "Definir tarifa SaaS corporativa" as UC_TarifaSaaS
+    usecase "Definir fee de implementación" as UC_FeeImplementacion
+    usecase "Definir penalidades y cargos" as UC_Penalidades
+    usecase "Definir condiciones de pago" as UC_CondicionesPago
+    usecase "Definir garantías o coberturas a comercios" as UC_CoberturaComercio
+    usecase "Versionar términos contractuales" as UC_VersionContrato
+    usecase "Aprobar contrato financiero" as UC_AprobarContratoFin
+    usecase "Adjuntar soporte contractual" as UC_SoporteContrato
+  }
+  package "Facturación comercial y fiscal" {
+    usecase "Generar evento facturable" as UC_EventoFacturable
+    usecase "Calcular factura por MDR" as UC_FacturaMDR
+    usecase "Calcular factura SaaS corporativa" as UC_FacturaSaaS
+    usecase "Calcular factura por implementación" as UC_FacturaImplementacion
+    usecase "Calcular factura intercompany" as UC_FacturaIntercompany
+    usecase "Generar factura comercial" as UC_GenerarFactura
+    usecase "Emitir factura electrónica SIN" as UC_EmitirFacturaSIN
+    usecase "Generar CUF / CUFD" as UC_CUFCUFD
+    usecase "Enviar XML fiscal" as UC_EnviarXML
+    usecase "Consultar estado de factura fiscal" as UC_EstadoFacturaFiscal
+    usecase "Gestionar contingencia de facturación" as UC_ContingenciaFiscal
+    usecase "Emitir nota de crédito" as UC_NotaCredito
+    usecase "Emitir nota de débito" as UC_NotaDebito
+    usecase "Anular factura" as UC_AnularFactura
+    usecase "Reprocesar factura rechazada" as UC_ReprocesarFactura
+    usecase "Enviar factura al cliente" as UC_EnviarFacturaCliente
+    usecase "Registrar disputa de factura" as UC_DisputaFactura
+  }
+  package "Cuentas por cobrar / AR" {
+    usecase "Crear cuenta por cobrar" as UC_CrearCxC
+    usecase "Registrar submayor AR" as UC_SubmayorAR
+    usecase "Consultar estado de cuenta de cliente" as UC_EstadoCuentaCliente
+    usecase "Consultar antigüedad de saldos AR" as UC_AgingAR
+    usecase "Aplicar cobranza a factura" as UC_AplicarCobro
+    usecase "Aplicar pago parcial" as UC_PagoParcialAR
+    usecase "Compensar factura con nota de crédito" as UC_CompensarNC
+    usecase "Reclasificar AR corriente / vencida" as UC_ReclasificarAR
+    usecase "Registrar incobrable / write-off" as UC_WriteOffAR
+    usecase "Aprobar write-off" as UC_AprobarWriteOff
+    usecase "Registrar provisión ECL / deterioro AR" as UC_ECLAR
+    usecase "Conciliar AR con mayor contable" as UC_ConciliarARGL
+    usecase "Exportar estado de cuenta para cliente" as UC_ExportarEstadoCliente
+  }
+  package "Cuentas por pagar / AP" {
+    usecase "Registrar factura de proveedor" as UC_FacturaProveedor
+    usecase "Validar factura de proveedor" as UC_ValidarFacturaProveedor
+    usecase "Asignar centro de costo a gasto" as UC_AsignarCentroCosto
+    usecase "Crear cuenta por pagar" as UC_CrearCxP
+    usecase "Registrar submayor AP" as UC_SubmayorAP
+    usecase "Consultar antigüedad de saldos AP" as UC_AgingAP
+    usecase "Programar pago a proveedor" as UC_ProgramarPagoProveedor
+    usecase "Aprobar pago a proveedor" as UC_AprobarPagoProveedor
+    usecase "Ejecutar pago a proveedor" as UC_EjecutarPagoProveedor
+    usecase "Registrar retenciones fiscales" as UC_Retenciones
+    usecase "Aplicar nota de crédito proveedor" as UC_NCProveedor
+    usecase "Conciliar AP con mayor contable" as UC_ConciliarAPGL
+  }
+  package "Tesorería, bancos y liquidez" {
+    usecase "Crear cuenta bancaria interna" as UC_CuentaBancariaInterna
+    usecase "Aprobar alta de cuenta bancaria" as UC_AprobarCuentaBanco
+    usecase "Importar extracto bancario" as UC_ImportarExtracto
+    usecase "Registrar movimiento bancario" as UC_MovimientoBancario
+    usecase "Conciliar banco contra AR" as UC_ConciliarBancoAR
+    usecase "Conciliar banco contra AP" as UC_ConciliarBancoAP
+    usecase "Conciliar banco contra GL" as UC_ConciliarBancoGL
+    usecase "Gestionar partidas no identificadas" as UC_PartidasNoIdentificadas
+    usecase "Registrar transferencia interna" as UC_TransferenciaInterna
+    usecase "Registrar comisiones bancarias" as UC_ComisionesBanco
+    usecase "Gestionar flujo de caja" as UC_FlujoCaja
+    usecase "Proyectar liquidez" as UC_ProyeccionLiquidez
+    usecase "Gestionar cash forecast" as UC_CashForecast
+    usecase "Controlar saldos mínimos" as UC_SaldosMinimos
+    usecase "Ejecutar payment run" as UC_PaymentRun
+    usecase "Bloquear pago sospechoso" as UC_BloquearPago
+  }
+  package "Deuda empresarial y pasivos financieros" {
+    usecase "Registrar préstamo bancario" as UC_PrestamoBanco
+    usecase "Registrar línea de crédito revolving" as UC_LineaCredito
+    usecase "Registrar deuda con inversionista" as UC_DeudaInversionista
+    usecase "Registrar bono / pagaré" as UC_BonoPagare
+    usecase "Registrar deuda intercompany" as UC_DeudaIntercompany
+    usecase "Crear cronograma de deuda" as UC_CronogramaDeuda
+    usecase "Devengar intereses" as UC_DevengarInteres
+    usecase "Registrar intereses por pagar" as UC_InteresPorPagar
+    usecase "Pagar cuota de deuda" as UC_PagarCuotaDeuda
+    usecase "Separar capital, interés y fee" as UC_SepararCapitalInteres
+    usecase "Reclasificar deuda CP / LP" as UC_ReclasificarDeuda
+    usecase "Registrar refinanciamiento" as UC_Refinanciamiento
+    usecase "Registrar covenant financiero" as UC_Covenant
+    usecase "Monitorear cumplimiento de covenant" as UC_MonitorearCovenant
+    usecase "Reportar deuda a CFO / Directorio" as UC_ReporteDeuda
+  }
+  package "Activos, intangibles y diferidos" {
+    usecase "Registrar activo fijo" as UC_ActivoFijo
+    usecase "Registrar equipo tecnológico" as UC_EquipoTecnologico
+    usecase "Registrar software propio capitalizado" as UC_SoftwareCapitalizado
+    usecase "Registrar licencia capitalizada" as UC_LicenciaCapitalizada
+    usecase "Registrar activo intangible" as UC_Intangible
+    usecase "Registrar activo diferido" as UC_ActivoDiferido
+    usecase "Registrar garantía entregada" as UC_GarantiaEntregada
+    usecase "Registrar depósito entregado" as UC_DepositoEntregado
+    usecase "Poner activo en servicio" as UC_ActivoEnServicio
+    usecase "Calcular depreciación" as UC_Depreciacion
+    usecase "Calcular amortización" as UC_Amortizacion
+    usecase "Registrar baja de activo" as UC_BajaActivo
+    usecase "Registrar deterioro de activo" as UC_DeterioroActivo
+    usecase "Conciliar submayor de activos con GL" as UC_ConciliarActivosGL
+    usecase "Generar inventario de activos" as UC_InventarioActivos
+  }
+  package "Patrimonio, capital y socios" {
+    usecase "Registrar capital social" as UC_CapitalSocial
+    usecase "Registrar aporte de socio" as UC_AporteSocio
+    usecase "Registrar aporte por capitalizar" as UC_AporteCapitalizar
+    usecase "Capitalizar aporte" as UC_CapitalizarAporte
+    usecase "Registrar prima de emisión" as UC_PrimaEmision
+    usecase "Registrar reserva legal" as UC_ReservaLegal
+    usecase "Registrar otras reservas" as UC_OtrasReservas
+    usecase "Registrar utilidad retenida" as UC_UtilidadRetenida
+    usecase "Registrar resultado del ejercicio" as UC_ResultadoEjercicio
+    usecase "Aprobar distribución de dividendos" as UC_AprobarDividendos
+    usecase "Registrar dividendos por pagar" as UC_DividendosPagar
+    usecase "Pagar dividendos" as UC_PagarDividendos
+    usecase "Generar estado de evolución patrimonial" as UC_EstadoPatrimonio
+    usecase "Consolidar patrimonio del grupo" as UC_ConsolidarPatrimonio
+    usecase "Registrar movimiento patrimonial extraordinario" as UC_MovPatrimonialExtra
+  }
+  package "Provisiones, garantías y contingencias" {
+    usecase "Crear caso de provisión" as UC_CrearProvision
+    usecase "Registrar provisión por cobertura a comercio" as UC_ProvisionCoberturaComercio
+    usecase "Registrar provisión legal" as UC_ProvisionLegal
+    usecase "Registrar pasivo contingente" as UC_PasivoContingente
+    usecase "Actualizar estimación de provisión" as UC_ActualizarProvision
+    usecase "Liberar provisión" as UC_LiberarProvision
+    usecase "Ejecutar cobertura al comercio" as UC_EjecutarCobertura
+    usecase "Registrar recuperación posterior" as UC_RecuperacionPosterior
+    usecase "Generar roll-forward de provisiones" as UC_RollForwardProvision
+    usecase "Conciliar provisiones con GL" as UC_ConciliarProvisionGL
+  }
+  package "Libro diario, mayor y motor contable" {
+    usecase "Generar documento contable" as UC_DocContable
+    usecase "Generar asiento automático" as UC_AsientoAutomatico
+    usecase "Registrar asiento manual" as UC_AsientoManual
+    usecase "Validar partida doble" as UC_ValidarPartidaDoble
+    usecase "Publicar asiento" as UC_PublicarAsiento
+    usecase "Reversar asiento" as UC_ReversarAsiento
+    usecase "Reprocesar asiento fallido" as UC_ReprocesarAsiento
+    usecase "Bloquear edición de asiento publicado" as UC_BloquearEdicion
+    usecase "Consultar libro diario" as UC_LibroDiario
+    usecase "Consultar libro mayor" as UC_LibroMayor
+    usecase "Consultar balance de comprobación" as UC_BalanceComprobacion
+    usecase "Conciliar submayores con GL" as UC_ConciliarSubmayoresGL
+    usecase "Detectar asientos descuadrados" as UC_DetectarDescuadre
+    usecase "Auditar trazabilidad origen-asiento" as UC_TrazabilidadAsiento
+  }
+  package "Contabilidad analítica y control presupuestario" {
+    usecase "Asignar gasto a centro de costo" as UC_GastoCentroCosto
+    usecase "Asignar ingreso a centro de beneficio" as UC_IngresoProfitCenter
+    usecase "Crear orden interna" as UC_OrdenInterna
+    usecase "Imputar gasto a orden interna" as UC_GastoOrdenInterna
+    usecase "Crear presupuesto" as UC_CrearPresupuesto
+    usecase "Aprobar presupuesto" as UC_AprobarPresupuesto
+    usecase "Controlar ejecución presupuestaria" as UC_ControlPresupuesto
+    usecase "Bloquear gasto fuera de presupuesto" as UC_BloquearGastoPresupuesto
+    usecase "Analizar rentabilidad por comercio" as UC_RentabilidadComercio
+    usecase "Analizar rentabilidad por cliente corporativo" as UC_RentabilidadCorp
+    usecase "Analizar rentabilidad por producto BNPL" as UC_RentabilidadProducto
+    usecase "Analizar costo de riesgo" as UC_CostoRiesgo
+    usecase "Generar reporte gerencial" as UC_ReporteGerencial
+  }
+  package "Impuestos, fiscalidad y cumplimiento local" {
+    usecase "Calcular IVA débito fiscal" as UC_IVADebito
+    usecase "Calcular IVA crédito fiscal" as UC_IVACredito
+    usecase "Liquidar IVA mensual" as UC_LiquidarIVA
+    usecase "Calcular IT" as UC_CalcularIT
+    usecase "Liquidar IT mensual" as UC_LiquidarIT
+    usecase "Calcular IUE" as UC_CalcularIUE
+    usecase "Compensar IUE contra IT" as UC_CompensarIUEIT
+    usecase "Generar libro de ventas" as UC_LibroVentas
+    usecase "Generar libro de compras" as UC_LibroCompras
+    usecase "Generar anexos tributarios" as UC_AnexosTributarios
+    usecase "Generar Formulario 605 / estados digitales" as UC_Form605
+    usecase "Exportar información fiscal" as UC_ExportFiscal
+    usecase "Responder observación tributaria" as UC_ObsTributaria
+    usecase "Mantener evidencia fiscal" as UC_EvidenciaFiscal
+  }
+  package "Cierre contable, estados financieros y reporting" {
+    usecase "Ejecutar checklist de cierre mensual" as UC_ChecklistCierreMensual
+    usecase "Cerrar submayor AR" as UC_CerrarAR
+    usecase "Cerrar submayor AP" as UC_CerrarAP
+    usecase "Cerrar bancos" as UC_CerrarBancos
+    usecase "Cerrar activos" as UC_CerrarActivos
+    usecase "Cerrar deuda e intereses" as UC_CerrarDeuda
+    usecase "Cerrar impuestos" as UC_CerrarImpuestos
+    usecase "Cerrar GL" as UC_CerrarGL
+    usecase "Reabrir periodo con aprobación" as UC_ReabrirPeriodo
+    usecase "Generar balance general" as UC_BalanceGeneral
+    usecase "Generar estado de resultados" as UC_EstadoResultados
+    usecase "Generar flujo de efectivo" as UC_FlujoEfectivo
+    usecase "Generar estado de cambios en patrimonio" as UC_CambiosPatrimonio
+    usecase "Generar notas a estados financieros" as UC_NotasEEFF
+    usecase "Generar paquete de directorio" as UC_PaqueteDirectorio
+    usecase "Generar paquete para inversionistas" as UC_PaqueteInversionistas
+    usecase "Generar reportes IFRS / gestión" as UC_ReportesIFRS
+    usecase "Consolidar entidades legales" as UC_ConsolidarEntidades
+    usecase "Eliminar operaciones intercompany" as UC_EliminarIntercompany
+  }
+  package "Integración contable con operación BNPL ATLAS" {
+    usecase "Recibir venta financiada desde comercio" as UC_VentaFinanciada
+    usecase "Registrar pago inicial 60% al comercio" as UC_PagoInicial60
+    usecase "Registrar plan de 3 cuotas del 40%" as UC_PlanCuotas40
+    usecase "Registrar pago directo consumidor-comercio" as UC_PagoDirectoConsumidorComercio
+    usecase "Detectar cuota vencida" as UC_CuotaVencida
+    usecase "Pagar cuota al comercio por incumplimiento" as UC_PagoATLASComercio
+    usecase "Crear cuenta por cobrar al consumidor" as UC_CxCConsumidor
+    usecase "Activar cobranza al consumidor" as UC_ActivarCobranzaConsumidor
+    usecase "Registrar recuperación de cuota cubierta" as UC_RecuperarCuotaCubierta
+    usecase "Reconocer MDR de venta financiada" as UC_ReconocerMDR
+    usecase "Registrar liquidación con comercio" as UC_LiquidacionComercio
+    usecase "Conciliar liquidación comercio" as UC_ConciliarLiquidacionComercio
+    usecase "Etiquetar compra por cohorte y riesgo" as UC_CohorteRiesgoCompra
+    usecase "Enviar datos a analítica de riesgo" as UC_EnviarDataRiesgo
+  }
+  package "Auditoría, control interno y seguridad" {
+    usecase "Consultar bitácora de auditoría" as UC_BitacoraAuditoria
+    usecase "Validar segregación de funciones" as UC_SegregacionFunciones
+    usecase "Aprobar operación sensible" as UC_AprobarOperacionSensible
+    usecase "Revisar evidencia documental" as UC_EvidenciaDocumental
+    usecase "Auditar cambios de configuración" as UC_AuditarConfig
+    usecase "Auditar reglas de posting" as UC_AuditarReglasPosting
+    usecase "Auditar reversos contables" as UC_AuditarReversos
+    usecase "Auditar conciliaciones" as UC_AuditarConciliaciones
+    usecase "Exportar papeles de trabajo" as UC_PapelesTrabajo
+    usecase "Gestionar hallazgo de auditoría" as UC_HallazgoAuditoria
+    usecase "Cerrar hallazgo de auditoría" as UC_CerrarHallazgo
+    usecase "Congelar snapshots de cierre" as UC_SnapshotsCierre
+    usecase "Verificar hash de documentos" as UC_HashDocumentos
+  }
+  package "APIs, eventos, outbox y escalabilidad" {
+    usecase "Publicar evento contable" as UC_PublicarEvento
+    usecase "Consumir evento operativo" as UC_ConsumirEvento
+    usecase "Garantizar idempotencia" as UC_Idempotencia
+    usecase "Registrar outbox financiero" as UC_Outbox
+    usecase "Reintentar evento fallido" as UC_ReintentoEvento
+    usecase "Monitorear cola de eventos" as UC_MonitorearEventos
+    usecase "Particionar transacciones por periodo" as UC_ParticionPeriodo
+    usecase "Particionar por entidad legal" as UC_ParticionEntidad
+    usecase "Generar logs de integración" as UC_LogsIntegracion
+    usecase "Exponer API de estado de cuenta" as UC_APIEstadoCuenta
+    usecase "Exponer API de facturación" as UC_APIFacturacion
+    usecase "Exponer API de conciliación" as UC_APIConciliacion
+    usecase "Exponer API de reporting financiero" as UC_APIReporting
+  }
+}
+
+AdminSistema --> UC_ConfigEntidad
+Contador --> UC_ConfigEntidad
+AdminSistema --> UC_ConfigSucursales
+AdminSistema --> UC_ConfigCalendario
+Contador --> UC_ConfigCalendario
+Contador --> UC_Periodos
+CFO --> UC_Periodos
+AdminSistema --> UC_ConfigLedgers
+Contador --> UC_ConfigLedgers
+CFO --> UC_ConfigLedgers
+Contador --> UC_PlanCuentas
+CFO --> UC_PlanCuentas
+Contador --> UC_CuentasGL
+Contador --> UC_CuentasControl
+Contador --> UC_CentrosCosto
+GerenteFin --> UC_CentrosCosto
+Contador --> UC_CentrosBeneficio
+GerenteFin --> UC_CentrosBeneficio
+AdminSistema --> UC_Monedas
+Contador --> UC_Monedas
+Contador --> UC_Impuestos
+Legal --> UC_Impuestos
+Contador --> UC_VersionReglas
+AuditorInterno --> UC_VersionReglas
+Contador --> UC_ReglasPosting
+AdminSistema --> UC_ReglasPosting
+AdminSistema --> UC_PerfilesAprobacion
+CFO --> UC_PerfilesAprobacion
+AdminSistema --> UC_Permisos
+AuditorInterno --> UC_Permisos
+AuxContable --> UC_CrearBP
+Operaciones --> UC_CrearBP
+Compras --> UC_CrearBP
+AuxContable --> UC_RolBP
+Legal --> UC_RolBP
+Ventas --> UC_BPClienteCorp
+ClienteCorp --> UC_BPClienteCorp
+Operaciones --> UC_BPComercio
+Comercio --> UC_BPComercio
+Operaciones --> UC_BPConsumidor
+Consumidor --> UC_BPConsumidor
+Compras --> UC_BPProveedor
+Proveedor --> UC_BPProveedor
+Tesorero --> UC_BPBanco
+Banco --> UC_BPBanco
+CFO --> UC_BPLender
+Lender --> UC_BPLender
+CFO --> UC_BPSocio
+Socio --> UC_BPSocio
+Contador --> UC_BPIntercompany
+CFO --> UC_BPIntercompany
+AuxContable --> UC_DatosFiscalesBP
+Legal --> UC_DatosFiscalesBP
+AuxContable --> UC_CuentasBancariasBP
+Tesorero --> UC_CuentasBancariasBP
+Legal --> UC_ValidarKYC
+Riesgo --> UC_ValidarKYC
+APIBuro --> UC_ValidarKYC
+Legal --> UC_BloquearBP
+CFO --> UC_BloquearBP
+Riesgo --> UC_BloquearBP
+AtencionCliente --> UC_HistorialBP
+Contador --> UC_HistorialBP
+Riesgo --> UC_HistorialBP
+Ventas --> UC_ContratoComercio
+Legal --> UC_ContratoComercio
+Comercio --> UC_ContratoComercio
+Ventas --> UC_ContratoCorp
+Legal --> UC_ContratoCorp
+ClienteCorp --> UC_ContratoCorp
+CFO --> UC_ContratoIntercompany
+Legal --> UC_ContratoIntercompany
+Contador --> UC_ContratoIntercompany
+Compras --> UC_ContratoProveedor
+Legal --> UC_ContratoProveedor
+Proveedor --> UC_ContratoProveedor
+CFO --> UC_ContratoDeuda
+Legal --> UC_ContratoDeuda
+Lender --> UC_ContratoDeuda
+Ventas --> UC_DefinirMDR
+CFO --> UC_DefinirMDR
+Ventas --> UC_TarifaSaaS
+CFO --> UC_TarifaSaaS
+Ventas --> UC_FeeImplementacion
+CFO --> UC_FeeImplementacion
+Legal --> UC_Penalidades
+Ventas --> UC_Penalidades
+CFO --> UC_Penalidades
+Ventas --> UC_CondicionesPago
+Compras --> UC_CondicionesPago
+CFO --> UC_CondicionesPago
+Legal --> UC_CoberturaComercio
+Riesgo --> UC_CoberturaComercio
+CFO --> UC_CoberturaComercio
+Legal --> UC_VersionContrato
+AuditorInterno --> UC_VersionContrato
+CFO --> UC_AprobarContratoFin
+Directorio --> UC_AprobarContratoFin
+Legal --> UC_SoporteContrato
+Compras --> UC_SoporteContrato
+Ventas --> UC_SoporteContrato
+Ventas --> UC_EventoFacturable
+MotorFacturacion --> UC_EventoFacturable
+EventBus --> UC_EventoFacturable
+MotorFacturacion --> UC_FacturaMDR
+Comercio --> UC_FacturaMDR
+MotorFacturacion --> UC_FacturaSaaS
+ClienteCorp --> UC_FacturaSaaS
+MotorFacturacion --> UC_FacturaImplementacion
+ClienteCorp --> UC_FacturaImplementacion
+MotorFacturacion --> UC_FacturaIntercompany
+Contador --> UC_FacturaIntercompany
+MotorFacturacion --> UC_GenerarFactura
+Contador --> UC_GenerarFactura
+MotorFacturacion --> UC_EmitirFacturaSIN
+APIFiscal --> UC_EmitirFacturaSIN
+SIN --> UC_EmitirFacturaSIN
+APIFiscal --> UC_CUFCUFD
+SIN --> UC_CUFCUFD
+APIFiscal --> UC_EnviarXML
+SIN --> UC_EnviarXML
+APIFiscal --> UC_EstadoFacturaFiscal
+SIN --> UC_EstadoFacturaFiscal
+Contador --> UC_EstadoFacturaFiscal
+Contador --> UC_ContingenciaFiscal
+Legal --> UC_ContingenciaFiscal
+APIFiscal --> UC_ContingenciaFiscal
+Contador --> UC_NotaCredito
+MotorFacturacion --> UC_NotaCredito
+Contador --> UC_NotaDebito
+MotorFacturacion --> UC_NotaDebito
+Contador --> UC_AnularFactura
+Legal --> UC_AnularFactura
+APIFiscal --> UC_AnularFactura
+Contador --> UC_ReprocesarFactura
+MotorFacturacion --> UC_ReprocesarFactura
+MotorNotificaciones --> UC_EnviarFacturaCliente
+ClienteCorp --> UC_EnviarFacturaCliente
+Comercio --> UC_EnviarFacturaCliente
+AtencionCliente --> UC_DisputaFactura
+Ventas --> UC_DisputaFactura
+ClienteCorp --> UC_DisputaFactura
+Contador --> UC_CrearCxC
+AuxContable --> UC_CrearCxC
+MotorPosting --> UC_CrearCxC
+MotorPosting --> UC_SubmayorAR
+Contador --> UC_SubmayorAR
+AtencionCliente --> UC_EstadoCuentaCliente
+ClienteCorp --> UC_EstadoCuentaCliente
+Comercio --> UC_EstadoCuentaCliente
+Cobranza --> UC_AgingAR
+Contador --> UC_AgingAR
+GerenteFin --> UC_AgingAR
+Tesorero --> UC_AplicarCobro
+MotorConciliacion --> UC_AplicarCobro
+Tesorero --> UC_PagoParcialAR
+Cobranza --> UC_PagoParcialAR
+Contador --> UC_CompensarNC
+Contador --> UC_ReclasificarAR
+Cobranza --> UC_ReclasificarAR
+Cobranza --> UC_WriteOffAR
+Contador --> UC_WriteOffAR
+CFO --> UC_AprobarWriteOff
+AuditorInterno --> UC_AprobarWriteOff
+Riesgo --> UC_ECLAR
+Contador --> UC_ECLAR
+Contador --> UC_ConciliarARGL
+MotorConciliacion --> UC_ConciliarARGL
+AtencionCliente --> UC_ExportarEstadoCliente
+ClienteCorp --> UC_ExportarEstadoCliente
+Comercio --> UC_ExportarEstadoCliente
+Compras --> UC_FacturaProveedor
+AuxContable --> UC_FacturaProveedor
+Proveedor --> UC_FacturaProveedor
+Compras --> UC_ValidarFacturaProveedor
+AuxContable --> UC_ValidarFacturaProveedor
+Compras --> UC_AsignarCentroCosto
+AuxContable --> UC_AsignarCentroCosto
+AuxContable --> UC_CrearCxP
+MotorPosting --> UC_CrearCxP
+MotorPosting --> UC_SubmayorAP
+Contador --> UC_SubmayorAP
+Contador --> UC_AgingAP
+Tesorero --> UC_AgingAP
+Compras --> UC_ProgramarPagoProveedor
+Tesorero --> UC_ProgramarPagoProveedor
+GerenteFin --> UC_AprobarPagoProveedor
+CFO --> UC_AprobarPagoProveedor
+Tesorero --> UC_EjecutarPagoProveedor
+Contador --> UC_Retenciones
+Legal --> UC_Retenciones
+AuxContable --> UC_NCProveedor
+Contador --> UC_NCProveedor
+Contador --> UC_ConciliarAPGL
+MotorConciliacion --> UC_ConciliarAPGL
+Tesorero --> UC_CuentaBancariaInterna
+Banco --> UC_CuentaBancariaInterna
+CFO --> UC_AprobarCuentaBanco
+Tesorero --> UC_AprobarCuentaBanco
+Tesorero --> UC_ImportarExtracto
+APIBanco --> UC_ImportarExtracto
+Tesorero --> UC_MovimientoBancario
+APIBanco --> UC_MovimientoBancario
+Tesorero --> UC_ConciliarBancoAR
+MotorConciliacion --> UC_ConciliarBancoAR
+Tesorero --> UC_ConciliarBancoAP
+MotorConciliacion --> UC_ConciliarBancoAP
+Tesorero --> UC_ConciliarBancoGL
+MotorConciliacion --> UC_ConciliarBancoGL
+Contador --> UC_ConciliarBancoGL
+Tesorero --> UC_PartidasNoIdentificadas
+Contador --> UC_PartidasNoIdentificadas
+Tesorero --> UC_TransferenciaInterna
+Tesorero --> UC_ComisionesBanco
+Contador --> UC_ComisionesBanco
+GerenteFin --> UC_FlujoCaja
+CFO --> UC_FlujoCaja
+GerenteFin --> UC_ProyeccionLiquidez
+CFO --> UC_ProyeccionLiquidez
+GerenteFin --> UC_CashForecast
+Tesorero --> UC_CashForecast
+Tesorero --> UC_SaldosMinimos
+GerenteFin --> UC_SaldosMinimos
+Tesorero --> UC_PaymentRun
+APIBanco --> UC_PaymentRun
+Tesorero --> UC_BloquearPago
+Legal --> UC_BloquearPago
+CFO --> UC_BloquearPago
+CFO --> UC_PrestamoBanco
+Banco --> UC_PrestamoBanco
+CFO --> UC_LineaCredito
+Banco --> UC_LineaCredito
+CFO --> UC_DeudaInversionista
+Inversionista --> UC_DeudaInversionista
+Lender --> UC_DeudaInversionista
+CFO --> UC_BonoPagare
+Legal --> UC_BonoPagare
+CFO --> UC_DeudaIntercompany
+Contador --> UC_DeudaIntercompany
+CFO --> UC_CronogramaDeuda
+Contador --> UC_CronogramaDeuda
+MotorPosting --> UC_DevengarInteres
+SchedulerCierre --> UC_DevengarInteres
+Contador --> UC_DevengarInteres
+MotorPosting --> UC_InteresPorPagar
+Contador --> UC_InteresPorPagar
+Tesorero --> UC_PagarCuotaDeuda
+Lender --> UC_PagarCuotaDeuda
+Tesorero --> UC_SepararCapitalInteres
+Contador --> UC_SepararCapitalInteres
+Contador --> UC_ReclasificarDeuda
+CFO --> UC_ReclasificarDeuda
+CFO --> UC_Refinanciamiento
+Legal --> UC_Refinanciamiento
+Lender --> UC_Refinanciamiento
+CFO --> UC_Covenant
+Lender --> UC_Covenant
+CFO --> UC_MonitorearCovenant
+Lender --> UC_MonitorearCovenant
+Inversionista --> UC_MonitorearCovenant
+CFO --> UC_ReporteDeuda
+Directorio --> UC_ReporteDeuda
+Inversionista --> UC_ReporteDeuda
+AuxContable --> UC_ActivoFijo
+Contador --> UC_ActivoFijo
+AuxContable --> UC_EquipoTecnologico
+Contador --> UC_EquipoTecnologico
+Contador --> UC_SoftwareCapitalizado
+CFO --> UC_SoftwareCapitalizado
+Contador --> UC_LicenciaCapitalizada
+Compras --> UC_LicenciaCapitalizada
+Contador --> UC_Intangible
+CFO --> UC_Intangible
+Contador --> UC_ActivoDiferido
+Tesorero --> UC_GarantiaEntregada
+Legal --> UC_GarantiaEntregada
+Tesorero --> UC_DepositoEntregado
+Contador --> UC_DepositoEntregado
+Contador --> UC_ActivoEnServicio
+SchedulerCierre --> UC_Depreciacion
+Contador --> UC_Depreciacion
+SchedulerCierre --> UC_Amortizacion
+Contador --> UC_Amortizacion
+Contador --> UC_BajaActivo
+CFO --> UC_BajaActivo
+Contador --> UC_DeterioroActivo
+CFO --> UC_DeterioroActivo
+Contador --> UC_ConciliarActivosGL
+MotorConciliacion --> UC_ConciliarActivosGL
+Contador --> UC_InventarioActivos
+AuditorInterno --> UC_InventarioActivos
+CFO --> UC_CapitalSocial
+Contador --> UC_CapitalSocial
+Socio --> UC_CapitalSocial
+CFO --> UC_AporteSocio
+Socio --> UC_AporteSocio
+CFO --> UC_AporteCapitalizar
+Contador --> UC_AporteCapitalizar
+CFO --> UC_CapitalizarAporte
+Contador --> UC_CapitalizarAporte
+Socio --> UC_CapitalizarAporte
+CFO --> UC_PrimaEmision
+Contador --> UC_PrimaEmision
+Contador --> UC_ReservaLegal
+CFO --> UC_ReservaLegal
+Contador --> UC_OtrasReservas
+CFO --> UC_OtrasReservas
+Contador --> UC_UtilidadRetenida
+CFO --> UC_UtilidadRetenida
+Contador --> UC_ResultadoEjercicio
+CFO --> UC_ResultadoEjercicio
+Directorio --> UC_AprobarDividendos
+CFO --> UC_AprobarDividendos
+Contador --> UC_DividendosPagar
+CFO --> UC_DividendosPagar
+Tesorero --> UC_PagarDividendos
+Socio --> UC_PagarDividendos
+Contador --> UC_EstadoPatrimonio
+CFO --> UC_EstadoPatrimonio
+Socio --> UC_EstadoPatrimonio
+CFO --> UC_ConsolidarPatrimonio
+Contador --> UC_ConsolidarPatrimonio
+CFO --> UC_MovPatrimonialExtra
+Contador --> UC_MovPatrimonialExtra
+Contador --> UC_CrearProvision
+Legal --> UC_CrearProvision
+Riesgo --> UC_CrearProvision
+Riesgo --> UC_ProvisionCoberturaComercio
+Contador --> UC_ProvisionCoberturaComercio
+Legal --> UC_ProvisionLegal
+Contador --> UC_ProvisionLegal
+Legal --> UC_PasivoContingente
+Contador --> UC_PasivoContingente
+Riesgo --> UC_ActualizarProvision
+Legal --> UC_ActualizarProvision
+Contador --> UC_ActualizarProvision
+Contador --> UC_LiberarProvision
+CFO --> UC_LiberarProvision
+Operaciones --> UC_EjecutarCobertura
+Tesorero --> UC_EjecutarCobertura
+Comercio --> UC_EjecutarCobertura
+Cobranza --> UC_RecuperacionPosterior
+Tesorero --> UC_RecuperacionPosterior
+Contador --> UC_RollForwardProvision
+AuditorInterno --> UC_RollForwardProvision
+Contador --> UC_ConciliarProvisionGL
+MotorConciliacion --> UC_ConciliarProvisionGL
+MotorPosting --> UC_DocContable
+Contador --> UC_DocContable
+MotorPosting --> UC_AsientoAutomatico
+Contador --> UC_AsientoManual
+MotorPosting --> UC_ValidarPartidaDoble
+Contador --> UC_ValidarPartidaDoble
+Contador --> UC_PublicarAsiento
+MotorPosting --> UC_PublicarAsiento
+Contador --> UC_ReversarAsiento
+MotorPosting --> UC_ReversarAsiento
+MotorPosting --> UC_ReprocesarAsiento
+AdminSistema --> UC_ReprocesarAsiento
+MotorPosting --> UC_BloquearEdicion
+AuditorInterno --> UC_BloquearEdicion
+Contador --> UC_LibroDiario
+AuditorExterno --> UC_LibroDiario
+Contador --> UC_LibroMayor
+AuditorExterno --> UC_LibroMayor
+Contador --> UC_BalanceComprobacion
+AuditorExterno --> UC_BalanceComprobacion
+Contador --> UC_ConciliarSubmayoresGL
+MotorConciliacion --> UC_ConciliarSubmayoresGL
+MotorPosting --> UC_DetectarDescuadre
+AuditorInterno --> UC_DetectarDescuadre
+AuditorInterno --> UC_TrazabilidadAsiento
+Contador --> UC_TrazabilidadAsiento
+AuxContable --> UC_GastoCentroCosto
+Contador --> UC_GastoCentroCosto
+Contador --> UC_IngresoProfitCenter
+MotorPosting --> UC_IngresoProfitCenter
+GerenteFin --> UC_OrdenInterna
+Contador --> UC_OrdenInterna
+AuxContable --> UC_GastoOrdenInterna
+Contador --> UC_GastoOrdenInterna
+GerenteFin --> UC_CrearPresupuesto
+CFO --> UC_CrearPresupuesto
+CFO --> UC_AprobarPresupuesto
+Directorio --> UC_AprobarPresupuesto
+GerenteFin --> UC_ControlPresupuesto
+CFO --> UC_ControlPresupuesto
+GerenteFin --> UC_BloquearGastoPresupuesto
+MotorPosting --> UC_BloquearGastoPresupuesto
+GerenteFin --> UC_RentabilidadComercio
+DataBI --> UC_RentabilidadComercio
+GerenteFin --> UC_RentabilidadCorp
+DataBI --> UC_RentabilidadCorp
+GerenteFin --> UC_RentabilidadProducto
+DataBI --> UC_RentabilidadProducto
+Riesgo --> UC_CostoRiesgo
+GerenteFin --> UC_CostoRiesgo
+DataBI --> UC_CostoRiesgo
+GerenteFin --> UC_ReporteGerencial
+CFO --> UC_ReporteGerencial
+DataBI --> UC_ReporteGerencial
+Contador --> UC_IVADebito
+Contador --> UC_IVACredito
+Contador --> UC_LiquidarIVA
+GerenteFin --> UC_LiquidarIVA
+Contador --> UC_CalcularIT
+GerenteFin --> UC_CalcularIT
+Contador --> UC_LiquidarIT
+GerenteFin --> UC_LiquidarIT
+Contador --> UC_CalcularIUE
+GerenteFin --> UC_CalcularIUE
+Contador --> UC_CompensarIUEIT
+GerenteFin --> UC_CompensarIUEIT
+Contador --> UC_LibroVentas
+SIN --> UC_LibroVentas
+Contador --> UC_LibroCompras
+SIN --> UC_LibroCompras
+Contador --> UC_AnexosTributarios
+Legal --> UC_AnexosTributarios
+Contador --> UC_Form605
+SIN --> UC_Form605
+Contador --> UC_ExportFiscal
+SIN --> UC_ExportFiscal
+ASFI --> UC_ExportFiscal
+Legal --> UC_ObsTributaria
+Contador --> UC_ObsTributaria
+SIN --> UC_ObsTributaria
+Legal --> UC_EvidenciaFiscal
+Contador --> UC_EvidenciaFiscal
+SchedulerCierre --> UC_ChecklistCierreMensual
+Contador --> UC_ChecklistCierreMensual
+Contador --> UC_CerrarAR
+SchedulerCierre --> UC_CerrarAR
+Contador --> UC_CerrarAP
+SchedulerCierre --> UC_CerrarAP
+Tesorero --> UC_CerrarBancos
+SchedulerCierre --> UC_CerrarBancos
+Contador --> UC_CerrarActivos
+SchedulerCierre --> UC_CerrarActivos
+Contador --> UC_CerrarDeuda
+SchedulerCierre --> UC_CerrarDeuda
+Contador --> UC_CerrarImpuestos
+SchedulerCierre --> UC_CerrarImpuestos
+Contador --> UC_CerrarGL
+SchedulerCierre --> UC_CerrarGL
+CFO --> UC_ReabrirPeriodo
+Contador --> UC_ReabrirPeriodo
+Contador --> UC_BalanceGeneral
+AuditorExterno --> UC_BalanceGeneral
+Contador --> UC_EstadoResultados
+AuditorExterno --> UC_EstadoResultados
+Contador --> UC_FlujoEfectivo
+AuditorExterno --> UC_FlujoEfectivo
+Contador --> UC_CambiosPatrimonio
+AuditorExterno --> UC_CambiosPatrimonio
+Contador --> UC_NotasEEFF
+AuditorExterno --> UC_NotasEEFF
+CFO --> UC_PaqueteDirectorio
+Directorio --> UC_PaqueteDirectorio
+CFO --> UC_PaqueteInversionistas
+Inversionista --> UC_PaqueteInversionistas
+CFO --> UC_ReportesIFRS
+AuditorExterno --> UC_ReportesIFRS
+ASFI --> UC_ReportesIFRS
+CFO --> UC_ConsolidarEntidades
+Contador --> UC_ConsolidarEntidades
+Contador --> UC_EliminarIntercompany
+CFO --> UC_EliminarIntercompany
+Comercio --> UC_VentaFinanciada
+Operaciones --> UC_VentaFinanciada
+EventBus --> UC_VentaFinanciada
+Consumidor --> UC_PagoInicial60
+Comercio --> UC_PagoInicial60
+Operaciones --> UC_PagoInicial60
+Consumidor --> UC_PlanCuotas40
+Operaciones --> UC_PlanCuotas40
+Consumidor --> UC_PagoDirectoConsumidorComercio
+Comercio --> UC_PagoDirectoConsumidorComercio
+Operaciones --> UC_PagoDirectoConsumidorComercio
+MotorCobranza --> UC_CuotaVencida
+Cobranza --> UC_CuotaVencida
+Operaciones --> UC_PagoATLASComercio
+Tesorero --> UC_PagoATLASComercio
+Comercio --> UC_PagoATLASComercio
+Cobranza --> UC_CxCConsumidor
+MotorPosting --> UC_CxCConsumidor
+MotorCobranza --> UC_ActivarCobranzaConsumidor
+Cobranza --> UC_ActivarCobranzaConsumidor
+Consumidor --> UC_ActivarCobranzaConsumidor
+Cobranza --> UC_RecuperarCuotaCubierta
+Tesorero --> UC_RecuperarCuotaCubierta
+Consumidor --> UC_RecuperarCuotaCubierta
+MotorPosting --> UC_ReconocerMDR
+Contador --> UC_ReconocerMDR
+Operaciones --> UC_LiquidacionComercio
+Comercio --> UC_LiquidacionComercio
+Operaciones --> UC_ConciliarLiquidacionComercio
+MotorConciliacion --> UC_ConciliarLiquidacionComercio
+Riesgo --> UC_CohorteRiesgoCompra
+MotorRiesgo --> UC_CohorteRiesgoCompra
+Riesgo --> UC_EnviarDataRiesgo
+DataBI --> UC_EnviarDataRiesgo
+APIBuro --> UC_EnviarDataRiesgo
+AuditorInterno --> UC_BitacoraAuditoria
+AuditorExterno --> UC_BitacoraAuditoria
+AuditorInterno --> UC_SegregacionFunciones
+AdminSistema --> UC_SegregacionFunciones
+CFO --> UC_AprobarOperacionSensible
+AuditorInterno --> UC_AprobarOperacionSensible
+AuditorInterno --> UC_EvidenciaDocumental
+AuditorExterno --> UC_EvidenciaDocumental
+Legal --> UC_EvidenciaDocumental
+AuditorInterno --> UC_AuditarConfig
+AuditorInterno --> UC_AuditarReglasPosting
+AuditorInterno --> UC_AuditarReversos
+AuditorInterno --> UC_AuditarConciliaciones
+AuditorInterno --> UC_PapelesTrabajo
+AuditorExterno --> UC_PapelesTrabajo
+AuditorInterno --> UC_HallazgoAuditoria
+AuditorInterno --> UC_CerrarHallazgo
+CFO --> UC_CerrarHallazgo
+SchedulerCierre --> UC_SnapshotsCierre
+AuditorInterno --> UC_SnapshotsCierre
+AuditorInterno --> UC_HashDocumentos
+AuditorExterno --> UC_HashDocumentos
+EventBus --> UC_PublicarEvento
+MotorPosting --> UC_PublicarEvento
+EventBus --> UC_ConsumirEvento
+MotorPosting --> UC_ConsumirEvento
+AdminSistema --> UC_Idempotencia
+EventBus --> UC_Idempotencia
+EventBus --> UC_Outbox
+MotorPosting --> UC_Outbox
+EventBus --> UC_ReintentoEvento
+AdminSistema --> UC_ReintentoEvento
+AdminSistema --> UC_MonitorearEventos
+EventBus --> UC_MonitorearEventos
+AdminSistema --> UC_ParticionPeriodo
+AdminSistema --> UC_ParticionEntidad
+AdminSistema --> UC_LogsIntegracion
+EventBus --> UC_LogsIntegracion
+ClienteCorp --> UC_APIEstadoCuenta
+Comercio --> UC_APIEstadoCuenta
+DataBI --> UC_APIEstadoCuenta
+APIFiscal --> UC_APIFacturacion
+DataBI --> UC_APIFacturacion
+APIBanco --> UC_APIConciliacion
+DataBI --> UC_APIConciliacion
+DataBI --> UC_APIReporting
+CFO --> UC_APIReporting
+
+UC_GenerarFactura ..> UC_EventoFacturable : <<include>>
+UC_GenerarFactura ..> UC_DocContable : <<include>>
+UC_GenerarFactura ..> UC_EmitirFacturaSIN : <<include>>
+UC_EmitirFacturaSIN ..> UC_CUFCUFD : <<include>>
+UC_EmitirFacturaSIN ..> UC_EnviarXML : <<include>>
+UC_EmitirFacturaSIN ..> UC_EstadoFacturaFiscal : <<include>>
+UC_ContingenciaFiscal ..> UC_ReprocesarFactura : <<extend>>
+UC_CrearCxC ..> UC_SubmayorAR : <<include>>
+UC_CrearCxP ..> UC_SubmayorAP : <<include>>
+UC_AplicarCobro ..> UC_ConciliarBancoAR : <<include>>
+UC_EjecutarPagoProveedor ..> UC_ConciliarBancoAP : <<include>>
+UC_DocContable ..> UC_AsientoAutomatico : <<include>>
+UC_AsientoAutomatico ..> UC_ValidarPartidaDoble : <<include>>
+UC_PublicarAsiento ..> UC_BloquearEdicion : <<include>>
+UC_ReversarAsiento ..> UC_TrazabilidadAsiento : <<include>>
+UC_ChecklistCierreMensual ..> UC_CerrarAR : <<include>>
+UC_ChecklistCierreMensual ..> UC_CerrarAP : <<include>>
+UC_ChecklistCierreMensual ..> UC_CerrarBancos : <<include>>
+UC_ChecklistCierreMensual ..> UC_CerrarActivos : <<include>>
+UC_ChecklistCierreMensual ..> UC_CerrarDeuda : <<include>>
+UC_ChecklistCierreMensual ..> UC_CerrarImpuestos : <<include>>
+UC_ChecklistCierreMensual ..> UC_CerrarGL : <<include>>
+UC_CerrarGL ..> UC_SnapshotsCierre : <<include>>
+UC_PrestamoBanco ..> UC_CronogramaDeuda : <<include>>
+UC_LineaCredito ..> UC_CronogramaDeuda : <<include>>
+UC_DevengarInteres ..> UC_InteresPorPagar : <<include>>
+UC_PagarCuotaDeuda ..> UC_SepararCapitalInteres : <<include>>
+UC_CerrarDeuda ..> UC_ReclasificarDeuda : <<include>>
+UC_ActivoFijo ..> UC_ActivoEnServicio : <<include>>
+UC_ActivoEnServicio ..> UC_Depreciacion : <<include>>
+UC_SoftwareCapitalizado ..> UC_Amortizacion : <<include>>
+UC_Intangible ..> UC_Amortizacion : <<include>>
+UC_CerrarActivos ..> UC_ConciliarActivosGL : <<include>>
+UC_AporteSocio ..> UC_AporteCapitalizar : <<extend>>
+UC_AporteCapitalizar ..> UC_CapitalizarAporte : <<include>>
+UC_AprobarDividendos ..> UC_DividendosPagar : <<include>>
+UC_DividendosPagar ..> UC_PagarDividendos : <<include>>
+UC_VentaFinanciada ..> UC_ReconocerMDR : <<include>>
+UC_VentaFinanciada ..> UC_PagoInicial60 : <<include>>
+UC_VentaFinanciada ..> UC_PlanCuotas40 : <<include>>
+UC_PlanCuotas40 ..> UC_CohorteRiesgoCompra : <<include>>
+UC_CuotaVencida ..> UC_PagoATLASComercio : <<extend>>
+UC_PagoATLASComercio ..> UC_CxCConsumidor : <<include>>
+UC_CxCConsumidor ..> UC_ActivarCobranzaConsumidor : <<include>>
+UC_RecuperarCuotaCubierta ..> UC_AplicarCobro : <<include>>
+UC_LiquidarIVA ..> UC_IVADebito : <<include>>
+UC_LiquidarIVA ..> UC_IVACredito : <<include>>
+UC_LiquidarIT ..> UC_CalcularIT : <<include>>
+UC_CalcularIUE ..> UC_CompensarIUEIT : <<extend>>
+UC_Form605 ..> UC_BalanceGeneral : <<include>>
+UC_Form605 ..> UC_EstadoResultados : <<include>>
+UC_Form605 ..> UC_CambiosPatrimonio : <<include>>
+UC_Form605 ..> UC_FlujoEfectivo : <<include>>
+UC_ConsolidarEntidades ..> UC_EliminarIntercompany : <<include>>
+UC_ConsolidarEntidades ..> UC_ConsolidarPatrimonio : <<include>>
+UC_AuditarConfig ..> UC_BitacoraAuditoria : <<include>>
+UC_AuditarReglasPosting ..> UC_VersionReglas : <<include>>
+UC_AuditarConciliaciones ..> UC_HashDocumentos : <<include>>
+UC_PapelesTrabajo ..> UC_EvidenciaDocumental : <<include>>
+UC_ConsumirEvento ..> UC_Idempotencia : <<include>>
+UC_Outbox ..> UC_ReintentoEvento : <<extend>>
+UC_PublicarEvento ..> UC_LogsIntegracion : <<include>>
+
+@enduml

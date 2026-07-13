@@ -1,0 +1,341 @@
+Project atlas_b2b_sales_crm {
+  database_type: 'PostgreSQL'
+  Note: 'Modelo CRM/Ventas B2B ATLAS. CxC B2B separada de CxP comercio y recuperación consumidor.'
+}
+
+Table internal_users {
+  id uuid [pk]
+  full_name varchar
+  email varchar [unique]
+  role_code varchar
+  is_active boolean
+  created_at timestamptz
+}
+
+Table territories {
+  id uuid [pk]
+  name varchar
+  city varchar
+  region varchar
+  is_active boolean
+}
+
+Table b2b_accounts {
+  id uuid [pk]
+  legal_name varchar
+  trade_name varchar
+  tax_id varchar [unique]
+  account_type varchar
+  industry varchar
+  lifecycle_status varchar
+  owner_user_id uuid [ref: > internal_users.id]
+  territory_id uuid [ref: > territories.id]
+  risk_tier varchar
+  expected_monthly_volume numeric
+  created_at timestamptz
+}
+
+Table b2b_contacts {
+  id uuid [pk]
+  account_id uuid [ref: > b2b_accounts.id]
+  full_name varchar
+  role_title varchar
+  email varchar
+  phone varchar
+  decision_role varchar
+  is_primary boolean
+  status varchar
+}
+
+Table sales_opportunities {
+  id uuid [pk]
+  account_id uuid [ref: > b2b_accounts.id]
+  owner_user_id uuid [ref: > internal_users.id]
+  name varchar
+  opportunity_type varchar
+  stage varchar
+  expected_monthly_volume numeric
+  expected_mdr_rate numeric
+  expected_monthly_revenue numeric
+  probability numeric
+  expected_close_date date
+  loss_reason varchar
+}
+
+Table commercial_activities {
+  id uuid [pk]
+  account_id uuid [ref: > b2b_accounts.id]
+  opportunity_id uuid [ref: > sales_opportunities.id]
+  owner_user_id uuid [ref: > internal_users.id]
+  activity_type varchar
+  subject varchar
+  due_at timestamptz
+  completed_at timestamptz
+}
+
+Table commercial_proposals {
+  id uuid [pk]
+  opportunity_id uuid [ref: > sales_opportunities.id]
+  account_id uuid [ref: > b2b_accounts.id]
+  proposal_number varchar [unique]
+  status varchar
+  valid_until date
+  total_estimated_monthly_revenue numeric
+  created_by_user_id uuid [ref: > internal_users.id]
+}
+
+Table proposal_lines {
+  id uuid [pk]
+  proposal_id uuid [ref: > commercial_proposals.id]
+  term_type varchar
+  description varchar
+  rate_percent numeric
+  fixed_amount numeric
+  currency char
+  billing_timing varchar
+}
+
+Table b2b_contracts {
+  id uuid [pk]
+  account_id uuid [ref: > b2b_accounts.id]
+  opportunity_id uuid [ref: > sales_opportunities.id]
+  contract_number varchar [unique]
+  status varchar
+  start_date date
+  end_date date
+  billing_cycle varchar
+  settlement_policy varchar
+  signed_at timestamptz
+}
+
+Table contract_versions {
+  id uuid [pk]
+  contract_id uuid [ref: > b2b_contracts.id]
+  version_number integer
+  valid_from date
+  valid_to date
+  status varchar
+  document_url text
+  approved_by_user_id uuid [ref: > internal_users.id]
+}
+
+Table commercial_terms {
+  id uuid [pk]
+  contract_version_id uuid [ref: > contract_versions.id]
+  term_type varchar
+  description varchar
+  rate_percent numeric
+  fixed_amount numeric
+  currency char
+  billing_timing varchar
+  min_amount numeric
+  max_amount numeric
+}
+
+Table mdr_rules {
+  id uuid [pk]
+  contract_version_id uuid [ref: > contract_versions.id]
+  product_category varchar
+  branch_id uuid [ref: > merchant_branches.id]
+  risk_segment varchar
+  rate_percent numeric
+  min_fee_amount numeric
+  max_fee_amount numeric
+  is_active boolean
+}
+
+Table merchant_branches {
+  id uuid [pk]
+  account_id uuid [ref: > b2b_accounts.id]
+  name varchar
+  city varchar
+  address text
+  status varchar
+  can_originate_bnpl boolean
+  activated_at timestamptz
+}
+
+Table merchant_users {
+  id uuid [pk]
+  account_id uuid [ref: > b2b_accounts.id]
+  branch_id uuid [ref: > merchant_branches.id]
+  email varchar
+  full_name varchar
+  role_code varchar
+  status varchar
+}
+
+Table merchant_onboarding_cases {
+  id uuid [pk]
+  account_id uuid [ref: > b2b_accounts.id]
+  owner_user_id uuid [ref: > internal_users.id]
+  status varchar
+  started_at timestamptz
+  completed_at timestamptz
+}
+
+Table onboarding_checklist_items {
+  id uuid [pk]
+  onboarding_case_id uuid [ref: > merchant_onboarding_cases.id]
+  item_type varchar
+  description varchar
+  status varchar
+  completed_by_user_id uuid [ref: > internal_users.id]
+}
+
+Table consumers_ref {
+  id uuid [pk]
+  external_ref varchar
+}
+
+Table bnpl_purchases {
+  id uuid [pk]
+  merchant_account_id uuid [ref: > b2b_accounts.id]
+  branch_id uuid [ref: > merchant_branches.id]
+  consumer_id uuid [ref: > consumers_ref.id]
+  contract_version_id uuid [ref: > contract_versions.id]
+  purchase_amount numeric
+  down_payment_amount numeric
+  financed_amount numeric
+  risk_tier_at_origination varchar
+  cohort_id varchar
+  status varchar
+  purchase_date timestamptz
+}
+
+Table bnpl_installments {
+  id uuid [pk]
+  purchase_id uuid [ref: > bnpl_purchases.id]
+  installment_number integer
+  due_date date
+  amount numeric
+  status varchar
+  paid_to_merchant_at timestamptz
+}
+
+Table merchant_invoices {
+  id uuid [pk]
+  account_id uuid [ref: > b2b_accounts.id]
+  contract_id uuid [ref: > b2b_contracts.id]
+  invoice_number varchar [unique]
+  invoice_date date
+  due_date date
+  subtotal_amount numeric
+  tax_amount numeric
+  total_amount numeric
+  status varchar
+  external_tax_ref varchar
+}
+
+Table merchant_invoice_lines {
+  id uuid [pk]
+  invoice_id uuid [ref: > merchant_invoices.id]
+  source_type varchar
+  source_id uuid
+  description varchar
+  quantity numeric
+  unit_amount numeric
+  tax_amount numeric
+  total_amount numeric
+}
+
+Table merchant_receivables {
+  id uuid [pk]
+  account_id uuid [ref: > b2b_accounts.id]
+  invoice_id uuid [ref: > merchant_invoices.id]
+  source_type varchar
+  source_id uuid
+  amount_original numeric
+  amount_open numeric
+  currency char
+  due_date date
+  status varchar
+}
+
+Table merchant_payments {
+  id uuid [pk]
+  account_id uuid [ref: > b2b_accounts.id]
+  amount numeric
+  currency char
+  paid_at timestamptz
+  payment_method varchar
+  external_ref varchar
+  status varchar
+}
+
+Table merchant_payment_allocations {
+  id uuid [pk]
+  payment_id uuid [ref: > merchant_payments.id]
+  receivable_id uuid [ref: > merchant_receivables.id]
+  amount_applied numeric
+  applied_at timestamptz
+}
+
+Table merchant_credit_notes {
+  id uuid [pk]
+  account_id uuid [ref: > b2b_accounts.id]
+  invoice_id uuid [ref: > merchant_invoices.id]
+  credit_note_number varchar [unique]
+  reason varchar
+  amount numeric
+  status varchar
+  approved_by_user_id uuid [ref: > internal_users.id]
+}
+
+Table merchant_payables {
+  id uuid [pk]
+  account_id uuid [ref: > b2b_accounts.id]
+  purchase_id uuid [ref: > bnpl_purchases.id]
+  installment_id uuid [ref: > bnpl_installments.id, unique]
+  reason varchar
+  amount numeric
+  scheduled_payment_date date
+  paid_at timestamptz
+  status varchar
+}
+
+Table consumer_recovery_receivables {
+  id uuid [pk]
+  consumer_id uuid [ref: > consumers_ref.id]
+  purchase_id uuid [ref: > bnpl_purchases.id]
+  installment_id uuid [ref: > bnpl_installments.id]
+  merchant_payable_id uuid [ref: > merchant_payables.id, unique]
+  amount_covered_by_atlas numeric
+  amount_recovered numeric
+  coverage_paid_at timestamptz
+  recovery_status varchar
+  days_past_due integer
+}
+
+Table reconciliation_runs {
+  id uuid [pk]
+  period_start date
+  period_end date
+  status varchar
+  started_by_user_id uuid [ref: > internal_users.id]
+  started_at timestamptz
+  completed_at timestamptz
+}
+
+Table reconciliation_items {
+  id uuid [pk]
+  run_id uuid [ref: > reconciliation_runs.id]
+  item_type varchar
+  severity varchar
+  account_id uuid [ref: > b2b_accounts.id]
+  source_ref varchar
+  description text
+  status varchar
+  resolved_by_user_id uuid [ref: > internal_users.id]
+}
+
+Table audit_logs {
+  id uuid [pk]
+  entity_name varchar
+  entity_id uuid
+  action varchar
+  changed_by_user_id uuid [ref: > internal_users.id]
+  old_values jsonb
+  new_values jsonb
+  created_at timestamptz
+}

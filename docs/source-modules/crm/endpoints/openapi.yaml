@@ -1,0 +1,461 @@
+openapi: 3.0.3
+info:
+  title: ATLAS B2B CRM Ventas API
+  version: 1.0.0
+  description: API del módulo CRM/Ventas B2B y facturación comercial.
+servers:
+  - url: http://localhost:3000/api/v1
+security:
+  - bearerAuth: []
+paths:
+  /health:
+    get:
+      security: []
+      summary: Health check HTTP
+      responses:
+        '200': { description: OK }
+  /ready:
+    get:
+      security: []
+      summary: Readiness con base de datos
+      responses:
+        '200': { description: Ready }
+  /b2b/accounts:
+    post:
+      summary: Crear cuenta B2B lead con contacto principal
+      tags: [Accounts]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateAccountRequest' }
+      responses:
+        '201': { description: Cuenta creada }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '409': { description: Cuenta duplicada }
+    get:
+      summary: Listar cuentas B2B
+      tags: [Accounts]
+      parameters:
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, default: 25, maximum: 100 } }
+        - {
+            name: status,
+            in: query,
+            schema: { $ref: '#/components/schemas/AccountLifecycleStatus' },
+          }
+        - { name: search, in: query, schema: { type: string } }
+      responses:
+        '200': { description: Lista paginada }
+  /b2b/accounts/{id}:
+    get:
+      summary: Obtener cuenta B2B
+      tags: [Accounts]
+      parameters: [{ $ref: '#/components/parameters/IdPath' }]
+      responses:
+        '200': { description: Cuenta encontrada }
+        '404': { description: Cuenta no encontrada }
+  /b2b/accounts/{accountId}/contacts:
+    post:
+      summary: Crear contacto B2B
+      tags: [Accounts]
+      parameters: [{ $ref: '#/components/parameters/AccountIdPath' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateContactRequest' }
+      responses:
+        '201': { description: Contacto creado }
+  /b2b/accounts/{accountId}/qualify:
+    post:
+      summary: Calificar o descalificar cuenta B2B
+      tags: [Accounts]
+      parameters: [{ $ref: '#/components/parameters/AccountIdPath' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/QualifyAccountRequest' }
+      responses:
+        '201': { description: Resultado de calificación }
+  /b2b/opportunities:
+    post:
+      summary: Crear oportunidad comercial
+      tags: [Opportunities]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateOpportunityRequest' }
+      responses:
+        '201': { description: Oportunidad creada }
+  /b2b/opportunities/{id}/stage:
+    patch:
+      summary: Cambiar etapa de oportunidad
+      tags: [Opportunities]
+      parameters: [{ $ref: '#/components/parameters/IdPath' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [stage]
+              properties:
+                stage: { $ref: '#/components/schemas/OpportunityStage' }
+                lossReason: { type: string }
+      responses:
+        '200': { description: Etapa actualizada }
+  /b2b/proposals:
+    post:
+      summary: Crear propuesta comercial
+      tags: [Proposals]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateProposalRequest' }
+      responses:
+        '201': { description: Propuesta creada }
+  /b2b/proposals/{proposalId}/send:
+    patch:
+      summary: Enviar propuesta
+      tags: [Proposals]
+      parameters: [{ $ref: '#/components/parameters/ProposalIdPath' }]
+      responses:
+        '200': { description: Propuesta enviada }
+  /b2b/proposals/{proposalId}/accept:
+    patch:
+      summary: Aceptar propuesta
+      tags: [Proposals]
+      parameters: [{ $ref: '#/components/parameters/ProposalIdPath' }]
+      responses:
+        '200': { description: Propuesta aceptada }
+  /b2b/proposals/{proposalId}/reject:
+    patch:
+      summary: Rechazar propuesta
+      tags: [Proposals]
+      parameters: [{ $ref: '#/components/parameters/ProposalIdPath' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string }
+      responses:
+        '200': { description: Propuesta rechazada }
+  /b2b/proposals/approvals/{id}/decision:
+    patch:
+      summary: Decidir aprobación comercial
+      tags: [Approvals]
+      parameters: [{ $ref: '#/components/parameters/IdPath' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status, reason]
+              properties:
+                status: { type: string, enum: [APPROVED, REJECTED] }
+                reason: { type: string }
+      responses:
+        '200': { description: Aprobación decidida }
+  /b2b/contracts/from-proposal:
+    post:
+      summary: Crear contrato desde propuesta aceptada
+      tags: [Contracts]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateContractFromProposalRequest' }
+      responses:
+        '201': { description: Contrato creado }
+  /b2b/contracts/{contractId}/sign-and-activate:
+    patch:
+      summary: Firmar y activar contrato
+      tags: [Contracts]
+      parameters: [{ $ref: '#/components/parameters/ContractIdPath' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [approvedByUserId]
+              properties:
+                signedAt: { type: string, format: date-time }
+                approvedByUserId: { type: string, format: uuid }
+      responses:
+        '200': { description: Contrato activo }
+  /b2b/onboarding/cases:
+    post:
+      summary: Crear caso de onboarding
+      tags: [Onboarding]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateOnboardingCaseRequest' }
+      responses:
+        '201': { description: Caso creado }
+  /b2b/onboarding/branches:
+    post:
+      summary: Crear sucursal de comercio
+      tags: [Onboarding]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateBranchRequest' }
+      responses:
+        '201': { description: Sucursal creada }
+  /b2b/onboarding/merchant-users:
+    post:
+      summary: Crear usuario de comercio
+      tags: [Onboarding]
+      responses:
+        '201': { description: Usuario creado }
+  /b2b/onboarding/cases/{onboardingCaseId}/checklist:
+    patch:
+      summary: Completar checklist de onboarding
+      tags: [Onboarding]
+      parameters: [{ $ref: '#/components/parameters/OnboardingCaseIdPath' }]
+      responses:
+        '200': { description: Checklist actualizado }
+  /b2b/onboarding/cases/{onboardingCaseId}/activate:
+    patch:
+      summary: Activar comercio tras onboarding
+      tags: [Onboarding]
+      parameters: [{ $ref: '#/components/parameters/OnboardingCaseIdPath' }]
+      responses:
+        '200': { description: Comercio activado }
+  /b2b/bnpl/purchases:
+    post:
+      summary: Registrar compra BNPL y cargo MDR
+      tags: [BNPL]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RegisterPurchaseRequest' }
+      responses:
+        '201': { description: Compra registrada }
+  /b2b/billing/invoices:
+    post:
+      summary: Emitir factura desde CxC B2B
+      tags: [Billing]
+      responses:
+        '201': { description: Factura emitida }
+  /b2b/billing/merchant-payments:
+    post:
+      summary: Registrar pago y aplicar a CxC
+      tags: [Billing]
+      responses:
+        '201': { description: Pago registrado }
+  /b2b/coverage/payables:
+    post:
+      summary: Programar cobertura ATLAS a comercio
+      tags: [Coverage]
+      responses:
+        '201': { description: CxP creada }
+  /b2b/coverage/payables/{payableId}/paid:
+    patch:
+      summary: Marcar CxP como pagada y crear recuperación consumidor
+      tags: [Coverage]
+      parameters: [{ $ref: '#/components/parameters/PayableIdPath' }]
+      responses:
+        '200': { description: CxP pagada }
+  /b2b/coverage/recoveries/{recoveryId}/apply-payment:
+    patch:
+      summary: Aplicar recuperación de consumidor
+      tags: [Coverage]
+      parameters: [{ $ref: '#/components/parameters/RecoveryIdPath' }]
+      responses:
+        '200': { description: Recuperación aplicada }
+  /b2b/reconciliation/runs:
+    post:
+      summary: Ejecutar conciliación por periodo
+      tags: [Reconciliation]
+      responses:
+        '201': { description: Conciliación ejecutada }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    IdPath: { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    AccountIdPath:
+      { name: accountId, in: path, required: true, schema: { type: string, format: uuid } }
+    ProposalIdPath:
+      { name: proposalId, in: path, required: true, schema: { type: string, format: uuid } }
+    ContractIdPath:
+      { name: contractId, in: path, required: true, schema: { type: string, format: uuid } }
+    OnboardingCaseIdPath:
+      { name: onboardingCaseId, in: path, required: true, schema: { type: string, format: uuid } }
+    PayableIdPath:
+      { name: payableId, in: path, required: true, schema: { type: string, format: uuid } }
+    RecoveryIdPath:
+      { name: recoveryId, in: path, required: true, schema: { type: string, format: uuid } }
+  responses:
+    ValidationError:
+      description: Datos inválidos
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+  schemas:
+    AccountLifecycleStatus:
+      type: string
+      enum: [LEAD, QUALIFIED, CUSTOMER, SUSPENDED, TERMINATED, DISQUALIFIED]
+    OpportunityStage:
+      type: string
+      enum: [DISCOVERY, QUALIFICATION, PROPOSAL, NEGOTIATION, CONTRACTING, CLOSED_WON, CLOSED_LOST]
+    CreateAccountRequest:
+      type: object
+      required: [legalName, tradeName, primaryContact]
+      properties:
+        legalName: { type: string }
+        tradeName: { type: string }
+        taxId: { type: string }
+        accountType: { type: string, enum: [MERCHANT, PARTNER, DISTRIBUTOR, FINANCIAL_ALLY] }
+        industry: { type: string }
+        ownerUserId: { type: string, format: uuid }
+        territoryId: { type: string, format: uuid }
+        primaryContact:
+          type: object
+          required: [fullName]
+          properties:
+            fullName: { type: string }
+            email: { type: string, format: email }
+            phone: { type: string }
+    CreateContactRequest:
+      type: object
+      required: [fullName]
+      properties:
+        fullName: { type: string }
+        roleTitle: { type: string }
+        email: { type: string, format: email }
+        phone: { type: string }
+        isPrimary: { type: boolean }
+    QualifyAccountRequest:
+      type: object
+      required: [hasCommercialFit]
+      properties:
+        hasCommercialFit: { type: boolean }
+        createOpportunity: { type: boolean }
+        disqualificationReason: { type: string }
+    CreateOpportunityRequest:
+      type: object
+      required: [accountId, ownerUserId, name, opportunityType]
+      properties:
+        accountId: { type: string, format: uuid }
+        ownerUserId: { type: string, format: uuid }
+        name: { type: string }
+        opportunityType:
+          { type: string, enum: [NEW_MERCHANT, RENEWAL, UPSELL, CROSS_SELL, REACTIVATION] }
+    CreateProposalRequest:
+      type: object
+      required: [opportunityId, proposalNumber, lines]
+      properties:
+        opportunityId: { type: string, format: uuid }
+        proposalNumber: { type: string }
+        validUntil: { type: string, format: date }
+        pricingExceptionReason: { type: string }
+        lines:
+          type: array
+          items:
+            type: object
+            required: [termType, description, billingTiming]
+            properties:
+              termType:
+                {
+                  type: string,
+                  enum: [MDR, SUBSCRIPTION, SETUP_FEE, SERVICE_FEE, PENALTY, MINIMUM_MONTHLY_FEE],
+                }
+              description: { type: string }
+              ratePercent: { type: number }
+              fixedAmount: { type: number }
+              currency: { type: string, default: BOB }
+              billingTiming: { type: string, enum: [PER_TRANSACTION, MONTHLY, ONE_TIME, ON_DEMAND] }
+    CreateContractFromProposalRequest:
+      type: object
+      required: [proposalId, contractNumber, startDate]
+      properties:
+        proposalId: { type: string, format: uuid }
+        contractNumber: { type: string }
+        startDate: { type: string, format: date }
+        endDate: { type: string, format: date }
+        billingCycle: { type: string }
+        settlementPolicy: { type: string }
+        documentUrl: { type: string, format: uri }
+    CreateOnboardingCaseRequest:
+      type: object
+      required: [accountId, ownerUserId, checklistItems]
+      properties:
+        accountId: { type: string, format: uuid }
+        ownerUserId: { type: string, format: uuid }
+        checklistItems:
+          type: array
+          items:
+            type: object
+            required: [itemType, description]
+            properties:
+              itemType: { type: string }
+              description: { type: string }
+    CreateBranchRequest:
+      type: object
+      required: [accountId, name, city]
+      properties:
+        accountId: { type: string, format: uuid }
+        name: { type: string }
+        city: { type: string }
+        address: { type: string }
+    RegisterPurchaseRequest:
+      type: object
+      required:
+        [
+          merchantAccountId,
+          branchId,
+          consumerId,
+          purchaseAmount,
+          downPaymentAmount,
+          financedAmount,
+          mdrReceivableDueDate,
+          installments,
+        ]
+      properties:
+        merchantAccountId: { type: string, format: uuid }
+        branchId: { type: string, format: uuid }
+        consumerId: { type: string, format: uuid }
+        purchaseAmount: { type: number }
+        downPaymentAmount: { type: number }
+        downPaymentPaidAt: { type: string, format: date-time }
+        downPaymentEvidenceRef: { type: string, maxLength: 240 }
+        financedAmount: { type: number }
+        mdrReceivableDueDate: { type: string, format: date }
+        installments:
+          type: array
+          items:
+            type: object
+            required: [installmentNumber, dueDate, amount]
+            properties:
+              installmentNumber: { type: integer }
+              dueDate: { type: string, format: date }
+              amount: { type: number }
+    ErrorResponse:
+      type: object
+      properties:
+        success: { type: boolean, example: false }
+        error:
+          type: object
+          properties:
+            code: { type: string }
+            message: { type: string }
+            details: { type: array, items: {} }

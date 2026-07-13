@@ -1,0 +1,172 @@
+{
+  "info": {
+    "name": "ATLAS Accounting Module",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000/api/v1" },
+    { "key": "token", "value": "" },
+    { "key": "legalEntityId", "value": "" },
+    { "key": "fiscalYearId", "value": "" },
+    { "key": "periodId", "value": "" },
+    { "key": "ledgerId", "value": "" },
+    { "key": "businessPartnerId", "value": "" },
+    { "key": "contractId", "value": "" },
+    { "key": "glAccountId", "value": "" },
+    { "key": "documentId", "value": "" },
+    { "key": "arInvoiceId", "value": "" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "Health",
+      "request": { "method": "GET", "url": "{{baseUrl}}/health", "auth": { "type": "noauth" } }
+    },
+    {
+      "name": "Ready",
+      "request": { "method": "GET", "url": "{{baseUrl}}/ready", "auth": { "type": "noauth" } }
+    },
+    {
+      "name": "Create Legal Entity",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/accounting/financial-structure/legal-entities",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"code\": \"ATLAS-BO\",\n  \"legalName\": \"ATLAS Bolivia S.A.\",\n  \"taxId\": \"123456789\",\n  \"countryCode\": \"BO\",\n  \"baseCurrency\": \"BOB\",\n  \"timezone\": \"America/La_Paz\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Create Fiscal Year",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/accounting/financial-structure/fiscal-years",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"legalEntityId\": \"{{legalEntityId}}\",\n  \"yearLabel\": \"2026\",\n  \"startDate\": \"2026-01-01\",\n  \"endDate\": \"2026-12-31\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Create Accounting Period",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/accounting/financial-structure/periods",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fiscalYearId\": \"{{fiscalYearId}}\",\n  \"periodNo\": 1,\n  \"startDate\": \"2026-01-01\",\n  \"endDate\": \"2026-01-31\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Create Ledger",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/accounting/financial-structure/ledgers",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"legalEntityId\": \"{{legalEntityId}}\",\n  \"code\": \"LOCAL\",\n  \"name\": \"Local Bolivia\",\n  \"accountingBasis\": \"LOCAL_BO\",\n  \"isDefault\": true\n}"
+        }
+      }
+    },
+    {
+      "name": "Create Business Partner",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/accounting/business-partners",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"partnerNo\": \"BP-001\",\n  \"partnerType\": \"COMPANY\",\n  \"legalName\": \"Cliente Demo S.R.L.\",\n  \"countryCode\": \"BO\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Add Business Partner Role",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/accounting/business-partners/roles",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"businessPartnerId\": \"{{businessPartnerId}}\",\n  \"roleCode\": \"CUSTOMER\",\n  \"legalEntityId\": \"{{legalEntityId}}\",\n  \"effectiveFrom\": \"2026-01-01\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Create Contract",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/accounting/contracts",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"contractNo\": \"CTR-001\",\n  \"contractType\": \"CUSTOMER_BILLING\",\n  \"legalEntityId\": \"{{legalEntityId}}\",\n  \"counterpartyBpId\": \"{{businessPartnerId}}\",\n  \"startDate\": \"2026-01-01\",\n  \"currencyCode\": \"BOB\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Create Billing Event",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/accounting/billing/events",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"contractId\": \"{{contractId}}\",\n  \"eventType\": \"SAAS\",\n  \"eventTime\": \"2026-01-15T12:00:00.000Z\",\n  \"quantity\": 1,\n  \"baseAmount\": 1000,\n  \"currencyCode\": \"BOB\",\n  \"externalRef\": \"EVT-001\",\n  \"payload\": {}\n}"
+        }
+      }
+    },
+    {
+      "name": "Create Draft Accounting Document",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/accounting/documents",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"legalEntityId\": \"{{legalEntityId}}\",\n  \"sourceSystem\": \"MANUAL\",\n  \"sourceType\": \"ADJUSTMENT\",\n  \"sourceId\": \"ADJ-001\",\n  \"documentType\": \"MANUAL\",\n  \"documentNo\": \"ADJ-001\",\n  \"documentDate\": \"2026-01-15\",\n  \"postingDate\": \"2026-01-15\",\n  \"accountingPeriodId\": \"{{periodId}}\",\n  \"ledgerId\": \"{{ledgerId}}\",\n  \"currencyCode\": \"BOB\",\n  \"approvalStatus\": \"NOT_REQUIRED\",\n  \"lines\": [\n    { \"glAccountId\": \"{{glAccountId}}\", \"debit\": 100, \"credit\": 0, \"currencyCode\": \"BOB\", \"amountLc\": 100 },\n    { \"glAccountId\": \"{{glAccountId}}\", \"debit\": 0, \"credit\": 100, \"currencyCode\": \"BOB\", \"amountLc\": 100 }\n  ]\n}"
+        }
+      }
+    },
+    {
+      "name": "Post Accounting Document",
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/accounting/documents/{{documentId}}/post"
+      }
+    },
+    {
+      "name": "Reverse Accounting Document",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/accounting/documents/{{documentId}}/reverse",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"reversalDocumentNo\": \"REV-001\",\n  \"reversalDate\": \"2026-01-20\",\n  \"accountingPeriodId\": \"{{periodId}}\",\n  \"reason\": \"Corrección documentada\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Close Period",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/accounting/closings/periods/close",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"legalEntityId\": \"{{legalEntityId}}\",\n  \"periodId\": \"{{periodId}}\",\n  \"closeType\": \"MONTHLY\"\n}"
+        }
+      }
+    }
+  ]
+}

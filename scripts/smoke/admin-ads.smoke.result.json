@@ -1,0 +1,40 @@
+{
+  "executedAt": "2026-07-09T15:06:25.623Z",
+  "baseUrl": "http://localhost:3000/api/v1",
+  "tokenProvided": false,
+  "passed": true,
+  "results": [
+    {
+      "method": "GET",
+      "path": "/health",
+      "status": 200,
+      "ok": true,
+      "expectedProtectedFailure": false,
+      "bodyPreview": "{\"success\":true,\"data\":{\"status\":\"ok\",\"service\":\"atlas-integrated-backend\"}}"
+    },
+    {
+      "method": "GET",
+      "path": "/ready",
+      "status": 200,
+      "ok": true,
+      "expectedProtectedFailure": false,
+      "bodyPreview": "{\"success\":true,\"data\":{\"status\":\"ready\",\"database\":\"ok\"}}"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/ads/dashboard",
+      "status": 401,
+      "ok": false,
+      "expectedProtectedFailure": true,
+      "bodyPreview": "{\"success\":false,\"error\":{\"code\":\"UNAUTHORIZED\",\"message\":\"Token no enviado.\"}}"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/ads/moderation/queue?status=PENDING_REVIEW",
+      "status": 401,
+      "ok": false,
+      "expectedProtectedFailure": true,
+      "bodyPreview": "{\"success\":false,\"error\":{\"code\":\"UNAUTHORIZED\",\"message\":\"Token no enviado.\"}}"
+    }
+  ]
+}

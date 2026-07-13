@@ -1,0 +1,39 @@
+import { Column, DataType, Model, Table } from 'sequelize-typescript';
+
+@Table({ tableName: 'close_run', schema: 'atlas_accounting', timestamps: false, underscored: true })
+export class CloseRunModel extends Model {
+  @Column({
+    type: DataType.UUID,
+    field: 'id',
+    allowNull: false,
+    primaryKey: true,
+    defaultValue: DataType.UUIDV4,
+  })
+  declare id: string;
+
+  @Column({ type: DataType.UUID, field: 'legal_entity_id', allowNull: false })
+  declare legalEntityId: string;
+
+  @Column({ type: DataType.UUID, field: 'period_id', allowNull: false })
+  declare periodId: string;
+
+  @Column({ type: DataType.STRING(20), field: 'close_type', allowNull: false })
+  declare closeType: string;
+
+  @Column({ type: DataType.STRING(20), field: 'status', allowNull: false })
+  declare status: string;
+
+  @Column({
+    type: DataType.DATE,
+    field: 'started_at',
+    allowNull: false,
+    defaultValue: DataType.NOW,
+  })
+  declare startedAt: Date;
+
+  @Column({ type: DataType.DATE, field: 'completed_at', allowNull: true })
+  declare completedAt: Date | null;
+
+  @Column({ type: DataType.JSONB, field: 'control_report_json', allowNull: false })
+  declare controlReportJson: Record<string, unknown>;
+}

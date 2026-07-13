@@ -1,0 +1,84 @@
+{
+  "mode": "UPSERT",
+  "transactional": true,
+  "recommended_conflict_keys": {
+    "atlas_accounting.legal_entity": [
+      "code"
+    ],
+    "atlas_accounting.chart_of_accounts": [
+      "code",
+      "version_no"
+    ],
+    "atlas_accounting.ledger": [
+      "legal_entity_id",
+      "code"
+    ],
+    "atlas_accounting.fiscal_year": [
+      "legal_entity_id",
+      "year_label"
+    ],
+    "atlas_accounting.accounting_period": [
+      "fiscal_year_id",
+      "period_no"
+    ],
+    "atlas_accounting.branch": [
+      "legal_entity_id",
+      "code"
+    ],
+    "atlas_accounting.cost_center": [
+      "legal_entity_id",
+      "code"
+    ],
+    "atlas_accounting.profit_center": [
+      "legal_entity_id",
+      "code"
+    ],
+    "atlas_accounting.business_partner": [
+      "partner_no"
+    ],
+    "atlas_accounting.business_partner_role": [
+      "business_partner_id",
+      "role_code",
+      "legal_entity_id",
+      "effective_from"
+    ],
+    "atlas_accounting.gl_account": [
+      "coa_id",
+      "account_no"
+    ],
+    "atlas_accounting.tax_code": [
+      "code"
+    ],
+    "atlas_accounting.tax_rule_version": [
+      "tax_type",
+      "version_no"
+    ],
+    "atlas_accounting.posting_rule_version": [
+      "rule_code",
+      "version_no"
+    ],
+    "atlas_sales.internal_users": [
+      "email"
+    ],
+    "public.ad_inventory_placements": [
+      "code"
+    ],
+    "public.ad_policy_rules": [
+      "policy_code"
+    ]
+  },
+  "preconditions": [
+    "Apply database migrations first.",
+    "Back up current database.",
+    "Delete or quarantine invalid/demo seeds listed in cleanup_candidates.",
+    "Run within a single transaction.",
+    "Reject any record whose FK cannot be resolved.",
+    "Verify validation report status PASS."
+  ],
+  "postconditions": [
+    "No journal entries or transactional documents are created.",
+    "All deterministic UUIDs remain stable across environments.",
+    "All posting rules reference existing account numbers or explicit resolver tokens.",
+    "Run trial balance and zero-balance smoke checks before allowing posting."
+  ]
+}

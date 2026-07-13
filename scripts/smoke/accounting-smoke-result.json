@@ -1,0 +1,76 @@
+{
+  "suite": "accounting-smoke",
+  "baseUrl": "http://localhost:3000/api/v1",
+  "startedAt": "2026-07-09T15:06:24.885Z",
+  "finishedAt": "2026-07-09T15:06:24.977Z",
+  "success": true,
+  "totalSteps": 3,
+  "passedSteps": 3,
+  "failedSteps": 0,
+  "steps": [
+    {
+      "name": "health",
+      "method": "GET",
+      "path": "/health",
+      "expectedStatuses": [
+        200
+      ],
+      "actualStatus": 200,
+      "ok": true,
+      "durationMs": 50,
+      "responseBody": {
+        "success": true,
+        "data": {
+          "status": "ok",
+          "service": "atlas-integrated-backend"
+        }
+      }
+    },
+    {
+      "name": "ready",
+      "method": "GET",
+      "path": "/ready",
+      "expectedStatuses": [
+        200
+      ],
+      "actualStatus": 200,
+      "ok": true,
+      "durationMs": 6,
+      "responseBody": {
+        "success": true,
+        "data": {
+          "status": "ready",
+          "database": "ok"
+        }
+      }
+    },
+    {
+      "name": "/accounting/financial-structure/legal-entities",
+      "method": "POST",
+      "path": "/accounting/financial-structure/legal-entities",
+      "expectedStatuses": [
+        201,
+        200,
+        409
+      ],
+      "actualStatus": 201,
+      "ok": true,
+      "durationMs": 33,
+      "responseBody": {
+        "success": true,
+        "data": {
+          "id": "dcbd1f58-2246-4c6c-806f-161035f10959",
+          "status": "ACTIVE",
+          "createdAt": "2026-07-09T15:06:24.962Z",
+          "updatedAt": "2026-07-09T15:06:24.962Z",
+          "code": "ATLAS-1783609584888",
+          "legalName": "ATLAS Bolivia S.A.",
+          "taxId": "123456789",
+          "countryCode": "BO",
+          "baseCurrency": "BOB",
+          "timezone": "America/La_Paz"
+        }
+      }
+    }
+  ]
+}

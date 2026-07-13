@@ -1,0 +1,3273 @@
+{
+  "generatedAt": "2026-07-09T04:05:56.967Z",
+  "rule": "Se audita todo el catálogo. La integración externa queda marcada como excluida por alcance actual del usuario.",
+  "summary": {
+    "totalUseCases": 258,
+    "PRODUCTION_COVERED": 46,
+    "MODEL_SUPPORTED": 109,
+    "EXCLUDED_INTEGRATION_SCOPE": 54,
+    "DOCUMENTED_EXTENSION_POINT": 49,
+    "runtimeScopePass": true
+  },
+  "items": [
+    {
+      "id": "UC_ConfigEntidad",
+      "name": "Configurar entidad legal",
+      "module": "Configuración financiera maestra",
+      "actors": ["AdminSistema", "Contador"],
+      "status": "PRODUCTION_COVERED",
+      "evidence": [
+        "FinancialStructureController",
+        "FinancialStructureService",
+        "Validación Zod",
+        "JWT + roles",
+        "autorización por entidad legal",
+        "logs Pino",
+        "manejo centralizado de errores"
+      ],
+      "risk": "Cubierto dentro del alcance operativo actual; mantener pruebas e2e al integrarlo con frontend o jobs reales."
+    },
+    {
+      "id": "UC_ConfigSucursales",
+      "name": "Configurar sucursales",
+      "module": "Configuración financiera maestra",
+      "actors": ["AdminSistema"],
+      "status": "PRODUCTION_COVERED",
+      "evidence": [
+        "FinancialStructureController",
+        "FinancialStructureService",
+        "Validación Zod",
+        "JWT + roles",
+        "autorización por entidad legal",
+        "logs Pino",
+        "manejo centralizado de errores"
+      ],
+      "risk": "Cubierto dentro del alcance operativo actual; mantener pruebas e2e al integrarlo con frontend o jobs reales."
+    },
+    {
+      "id": "UC_ConfigCalendario",
+      "name": "Configurar calendario fiscal",
+      "module": "Configuración financiera maestra",
+      "actors": ["AdminSistema", "Contador"],
+      "status": "PRODUCTION_COVERED",
+      "evidence": [
+        "FinancialStructureController",
+        "FinancialStructureService",
+        "Validación Zod",
+        "JWT + roles",
+        "autorización por entidad legal",
+        "logs Pino",
+        "manejo centralizado de errores"
+      ],
+      "risk": "Cubierto dentro del alcance operativo actual; mantener pruebas e2e al integrarlo con frontend o jobs reales."
+    },
+    {
+      "id": "UC_Periodos",
+      "name": "Abrir y cerrar periodos contables",
+      "module": "Configuración financiera maestra",
+      "actors": ["Contador", "CFO"],
+      "status": "PRODUCTION_COVERED",
+      "evidence": [
+        "FinancialStructureController",
+        "FinancialStructureService",
+        "Validación Zod",
+        "JWT + roles",
+        "autorización por entidad legal",
+        "logs Pino",
+        "manejo centralizado de errores"
+      ],
+      "risk": "Cubierto dentro del alcance operativo actual; mantener pruebas e2e al integrarlo con frontend o jobs reales."
+    },
+    {
+      "id": "UC_ConfigLedgers",
+      "name": "Configurar ledgers contables Local/Gestión/IFRS",
+      "module": "Configuración financiera maestra",
+      "actors": ["AdminSistema", "Contador", "CFO"],
+      "status": "PRODUCTION_COVERED",
+      "evidence": [
+        "FinancialStructureController",
+        "FinancialStructureService",
+        "Validación Zod",
+        "JWT + roles",
+        "autorización por entidad legal",
+        "logs Pino",
+        "manejo centralizado de errores"
+      ],
+      "risk": "Cubierto dentro del alcance operativo actual; mantener pruebas e2e al integrarlo con frontend o jobs reales."
+    },
+    {
+      "id": "UC_PlanCuentas",
+      "name": "Configurar plan de cuentas",
+      "module": "Configuración financiera maestra",
+      "actors": ["Contador", "CFO"],
+      "status": "PRODUCTION_COVERED",
+      "evidence": [
+        "FinancialStructureController",
+        "FinancialStructureService",
+        "Validación Zod",
+        "JWT + roles",
+        "autorización por entidad legal",
+        "logs Pino",
+        "manejo centralizado de errores"
+      ],
+      "risk": "Cubierto dentro del alcance operativo actual; mantener pruebas e2e al integrarlo con frontend o jobs reales."
+    },
+    {
+      "id": "UC_CuentasGL",
+      "name": "Crear cuentas contables GL",
+      "module": "Configuración financiera maestra",
+      "actors": ["Contador"],
+      "status": "PRODUCTION_COVERED",
+      "evidence": [
+        "FinancialStructureController",
+        "FinancialStructureService",
+        "Validación Zod",
+        "JWT + roles",
+        "autorización por entidad legal",
+        "logs Pino",
+        "manejo centralizado de errores"
+      ],
+      "risk": "Cubierto dentro del alcance operativo actual; mantener pruebas e2e al integrarlo con frontend o jobs reales."
+    },
+    {
+      "id": "UC_CuentasControl",
+      "name": "Configurar cuentas de control",
+      "module": "Configuración financiera maestra",
+      "actors": ["Contador"],
+      "status": "PRODUCTION_COVERED",
+      "evidence": [
+        "AccountingDocumentsController",
+        "AccountingDocumentsService",
+        "SapPostingValidationService",
+        "Validación Zod",
+        "JWT + roles",
+        "autorización por entidad legal",
+        "logs Pino",
+        "manejo centralizado de errores"
+      ],
+      "risk": "Cubierto dentro del alcance operativo actual; mantener pruebas e2e al integrarlo con frontend o jobs reales."
+    },
+    {
+      "id": "UC_CentrosCosto",
+      "name": "Configurar centros de costo",
+      "module": "Configuración financiera maestra",
+      "actors": ["Contador", "GerenteFin"],
+      "status": "DOCUMENTED_EXTENSION_POINT",
+      "evidence": [
+        "Caso documentado en systemInfo y considerado en arquitectura como extensión futura."
+      ],
+      "risk": "Implementar únicamente cuando exista regla de negocio cerrada para evitar inventar comportamiento contable crítico."
+    },
+    {
+      "id": "UC_CentrosBeneficio",
+      "name": "Configurar centros de beneficio",
+      "module": "Configuración financiera maestra",
+      "actors": ["Contador", "GerenteFin"],
+      "status": "DOCUMENTED_EXTENSION_POINT",
+      "evidence": [
+        "Caso documentado en systemInfo y considerado en arquitectura como extensión futura."
+      ],
+      "risk": "Implementar únicamente cuando exista regla de negocio cerrada para evitar inventar comportamiento contable crítico."
+    },
+    {
+      "id": "UC_Monedas",
+      "name": "Configurar monedas y tipos de cambio",
+      "module": "Configuración financiera maestra",
+      "actors": ["AdminSistema", "Contador"],
+      "status": "DOCUMENTED_EXTENSION_POINT",
+      "evidence": [
+        "Caso documentado en systemInfo y considerado en arquitectura como extensión futura."
+      ],
+      "risk": "Implementar únicamente cuando exista regla de negocio cerrada para evitar inventar comportamiento contable crítico."
+    },
+    {
+      "id": "UC_Impuestos",
+      "name": "Configurar impuestos",
+      "module": "Configuración financiera maestra",
+      "actors": ["Contador", "Legal"],
+      "status": "PRODUCTION_COVERED",
+      "evidence": [
+        "FinancialStructureController",
+        "FinancialStructureService",
+        "Validación Zod",
+        "JWT + roles",
+        "autorización por entidad legal",
+        "logs Pino",
+        "manejo centralizado de errores"
+      ],
+      "risk": "Cubierto dentro del alcance operativo actual; mantener pruebas e2e al integrarlo con frontend o jobs reales."
+    },
+    {
+      "id": "UC_VersionReglas",
+      "name": "Versionar reglas contables",
+      "module": "Configuración financiera maestra",
+      "actors": ["Contador", "AuditorInterno"],
+      "status": "PRODUCTION_COVERED",
+      "evidence": [
+        "AccountingDocumentsController",
+        "AccountingDocumentsService",
+        "SapPostingValidationService",
+        "Validación Zod",
+        "JWT + roles",
+        "autorización por entidad legal",
+        "logs Pino",
+        "manejo centralizado de errores"
+      ],
+      "risk": "Cubierto dentro del alcance operativo actual; mantener pruebas e2e al integrarlo con frontend o jobs reales."
+    },
+    {
+      "id": "UC_ReglasPosting",
+      "name": "Configurar reglas automáticas de contabilización",
+      "module": "Configuración financiera maestra",
+      "actors": ["Contador", "AdminSistema"],
+      "status": "PRODUCTION_COVERED",
+      "evidence": [
+        "AccountingDocumentsController",
+        "AccountingDocumentsService",
+        "SapPostingValidationService",
+        "Validación Zod",
+        "JWT + roles",
+        "autorización por entidad legal",
+        "logs Pino",
+        "manejo centralizado de errores"
+      ],
+      "risk": "Cubierto dentro del alcance operativo actual; mantener pruebas e2e al integrarlo con frontend o jobs reales."
+    },
+    {
+      "id": "UC_PerfilesAprobacion",
+      "name": "Configurar perfiles de aprobación",
+      "module": "Configuración financiera maestra",
+      "actors": ["AdminSistema", "CFO"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_Permisos",
+      "name": "Configurar matriz de permisos contables",
+      "module": "Configuración financiera maestra",
+      "actors": ["AdminSistema", "AuditorInterno"],
+      "status": "PRODUCTION_COVERED",
+      "evidence": [
+        "AccountingDocumentsController",
+        "AccountingDocumentsService",
+        "SapPostingValidationService",
+        "Validación Zod",
+        "JWT + roles",
+        "autorización por entidad legal",
+        "logs Pino",
+        "manejo centralizado de errores"
+      ],
+      "risk": "Cubierto dentro del alcance operativo actual; mantener pruebas e2e al integrarlo con frontend o jobs reales."
+    },
+    {
+      "id": "UC_CrearBP",
+      "name": "Crear Business Partner",
+      "module": "Maestro único de terceros / Business Partner",
+      "actors": ["AuxContable", "Operaciones", "Compras", "Ventas"],
+      "status": "PRODUCTION_COVERED",
+      "evidence": [
+        "BusinessPartnersController",
+        "BusinessPartnersService",
+        "BusinessPartnerRoleValidationService",
+        "Validación Zod",
+        "JWT + roles",
+        "autorización por entidad legal",
+        "logs Pino",
+        "manejo centralizado de errores"
+      ],
+      "risk": "Cubierto dentro del alcance operativo actual; mantener pruebas e2e al integrarlo con frontend o jobs reales."
+    },
+    {
+      "id": "UC_RolBP",
+      "name": "Clasificar rol del tercero",
+      "module": "Maestro único de terceros / Business Partner",
+      "actors": ["AuxContable", "Legal"],
+      "status": "PRODUCTION_COVERED",
+      "evidence": [
+        "BusinessPartnersController",
+        "BusinessPartnersService",
+        "BusinessPartnerRoleValidationService",
+        "Validación Zod",
+        "JWT + roles",
+        "autorización por entidad legal",
+        "logs Pino",
+        "manejo centralizado de errores"
+      ],
+      "risk": "Cubierto dentro del alcance operativo actual; mantener pruebas e2e al integrarlo con frontend o jobs reales."
+    },
+    {
+      "id": "UC_BPClienteCorp",
+      "name": "Registrar cliente corporativo",
+      "module": "Maestro único de terceros / Business Partner",
+      "actors": ["Ventas", "ClienteCorp"],
+      "status": "PRODUCTION_COVERED",
+      "evidence": [
+        "BusinessPartnersController",
+        "BusinessPartnersService",
+        "BusinessPartnerRoleValidationService",
+        "Validación Zod",
+        "JWT + roles",
+        "autorización por entidad legal",
+        "logs Pino",
+        "manejo centralizado de errores"
+      ],
+      "risk": "Cubierto dentro del alcance operativo actual; mantener pruebas e2e al integrarlo con frontend o jobs reales."
+    },
+    {
+      "id": "UC_BPComercio",
+      "name": "Registrar comercio afiliado",
+      "module": "Maestro único de terceros / Business Partner",
+      "actors": ["Operaciones", "Comercio"],
+      "status": "PRODUCTION_COVERED",
+      "evidence": [
+        "BusinessPartnersController",
+        "BusinessPartnersService",
+        "BusinessPartnerRoleValidationService",
+        "Validación Zod",
+        "JWT + roles",
+        "autorización por entidad legal",
+        "logs Pino",
+        "manejo centralizado de errores"
+      ],
+      "risk": "Cubierto dentro del alcance operativo actual; mantener pruebas e2e al integrarlo con frontend o jobs reales."
+    },
+    {
+      "id": "UC_BPConsumidor",
+      "name": "Registrar consumidor asociado",
+      "module": "Maestro único de terceros / Business Partner",
+      "actors": ["Operaciones", "Consumidor"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_BPProveedor",
+      "name": "Registrar proveedor",
+      "module": "Maestro único de terceros / Business Partner",
+      "actors": ["Compras", "Proveedor"],
+      "status": "PRODUCTION_COVERED",
+      "evidence": [
+        "BusinessPartnersController",
+        "BusinessPartnersService",
+        "BusinessPartnerRoleValidationService",
+        "Validación Zod",
+        "JWT + roles",
+        "autorización por entidad legal",
+        "logs Pino",
+        "manejo centralizado de errores"
+      ],
+      "risk": "Cubierto dentro del alcance operativo actual; mantener pruebas e2e al integrarlo con frontend o jobs reales."
+    },
+    {
+      "id": "UC_BPBanco",
+      "name": "Registrar banco",
+      "module": "Maestro único de terceros / Business Partner",
+      "actors": ["Tesorero", "Banco"],
+      "status": "PRODUCTION_COVERED",
+      "evidence": [
+        "BusinessPartnersController",
+        "BusinessPartnersService",
+        "BusinessPartnerRoleValidationService",
+        "Validación Zod",
+        "JWT + roles",
+        "autorización por entidad legal",
+        "logs Pino",
+        "manejo centralizado de errores"
+      ],
+      "risk": "Cubierto dentro del alcance operativo actual; mantener pruebas e2e al integrarlo con frontend o jobs reales."
+    },
+    {
+      "id": "UC_BPLender",
+      "name": "Registrar lender / acreedor",
+      "module": "Maestro único de terceros / Business Partner",
+      "actors": ["CFO", "Lender"],
+      "status": "PRODUCTION_COVERED",
+      "evidence": [
+        "BusinessPartnersController",
+        "BusinessPartnersService",
+        "BusinessPartnerRoleValidationService",
+        "Validación Zod",
+        "JWT + roles",
+        "autorización por entidad legal",
+        "logs Pino",
+        "manejo centralizado de errores"
+      ],
+      "risk": "Cubierto dentro del alcance operativo actual; mantener pruebas e2e al integrarlo con frontend o jobs reales."
+    },
+    {
+      "id": "UC_BPSocio",
+      "name": "Registrar socio / accionista",
+      "module": "Maestro único de terceros / Business Partner",
+      "actors": ["CFO", "Socio"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_BPIntercompany",
+      "name": "Registrar intercompany",
+      "module": "Maestro único de terceros / Business Partner",
+      "actors": ["Contador", "CFO"],
+      "status": "PRODUCTION_COVERED",
+      "evidence": [
+        "BusinessPartnersController",
+        "BusinessPartnersService",
+        "BusinessPartnerRoleValidationService",
+        "Validación Zod",
+        "JWT + roles",
+        "autorización por entidad legal",
+        "logs Pino",
+        "manejo centralizado de errores"
+      ],
+      "risk": "Cubierto dentro del alcance operativo actual; mantener pruebas e2e al integrarlo con frontend o jobs reales."
+    },
+    {
+      "id": "UC_DatosFiscalesBP",
+      "name": "Gestionar datos fiscales del tercero",
+      "module": "Maestro único de terceros / Business Partner",
+      "actors": ["AuxContable", "Legal"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_CuentasBancariasBP",
+      "name": "Gestionar cuentas bancarias del tercero",
+      "module": "Maestro único de terceros / Business Partner",
+      "actors": ["AuxContable", "Tesorero"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_ValidarKYC",
+      "name": "Validar KYB / KYC del tercero",
+      "module": "Maestro único de terceros / Business Partner",
+      "actors": ["Legal", "Riesgo", "APIBuro"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_BloquearBP",
+      "name": "Bloquear o suspender tercero",
+      "module": "Maestro único de terceros / Business Partner",
+      "actors": ["Legal", "CFO", "Riesgo"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_HistorialBP",
+      "name": "Consultar historial financiero del tercero",
+      "module": "Maestro único de terceros / Business Partner",
+      "actors": ["AtencionCliente", "Contador", "Riesgo"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_ContratoComercio",
+      "name": "Crear contrato con comercio",
+      "module": "Contratos, tarifas y condiciones comerciales",
+      "actors": ["Ventas", "Legal", "Comercio"],
+      "status": "PRODUCTION_COVERED",
+      "evidence": [
+        "ContractsController",
+        "ContractsService",
+        "Validación Zod",
+        "JWT + roles",
+        "autorización por entidad legal",
+        "logs Pino",
+        "manejo centralizado de errores"
+      ],
+      "risk": "Cubierto dentro del alcance operativo actual; mantener pruebas e2e al integrarlo con frontend o jobs reales."
+    },
+    {
+      "id": "UC_ContratoCorp",
+      "name": "Crear contrato con cliente corporativo",
+      "module": "Contratos, tarifas y condiciones comerciales",
+      "actors": ["Ventas", "Legal", "ClienteCorp"],
+      "status": "PRODUCTION_COVERED",
+      "evidence": [
+        "ContractsController",
+        "ContractsService",
+        "Validación Zod",
+        "JWT + roles",
+        "autorización por entidad legal",
+        "logs Pino",
+        "manejo centralizado de errores"
+      ],
+      "risk": "Cubierto dentro del alcance operativo actual; mantener pruebas e2e al integrarlo con frontend o jobs reales."
+    },
+    {
+      "id": "UC_ContratoIntercompany",
+      "name": "Crear contrato intercompany",
+      "module": "Contratos, tarifas y condiciones comerciales",
+      "actors": ["CFO", "Legal", "Contador"],
+      "status": "PRODUCTION_COVERED",
+      "evidence": [
+        "ContractsController",
+        "ContractsService",
+        "Validación Zod",
+        "JWT + roles",
+        "autorización por entidad legal",
+        "logs Pino",
+        "manejo centralizado de errores"
+      ],
+      "risk": "Cubierto dentro del alcance operativo actual; mantener pruebas e2e al integrarlo con frontend o jobs reales."
+    },
+    {
+      "id": "UC_ContratoProveedor",
+      "name": "Crear contrato con proveedor",
+      "module": "Contratos, tarifas y condiciones comerciales",
+      "actors": ["Compras", "Legal", "Proveedor"],
+      "status": "PRODUCTION_COVERED",
+      "evidence": [
+        "ContractsController",
+        "ContractsService",
+        "Validación Zod",
+        "JWT + roles",
+        "autorización por entidad legal",
+        "logs Pino",
+        "manejo centralizado de errores"
+      ],
+      "risk": "Cubierto dentro del alcance operativo actual; mantener pruebas e2e al integrarlo con frontend o jobs reales."
+    },
+    {
+      "id": "UC_ContratoDeuda",
+      "name": "Crear contrato de deuda / préstamo",
+      "module": "Contratos, tarifas y condiciones comerciales",
+      "actors": ["CFO", "Legal", "Lender"],
+      "status": "PRODUCTION_COVERED",
+      "evidence": [
+        "ContractsController",
+        "ContractsService",
+        "Validación Zod",
+        "JWT + roles",
+        "autorización por entidad legal",
+        "logs Pino",
+        "manejo centralizado de errores"
+      ],
+      "risk": "Cubierto dentro del alcance operativo actual; mantener pruebas e2e al integrarlo con frontend o jobs reales."
+    },
+    {
+      "id": "UC_DefinirMDR",
+      "name": "Definir MDR por comercio",
+      "module": "Contratos, tarifas y condiciones comerciales",
+      "actors": ["Ventas", "CFO"],
+      "status": "PRODUCTION_COVERED",
+      "evidence": [
+        "ContractsController",
+        "ContractsService",
+        "Validación Zod",
+        "JWT + roles",
+        "autorización por entidad legal",
+        "logs Pino",
+        "manejo centralizado de errores"
+      ],
+      "risk": "Cubierto dentro del alcance operativo actual; mantener pruebas e2e al integrarlo con frontend o jobs reales."
+    },
+    {
+      "id": "UC_TarifaSaaS",
+      "name": "Definir tarifa SaaS corporativa",
+      "module": "Contratos, tarifas y condiciones comerciales",
+      "actors": ["Ventas", "CFO"],
+      "status": "PRODUCTION_COVERED",
+      "evidence": [
+        "ContractsController",
+        "ContractsService",
+        "Validación Zod",
+        "JWT + roles",
+        "autorización por entidad legal",
+        "logs Pino",
+        "manejo centralizado de errores"
+      ],
+      "risk": "Cubierto dentro del alcance operativo actual; mantener pruebas e2e al integrarlo con frontend o jobs reales."
+    },
+    {
+      "id": "UC_FeeImplementacion",
+      "name": "Definir fee de implementación",
+      "module": "Contratos, tarifas y condiciones comerciales",
+      "actors": ["Ventas", "CFO"],
+      "status": "PRODUCTION_COVERED",
+      "evidence": [
+        "ContractsController",
+        "ContractsService",
+        "Validación Zod",
+        "JWT + roles",
+        "autorización por entidad legal",
+        "logs Pino",
+        "manejo centralizado de errores"
+      ],
+      "risk": "Cubierto dentro del alcance operativo actual; mantener pruebas e2e al integrarlo con frontend o jobs reales."
+    },
+    {
+      "id": "UC_Penalidades",
+      "name": "Definir penalidades y cargos",
+      "module": "Contratos, tarifas y condiciones comerciales",
+      "actors": ["Legal", "Ventas", "CFO"],
+      "status": "DOCUMENTED_EXTENSION_POINT",
+      "evidence": [
+        "Caso documentado en systemInfo y considerado en arquitectura como extensión futura."
+      ],
+      "risk": "Implementar únicamente cuando exista regla de negocio cerrada para evitar inventar comportamiento contable crítico."
+    },
+    {
+      "id": "UC_CondicionesPago",
+      "name": "Definir condiciones de pago",
+      "module": "Contratos, tarifas y condiciones comerciales",
+      "actors": ["Ventas", "Compras", "CFO"],
+      "status": "PRODUCTION_COVERED",
+      "evidence": [
+        "AccountingDocumentsController",
+        "AccountingDocumentsService",
+        "SapPostingValidationService",
+        "Validación Zod",
+        "JWT + roles",
+        "autorización por entidad legal",
+        "logs Pino",
+        "manejo centralizado de errores"
+      ],
+      "risk": "Cubierto dentro del alcance operativo actual; mantener pruebas e2e al integrarlo con frontend o jobs reales."
+    },
+    {
+      "id": "UC_CoberturaComercio",
+      "name": "Definir garantías o coberturas a comercios",
+      "module": "Contratos, tarifas y condiciones comerciales",
+      "actors": ["Legal", "Riesgo", "CFO"],
+      "status": "PRODUCTION_COVERED",
+      "evidence": [
+        "AccountingDocumentsController",
+        "AccountingDocumentsService",
+        "SapPostingValidationService",
+        "Validación Zod",
+        "JWT + roles",
+        "autorización por entidad legal",
+        "logs Pino",
+        "manejo centralizado de errores"
+      ],
+      "risk": "Cubierto dentro del alcance operativo actual; mantener pruebas e2e al integrarlo con frontend o jobs reales."
+    },
+    {
+      "id": "UC_VersionContrato",
+      "name": "Versionar términos contractuales",
+      "module": "Contratos, tarifas y condiciones comerciales",
+      "actors": ["Legal", "AuditorInterno"],
+      "status": "PRODUCTION_COVERED",
+      "evidence": [
+        "ContractsController",
+        "ContractsService",
+        "Validación Zod",
+        "JWT + roles",
+        "autorización por entidad legal",
+        "logs Pino",
+        "manejo centralizado de errores"
+      ],
+      "risk": "Cubierto dentro del alcance operativo actual; mantener pruebas e2e al integrarlo con frontend o jobs reales."
+    },
+    {
+      "id": "UC_AprobarContratoFin",
+      "name": "Aprobar contrato financiero",
+      "module": "Contratos, tarifas y condiciones comerciales",
+      "actors": ["CFO", "Directorio"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_SoporteContrato",
+      "name": "Adjuntar soporte contractual",
+      "module": "Contratos, tarifas y condiciones comerciales",
+      "actors": ["Legal", "Compras", "Ventas"],
+      "status": "DOCUMENTED_EXTENSION_POINT",
+      "evidence": [
+        "Caso documentado en systemInfo y considerado en arquitectura como extensión futura."
+      ],
+      "risk": "Implementar únicamente cuando exista regla de negocio cerrada para evitar inventar comportamiento contable crítico."
+    },
+    {
+      "id": "UC_EventoFacturable",
+      "name": "Generar evento facturable",
+      "module": "Facturación comercial y fiscal",
+      "actors": ["Ventas", "MotorFacturacion", "EventBus"],
+      "status": "PRODUCTION_COVERED",
+      "evidence": [
+        "BillingController",
+        "BillingService",
+        "ReceiptsController",
+        "ReceiptsService",
+        "Validación Zod",
+        "JWT + roles",
+        "autorización por entidad legal",
+        "logs Pino",
+        "manejo centralizado de errores"
+      ],
+      "risk": "Cubierto dentro del alcance operativo actual; mantener pruebas e2e al integrarlo con frontend o jobs reales."
+    },
+    {
+      "id": "UC_FacturaMDR",
+      "name": "Calcular factura por MDR",
+      "module": "Facturación comercial y fiscal",
+      "actors": ["MotorFacturacion", "Comercio"],
+      "status": "PRODUCTION_COVERED",
+      "evidence": [
+        "ContractsController",
+        "ContractsService",
+        "Validación Zod",
+        "JWT + roles",
+        "autorización por entidad legal",
+        "logs Pino",
+        "manejo centralizado de errores"
+      ],
+      "risk": "Cubierto dentro del alcance operativo actual; mantener pruebas e2e al integrarlo con frontend o jobs reales."
+    },
+    {
+      "id": "UC_FacturaSaaS",
+      "name": "Calcular factura SaaS corporativa",
+      "module": "Facturación comercial y fiscal",
+      "actors": ["MotorFacturacion", "ClienteCorp"],
+      "status": "PRODUCTION_COVERED",
+      "evidence": [
+        "BillingController",
+        "BillingService",
+        "ReceiptsController",
+        "ReceiptsService",
+        "Validación Zod",
+        "JWT + roles",
+        "autorización por entidad legal",
+        "logs Pino",
+        "manejo centralizado de errores"
+      ],
+      "risk": "Cubierto dentro del alcance operativo actual; mantener pruebas e2e al integrarlo con frontend o jobs reales."
+    },
+    {
+      "id": "UC_FacturaImplementacion",
+      "name": "Calcular factura por implementación",
+      "module": "Facturación comercial y fiscal",
+      "actors": ["MotorFacturacion", "ClienteCorp"],
+      "status": "PRODUCTION_COVERED",
+      "evidence": [
+        "BillingController",
+        "BillingService",
+        "ReceiptsController",
+        "ReceiptsService",
+        "Validación Zod",
+        "JWT + roles",
+        "autorización por entidad legal",
+        "logs Pino",
+        "manejo centralizado de errores"
+      ],
+      "risk": "Cubierto dentro del alcance operativo actual; mantener pruebas e2e al integrarlo con frontend o jobs reales."
+    },
+    {
+      "id": "UC_FacturaIntercompany",
+      "name": "Calcular factura intercompany",
+      "module": "Facturación comercial y fiscal",
+      "actors": ["MotorFacturacion", "Contador"],
+      "status": "PRODUCTION_COVERED",
+      "evidence": [
+        "BillingController",
+        "BillingService",
+        "ReceiptsController",
+        "ReceiptsService",
+        "Validación Zod",
+        "JWT + roles",
+        "autorización por entidad legal",
+        "logs Pino",
+        "manejo centralizado de errores"
+      ],
+      "risk": "Cubierto dentro del alcance operativo actual; mantener pruebas e2e al integrarlo con frontend o jobs reales."
+    },
+    {
+      "id": "UC_GenerarFactura",
+      "name": "Generar factura comercial",
+      "module": "Facturación comercial y fiscal",
+      "actors": ["MotorFacturacion", "Contador"],
+      "status": "PRODUCTION_COVERED",
+      "evidence": [
+        "BillingController",
+        "BillingService",
+        "ReceiptsController",
+        "ReceiptsService",
+        "Validación Zod",
+        "JWT + roles",
+        "autorización por entidad legal",
+        "logs Pino",
+        "manejo centralizado de errores"
+      ],
+      "risk": "Cubierto dentro del alcance operativo actual; mantener pruebas e2e al integrarlo con frontend o jobs reales."
+    },
+    {
+      "id": "UC_EmitirFacturaSIN",
+      "name": "Emitir factura electrónica SIN",
+      "module": "Facturación comercial y fiscal",
+      "actors": ["MotorFacturacion", "APIFiscal", "SIN"],
+      "status": "PRODUCTION_COVERED",
+      "evidence": [
+        "BillingController",
+        "BillingService",
+        "ReceiptsController",
+        "ReceiptsService",
+        "Validación Zod",
+        "JWT + roles",
+        "autorización por entidad legal",
+        "logs Pino",
+        "manejo centralizado de errores"
+      ],
+      "risk": "Cubierto dentro del alcance operativo actual; mantener pruebas e2e al integrarlo con frontend o jobs reales."
+    },
+    {
+      "id": "UC_CUFCUFD",
+      "name": "Generar CUF / CUFD",
+      "module": "Facturación comercial y fiscal",
+      "actors": ["APIFiscal", "SIN"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_EnviarXML",
+      "name": "Enviar XML fiscal",
+      "module": "Facturación comercial y fiscal",
+      "actors": ["APIFiscal", "SIN"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_EstadoFacturaFiscal",
+      "name": "Consultar estado de factura fiscal",
+      "module": "Facturación comercial y fiscal",
+      "actors": ["APIFiscal", "SIN", "Contador"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_ContingenciaFiscal",
+      "name": "Gestionar contingencia de facturación",
+      "module": "Facturación comercial y fiscal",
+      "actors": ["Contador", "Legal", "APIFiscal"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_NotaCredito",
+      "name": "Emitir nota de crédito",
+      "module": "Facturación comercial y fiscal",
+      "actors": ["Contador", "MotorFacturacion"],
+      "status": "DOCUMENTED_EXTENSION_POINT",
+      "evidence": [
+        "Caso documentado en systemInfo y considerado en arquitectura como extensión futura."
+      ],
+      "risk": "Implementar únicamente cuando exista regla de negocio cerrada para evitar inventar comportamiento contable crítico."
+    },
+    {
+      "id": "UC_NotaDebito",
+      "name": "Emitir nota de débito",
+      "module": "Facturación comercial y fiscal",
+      "actors": ["Contador", "MotorFacturacion"],
+      "status": "DOCUMENTED_EXTENSION_POINT",
+      "evidence": [
+        "Caso documentado en systemInfo y considerado en arquitectura como extensión futura."
+      ],
+      "risk": "Implementar únicamente cuando exista regla de negocio cerrada para evitar inventar comportamiento contable crítico."
+    },
+    {
+      "id": "UC_AnularFactura",
+      "name": "Anular factura",
+      "module": "Facturación comercial y fiscal",
+      "actors": ["Contador", "Legal", "APIFiscal"],
+      "status": "DOCUMENTED_EXTENSION_POINT",
+      "evidence": [
+        "Caso documentado en systemInfo y considerado en arquitectura como extensión futura."
+      ],
+      "risk": "Implementar únicamente cuando exista regla de negocio cerrada para evitar inventar comportamiento contable crítico."
+    },
+    {
+      "id": "UC_ReprocesarFactura",
+      "name": "Reprocesar factura rechazada",
+      "module": "Facturación comercial y fiscal",
+      "actors": ["Contador", "MotorFacturacion"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_EnviarFacturaCliente",
+      "name": "Enviar factura al cliente",
+      "module": "Facturación comercial y fiscal",
+      "actors": ["MotorNotificaciones", "ClienteCorp", "Comercio"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_DisputaFactura",
+      "name": "Registrar disputa de factura",
+      "module": "Facturación comercial y fiscal",
+      "actors": ["AtencionCliente", "Ventas", "ClienteCorp", "Comercio"],
+      "status": "DOCUMENTED_EXTENSION_POINT",
+      "evidence": [
+        "Caso documentado en systemInfo y considerado en arquitectura como extensión futura."
+      ],
+      "risk": "Implementar únicamente cuando exista regla de negocio cerrada para evitar inventar comportamiento contable crítico."
+    },
+    {
+      "id": "UC_CrearCxC",
+      "name": "Crear cuenta por cobrar",
+      "module": "Cuentas por cobrar / AR",
+      "actors": ["Contador", "AuxContable", "MotorPosting"],
+      "status": "PRODUCTION_COVERED",
+      "evidence": [
+        "BillingController",
+        "BillingService",
+        "ReceiptsController",
+        "ReceiptsService",
+        "Validación Zod",
+        "JWT + roles",
+        "autorización por entidad legal",
+        "logs Pino",
+        "manejo centralizado de errores"
+      ],
+      "risk": "Cubierto dentro del alcance operativo actual; mantener pruebas e2e al integrarlo con frontend o jobs reales."
+    },
+    {
+      "id": "UC_SubmayorAR",
+      "name": "Registrar submayor AR",
+      "module": "Cuentas por cobrar / AR",
+      "actors": ["MotorPosting", "Contador"],
+      "status": "PRODUCTION_COVERED",
+      "evidence": [
+        "AccountingDocumentsController",
+        "AccountingDocumentsService",
+        "SapPostingValidationService",
+        "Validación Zod",
+        "JWT + roles",
+        "autorización por entidad legal",
+        "logs Pino",
+        "manejo centralizado de errores"
+      ],
+      "risk": "Cubierto dentro del alcance operativo actual; mantener pruebas e2e al integrarlo con frontend o jobs reales."
+    },
+    {
+      "id": "UC_EstadoCuentaCliente",
+      "name": "Consultar estado de cuenta de cliente",
+      "module": "Cuentas por cobrar / AR",
+      "actors": ["AtencionCliente", "ClienteCorp", "Comercio", "Contador"],
+      "status": "DOCUMENTED_EXTENSION_POINT",
+      "evidence": [
+        "Caso documentado en systemInfo y considerado en arquitectura como extensión futura."
+      ],
+      "risk": "Implementar únicamente cuando exista regla de negocio cerrada para evitar inventar comportamiento contable crítico."
+    },
+    {
+      "id": "UC_AgingAR",
+      "name": "Consultar antigüedad de saldos AR",
+      "module": "Cuentas por cobrar / AR",
+      "actors": ["Cobranza", "Contador", "GerenteFin"],
+      "status": "DOCUMENTED_EXTENSION_POINT",
+      "evidence": [
+        "Caso documentado en systemInfo y considerado en arquitectura como extensión futura."
+      ],
+      "risk": "Implementar únicamente cuando exista regla de negocio cerrada para evitar inventar comportamiento contable crítico."
+    },
+    {
+      "id": "UC_AplicarCobro",
+      "name": "Aplicar cobranza a factura",
+      "module": "Cuentas por cobrar / AR",
+      "actors": ["Tesorero", "MotorConciliacion"],
+      "status": "PRODUCTION_COVERED",
+      "evidence": [
+        "BillingController",
+        "BillingService",
+        "ReceiptsController",
+        "ReceiptsService",
+        "Validación Zod",
+        "JWT + roles",
+        "autorización por entidad legal",
+        "logs Pino",
+        "manejo centralizado de errores"
+      ],
+      "risk": "Cubierto dentro del alcance operativo actual; mantener pruebas e2e al integrarlo con frontend o jobs reales."
+    },
+    {
+      "id": "UC_PagoParcialAR",
+      "name": "Aplicar pago parcial",
+      "module": "Cuentas por cobrar / AR",
+      "actors": ["Tesorero", "Cobranza"],
+      "status": "PRODUCTION_COVERED",
+      "evidence": [
+        "AccountingDocumentsController",
+        "AccountingDocumentsService",
+        "SapPostingValidationService",
+        "Validación Zod",
+        "JWT + roles",
+        "autorización por entidad legal",
+        "logs Pino",
+        "manejo centralizado de errores"
+      ],
+      "risk": "Cubierto dentro del alcance operativo actual; mantener pruebas e2e al integrarlo con frontend o jobs reales."
+    },
+    {
+      "id": "UC_CompensarNC",
+      "name": "Compensar factura con nota de crédito",
+      "module": "Cuentas por cobrar / AR",
+      "actors": ["Contador"],
+      "status": "DOCUMENTED_EXTENSION_POINT",
+      "evidence": [
+        "Caso documentado en systemInfo y considerado en arquitectura como extensión futura."
+      ],
+      "risk": "Implementar únicamente cuando exista regla de negocio cerrada para evitar inventar comportamiento contable crítico."
+    },
+    {
+      "id": "UC_ReclasificarAR",
+      "name": "Reclasificar AR corriente / vencida",
+      "module": "Cuentas por cobrar / AR",
+      "actors": ["Contador", "Cobranza"],
+      "status": "DOCUMENTED_EXTENSION_POINT",
+      "evidence": [
+        "Caso documentado en systemInfo y considerado en arquitectura como extensión futura."
+      ],
+      "risk": "Implementar únicamente cuando exista regla de negocio cerrada para evitar inventar comportamiento contable crítico."
+    },
+    {
+      "id": "UC_WriteOffAR",
+      "name": "Registrar incobrable / write-off",
+      "module": "Cuentas por cobrar / AR",
+      "actors": ["Cobranza", "Contador"],
+      "status": "DOCUMENTED_EXTENSION_POINT",
+      "evidence": [
+        "Caso documentado en systemInfo y considerado en arquitectura como extensión futura."
+      ],
+      "risk": "Implementar únicamente cuando exista regla de negocio cerrada para evitar inventar comportamiento contable crítico."
+    },
+    {
+      "id": "UC_AprobarWriteOff",
+      "name": "Aprobar write-off",
+      "module": "Cuentas por cobrar / AR",
+      "actors": ["CFO", "AuditorInterno"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_ECLAR",
+      "name": "Registrar provisión ECL / deterioro AR",
+      "module": "Cuentas por cobrar / AR",
+      "actors": ["Riesgo", "Contador"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_ConciliarARGL",
+      "name": "Conciliar AR con mayor contable",
+      "module": "Cuentas por cobrar / AR",
+      "actors": ["Contador", "MotorConciliacion"],
+      "status": "PRODUCTION_COVERED",
+      "evidence": [
+        "AccountingDocumentsController",
+        "AccountingDocumentsService",
+        "SapPostingValidationService",
+        "Validación Zod",
+        "JWT + roles",
+        "autorización por entidad legal",
+        "logs Pino",
+        "manejo centralizado de errores"
+      ],
+      "risk": "Cubierto dentro del alcance operativo actual; mantener pruebas e2e al integrarlo con frontend o jobs reales."
+    },
+    {
+      "id": "UC_ExportarEstadoCliente",
+      "name": "Exportar estado de cuenta para cliente",
+      "module": "Cuentas por cobrar / AR",
+      "actors": ["AtencionCliente", "ClienteCorp", "Comercio"],
+      "status": "DOCUMENTED_EXTENSION_POINT",
+      "evidence": [
+        "Caso documentado en systemInfo y considerado en arquitectura como extensión futura."
+      ],
+      "risk": "Implementar únicamente cuando exista regla de negocio cerrada para evitar inventar comportamiento contable crítico."
+    },
+    {
+      "id": "UC_FacturaProveedor",
+      "name": "Registrar factura de proveedor",
+      "module": "Cuentas por pagar / AP",
+      "actors": ["Compras", "AuxContable", "Proveedor"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_ValidarFacturaProveedor",
+      "name": "Validar factura de proveedor",
+      "module": "Cuentas por pagar / AP",
+      "actors": ["Compras", "AuxContable"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_AsignarCentroCosto",
+      "name": "Asignar centro de costo a gasto",
+      "module": "Cuentas por pagar / AP",
+      "actors": ["Compras", "AuxContable"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_CrearCxP",
+      "name": "Crear cuenta por pagar",
+      "module": "Cuentas por pagar / AP",
+      "actors": ["AuxContable", "MotorPosting"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_SubmayorAP",
+      "name": "Registrar submayor AP",
+      "module": "Cuentas por pagar / AP",
+      "actors": ["MotorPosting", "Contador"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_AgingAP",
+      "name": "Consultar antigüedad de saldos AP",
+      "module": "Cuentas por pagar / AP",
+      "actors": ["Contador", "Tesorero"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_ProgramarPagoProveedor",
+      "name": "Programar pago a proveedor",
+      "module": "Cuentas por pagar / AP",
+      "actors": ["Compras", "Tesorero"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_AprobarPagoProveedor",
+      "name": "Aprobar pago a proveedor",
+      "module": "Cuentas por pagar / AP",
+      "actors": ["GerenteFin", "CFO"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_EjecutarPagoProveedor",
+      "name": "Ejecutar pago a proveedor",
+      "module": "Cuentas por pagar / AP",
+      "actors": ["Tesorero"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_Retenciones",
+      "name": "Registrar retenciones fiscales",
+      "module": "Cuentas por pagar / AP",
+      "actors": ["Contador", "Legal"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_NCProveedor",
+      "name": "Aplicar nota de crédito proveedor",
+      "module": "Cuentas por pagar / AP",
+      "actors": ["AuxContable", "Contador"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_ConciliarAPGL",
+      "name": "Conciliar AP con mayor contable",
+      "module": "Cuentas por pagar / AP",
+      "actors": ["Contador", "MotorConciliacion"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_CuentaBancariaInterna",
+      "name": "Crear cuenta bancaria interna",
+      "module": "Tesorería, bancos y liquidez",
+      "actors": ["Tesorero", "Banco"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_AprobarCuentaBanco",
+      "name": "Aprobar alta de cuenta bancaria",
+      "module": "Tesorería, bancos y liquidez",
+      "actors": ["CFO", "Tesorero"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_ImportarExtracto",
+      "name": "Importar extracto bancario",
+      "module": "Tesorería, bancos y liquidez",
+      "actors": ["Tesorero", "APIBanco"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_MovimientoBancario",
+      "name": "Registrar movimiento bancario",
+      "module": "Tesorería, bancos y liquidez",
+      "actors": ["Tesorero", "APIBanco"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_ConciliarBancoAR",
+      "name": "Conciliar banco contra AR",
+      "module": "Tesorería, bancos y liquidez",
+      "actors": ["Tesorero", "MotorConciliacion"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_ConciliarBancoAP",
+      "name": "Conciliar banco contra AP",
+      "module": "Tesorería, bancos y liquidez",
+      "actors": ["Tesorero", "MotorConciliacion"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_ConciliarBancoGL",
+      "name": "Conciliar banco contra GL",
+      "module": "Tesorería, bancos y liquidez",
+      "actors": ["Tesorero", "MotorConciliacion", "Contador"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_PartidasNoIdentificadas",
+      "name": "Gestionar partidas no identificadas",
+      "module": "Tesorería, bancos y liquidez",
+      "actors": ["Tesorero", "Contador"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_TransferenciaInterna",
+      "name": "Registrar transferencia interna",
+      "module": "Tesorería, bancos y liquidez",
+      "actors": ["Tesorero"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_ComisionesBanco",
+      "name": "Registrar comisiones bancarias",
+      "module": "Tesorería, bancos y liquidez",
+      "actors": ["Tesorero", "Contador"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_FlujoCaja",
+      "name": "Gestionar flujo de caja",
+      "module": "Tesorería, bancos y liquidez",
+      "actors": ["GerenteFin", "CFO"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_ProyeccionLiquidez",
+      "name": "Proyectar liquidez",
+      "module": "Tesorería, bancos y liquidez",
+      "actors": ["GerenteFin", "CFO"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_CashForecast",
+      "name": "Gestionar cash forecast",
+      "module": "Tesorería, bancos y liquidez",
+      "actors": ["GerenteFin", "Tesorero"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_SaldosMinimos",
+      "name": "Controlar saldos mínimos",
+      "module": "Tesorería, bancos y liquidez",
+      "actors": ["Tesorero", "GerenteFin"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_PaymentRun",
+      "name": "Ejecutar payment run",
+      "module": "Tesorería, bancos y liquidez",
+      "actors": ["Tesorero", "APIBanco"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_BloquearPago",
+      "name": "Bloquear pago sospechoso",
+      "module": "Tesorería, bancos y liquidez",
+      "actors": ["Tesorero", "Legal", "CFO"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_PrestamoBanco",
+      "name": "Registrar préstamo bancario",
+      "module": "Deuda empresarial y pasivos financieros",
+      "actors": ["CFO", "Banco"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_LineaCredito",
+      "name": "Registrar línea de crédito revolving",
+      "module": "Deuda empresarial y pasivos financieros",
+      "actors": ["CFO", "Banco"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_DeudaInversionista",
+      "name": "Registrar deuda con inversionista",
+      "module": "Deuda empresarial y pasivos financieros",
+      "actors": ["CFO", "Inversionista", "Lender"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_BonoPagare",
+      "name": "Registrar bono / pagaré",
+      "module": "Deuda empresarial y pasivos financieros",
+      "actors": ["CFO", "Legal"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_DeudaIntercompany",
+      "name": "Registrar deuda intercompany",
+      "module": "Deuda empresarial y pasivos financieros",
+      "actors": ["CFO", "Contador"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_CronogramaDeuda",
+      "name": "Crear cronograma de deuda",
+      "module": "Deuda empresarial y pasivos financieros",
+      "actors": ["CFO", "Contador"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_DevengarInteres",
+      "name": "Devengar intereses",
+      "module": "Deuda empresarial y pasivos financieros",
+      "actors": ["MotorPosting", "SchedulerCierre", "Contador"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_InteresPorPagar",
+      "name": "Registrar intereses por pagar",
+      "module": "Deuda empresarial y pasivos financieros",
+      "actors": ["MotorPosting", "Contador"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_PagarCuotaDeuda",
+      "name": "Pagar cuota de deuda",
+      "module": "Deuda empresarial y pasivos financieros",
+      "actors": ["Tesorero", "Lender"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_SepararCapitalInteres",
+      "name": "Separar capital, interés y fee",
+      "module": "Deuda empresarial y pasivos financieros",
+      "actors": ["Tesorero", "Contador"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_ReclasificarDeuda",
+      "name": "Reclasificar deuda CP / LP",
+      "module": "Deuda empresarial y pasivos financieros",
+      "actors": ["Contador", "CFO"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_Refinanciamiento",
+      "name": "Registrar refinanciamiento",
+      "module": "Deuda empresarial y pasivos financieros",
+      "actors": ["CFO", "Legal", "Lender"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_Covenant",
+      "name": "Registrar covenant financiero",
+      "module": "Deuda empresarial y pasivos financieros",
+      "actors": ["CFO", "Lender"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_MonitorearCovenant",
+      "name": "Monitorear cumplimiento de covenant",
+      "module": "Deuda empresarial y pasivos financieros",
+      "actors": ["CFO", "Lender", "Inversionista"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_ReporteDeuda",
+      "name": "Reportar deuda a CFO / Directorio",
+      "module": "Deuda empresarial y pasivos financieros",
+      "actors": ["CFO", "Directorio", "Inversionista"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_ActivoFijo",
+      "name": "Registrar activo fijo",
+      "module": "Activos, intangibles y diferidos",
+      "actors": ["AuxContable", "Contador"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_EquipoTecnologico",
+      "name": "Registrar equipo tecnológico",
+      "module": "Activos, intangibles y diferidos",
+      "actors": ["AuxContable", "Contador"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_SoftwareCapitalizado",
+      "name": "Registrar software propio capitalizado",
+      "module": "Activos, intangibles y diferidos",
+      "actors": ["Contador", "CFO"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_LicenciaCapitalizada",
+      "name": "Registrar licencia capitalizada",
+      "module": "Activos, intangibles y diferidos",
+      "actors": ["Contador", "Compras"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_Intangible",
+      "name": "Registrar activo intangible",
+      "module": "Activos, intangibles y diferidos",
+      "actors": ["Contador", "CFO"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_ActivoDiferido",
+      "name": "Registrar activo diferido",
+      "module": "Activos, intangibles y diferidos",
+      "actors": ["Contador"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_GarantiaEntregada",
+      "name": "Registrar garantía entregada",
+      "module": "Activos, intangibles y diferidos",
+      "actors": ["Tesorero", "Legal"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_DepositoEntregado",
+      "name": "Registrar depósito entregado",
+      "module": "Activos, intangibles y diferidos",
+      "actors": ["Tesorero", "Contador"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_ActivoEnServicio",
+      "name": "Poner activo en servicio",
+      "module": "Activos, intangibles y diferidos",
+      "actors": ["Contador"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_Depreciacion",
+      "name": "Calcular depreciación",
+      "module": "Activos, intangibles y diferidos",
+      "actors": ["SchedulerCierre", "Contador"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_Amortizacion",
+      "name": "Calcular amortización",
+      "module": "Activos, intangibles y diferidos",
+      "actors": ["SchedulerCierre", "Contador"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_BajaActivo",
+      "name": "Registrar baja de activo",
+      "module": "Activos, intangibles y diferidos",
+      "actors": ["Contador", "CFO"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_DeterioroActivo",
+      "name": "Registrar deterioro de activo",
+      "module": "Activos, intangibles y diferidos",
+      "actors": ["Contador", "CFO"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_ConciliarActivosGL",
+      "name": "Conciliar submayor de activos con GL",
+      "module": "Activos, intangibles y diferidos",
+      "actors": ["Contador", "MotorConciliacion"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_InventarioActivos",
+      "name": "Generar inventario de activos",
+      "module": "Activos, intangibles y diferidos",
+      "actors": ["Contador", "AuditorInterno"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_CapitalSocial",
+      "name": "Registrar capital social",
+      "module": "Patrimonio, capital y socios",
+      "actors": ["CFO", "Contador", "Socio"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_AporteSocio",
+      "name": "Registrar aporte de socio",
+      "module": "Patrimonio, capital y socios",
+      "actors": ["CFO", "Socio"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_AporteCapitalizar",
+      "name": "Registrar aporte por capitalizar",
+      "module": "Patrimonio, capital y socios",
+      "actors": ["CFO", "Contador"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_CapitalizarAporte",
+      "name": "Capitalizar aporte",
+      "module": "Patrimonio, capital y socios",
+      "actors": ["CFO", "Contador", "Socio"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_PrimaEmision",
+      "name": "Registrar prima de emisión",
+      "module": "Patrimonio, capital y socios",
+      "actors": ["CFO", "Contador"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_ReservaLegal",
+      "name": "Registrar reserva legal",
+      "module": "Patrimonio, capital y socios",
+      "actors": ["Contador", "CFO"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_OtrasReservas",
+      "name": "Registrar otras reservas",
+      "module": "Patrimonio, capital y socios",
+      "actors": ["Contador", "CFO"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_UtilidadRetenida",
+      "name": "Registrar utilidad retenida",
+      "module": "Patrimonio, capital y socios",
+      "actors": ["Contador", "CFO"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_ResultadoEjercicio",
+      "name": "Registrar resultado del ejercicio",
+      "module": "Patrimonio, capital y socios",
+      "actors": ["Contador", "CFO"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_AprobarDividendos",
+      "name": "Aprobar distribución de dividendos",
+      "module": "Patrimonio, capital y socios",
+      "actors": ["Directorio", "CFO"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_DividendosPagar",
+      "name": "Registrar dividendos por pagar",
+      "module": "Patrimonio, capital y socios",
+      "actors": ["Contador", "CFO"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_PagarDividendos",
+      "name": "Pagar dividendos",
+      "module": "Patrimonio, capital y socios",
+      "actors": ["Tesorero", "Socio"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_EstadoPatrimonio",
+      "name": "Generar estado de evolución patrimonial",
+      "module": "Patrimonio, capital y socios",
+      "actors": ["Contador", "CFO", "Socio"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_ConsolidarPatrimonio",
+      "name": "Consolidar patrimonio del grupo",
+      "module": "Patrimonio, capital y socios",
+      "actors": ["CFO", "Contador"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_MovPatrimonialExtra",
+      "name": "Registrar movimiento patrimonial extraordinario",
+      "module": "Patrimonio, capital y socios",
+      "actors": ["CFO", "Contador"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_CrearProvision",
+      "name": "Crear caso de provisión",
+      "module": "Provisiones, garantías y contingencias",
+      "actors": ["Contador", "Legal", "Riesgo"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_ProvisionCoberturaComercio",
+      "name": "Registrar provisión por cobertura a comercio",
+      "module": "Provisiones, garantías y contingencias",
+      "actors": ["Riesgo", "Contador"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_ProvisionLegal",
+      "name": "Registrar provisión legal",
+      "module": "Provisiones, garantías y contingencias",
+      "actors": ["Legal", "Contador"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_PasivoContingente",
+      "name": "Registrar pasivo contingente",
+      "module": "Provisiones, garantías y contingencias",
+      "actors": ["Legal", "Contador"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_ActualizarProvision",
+      "name": "Actualizar estimación de provisión",
+      "module": "Provisiones, garantías y contingencias",
+      "actors": ["Riesgo", "Legal", "Contador"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_LiberarProvision",
+      "name": "Liberar provisión",
+      "module": "Provisiones, garantías y contingencias",
+      "actors": ["Contador", "CFO"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_EjecutarCobertura",
+      "name": "Ejecutar cobertura al comercio",
+      "module": "Provisiones, garantías y contingencias",
+      "actors": ["Operaciones", "Tesorero", "Comercio"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_RecuperacionPosterior",
+      "name": "Registrar recuperación posterior",
+      "module": "Provisiones, garantías y contingencias",
+      "actors": ["Cobranza", "Tesorero"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_RollForwardProvision",
+      "name": "Generar roll-forward de provisiones",
+      "module": "Provisiones, garantías y contingencias",
+      "actors": ["Contador", "AuditorInterno"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_ConciliarProvisionGL",
+      "name": "Conciliar provisiones con GL",
+      "module": "Provisiones, garantías y contingencias",
+      "actors": ["Contador", "MotorConciliacion"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_DocContable",
+      "name": "Generar documento contable",
+      "module": "Libro diario, mayor y motor contable",
+      "actors": ["MotorPosting", "Contador"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_AsientoAutomatico",
+      "name": "Generar asiento automático",
+      "module": "Libro diario, mayor y motor contable",
+      "actors": ["MotorPosting"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_AsientoManual",
+      "name": "Registrar asiento manual",
+      "module": "Libro diario, mayor y motor contable",
+      "actors": ["Contador"],
+      "status": "PRODUCTION_COVERED",
+      "evidence": [
+        "AccountingDocumentsController",
+        "AccountingDocumentsService",
+        "SapPostingValidationService",
+        "Validación Zod",
+        "JWT + roles",
+        "autorización por entidad legal",
+        "logs Pino",
+        "manejo centralizado de errores"
+      ],
+      "risk": "Cubierto dentro del alcance operativo actual; mantener pruebas e2e al integrarlo con frontend o jobs reales."
+    },
+    {
+      "id": "UC_ValidarPartidaDoble",
+      "name": "Validar partida doble",
+      "module": "Libro diario, mayor y motor contable",
+      "actors": ["MotorPosting", "Contador"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_PublicarAsiento",
+      "name": "Publicar asiento",
+      "module": "Libro diario, mayor y motor contable",
+      "actors": ["Contador", "MotorPosting"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_ReversarAsiento",
+      "name": "Reversar asiento",
+      "module": "Libro diario, mayor y motor contable",
+      "actors": ["Contador", "MotorPosting"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_ReprocesarAsiento",
+      "name": "Reprocesar asiento fallido",
+      "module": "Libro diario, mayor y motor contable",
+      "actors": ["MotorPosting", "AdminSistema"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_BloquearEdicion",
+      "name": "Bloquear edición de asiento publicado",
+      "module": "Libro diario, mayor y motor contable",
+      "actors": ["MotorPosting", "AuditorInterno"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_LibroDiario",
+      "name": "Consultar libro diario",
+      "module": "Libro diario, mayor y motor contable",
+      "actors": ["Contador", "AuditorExterno"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_LibroMayor",
+      "name": "Consultar libro mayor",
+      "module": "Libro diario, mayor y motor contable",
+      "actors": ["Contador", "AuditorExterno"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_BalanceComprobacion",
+      "name": "Consultar balance de comprobación",
+      "module": "Libro diario, mayor y motor contable",
+      "actors": ["Contador", "AuditorExterno"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_ConciliarSubmayoresGL",
+      "name": "Conciliar submayores con GL",
+      "module": "Libro diario, mayor y motor contable",
+      "actors": ["Contador", "MotorConciliacion"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_DetectarDescuadre",
+      "name": "Detectar asientos descuadrados",
+      "module": "Libro diario, mayor y motor contable",
+      "actors": ["MotorPosting", "AuditorInterno"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_TrazabilidadAsiento",
+      "name": "Auditar trazabilidad origen-asiento",
+      "module": "Libro diario, mayor y motor contable",
+      "actors": ["AuditorInterno", "Contador"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_GastoCentroCosto",
+      "name": "Asignar gasto a centro de costo",
+      "module": "Contabilidad analítica y control presupuestario",
+      "actors": ["AuxContable", "Contador"],
+      "status": "DOCUMENTED_EXTENSION_POINT",
+      "evidence": [
+        "Caso documentado en systemInfo y considerado en arquitectura como extensión futura."
+      ],
+      "risk": "Implementar únicamente cuando exista regla de negocio cerrada para evitar inventar comportamiento contable crítico."
+    },
+    {
+      "id": "UC_IngresoProfitCenter",
+      "name": "Asignar ingreso a centro de beneficio",
+      "module": "Contabilidad analítica y control presupuestario",
+      "actors": ["Contador", "MotorPosting"],
+      "status": "DOCUMENTED_EXTENSION_POINT",
+      "evidence": [
+        "Caso documentado en systemInfo y considerado en arquitectura como extensión futura."
+      ],
+      "risk": "Implementar únicamente cuando exista regla de negocio cerrada para evitar inventar comportamiento contable crítico."
+    },
+    {
+      "id": "UC_OrdenInterna",
+      "name": "Crear orden interna",
+      "module": "Contabilidad analítica y control presupuestario",
+      "actors": ["GerenteFin", "Contador"],
+      "status": "DOCUMENTED_EXTENSION_POINT",
+      "evidence": [
+        "Caso documentado en systemInfo y considerado en arquitectura como extensión futura."
+      ],
+      "risk": "Implementar únicamente cuando exista regla de negocio cerrada para evitar inventar comportamiento contable crítico."
+    },
+    {
+      "id": "UC_GastoOrdenInterna",
+      "name": "Imputar gasto a orden interna",
+      "module": "Contabilidad analítica y control presupuestario",
+      "actors": ["AuxContable", "Contador"],
+      "status": "DOCUMENTED_EXTENSION_POINT",
+      "evidence": [
+        "Caso documentado en systemInfo y considerado en arquitectura como extensión futura."
+      ],
+      "risk": "Implementar únicamente cuando exista regla de negocio cerrada para evitar inventar comportamiento contable crítico."
+    },
+    {
+      "id": "UC_CrearPresupuesto",
+      "name": "Crear presupuesto",
+      "module": "Contabilidad analítica y control presupuestario",
+      "actors": ["GerenteFin", "CFO"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_AprobarPresupuesto",
+      "name": "Aprobar presupuesto",
+      "module": "Contabilidad analítica y control presupuestario",
+      "actors": ["CFO", "Directorio"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_ControlPresupuesto",
+      "name": "Controlar ejecución presupuestaria",
+      "module": "Contabilidad analítica y control presupuestario",
+      "actors": ["GerenteFin", "CFO"],
+      "status": "DOCUMENTED_EXTENSION_POINT",
+      "evidence": [
+        "Caso documentado en systemInfo y considerado en arquitectura como extensión futura."
+      ],
+      "risk": "Implementar únicamente cuando exista regla de negocio cerrada para evitar inventar comportamiento contable crítico."
+    },
+    {
+      "id": "UC_BloquearGastoPresupuesto",
+      "name": "Bloquear gasto fuera de presupuesto",
+      "module": "Contabilidad analítica y control presupuestario",
+      "actors": ["GerenteFin", "MotorPosting"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_RentabilidadComercio",
+      "name": "Analizar rentabilidad por comercio",
+      "module": "Contabilidad analítica y control presupuestario",
+      "actors": ["GerenteFin", "DataBI"],
+      "status": "DOCUMENTED_EXTENSION_POINT",
+      "evidence": [
+        "Caso documentado en systemInfo y considerado en arquitectura como extensión futura."
+      ],
+      "risk": "Implementar únicamente cuando exista regla de negocio cerrada para evitar inventar comportamiento contable crítico."
+    },
+    {
+      "id": "UC_RentabilidadCorp",
+      "name": "Analizar rentabilidad por cliente corporativo",
+      "module": "Contabilidad analítica y control presupuestario",
+      "actors": ["GerenteFin", "DataBI"],
+      "status": "DOCUMENTED_EXTENSION_POINT",
+      "evidence": [
+        "Caso documentado en systemInfo y considerado en arquitectura como extensión futura."
+      ],
+      "risk": "Implementar únicamente cuando exista regla de negocio cerrada para evitar inventar comportamiento contable crítico."
+    },
+    {
+      "id": "UC_RentabilidadProducto",
+      "name": "Analizar rentabilidad por producto BNPL",
+      "module": "Contabilidad analítica y control presupuestario",
+      "actors": ["GerenteFin", "DataBI"],
+      "status": "DOCUMENTED_EXTENSION_POINT",
+      "evidence": [
+        "Caso documentado en systemInfo y considerado en arquitectura como extensión futura."
+      ],
+      "risk": "Implementar únicamente cuando exista regla de negocio cerrada para evitar inventar comportamiento contable crítico."
+    },
+    {
+      "id": "UC_CostoRiesgo",
+      "name": "Analizar costo de riesgo",
+      "module": "Contabilidad analítica y control presupuestario",
+      "actors": ["Riesgo", "GerenteFin", "DataBI"],
+      "status": "DOCUMENTED_EXTENSION_POINT",
+      "evidence": [
+        "Caso documentado en systemInfo y considerado en arquitectura como extensión futura."
+      ],
+      "risk": "Implementar únicamente cuando exista regla de negocio cerrada para evitar inventar comportamiento contable crítico."
+    },
+    {
+      "id": "UC_ReporteGerencial",
+      "name": "Generar reporte gerencial",
+      "module": "Contabilidad analítica y control presupuestario",
+      "actors": ["GerenteFin", "CFO", "DataBI"],
+      "status": "DOCUMENTED_EXTENSION_POINT",
+      "evidence": [
+        "Caso documentado en systemInfo y considerado en arquitectura como extensión futura."
+      ],
+      "risk": "Implementar únicamente cuando exista regla de negocio cerrada para evitar inventar comportamiento contable crítico."
+    },
+    {
+      "id": "UC_IVADebito",
+      "name": "Calcular IVA débito fiscal",
+      "module": "Impuestos, fiscalidad y cumplimiento local",
+      "actors": ["Contador"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_IVACredito",
+      "name": "Calcular IVA crédito fiscal",
+      "module": "Impuestos, fiscalidad y cumplimiento local",
+      "actors": ["Contador"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_LiquidarIVA",
+      "name": "Liquidar IVA mensual",
+      "module": "Impuestos, fiscalidad y cumplimiento local",
+      "actors": ["Contador", "GerenteFin"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_CalcularIT",
+      "name": "Calcular IT",
+      "module": "Impuestos, fiscalidad y cumplimiento local",
+      "actors": ["Contador", "GerenteFin"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_LiquidarIT",
+      "name": "Liquidar IT mensual",
+      "module": "Impuestos, fiscalidad y cumplimiento local",
+      "actors": ["Contador", "GerenteFin"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_CalcularIUE",
+      "name": "Calcular IUE",
+      "module": "Impuestos, fiscalidad y cumplimiento local",
+      "actors": ["Contador", "GerenteFin"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_CompensarIUEIT",
+      "name": "Compensar IUE contra IT",
+      "module": "Impuestos, fiscalidad y cumplimiento local",
+      "actors": ["Contador", "GerenteFin"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_LibroVentas",
+      "name": "Generar libro de ventas",
+      "module": "Impuestos, fiscalidad y cumplimiento local",
+      "actors": ["Contador", "SIN"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_LibroCompras",
+      "name": "Generar libro de compras",
+      "module": "Impuestos, fiscalidad y cumplimiento local",
+      "actors": ["Contador", "SIN"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_AnexosTributarios",
+      "name": "Generar anexos tributarios",
+      "module": "Impuestos, fiscalidad y cumplimiento local",
+      "actors": ["Contador", "Legal"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_Form605",
+      "name": "Generar Formulario 605 / estados digitales",
+      "module": "Impuestos, fiscalidad y cumplimiento local",
+      "actors": ["Contador", "SIN"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_ExportFiscal",
+      "name": "Exportar información fiscal",
+      "module": "Impuestos, fiscalidad y cumplimiento local",
+      "actors": ["Contador", "SIN", "ASFI"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_ObsTributaria",
+      "name": "Responder observación tributaria",
+      "module": "Impuestos, fiscalidad y cumplimiento local",
+      "actors": ["Legal", "Contador", "SIN"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_EvidenciaFiscal",
+      "name": "Mantener evidencia fiscal",
+      "module": "Impuestos, fiscalidad y cumplimiento local",
+      "actors": ["Legal", "Contador"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_ChecklistCierreMensual",
+      "name": "Ejecutar checklist de cierre mensual",
+      "module": "Cierre contable, estados financieros y reporting",
+      "actors": ["SchedulerCierre", "Contador"],
+      "status": "DOCUMENTED_EXTENSION_POINT",
+      "evidence": [
+        "Caso documentado en systemInfo y considerado en arquitectura como extensión futura."
+      ],
+      "risk": "Implementar únicamente cuando exista regla de negocio cerrada para evitar inventar comportamiento contable crítico."
+    },
+    {
+      "id": "UC_CerrarAR",
+      "name": "Cerrar submayor AR",
+      "module": "Cierre contable, estados financieros y reporting",
+      "actors": ["Contador", "SchedulerCierre"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_CerrarAP",
+      "name": "Cerrar submayor AP",
+      "module": "Cierre contable, estados financieros y reporting",
+      "actors": ["Contador", "SchedulerCierre"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_CerrarBancos",
+      "name": "Cerrar bancos",
+      "module": "Cierre contable, estados financieros y reporting",
+      "actors": ["Tesorero", "SchedulerCierre"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_CerrarActivos",
+      "name": "Cerrar activos",
+      "module": "Cierre contable, estados financieros y reporting",
+      "actors": ["Contador", "SchedulerCierre"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_CerrarDeuda",
+      "name": "Cerrar deuda e intereses",
+      "module": "Cierre contable, estados financieros y reporting",
+      "actors": ["Contador", "SchedulerCierre"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_CerrarImpuestos",
+      "name": "Cerrar impuestos",
+      "module": "Cierre contable, estados financieros y reporting",
+      "actors": ["Contador", "SchedulerCierre"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_CerrarGL",
+      "name": "Cerrar GL",
+      "module": "Cierre contable, estados financieros y reporting",
+      "actors": ["Contador", "SchedulerCierre"],
+      "status": "DOCUMENTED_EXTENSION_POINT",
+      "evidence": [
+        "Caso documentado en systemInfo y considerado en arquitectura como extensión futura."
+      ],
+      "risk": "Implementar únicamente cuando exista regla de negocio cerrada para evitar inventar comportamiento contable crítico."
+    },
+    {
+      "id": "UC_ReabrirPeriodo",
+      "name": "Reabrir periodo con aprobación",
+      "module": "Cierre contable, estados financieros y reporting",
+      "actors": ["CFO", "Contador"],
+      "status": "PRODUCTION_COVERED",
+      "evidence": [
+        "ClosingController",
+        "ClosingService",
+        "ClosingControlService",
+        "Validación Zod",
+        "JWT + roles",
+        "autorización por entidad legal",
+        "logs Pino",
+        "manejo centralizado de errores"
+      ],
+      "risk": "Cubierto dentro del alcance operativo actual; mantener pruebas e2e al integrarlo con frontend o jobs reales."
+    },
+    {
+      "id": "UC_BalanceGeneral",
+      "name": "Generar balance general",
+      "module": "Cierre contable, estados financieros y reporting",
+      "actors": ["Contador", "AuditorExterno"],
+      "status": "DOCUMENTED_EXTENSION_POINT",
+      "evidence": [
+        "Caso documentado en systemInfo y considerado en arquitectura como extensión futura."
+      ],
+      "risk": "Implementar únicamente cuando exista regla de negocio cerrada para evitar inventar comportamiento contable crítico."
+    },
+    {
+      "id": "UC_EstadoResultados",
+      "name": "Generar estado de resultados",
+      "module": "Cierre contable, estados financieros y reporting",
+      "actors": ["Contador", "AuditorExterno"],
+      "status": "DOCUMENTED_EXTENSION_POINT",
+      "evidence": [
+        "Caso documentado en systemInfo y considerado en arquitectura como extensión futura."
+      ],
+      "risk": "Implementar únicamente cuando exista regla de negocio cerrada para evitar inventar comportamiento contable crítico."
+    },
+    {
+      "id": "UC_FlujoEfectivo",
+      "name": "Generar flujo de efectivo",
+      "module": "Cierre contable, estados financieros y reporting",
+      "actors": ["Contador", "AuditorExterno"],
+      "status": "DOCUMENTED_EXTENSION_POINT",
+      "evidence": [
+        "Caso documentado en systemInfo y considerado en arquitectura como extensión futura."
+      ],
+      "risk": "Implementar únicamente cuando exista regla de negocio cerrada para evitar inventar comportamiento contable crítico."
+    },
+    {
+      "id": "UC_CambiosPatrimonio",
+      "name": "Generar estado de cambios en patrimonio",
+      "module": "Cierre contable, estados financieros y reporting",
+      "actors": ["Contador", "AuditorExterno"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_NotasEEFF",
+      "name": "Generar notas a estados financieros",
+      "module": "Cierre contable, estados financieros y reporting",
+      "actors": ["Contador", "AuditorExterno"],
+      "status": "DOCUMENTED_EXTENSION_POINT",
+      "evidence": [
+        "Caso documentado en systemInfo y considerado en arquitectura como extensión futura."
+      ],
+      "risk": "Implementar únicamente cuando exista regla de negocio cerrada para evitar inventar comportamiento contable crítico."
+    },
+    {
+      "id": "UC_PaqueteDirectorio",
+      "name": "Generar paquete de directorio",
+      "module": "Cierre contable, estados financieros y reporting",
+      "actors": ["CFO", "Directorio"],
+      "status": "DOCUMENTED_EXTENSION_POINT",
+      "evidence": [
+        "Caso documentado en systemInfo y considerado en arquitectura como extensión futura."
+      ],
+      "risk": "Implementar únicamente cuando exista regla de negocio cerrada para evitar inventar comportamiento contable crítico."
+    },
+    {
+      "id": "UC_PaqueteInversionistas",
+      "name": "Generar paquete para inversionistas",
+      "module": "Cierre contable, estados financieros y reporting",
+      "actors": ["CFO", "Inversionista"],
+      "status": "DOCUMENTED_EXTENSION_POINT",
+      "evidence": [
+        "Caso documentado en systemInfo y considerado en arquitectura como extensión futura."
+      ],
+      "risk": "Implementar únicamente cuando exista regla de negocio cerrada para evitar inventar comportamiento contable crítico."
+    },
+    {
+      "id": "UC_ReportesIFRS",
+      "name": "Generar reportes IFRS / gestión",
+      "module": "Cierre contable, estados financieros y reporting",
+      "actors": ["CFO", "AuditorExterno", "ASFI"],
+      "status": "DOCUMENTED_EXTENSION_POINT",
+      "evidence": [
+        "Caso documentado en systemInfo y considerado en arquitectura como extensión futura."
+      ],
+      "risk": "Implementar únicamente cuando exista regla de negocio cerrada para evitar inventar comportamiento contable crítico."
+    },
+    {
+      "id": "UC_ConsolidarEntidades",
+      "name": "Consolidar entidades legales",
+      "module": "Cierre contable, estados financieros y reporting",
+      "actors": ["CFO", "Contador"],
+      "status": "DOCUMENTED_EXTENSION_POINT",
+      "evidence": [
+        "Caso documentado en systemInfo y considerado en arquitectura como extensión futura."
+      ],
+      "risk": "Implementar únicamente cuando exista regla de negocio cerrada para evitar inventar comportamiento contable crítico."
+    },
+    {
+      "id": "UC_EliminarIntercompany",
+      "name": "Eliminar operaciones intercompany",
+      "module": "Cierre contable, estados financieros y reporting",
+      "actors": ["Contador", "CFO"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_VentaFinanciada",
+      "name": "Recibir venta financiada desde comercio",
+      "module": "Integración contable con operación BNPL ATLAS",
+      "actors": ["Comercio", "Operaciones", "EventBus"],
+      "status": "DOCUMENTED_EXTENSION_POINT",
+      "evidence": [
+        "Caso documentado en systemInfo y considerado en arquitectura como extensión futura."
+      ],
+      "risk": "Implementar únicamente cuando exista regla de negocio cerrada para evitar inventar comportamiento contable crítico."
+    },
+    {
+      "id": "UC_PagoInicial60",
+      "name": "Registrar pago inicial 60% al comercio",
+      "module": "Integración contable con operación BNPL ATLAS",
+      "actors": ["Consumidor", "Comercio", "Operaciones"],
+      "status": "DOCUMENTED_EXTENSION_POINT",
+      "evidence": [
+        "Caso documentado en systemInfo y considerado en arquitectura como extensión futura."
+      ],
+      "risk": "Implementar únicamente cuando exista regla de negocio cerrada para evitar inventar comportamiento contable crítico."
+    },
+    {
+      "id": "UC_PlanCuotas40",
+      "name": "Registrar plan de 3 cuotas del 40%",
+      "module": "Integración contable con operación BNPL ATLAS",
+      "actors": ["Consumidor", "Operaciones"],
+      "status": "DOCUMENTED_EXTENSION_POINT",
+      "evidence": [
+        "Caso documentado en systemInfo y considerado en arquitectura como extensión futura."
+      ],
+      "risk": "Implementar únicamente cuando exista regla de negocio cerrada para evitar inventar comportamiento contable crítico."
+    },
+    {
+      "id": "UC_PagoDirectoConsumidorComercio",
+      "name": "Registrar pago directo consumidor-comercio",
+      "module": "Integración contable con operación BNPL ATLAS",
+      "actors": ["Consumidor", "Comercio", "Operaciones"],
+      "status": "DOCUMENTED_EXTENSION_POINT",
+      "evidence": [
+        "Caso documentado en systemInfo y considerado en arquitectura como extensión futura."
+      ],
+      "risk": "Implementar únicamente cuando exista regla de negocio cerrada para evitar inventar comportamiento contable crítico."
+    },
+    {
+      "id": "UC_CuotaVencida",
+      "name": "Detectar cuota vencida",
+      "module": "Integración contable con operación BNPL ATLAS",
+      "actors": ["MotorCobranza", "Cobranza"],
+      "status": "DOCUMENTED_EXTENSION_POINT",
+      "evidence": [
+        "Caso documentado en systemInfo y considerado en arquitectura como extensión futura."
+      ],
+      "risk": "Implementar únicamente cuando exista regla de negocio cerrada para evitar inventar comportamiento contable crítico."
+    },
+    {
+      "id": "UC_PagoATLASComercio",
+      "name": "Pagar cuota al comercio por incumplimiento",
+      "module": "Integración contable con operación BNPL ATLAS",
+      "actors": ["Operaciones", "Tesorero", "Comercio"],
+      "status": "DOCUMENTED_EXTENSION_POINT",
+      "evidence": [
+        "Caso documentado en systemInfo y considerado en arquitectura como extensión futura."
+      ],
+      "risk": "Implementar únicamente cuando exista regla de negocio cerrada para evitar inventar comportamiento contable crítico."
+    },
+    {
+      "id": "UC_CxCConsumidor",
+      "name": "Crear cuenta por cobrar al consumidor",
+      "module": "Integración contable con operación BNPL ATLAS",
+      "actors": ["Cobranza", "MotorPosting"],
+      "status": "DOCUMENTED_EXTENSION_POINT",
+      "evidence": [
+        "Caso documentado en systemInfo y considerado en arquitectura como extensión futura."
+      ],
+      "risk": "Implementar únicamente cuando exista regla de negocio cerrada para evitar inventar comportamiento contable crítico."
+    },
+    {
+      "id": "UC_ActivarCobranzaConsumidor",
+      "name": "Activar cobranza al consumidor",
+      "module": "Integración contable con operación BNPL ATLAS",
+      "actors": ["MotorCobranza", "Cobranza", "Consumidor"],
+      "status": "DOCUMENTED_EXTENSION_POINT",
+      "evidence": [
+        "Caso documentado en systemInfo y considerado en arquitectura como extensión futura."
+      ],
+      "risk": "Implementar únicamente cuando exista regla de negocio cerrada para evitar inventar comportamiento contable crítico."
+    },
+    {
+      "id": "UC_RecuperarCuotaCubierta",
+      "name": "Registrar recuperación de cuota cubierta",
+      "module": "Integración contable con operación BNPL ATLAS",
+      "actors": ["Cobranza", "Tesorero", "Consumidor"],
+      "status": "DOCUMENTED_EXTENSION_POINT",
+      "evidence": [
+        "Caso documentado en systemInfo y considerado en arquitectura como extensión futura."
+      ],
+      "risk": "Implementar únicamente cuando exista regla de negocio cerrada para evitar inventar comportamiento contable crítico."
+    },
+    {
+      "id": "UC_ReconocerMDR",
+      "name": "Reconocer MDR de venta financiada",
+      "module": "Integración contable con operación BNPL ATLAS",
+      "actors": ["MotorPosting", "Contador"],
+      "status": "DOCUMENTED_EXTENSION_POINT",
+      "evidence": [
+        "Caso documentado en systemInfo y considerado en arquitectura como extensión futura."
+      ],
+      "risk": "Implementar únicamente cuando exista regla de negocio cerrada para evitar inventar comportamiento contable crítico."
+    },
+    {
+      "id": "UC_LiquidacionComercio",
+      "name": "Registrar liquidación con comercio",
+      "module": "Integración contable con operación BNPL ATLAS",
+      "actors": ["Operaciones", "Comercio"],
+      "status": "DOCUMENTED_EXTENSION_POINT",
+      "evidence": [
+        "Caso documentado en systemInfo y considerado en arquitectura como extensión futura."
+      ],
+      "risk": "Implementar únicamente cuando exista regla de negocio cerrada para evitar inventar comportamiento contable crítico."
+    },
+    {
+      "id": "UC_ConciliarLiquidacionComercio",
+      "name": "Conciliar liquidación comercio",
+      "module": "Integración contable con operación BNPL ATLAS",
+      "actors": ["Operaciones", "MotorConciliacion"],
+      "status": "DOCUMENTED_EXTENSION_POINT",
+      "evidence": [
+        "Caso documentado en systemInfo y considerado en arquitectura como extensión futura."
+      ],
+      "risk": "Implementar únicamente cuando exista regla de negocio cerrada para evitar inventar comportamiento contable crítico."
+    },
+    {
+      "id": "UC_CohorteRiesgoCompra",
+      "name": "Etiquetar compra por cohorte y riesgo",
+      "module": "Integración contable con operación BNPL ATLAS",
+      "actors": ["Riesgo", "MotorRiesgo"],
+      "status": "DOCUMENTED_EXTENSION_POINT",
+      "evidence": [
+        "Caso documentado en systemInfo y considerado en arquitectura como extensión futura."
+      ],
+      "risk": "Implementar únicamente cuando exista regla de negocio cerrada para evitar inventar comportamiento contable crítico."
+    },
+    {
+      "id": "UC_EnviarDataRiesgo",
+      "name": "Enviar datos a analítica de riesgo",
+      "module": "Integración contable con operación BNPL ATLAS",
+      "actors": ["Riesgo", "DataBI", "APIBuro"],
+      "status": "DOCUMENTED_EXTENSION_POINT",
+      "evidence": [
+        "Caso documentado en systemInfo y considerado en arquitectura como extensión futura."
+      ],
+      "risk": "Implementar únicamente cuando exista regla de negocio cerrada para evitar inventar comportamiento contable crítico."
+    },
+    {
+      "id": "UC_BitacoraAuditoria",
+      "name": "Consultar bitácora de auditoría",
+      "module": "Auditoría, control interno y seguridad",
+      "actors": ["AuditorInterno", "AuditorExterno"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_SegregacionFunciones",
+      "name": "Validar segregación de funciones",
+      "module": "Auditoría, control interno y seguridad",
+      "actors": ["AuditorInterno", "AdminSistema"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_AprobarOperacionSensible",
+      "name": "Aprobar operación sensible",
+      "module": "Auditoría, control interno y seguridad",
+      "actors": ["CFO", "AuditorInterno"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_EvidenciaDocumental",
+      "name": "Revisar evidencia documental",
+      "module": "Auditoría, control interno y seguridad",
+      "actors": ["AuditorInterno", "AuditorExterno", "Legal"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_AuditarConfig",
+      "name": "Auditar cambios de configuración",
+      "module": "Auditoría, control interno y seguridad",
+      "actors": ["AuditorInterno"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_AuditarReglasPosting",
+      "name": "Auditar reglas de posting",
+      "module": "Auditoría, control interno y seguridad",
+      "actors": ["AuditorInterno"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_AuditarReversos",
+      "name": "Auditar reversos contables",
+      "module": "Auditoría, control interno y seguridad",
+      "actors": ["AuditorInterno"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_AuditarConciliaciones",
+      "name": "Auditar conciliaciones",
+      "module": "Auditoría, control interno y seguridad",
+      "actors": ["AuditorInterno"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_PapelesTrabajo",
+      "name": "Exportar papeles de trabajo",
+      "module": "Auditoría, control interno y seguridad",
+      "actors": ["AuditorInterno", "AuditorExterno"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_HallazgoAuditoria",
+      "name": "Gestionar hallazgo de auditoría",
+      "module": "Auditoría, control interno y seguridad",
+      "actors": ["AuditorInterno"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_CerrarHallazgo",
+      "name": "Cerrar hallazgo de auditoría",
+      "module": "Auditoría, control interno y seguridad",
+      "actors": ["AuditorInterno", "CFO"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_SnapshotsCierre",
+      "name": "Congelar snapshots de cierre",
+      "module": "Auditoría, control interno y seguridad",
+      "actors": ["SchedulerCierre", "AuditorInterno"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_HashDocumentos",
+      "name": "Verificar hash de documentos",
+      "module": "Auditoría, control interno y seguridad",
+      "actors": ["AuditorInterno", "AuditorExterno"],
+      "status": "MODEL_SUPPORTED",
+      "evidence": [
+        "Modelo relacional Sequelize y SQL canónico disponibles para el dominio.",
+        "Pendiente exponer caso de uso como endpoint específico si se requiere operación directa."
+      ],
+      "risk": "Sin endpoint específico, el caso de uso no debe prometerse como funcional en UI; usarlo como base de evolución controlada."
+    },
+    {
+      "id": "UC_PublicarEvento",
+      "name": "Publicar evento contable",
+      "module": "APIs, eventos, outbox y escalabilidad",
+      "actors": ["EventBus", "MotorPosting"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_ConsumirEvento",
+      "name": "Consumir evento operativo",
+      "module": "APIs, eventos, outbox y escalabilidad",
+      "actors": ["EventBus", "MotorPosting"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_Idempotencia",
+      "name": "Garantizar idempotencia",
+      "module": "APIs, eventos, outbox y escalabilidad",
+      "actors": ["AdminSistema", "EventBus"],
+      "status": "PRODUCTION_COVERED",
+      "evidence": [
+        "event_outbox",
+        "OutboxWorker",
+        "event_key unique",
+        "Validación Zod",
+        "JWT + roles",
+        "autorización por entidad legal",
+        "logs Pino",
+        "manejo centralizado de errores"
+      ],
+      "risk": "Cubierto dentro del alcance operativo actual; mantener pruebas e2e al integrarlo con frontend o jobs reales."
+    },
+    {
+      "id": "UC_Outbox",
+      "name": "Registrar outbox financiero",
+      "module": "APIs, eventos, outbox y escalabilidad",
+      "actors": ["EventBus", "MotorPosting"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_ReintentoEvento",
+      "name": "Reintentar evento fallido",
+      "module": "APIs, eventos, outbox y escalabilidad",
+      "actors": ["EventBus", "AdminSistema"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_MonitorearEventos",
+      "name": "Monitorear cola de eventos",
+      "module": "APIs, eventos, outbox y escalabilidad",
+      "actors": ["AdminSistema", "EventBus"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_ParticionPeriodo",
+      "name": "Particionar transacciones por periodo",
+      "module": "APIs, eventos, outbox y escalabilidad",
+      "actors": ["AdminSistema"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_ParticionEntidad",
+      "name": "Particionar por entidad legal",
+      "module": "APIs, eventos, outbox y escalabilidad",
+      "actors": ["AdminSistema"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_LogsIntegracion",
+      "name": "Generar logs de integración",
+      "module": "APIs, eventos, outbox y escalabilidad",
+      "actors": ["AdminSistema", "EventBus"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_APIEstadoCuenta",
+      "name": "Exponer API de estado de cuenta",
+      "module": "APIs, eventos, outbox y escalabilidad",
+      "actors": ["ClienteCorp", "Comercio", "DataBI"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_APIFacturacion",
+      "name": "Exponer API de facturación",
+      "module": "APIs, eventos, outbox y escalabilidad",
+      "actors": ["APIFiscal", "DataBI"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_APIConciliacion",
+      "name": "Exponer API de conciliación",
+      "module": "APIs, eventos, outbox y escalabilidad",
+      "actors": ["APIBanco", "DataBI"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    },
+    {
+      "id": "UC_APIReporting",
+      "name": "Exponer API de reporting financiero",
+      "module": "APIs, eventos, outbox y escalabilidad",
+      "actors": ["DataBI", "CFO"],
+      "status": "EXCLUDED_INTEGRATION_SCOPE",
+      "evidence": [
+        "El usuario indicó explícitamente que todavía no se hable de integración externa."
+      ],
+      "risk": "No desplegar como promesa funcional externa hasta definir proveedor, credenciales, contratos de API, reintentos e idempotencia operacional."
+    }
+  ]
+}

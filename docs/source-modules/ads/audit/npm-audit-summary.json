@@ -1,0 +1,12 @@
+{
+  "generatedAt": "2026-07-08T23:00:08.875Z",
+  "vulnerabilities": {
+    "info": 0,
+    "low": 0,
+    "moderate": 4,
+    "high": 0,
+    "critical": 0,
+    "total": 4
+  },
+  "note": "npm audit conserva observaciones moderadas transitivas; no hay vulnerabilidades altas ni críticas después del hardening de dependencias."
+}

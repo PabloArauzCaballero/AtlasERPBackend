@@ -1,0 +1,13 @@
+# Static audit final
+## process.env in src
+src/config/env.ts:116:const parsed = envSchema.safeParse(process.env);
+src/config/README.md:3:Contiene validación de variables de entorno y configuración CORS. Ningún módulo debe leer `process.env` directamente.
+## console in src/scripts
+src/common/logger/README.md:14:- No usar `console.log`, `console.warn` ni `console.error` en código de aplicación.
+## sequelize sync dangerous
+src/database/README.md:3:Configura Sequelize y registra los modelos del módulo. La aplicación no usa `sync({ force: true })` ni `sync({ alter: true })`; los cambios estructurales se aplican con migraciones SQL versionadas.
+src/database/migrations/README.md:7:- No usar `sequelize.sync({ force: true })` ni `sequelize.sync({ alter: true })` en producción.
+src/database/sql/accounting/README.md:24:- No uses `sequelize.sync({ force: true })` ni `sequelize.sync({ alter: true })` en producción.
+## missing README in src dirs
+
+count=0

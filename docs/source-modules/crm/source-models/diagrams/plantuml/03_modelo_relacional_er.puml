@@ -1,0 +1,196 @@
+@startuml
+hide circle
+skinparam linetype ortho
+skinparam entity {
+  BackgroundColor White
+  BorderColor Black
+}
+
+entity b2b_accounts {
+  * id : uuid <<PK>>
+  --
+  legal_name
+  trade_name
+  tax_id
+  account_type
+  lifecycle_status
+  owner_user_id <<FK>>
+  territory_id <<FK>>
+}
+
+entity b2b_contacts {
+  * id : uuid <<PK>>
+  --
+  account_id <<FK>>
+  full_name
+  email
+  phone
+  decision_role
+}
+
+entity sales_opportunities {
+  * id : uuid <<PK>>
+  --
+  account_id <<FK>>
+  owner_user_id <<FK>>
+  stage
+  expected_monthly_volume
+  expected_mdr_rate
+}
+
+entity commercial_proposals {
+  * id : uuid <<PK>>
+  --
+  opportunity_id <<FK>>
+  account_id <<FK>>
+  proposal_number
+  status
+}
+
+entity proposal_lines {
+  * id : uuid <<PK>>
+  --
+  proposal_id <<FK>>
+  term_type
+  rate_percent
+  fixed_amount
+}
+
+entity b2b_contracts {
+  * id : uuid <<PK>>
+  --
+  account_id <<FK>>
+  opportunity_id <<FK>>
+  contract_number
+  status
+}
+
+entity contract_versions {
+  * id : uuid <<PK>>
+  --
+  contract_id <<FK>>
+  version_number
+  valid_from
+  valid_to
+}
+
+entity commercial_terms {
+  * id : uuid <<PK>>
+  --
+  contract_version_id <<FK>>
+  term_type
+  rate_percent
+  fixed_amount
+}
+
+entity merchant_branches {
+  * id : uuid <<PK>>
+  --
+  account_id <<FK>>
+  name
+  can_originate_bnpl
+}
+
+entity bnpl_purchases {
+  * id : uuid <<PK>>
+  --
+  merchant_account_id <<FK>>
+  branch_id <<FK>>
+  consumer_id <<FK>>
+  contract_version_id <<FK>>
+  purchase_amount
+  down_payment_amount
+  financed_amount
+}
+
+entity bnpl_installments {
+  * id : uuid <<PK>>
+  --
+  purchase_id <<FK>>
+  installment_number
+  due_date
+  amount
+  status
+}
+
+entity merchant_invoices {
+  * id : uuid <<PK>>
+  --
+  account_id <<FK>>
+  contract_id <<FK>>
+  invoice_number
+  total_amount
+  status
+}
+
+entity merchant_receivables {
+  * id : uuid <<PK>>
+  --
+  account_id <<FK>>
+  invoice_id <<FK>>
+  source_type
+  amount_original
+  amount_open
+  status
+}
+
+entity merchant_payments {
+  * id : uuid <<PK>>
+  --
+  account_id <<FK>>
+  amount
+  paid_at
+}
+
+entity merchant_payment_allocations {
+  * id : uuid <<PK>>
+  --
+  payment_id <<FK>>
+  receivable_id <<FK>>
+  amount_applied
+}
+
+entity merchant_payables {
+  * id : uuid <<PK>>
+  --
+  account_id <<FK>>
+  purchase_id <<FK>>
+  installment_id <<FK>>
+  amount
+  scheduled_payment_date
+  status
+}
+
+entity consumer_recovery_receivables {
+  * id : uuid <<PK>>
+  --
+  consumer_id <<FK>>
+  purchase_id <<FK>>
+  installment_id <<FK>>
+  merchant_payable_id <<FK>>
+  amount_covered_by_atlas
+  amount_recovered
+  recovery_status
+}
+
+b2b_accounts ||--o{ b2b_contacts
+b2b_accounts ||--o{ sales_opportunities
+sales_opportunities ||--o{ commercial_proposals
+commercial_proposals ||--|{ proposal_lines
+b2b_accounts ||--o{ b2b_contracts
+b2b_contracts ||--|{ contract_versions
+contract_versions ||--|{ commercial_terms
+b2b_accounts ||--o{ merchant_branches
+b2b_accounts ||--o{ bnpl_purchases
+merchant_branches ||--o{ bnpl_purchases
+contract_versions ||--o{ bnpl_purchases
+bnpl_purchases ||--|{ bnpl_installments
+b2b_accounts ||--o{ merchant_invoices
+merchant_invoices ||--o{ merchant_receivables
+b2b_accounts ||--o{ merchant_receivables
+b2b_accounts ||--o{ merchant_payments
+merchant_payments ||--|{ merchant_payment_allocations
+merchant_receivables ||--o{ merchant_payment_allocations
+bnpl_installments ||--o| merchant_payables
+merchant_payables ||--o| consumer_recovery_receivables
+@enduml

@@ -1,0 +1,22 @@
+@startuml
+start
+:Finanzas inicia ciclo de facturación;
+:Sistema obtiene MDR, suscripciones, fees y penalidades;
+:Agrupar cargos por comercio/contrato/moneda;
+:Generar merchant_invoice e invoice_lines;
+:Emitir factura fiscal/ERP si aplica;
+:Crear merchant_receivable B2B;
+if (¿Comercio paga?) then (Sí)
+  :Registrar merchant_payment;
+  :Aplicar pago a CxC;
+  if (¿Saldo cero?) then (Sí)
+    :Marcar CxC y factura como PAID;
+  else (No)
+    :Mantener PARTIALLY_PAID;
+  endif
+else (No)
+  :Marcar vencido según due_date;
+  :Generar gestión de cobranza B2B;
+endif
+stop
+@enduml

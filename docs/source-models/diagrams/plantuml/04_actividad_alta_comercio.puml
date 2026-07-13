@@ -1,0 +1,23 @@
+@startuml
+start
+:Ejecutivo registra comercio potencial;
+:Sistema valida duplicados por NIT/nombre/teléfono;
+if (¿Duplicado encontrado?) then (Sí)
+  :Mostrar cuenta existente;
+  :Registrar actividad sobre cuenta existente;
+  stop
+else (No)
+  :Crear b2b_account en estado LEAD;
+  :Crear contacto principal;
+  :Asignar ejecutivo y territorio;
+endif
+:Completar datos de calificación;
+if (¿Tiene fit comercial?) then (Sí)
+  :Cambiar estado a QUALIFIED;
+  :Crear oportunidad comercial;
+else (No)
+  :Cambiar estado a DISQUALIFIED;
+  :Guardar motivo;
+endif
+stop
+@enduml

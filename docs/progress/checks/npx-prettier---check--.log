@@ -1,0 +1,5 @@
+Checking formatting...
+[[33mwarn[39m] docs/audit/use-case-compliance-audit.json
+[[33mwarn[39m] docs/audit/use-case-compliance-audit.md
+[[33mwarn[39m] Code style issues found in 2 files. Run Prettier with --write to fix.
+exit_code=1

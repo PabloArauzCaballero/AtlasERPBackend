@@ -1,0 +1,27 @@
+
+> atlas-integrated-backend@1.0.0 check:deploy
+> npm run build
+
+
+> atlas-integrated-backend@1.0.0 build
+> npm run clean:build-state && tsc -p tsconfig.build.json --pretty false --diagnostics
+
+
+> atlas-integrated-backend@1.0.0 clean:build-state
+> node scripts/clean-build-state.cjs
+
+Files:             1137
+Lines:           181553
+Identifiers:     197407
+Symbols:         290592
+Types:            75154
+Instantiations:  248051
+Memory used:    374635K
+I/O read:         0.25s
+I/O write:        0.19s
+Parse time:       1.89s
+Bind time:        0.57s
+Check time:       5.15s
+Emit time:        1.45s
+Total time:       9.06s
+exit_code=0

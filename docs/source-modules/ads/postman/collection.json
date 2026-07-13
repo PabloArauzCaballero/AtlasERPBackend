@@ -1,0 +1,386 @@
+{
+  "info": {
+    "name": "ATLAS Ads Admin API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api/v1"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "advertiserId",
+      "value": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "key": "campaignId",
+      "value": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "key": "reviewId",
+      "value": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "key": "invoiceId",
+      "value": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "key": "eventId",
+      "value": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "key": "deliveryDecisionId",
+      "value": "00000000-0000-0000-0000-000000000000"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/health"
+      }
+    },
+    {
+      "name": "Ready",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/ready"
+      }
+    },
+    {
+      "name": "Admin Dashboard",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/admin/ads/dashboard",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ]
+      }
+    },
+    {
+      "name": "List Advertisers",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/admin/ads/advertisers?page=1&limit=25",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Create Advertiser",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/admin/ads/advertisers",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"legalName\": \"Empresa Ejemplo SRL\", \"tradeName\": \"Marca Ejemplo\", \"taxId\": \"123456789\", \"businessCategory\": \"Retail\", \"country\": \"BO\", \"city\": \"Santa Cruz de la Sierra\", \"billingMode\": \"POSTPAID\"}"
+        }
+      }
+    },
+    {
+      "name": "Create Billing Profile",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/admin/ads/advertisers/{{advertiserId}}/billing-profiles",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"fiscalName\": \"Empresa Ejemplo SRL\", \"taxId\": \"123456789\", \"billingEmail\": \"facturacion@example.com\", \"country\": \"BO\", \"city\": \"Santa Cruz de la Sierra\", \"isDefault\": true}"
+        }
+      }
+    },
+    {
+      "name": "Update Advertiser Status",
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/admin/ads/advertisers/{{advertiserId}}/status",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"status\": \"ACTIVE\", \"reason\": \"Aprobación comercial interna completa\"}"
+        }
+      }
+    },
+    {
+      "name": "List Campaigns",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/admin/ads/campaigns?page=1&limit=25",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Update Campaign Status",
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/admin/ads/campaigns/{{campaignId}}/status",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"status\": \"PAUSED\", \"reason\": \"Pausa preventiva por reclamo de compliance\"}"
+        }
+      }
+    },
+    {
+      "name": "Moderation Queue",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/admin/ads/moderation/queue?status=PENDING_REVIEW",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Moderation Decision",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/admin/ads/moderation/{{reviewId}}/decision",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"reviewStatus\": \"APPROVED\", \"reasonCode\": \"POLICY_OK\", \"notes\": \"Cumple política y formato.\", \"requiresAdvertiserChanges\": false}"
+        }
+      }
+    },
+    {
+      "name": "Create Placement",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/admin/ads/inventory",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"placementCode\": \"MERCHANT_DASHBOARD_TOP_BANNER\", \"surface\": \"MERCHANT_PORTAL\", \"allowedFormats\": [\"IMAGE_BANNER\"], \"floorPriceMicros\": 2500000, \"billingModel\": \"CPM\", \"status\": \"ACTIVE\"}"
+        }
+      }
+    },
+    {
+      "name": "Create Policy",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/admin/ads/policies",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"policyCode\": \"NO_UNVERIFIED_FINANCIAL_CLAIMS\", \"category\": \"FINANCIAL_CLAIMS\", \"ruleType\": \"MANUAL_REVIEW_REQUIRED\", \"severity\": \"HIGH\", \"isActive\": true}"
+        }
+      }
+    },
+    {
+      "name": "Close Billing Period",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/admin/ads/billing/period-close",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"periodStart\": \"2026-07-01\", \"periodEnd\": \"2026-07-31\"}"
+        }
+      }
+    },
+    {
+      "name": "Register Payment",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/admin/ads/invoices/{{invoiceId}}/payments",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"amountMicros\": 50000000, \"currency\": \"BOB\", \"paymentDate\": \"2026-08-05\", \"paymentMethod\": \"BANK_TRANSFER\", \"reference\": \"TRX-123\"}"
+        }
+      }
+    },
+    {
+      "name": "Delivery Monitor",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/admin/ads/delivery-monitor?page=1&limit=25",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Update Billable Status",
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/admin/ads/events/{{eventId}}/billable-status",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"isBillable\": false, \"reason\": \"Tráfico inválido confirmado por revisión interna\"}"
+        }
+      }
+    },
+    {
+      "name": "Audit",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/admin/ads/audit?page=1&limit=25",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Select Ad",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/ads/delivery/select",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"placementCode\": \"MERCHANT_DASHBOARD_TOP_BANNER\", \"corporateClientHash\": \"hash_contextual_1234567890\"}"
+        }
+      }
+    },
+    {
+      "name": "Track Event",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/ads/events",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"eventType\": \"IMPRESSION\", \"deliveryDecisionId\": \"{{deliveryDecisionId}}\", \"requestId\": \"00000000-0000-0000-0000-000000000001\", \"fraudScore\": 0.1, \"metadata\": {}}"
+        }
+      }
+    }
+  ]
+}

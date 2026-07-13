@@ -1,0 +1,4 @@
+
+> atlas-b2b-crm-ventas-api@1.0.0 type-check
+> tsc --noEmit
+

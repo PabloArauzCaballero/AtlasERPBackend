@@ -1,0 +1,501 @@
+{
+  "info": {
+    "name": "ATLAS B2B CRM Ventas API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api/v1"
+    },
+    {
+      "key": "token",
+      "value": "REEMPLAZAR_TOKEN_JWT"
+    },
+    {
+      "key": "accountId",
+      "value": ""
+    },
+    {
+      "key": "opportunityId",
+      "value": ""
+    },
+    {
+      "key": "proposalId",
+      "value": ""
+    },
+    {
+      "key": "contractId",
+      "value": ""
+    },
+    {
+      "key": "branchId",
+      "value": ""
+    },
+    {
+      "key": "receivableId",
+      "value": ""
+    },
+    {
+      "key": "installmentId",
+      "value": ""
+    },
+    {
+      "key": "payableId",
+      "value": ""
+    },
+    {
+      "key": "recoveryId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["health"]
+        }
+      }
+    },
+    {
+      "name": "Ready",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/ready",
+          "host": ["{{baseUrl}}"],
+          "path": ["ready"]
+        }
+      }
+    },
+    {
+      "name": "Crear cuenta B2B",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/b2b/accounts",
+          "host": ["{{baseUrl}}"],
+          "path": ["b2b", "accounts"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"legalName\": \"Comercial Demo S.R.L.\",\n  \"tradeName\": \"Comercial Demo\",\n  \"taxId\": \"123456789\",\n  \"accountType\": \"MERCHANT\",\n  \"industry\": \"Retail\",\n  \"ownerUserId\": \"00000000-0000-0000-0000-000000000002\",\n  \"territoryId\": \"10000000-0000-0000-0000-000000000001\",\n  \"primaryContact\": {\n    \"fullName\": \"Ana Pérez\",\n    \"email\": \"ana@example.com\",\n    \"phone\": \"+59170000000\",\n    \"decisionRole\": \"DECISION_MAKER\"\n  }\n}"
+        }
+      }
+    },
+    {
+      "name": "Listar cuentas",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/b2b/accounts?page=1&limit=10",
+          "host": ["{{baseUrl}}"],
+          "path": ["b2b", "accounts?page=1&limit=10"]
+        }
+      }
+    },
+    {
+      "name": "Calificar cuenta y crear oportunidad",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/b2b/accounts/{{accountId}}/qualify",
+          "host": ["{{baseUrl}}"],
+          "path": ["b2b", "accounts", "{{accountId}}", "qualify"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"hasCommercialFit\": true,\n  \"createOpportunity\": true,\n  \"opportunity\": {\n    \"name\": \"Implementación BNPL retail\",\n    \"opportunityType\": \"NEW_MERCHANT\",\n    \"expectedMonthlyVolume\": 150000,\n    \"expectedMdrRate\": 3.5,\n    \"probability\": 45,\n    \"expectedCloseDate\": \"2026-08-30\"\n  }\n}"
+        }
+      }
+    },
+    {
+      "name": "Crear propuesta",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/b2b/proposals",
+          "host": ["{{baseUrl}}"],
+          "path": ["b2b", "proposals"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"opportunityId\": \"{{opportunityId}}\",\n  \"proposalNumber\": \"PROP-2026-001\",\n  \"validUntil\": \"2026-08-31\",\n  \"lines\": [\n    {\n      \"termType\": \"MDR\",\n      \"description\": \"MDR BNPL estándar\",\n      \"ratePercent\": 3.5,\n      \"currency\": \"BOB\",\n      \"billingTiming\": \"PER_TRANSACTION\"\n    }\n  ]\n}"
+        }
+      }
+    },
+    {
+      "name": "Enviar propuesta",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/b2b/proposals/{{proposalId}}/send",
+          "host": ["{{baseUrl}}"],
+          "path": ["b2b", "proposals", "{{proposalId}}", "send"]
+        }
+      }
+    },
+    {
+      "name": "Aceptar propuesta",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/b2b/proposals/{{proposalId}}/accept",
+          "host": ["{{baseUrl}}"],
+          "path": ["b2b", "proposals", "{{proposalId}}", "accept"]
+        }
+      }
+    },
+    {
+      "name": "Crear contrato desde propuesta",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/b2b/contracts/from-proposal",
+          "host": ["{{baseUrl}}"],
+          "path": ["b2b", "contracts", "from-proposal"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"proposalId\": \"{{proposalId}}\",\n  \"contractNumber\": \"CON-2026-001\",\n  \"startDate\": \"2026-08-01\",\n  \"billingCycle\": \"MONTHLY\",\n  \"settlementPolicy\": \"PER_CONTRACT\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Firmar contrato",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/b2b/contracts/{{contractId}}/sign-and-activate",
+          "host": ["{{baseUrl}}"],
+          "path": ["b2b", "contracts", "{{contractId}}", "sign-and-activate"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"approvedByUserId\": \"00000000-0000-0000-0000-000000000005\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Crear caso onboarding",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/b2b/onboarding/cases",
+          "host": ["{{baseUrl}}"],
+          "path": ["b2b", "onboarding", "cases"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"accountId\": \"{{accountId}}\",\n  \"ownerUserId\": \"00000000-0000-0000-0000-000000000004\",\n  \"checklistItems\": [\n    {\n      \"itemType\": \"LEGAL_DOCS\",\n      \"description\": \"Documentación legal verificada\"\n    },\n    {\n      \"itemType\": \"TRAINING\",\n      \"description\": \"Capacitación realizada\"\n    }\n  ]\n}"
+        }
+      }
+    },
+    {
+      "name": "Crear sucursal",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/b2b/onboarding/branches",
+          "host": ["{{baseUrl}}"],
+          "path": ["b2b", "onboarding", "branches"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"accountId\": \"{{accountId}}\",\n  \"name\": \"Sucursal Centro\",\n  \"city\": \"Santa Cruz de la Sierra\",\n  \"address\": \"Av. Principal #123\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Registrar compra BNPL",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/b2b/bnpl/purchases",
+          "host": ["{{baseUrl}}"],
+          "path": ["b2b", "bnpl", "purchases"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"merchantAccountId\": \"{{accountId}}\",\n  \"branchId\": \"{{branchId}}\",\n  \"consumerId\": \"20000000-0000-0000-0000-000000000001\",\n  \"purchaseAmount\": 1000,\n  \"downPaymentAmount\": 600,\n  \"financedAmount\": 400,\n  \"mdrReceivableDueDate\": \"2026-09-01\",\n  \"installments\": [\n    {\n      \"installmentNumber\": 1,\n      \"dueDate\": \"2026-09-01\",\n      \"amount\": 200\n    },\n    {\n      \"installmentNumber\": 2,\n      \"dueDate\": \"2026-10-01\",\n      \"amount\": 200\n    }\n  ]\n}"
+        }
+      }
+    },
+    {
+      "name": "Emitir factura",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/b2b/billing/invoices",
+          "host": ["{{baseUrl}}"],
+          "path": ["b2b", "billing", "invoices"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"accountId\": \"{{accountId}}\",\n  \"invoiceNumber\": \"INV-2026-001\",\n  \"invoiceDate\": \"2026-09-01\",\n  \"dueDate\": \"2026-09-15\",\n  \"receivableIds\": [\n    \"{{receivableId}}\"\n  ]\n}"
+        }
+      }
+    },
+    {
+      "name": "Registrar pago comercio",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/b2b/billing/merchant-payments",
+          "host": ["{{baseUrl}}"],
+          "path": ["b2b", "billing", "merchant-payments"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"accountId\": \"{{accountId}}\",\n  \"amount\": 39.55,\n  \"paidAt\": \"2026-09-10T15:00:00.000Z\",\n  \"allocations\": [\n    {\n      \"receivableId\": \"{{receivableId}}\",\n      \"amountApplied\": 35\n    }\n  ]\n}"
+        }
+      }
+    },
+    {
+      "name": "Programar cobertura",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/b2b/coverage/payables",
+          "host": ["{{baseUrl}}"],
+          "path": ["b2b", "coverage", "payables"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"installmentId\": \"{{installmentId}}\",\n  \"scheduledPaymentDate\": \"2026-09-05\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Marcar cobertura pagada",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/b2b/coverage/payables/{{payableId}}/paid",
+          "host": ["{{baseUrl}}"],
+          "path": ["b2b", "coverage", "payables", "{{payableId}}", "paid"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"paidAt\": \"2026-09-06T15:00:00.000Z\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Aplicar recuperación",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/b2b/coverage/recoveries/{{recoveryId}}/apply-payment",
+          "host": ["{{baseUrl}}"],
+          "path": ["b2b", "coverage", "recoveries", "{{recoveryId}}", "apply-payment"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"amount\": 100\n}"
+        }
+      }
+    },
+    {
+      "name": "Ejecutar conciliación",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/b2b/reconciliation/runs",
+          "host": ["{{baseUrl}}"],
+          "path": ["b2b", "reconciliation", "runs"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"periodStart\": \"2026-09-01\",\n  \"periodEnd\": \"2026-09-30\"\n}"
+        }
+      }
+    }
+  ]
+}
