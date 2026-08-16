@@ -35,6 +35,7 @@ import { ReceiptAllocationModel } from './receipt_allocation.model';
 import { ApInvoiceModel } from './ap_invoice.model';
 import { ApInvoiceLineModel } from './ap_invoice_line.model';
 import { SupplierPaymentModel } from './supplier_payment.model';
+import { SupplierPaymentTermsModel } from './supplier_payment_terms.model';
 import { BankAccountModel } from './bank_account.model';
 import { BankStatementModel } from './bank_statement.model';
 import { BankStatementLineModel } from './bank_statement_line.model';
@@ -95,6 +96,7 @@ export { ReceiptAllocationModel } from './receipt_allocation.model';
 export { ApInvoiceModel } from './ap_invoice.model';
 export { ApInvoiceLineModel } from './ap_invoice_line.model';
 export { SupplierPaymentModel } from './supplier_payment.model';
+export { SupplierPaymentTermsModel } from './supplier_payment_terms.model';
 export { BankAccountModel } from './bank_account.model';
 export { BankStatementModel } from './bank_statement.model';
 export { BankStatementLineModel } from './bank_statement_line.model';
@@ -156,6 +158,7 @@ export const accountingModels = [
   ApInvoiceModel,
   ApInvoiceLineModel,
   SupplierPaymentModel,
+  SupplierPaymentTermsModel,
   BankAccountModel,
   BankStatementModel,
   BankStatementLineModel,
