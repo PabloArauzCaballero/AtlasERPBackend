@@ -21,15 +21,23 @@ export class ContractsController {
   ) {}
 
   @Get()
-  list(@CurrentUser() user: AuthUser) { return this.service.list(user); }
+  list(@CurrentUser() user: AuthUser) {
+    return this.service.list(user);
+  }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() body: Record<string, unknown>, @CurrentUser() user: AuthUser) {
+  update(
+    @Param('id') id: string,
+    @Body() body: Record<string, unknown>,
+    @CurrentUser() user: AuthUser,
+  ) {
     return this.service.update(id, body, user);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string, @CurrentUser() user: AuthUser) { return this.service.remove(id, user); }
+  remove(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    return this.service.remove(id, user);
+  }
 
   @Post()
   create(

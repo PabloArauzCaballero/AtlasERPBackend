@@ -21,16 +21,28 @@ export class BillingController {
   ) {}
 
   @Get('events')
-  listEvents() { return this.service.listEvents(); }
+  listEvents() {
+    return this.service.listEvents();
+  }
 
   @Get('ar-invoices')
-  listInvoices(@CurrentUser() user: AuthUser) { return this.service.listInvoices(user); }
+  listInvoices(@CurrentUser() user: AuthUser) {
+    return this.service.listInvoices(user);
+  }
 
   @Patch('ar-invoices/:id')
-  updateInvoice(@Param('id') id: string, @Body() body: Record<string, unknown>, @CurrentUser() user: AuthUser) { return this.service.updateInvoice(id, body, user); }
+  updateInvoice(
+    @Param('id') id: string,
+    @Body() body: Record<string, unknown>,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.service.updateInvoice(id, body, user);
+  }
 
   @Delete('ar-invoices/:id')
-  deleteInvoice(@Param('id') id: string, @CurrentUser() user: AuthUser) { return this.service.deleteInvoice(id, user); }
+  deleteInvoice(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    return this.service.deleteInvoice(id, user);
+  }
 
   @Post('events')
   createBillingEvent(

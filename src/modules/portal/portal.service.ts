@@ -75,7 +75,10 @@ export class PortalService {
       // Cierra cualquier suscripción activa previa (una sola ACTIVE por comercio).
       await this.subscriptionModel.update(
         { status: 'REPLACED' },
-        { where: { merchantAccountId: input.merchantAccountId, status: 'ACTIVE' } as WhereOptions, transaction },
+        {
+          where: { merchantAccountId: input.merchantAccountId, status: 'ACTIVE' } as WhereOptions,
+          transaction,
+        },
       );
 
       const periodEnd = new Date();

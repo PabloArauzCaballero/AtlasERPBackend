@@ -26,9 +26,7 @@ export class ActivitiesController {
   }
 
   @Get()
-  list(
-    @Query(new ZodValidationPipe(listActivitiesQuerySchema)) query: ListActivitiesQueryDto,
-  ) {
+  list(@Query(new ZodValidationPipe(listActivitiesQuerySchema)) query: ListActivitiesQueryDto) {
     return this.service.list(query);
   }
 

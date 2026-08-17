@@ -113,15 +113,22 @@ export class B2BAccountModel extends Model {
   declare industry: string | null;
 
   @AllowNull(false) @Column(DataType.STRING(120)) declare category: string;
-  @AllowNull(false) @Column({ type: DataType.STRING(160), field: 'business_line' }) declare businessLine: string;
-  @Column({ type: DataType.TEXT, field: 'business_description' }) declare businessDescription: string | null;
+  @AllowNull(false)
+  @Column({ type: DataType.STRING(160), field: 'business_line' })
+  declare businessLine: string;
+  @Column({ type: DataType.TEXT, field: 'business_description' }) declare businessDescription:
+    string | null;
   @Column({ type: DataType.STRING(500), field: 'website_url' }) declare websiteUrl: string | null;
-  @AllowNull(false) @Default('BO') @Column({ type: DataType.STRING(2), field: 'country_code' }) declare countryCode: string;
+  @AllowNull(false)
+  @Default('BO')
+  @Column({ type: DataType.STRING(2), field: 'country_code' })
+  declare countryCode: string;
   @Column(DataType.STRING(120)) declare city: string | null;
   @Column(DataType.STRING(500)) declare address: string | null;
   @Column({ type: DataType.INTEGER, field: 'employee_count' }) declare employeeCount: number | null;
   @Column({ type: DataType.INTEGER, field: 'founded_year' }) declare foundedYear: number | null;
-  @Column({ type: DataType.DECIMAL(18, 2), field: 'annual_revenue' }) declare annualRevenue: string | null;
+  @Column({ type: DataType.DECIMAL(18, 2), field: 'annual_revenue' }) declare annualRevenue:
+    string | null;
 
   @Index
   @AllowNull(false)
@@ -140,8 +147,23 @@ export class B2BAccountModel extends Model {
   @Column({ type: DataType.UUID, field: 'territory_id' })
   declare territoryId: string | null;
 
+  /** Juicio COMERCIAL que carga un ejecutivo al alta. Texto libre, no lo escribe el motor. */
   @Column({ type: DataType.STRING(30), field: 'risk_tier' })
   declare riskTier: string | null;
+
+  /**
+   * Categoría CALCULADA sobre la mora real de sus cuentas por cobrar (A–F).
+   *
+   * Es una proyección de `b2b_account_risk_ratings` para que listar el CRM no exija un join por
+   * fila; la fuente de verdad —con su historial y la política que la produjo— es esa tabla. Va
+   * aparte de `risk_tier` a propósito: son dos juicios distintos, y pisar uno con otro dejaría a
+   * nadie capaz de decir cuál está viendo.
+   */
+  @Column({ type: DataType.STRING(4), field: 'risk_rating_grade' })
+  declare riskRatingGrade: string | null;
+
+  @Column({ type: DataType.DATE, field: 'risk_rating_updated_at' })
+  declare riskRatingUpdatedAt: Date | null;
 
   @Column({ type: DataType.DECIMAL(18, 2), field: 'expected_monthly_volume' })
   declare expectedMonthlyVolume: string | null;
@@ -176,14 +198,24 @@ export class AccountTagModel extends Model {
   @Unique @AllowNull(false) @Column(DataType.STRING(80)) declare name: string;
   @Column(DataType.STRING(200)) declare description: string | null;
   @Default(true) @Column({ type: DataType.BOOLEAN, field: 'is_active' }) declare isActive: boolean;
-  @Default(DataType.NOW) @Column({ type: DataType.DATE, field: 'created_at' }) declare createdAt: Date;
+  @Default(DataType.NOW)
+  @Column({ type: DataType.DATE, field: 'created_at' })
+  declare createdAt: Date;
 }
 
 @Table({ schema: SALES_SCHEMA, tableName: 'b2b_account_tags', timestamps: false })
 export class B2BAccountTagModel extends Model {
-  @PrimaryKey @ForeignKey(() => B2BAccountModel) @Column({ type: DataType.UUID, field: 'account_id' }) declare accountId: string;
-  @PrimaryKey @ForeignKey(() => AccountTagModel) @Column({ type: DataType.UUID, field: 'tag_id' }) declare tagId: string;
-  @Default(DataType.NOW) @Column({ type: DataType.DATE, field: 'created_at' }) declare createdAt: Date;
+  @PrimaryKey
+  @ForeignKey(() => B2BAccountModel)
+  @Column({ type: DataType.UUID, field: 'account_id' })
+  declare accountId: string;
+  @PrimaryKey
+  @ForeignKey(() => AccountTagModel)
+  @Column({ type: DataType.UUID, field: 'tag_id' })
+  declare tagId: string;
+  @Default(DataType.NOW)
+  @Column({ type: DataType.DATE, field: 'created_at' })
+  declare createdAt: Date;
 }
 
 @Table({ schema: SALES_SCHEMA, tableName: 'b2b_contacts', timestamps: false })

@@ -50,7 +50,14 @@ const envSchema = z
       .enum(['true', 'false'])
       .default('false')
       .transform((value) => value === 'true'),
-    STARTUP_SEEDS_ENABLED: z.enum(['true', 'false']).default('true').transform((value) => value === 'true'),
+    STARTUP_SEEDS_ENABLED: z
+      .enum(['true', 'false'])
+      .default('true')
+      .transform((value) => value === 'true'),
+    STARTUP_MIGRATIONS_ENABLED: z
+      .enum(['true', 'false'])
+      .default('true')
+      .transform((value) => value === 'true'),
 
     JWT_ACCESS_SECRET: z.string().min(32),
     JWT_ACCESS_EXPIRES_IN: z.string().min(1).default('15m'),

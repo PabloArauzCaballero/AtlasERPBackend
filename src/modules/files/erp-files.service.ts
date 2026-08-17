@@ -6,11 +6,7 @@ import { AuthUser } from '../../common/types/auth-context.types';
 import { env } from '../../config/env';
 import { PinoLoggerService } from '../../common/logger/pino-logger.service';
 import { CloudinaryService, UploadSignature } from './cloudinary.service';
-import {
-  ListFilesQueryDto,
-  RegisterFileDto,
-  UploadSignatureDto,
-} from './files.schemas';
+import { ListFilesQueryDto, RegisterFileDto, UploadSignatureDto } from './files.schemas';
 
 @Injectable()
 export class ErpFilesService {
@@ -73,13 +69,16 @@ export class ErpFilesService {
     try {
       await this.cloudinary.destroy(file.storagePublicId, file.resourceType ?? 'image');
     } catch (error) {
-      this.logger.warn('No se pudo eliminar el binario en Cloudinary; se marca el registro igual.', {
-        layer: 'service',
-        module: 'files',
-        action: 'remove',
-        erpFileId: id,
-        error: error instanceof Error ? error.message : String(error),
-      });
+      this.logger.warn(
+        'No se pudo eliminar el binario en Cloudinary; se marca el registro igual.',
+        {
+          layer: 'service',
+          module: 'files',
+          action: 'remove',
+          erpFileId: id,
+          error: error instanceof Error ? error.message : String(error),
+        },
+      );
     }
     await file.update({ status: 'DELETED' });
     return { deleted: true };

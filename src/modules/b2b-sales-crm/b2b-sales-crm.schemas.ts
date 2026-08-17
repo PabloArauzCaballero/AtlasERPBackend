@@ -73,13 +73,21 @@ export const createAccountSchema = z.object({
   businessLine: z.string().trim().min(2).max(160),
   businessDescription: z.string().trim().min(10).max(2000).optional(),
   websiteUrl: z.string().url().max(500).optional(),
-  countryCode: z.string().trim().length(2).transform((value) => value.toUpperCase()).default('BO'),
+  countryCode: z
+    .string()
+    .trim()
+    .length(2)
+    .transform((value) => value.toUpperCase())
+    .default('BO'),
   city: z.string().trim().min(2).max(120).optional(),
   address: z.string().trim().min(3).max(500).optional(),
   employeeCount: z.coerce.number().int().min(0).max(10000000).optional(),
   foundedYear: z.coerce.number().int().min(1800).max(new Date().getUTCFullYear()).optional(),
   annualRevenue: money.optional(),
-  tags: z.array(z.string().trim().min(1).max(80)).max(30).default([])
+  tags: z
+    .array(z.string().trim().min(1).max(80))
+    .max(30)
+    .default([])
     .transform((tags) => [...new Set(tags.map((tag) => tag.toLowerCase()))]),
   ownerUserId: uuid.optional(),
   territoryId: uuid.optional(),
@@ -504,4 +512,20 @@ export const postMerchantInvoiceToGlSchema = z.object({
   taxAccountId: uuid.optional(),
   partnerId: uuid.optional(),
   currencyCode: z.string().trim().length(3).default('BOB'),
+});
+
+/**
+ * Cuántas filas de historial de calificación devolver.
+ *
+ * Tiene tope porque el historial de una cuenta muy recalificada crece sin límite, y una consulta sin
+ * cota lo arrastra entero a memoria: el mismo endpoint que hoy responde en milisegundos es, dos años
+ * de barridos después, el que tumba la instancia.
+ */
+export const ratingHistoryQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(200).default(50),
+});
+
+/** Barrido de calificación: acotado para que una llamada no bloquee la cartera entera. */
+export const ratingSweepSchema = z.object({
+  limit: z.number().int().min(1).max(5000).default(500),
 });

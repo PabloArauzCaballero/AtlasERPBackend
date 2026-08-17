@@ -21,7 +21,12 @@ import {
   subscriptionQuerySchema,
 } from './portal.schemas';
 
-const MERCHANT_ROLES = ['MERCHANT_ADMIN', 'COMMERCIAL_MANAGER', 'COMMERCIAL_EXECUTIVE', 'ADMIN'] as const;
+const MERCHANT_ROLES = [
+  'MERCHANT_ADMIN',
+  'COMMERCIAL_MANAGER',
+  'COMMERCIAL_EXECUTIVE',
+  'ADMIN',
+] as const;
 
 @Controller('portal')
 export class PortalController {

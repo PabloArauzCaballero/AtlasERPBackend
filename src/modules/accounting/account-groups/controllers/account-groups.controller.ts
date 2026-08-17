@@ -40,7 +40,8 @@ export class AccountGroupsController {
 
   @Get('account-groups')
   listGroups(
-    @Query(new ZodValidationPipe(listGlAccountGroupsQuerySchema)) query: ListGlAccountGroupsQueryDto,
+    @Query(new ZodValidationPipe(listGlAccountGroupsQuerySchema))
+    query: ListGlAccountGroupsQueryDto,
   ) {
     return this.service.listGroups(query);
   }

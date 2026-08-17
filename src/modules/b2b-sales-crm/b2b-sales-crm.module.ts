@@ -3,6 +3,7 @@ import { SequelizeModule } from '@nestjs/sequelize';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { atlasSalesModels } from './models/b2b-sales-crm.models';
+import { creditRatingModels } from './models/credit-rating.models';
 import { ActivitiesController } from './controllers/activities.controller';
 import { CatalogsController } from './controllers/catalogs.controller';
 import { CatalogsService } from './services/catalogs.service';
@@ -10,16 +11,20 @@ import { B2BAccountsController } from './controllers/b2b-accounts.controller';
 import { BillingController } from './controllers/billing.controller';
 import { BnplController } from './controllers/bnpl.controller';
 import { ContractsController } from './controllers/contracts.controller';
+import { CreditRatingController } from './controllers/credit-rating.controller';
 import { CoverageController } from './controllers/coverage.controller';
 import { OnboardingController } from './controllers/onboarding.controller';
 import { OpportunitiesController } from './controllers/opportunities.controller';
 import { ProposalsController } from './controllers/proposals.controller';
 import { ReconciliationController } from './controllers/reconciliation.controller';
 import { B2BSalesCrmRepository } from './repositories/b2b-sales-crm.repository';
+import { CreditRatingRepository } from './repositories/credit-rating.repository';
 import { ActivitiesService } from './services/activities.service';
 import { B2BAccountsService } from './services/b2b-accounts.service';
 import { B2BBnplBillingService } from './services/b2b-bnpl-billing.service';
 import { B2BContractsService } from './services/b2b-contracts.service';
+import { B2BCreditRatingService } from './services/b2b-credit-rating.service';
+import { B2BCreditRatingQueryService } from './services/b2b-credit-rating-query.service';
 import { B2BCoverageService } from './services/b2b-coverage.service';
 import { B2BOnboardingService } from './services/b2b-onboarding.service';
 import { B2BPipelineService } from './services/b2b-pipeline.service';
@@ -30,7 +35,11 @@ import { BusinessActionLogsModule } from '../business-action-logs/business-actio
 import { AccountingModule } from '../accounting/accounting.module';
 
 @Module({
-  imports: [SequelizeModule.forFeature(atlasSalesModels), BusinessActionLogsModule, AccountingModule],
+  imports: [
+    SequelizeModule.forFeature([...atlasSalesModels, ...creditRatingModels]),
+    BusinessActionLogsModule,
+    AccountingModule,
+  ],
   controllers: [
     ActivitiesController,
     CatalogsController,
@@ -43,6 +52,7 @@ import { AccountingModule } from '../accounting/accounting.module';
     BillingController,
     CoverageController,
     ReconciliationController,
+    CreditRatingController,
   ],
   providers: [
     B2BSalesCrmRepository,
@@ -57,6 +67,9 @@ import { AccountingModule } from '../accounting/accounting.module';
     B2BReconciliationService,
     B2BSalesCrmService,
     MerchantAccountingBridgeService,
+    CreditRatingRepository,
+    B2BCreditRatingService,
+    B2BCreditRatingQueryService,
     JwtAuthGuard,
     RolesGuard,
   ],
