@@ -1,5 +1,5 @@
 {
-  "executedAt": "2026-08-18T00:23:42.977Z",
+  "executedAt": "2026-08-18T01:22:11.268Z",
   "baseUrl": "http://localhost:3020/api/v1",
   "tokenProvided": true,
   "mode": "authorized",
@@ -34,7 +34,7 @@
       "guards": "La suscripción se resuelve desde las membresías del usuario, sin recibir la cuenta.",
       "status": 200,
       "passed": true,
-      "bodyPreview": "{\"success\":true,\"data\":null}"
+      "bodyPreview": "{\"success\":true,\"data\":{\"id\":\"6ff229c6-8759-4dac-8290-66801629e884\",\"merchantAccountId\":\"a1000000-0000-4000-8000-000000000001\",\"planId\":\"7450f91b-8fa3-4915-b423-d1a2b58f6ac4\",\"status\":\"ACTIVE\",\"autoRenew\":true,\"startedAt\":\"2026-08-18T00:24:39.509Z\",\"currentPeriodEnd\":\"2026-09-18T00:24:39.509Z\",\"endedAt\":null,\"plan\":{\"id\":\"7450f91b-8fa3-4915-b423-d1a2b58f6ac4\",\"code\":\"STARTER\",\"name\":\"Starter\",\"description\":\"Ideal para comercios que inician su operación digital.\",\"tier\":\"STARTER\",\"monthlyPrice\":\"0.00\",\"currency\":\"BOB\",\"features\":[\"1 sucursal\",\"Registro de ventas BNPL\",\"Reportes básicos\",\"Soporte por correo\"],\"status\":\"ACTIVE\",\"sortOrder\":1}}}"
     },
     {
       "name": "branches:list",
@@ -54,7 +54,7 @@
       "guards": "El panel de facturación calcula totales sobre el universo completo, no sobre la página.",
       "status": 200,
       "passed": true,
-      "bodyPreview": "{\"success\":true,\"data\":{\"merchantAccountId\":\"a1000000-0000-4000-8000-000000000001\",\"subscription\":null,\"invoices\":[{\"id\":\"e1000000-0000-4000-8000-000000000002\",\"invoiceNumber\":\"FAC-TEST-0002\",\"invoiceDate\":\"2026-08-13\",\"dueDate\":\"2026-08-28\",\"subtotalAmount\":\"2000.00\",\"taxAmount\":\"260.00\",\"totalAmount\":\"2260.00\",\"status\":\"ISSUED\"},{\"id\":\"e1000000-0000-4000-8000-000000000001\",\"invoiceNumber\":\"FAC-TEST-0001\",\"invoiceDate\":\"2026-07-19\",\"dueDate\":\"2026-08-03\",\"subtotalAmount\":\"1000.00\",\"taxAmount\":\"130.00\",\"totalAmount\":\"1130.00\",\"status\":\"ISSUED\"}],\"receivables\":[{\"id\":\"f1000000-0000-4000-8000-000000000002\",\"invoiceId\":\"e1000000-0000-4000-8000-000000000002\",\"sourceType\":\"INVOICE\",\"amountOriginal\":\"2260.00\",\"amountOpen\":\"1000.00\",\"currency\":\"BOB\",\"issuedAt\":\"2026-08-13T00:21:21.217Z\",\"dueDate\":\"2026-08-28\",\"status\":\"PARTIALLY_PAID\"},{\"id\":\"f1000000-0000-4000-8000-000000000001\",\"invoiceId\":\"e1000000-0000-4000-8000-000000000001\",\"sourceType\":\"INVOICE\",\"amountOriginal\":\"1130.00\",\"amountOpen\":\"1130.00\",\"currency\":\"BOB\",\"issuedAt\":\"2026-07-19T00:21:21.217Z\",\"dueDate\":\"2026-08-03\",\"status\":\"OVERDUE\"}],\"documentLimit\":50,\"summary\":{\"invoiceCount\":2,\"invoicedTotal\":\"3390.00\",\"openReceivableCou"
+      "bodyPreview": "{\"success\":true,\"data\":{\"merchantAccountId\":\"a1000000-0000-4000-8000-000000000001\",\"subscription\":{\"id\":\"6ff229c6-8759-4dac-8290-66801629e884\",\"merchantAccountId\":\"a1000000-0000-4000-8000-000000000001\",\"planId\":\"7450f91b-8fa3-4915-b423-d1a2b58f6ac4\",\"status\":\"ACTIVE\",\"autoRenew\":true,\"startedAt\":\"2026-08-18T00:24:39.509Z\",\"currentPeriodEnd\":\"2026-09-18T00:24:39.509Z\",\"endedAt\":null,\"plan\":{\"id\":\"7450f91b-8fa3-4915-b423-d1a2b58f6ac4\",\"code\":\"STARTER\",\"name\":\"Starter\",\"description\":\"Ideal para comercios que inician su operación digital.\",\"tier\":\"STARTER\",\"monthlyPrice\":\"0.00\",\"currency\":\"BOB\",\"features\":[\"1 sucursal\",\"Registro de ventas BNPL\",\"Reportes básicos\",\"Soporte por correo\"],\"status\":\"ACTIVE\",\"sortOrder\":1}},\"invoices\":[{\"id\":\"e1000000-0000-4000-8000-000000000002\",\"invoiceNumber\":\"FAC-TEST-0002\",\"invoiceDate\":\"2026-08-13\",\"dueDate\":\"2026-08-28\",\"subtotalAmount\":\"2000.00\",\"taxAmount\":\"260.00\",\"totalAmount\":\"2260.00\",\"status\":\"ISSUED\"},{\"id\":\"e1000000-0000-4000-8000-000000000001\",\"invoiceNumber\":\"FAC-TEST-0001\",\"invoiceDate\":\"2026-07-19\",\"dueDate\":\"2026-08-03\",\"subtotalAmount\":\"1000.00\",\"taxAmount\":\"130.00\",\"totalAmount\":\"1130.00\",\"status\":\"ISSUED\"}],\"receivables\":[{\"id\":\"f1000"
     },
     {
       "name": "advertisers:list",

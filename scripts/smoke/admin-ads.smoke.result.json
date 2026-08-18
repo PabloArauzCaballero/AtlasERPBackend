@@ -1,5 +1,5 @@
 {
-  "executedAt": "2026-08-18T00:23:42.442Z",
+  "executedAt": "2026-08-18T01:22:10.706Z",
   "baseUrl": "http://localhost:3020/api/v1",
   "tokenProvided": true,
   "passed": true,
@@ -26,7 +26,7 @@
       "status": 200,
       "ok": true,
       "expectedProtectedFailure": false,
-      "bodyPreview": "{\"success\":true,\"data\":{\"revenueMicros\":0,\"billableSpendMicros\":0,\"activeCampaigns\":2,\"pendingReviews\":0,\"overdueInvoices\":0,\"invalidEventRate\":0,\"alerts\":[]}}"
+      "bodyPreview": "{\"success\":true,\"data\":{\"revenueMicros\":0,\"billableSpendMicros\":0,\"activeCampaigns\":1,\"pendingReviews\":0,\"overdueInvoices\":0,\"invalidEventRate\":0,\"alerts\":[]}}"
     },
     {
       "method": "GET",

@@ -1,6 +1,6 @@
 {
   "suite": "batch-endpoints-smoke",
-  "executedAt": "2026-08-18T00:23:43.491Z",
+  "executedAt": "2026-08-18T01:22:11.870Z",
   "baseUrl": "http://localhost:3020/api/v1",
   "strategy": "validation-only: expected 400 proves route, guard, and Zod pipe are reachable without creating records",
   "passed": true,
@@ -14,7 +14,7 @@
       ],
       "actualStatus": 200,
       "ok": true,
-      "durationMs": 50,
+      "durationMs": 48,
       "bodyPreview": "{\"success\":true,\"data\":{\"status\":\"ok\",\"service\":\"atlas-integrated-backend\"}}"
     },
     {
@@ -38,7 +38,7 @@
       ],
       "actualStatus": 400,
       "ok": true,
-      "durationMs": 12,
+      "durationMs": 8,
       "bodyPreview": "{\"success\":false,\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"Los datos enviados no son válidos.\",\"details\":[{\"path\":\"items.0.category\",\"message\":\"Required\"},{\"path\":\"items.0.businessLine\",\"message\":\"Required\"},{\"path\":\"items.1.category\",\"message\":\"Required\"},{\"path\":\"items.1.businessLine\",\"message\":\"Required\"}]}}"
     },
     {
@@ -62,7 +62,7 @@
       ],
       "actualStatus": 400,
       "ok": true,
-      "durationMs": 4,
+      "durationMs": 5,
       "bodyPreview": "{\"success\":false,\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"Los datos enviados no son válidos.\",\"details\":[{\"path\":\"items.1.taxId\",\"message\":\"No se permiten taxId duplicados dentro del mismo batch por país.\"}]}}"
     },
     {
@@ -74,7 +74,7 @@
       ],
       "actualStatus": 400,
       "ok": true,
-      "durationMs": 8,
+      "durationMs": 4,
       "bodyPreview": "{\"success\":false,\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"Los datos enviados no son válidos.\",\"details\":[{\"path\":\"items\",\"message\":\"Array must contain at least 1 element(s)\"}]}}"
     }
   ]
