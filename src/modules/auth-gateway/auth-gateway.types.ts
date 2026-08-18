@@ -63,3 +63,26 @@ export interface RefreshedUpstreamTokens {
   accessToken: string;
   refreshToken: string;
 }
+
+/**
+ * Perfil del usuario de COMERCIO que devuelve `/merchant/auth/*` de AtlasBackend. Es identidad,
+ * no membresía: a qué comercio pertenece esta persona lo resuelve `PortalScopeService` contra
+ * `atlas_sales.merchant_users`, no este payload.
+ */
+export interface AtlasMerchantUserProfile {
+  id: string;
+  email: string;
+  fullName: string | null;
+  userCode: string | null;
+  phone: string | null;
+  role: 'merchant';
+  status: string;
+  mustChangePassword: boolean;
+  lastLoginAt: string | null;
+}
+
+export interface AtlasMerchantAuthResponse {
+  accessToken: string;
+  refreshToken: string;
+  user: AtlasMerchantUserProfile;
+}

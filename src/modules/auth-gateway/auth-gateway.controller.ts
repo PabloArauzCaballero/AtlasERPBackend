@@ -10,6 +10,7 @@ import {
   internalUserIdParamsSchema,
   loginSchema,
   logoutSchema,
+  merchantLoginSchema,
   replaceInternalUserRolesSchema,
   updateInternalUserSchema,
 } from './auth-gateway.schemas';
@@ -18,6 +19,7 @@ import type {
   InternalUserIdParamsDto,
   LoginDto,
   LogoutDto,
+  MerchantLoginDto,
   ReplaceInternalUserRolesDto,
   UpdateInternalUserDto,
 } from './auth-gateway.schemas';
@@ -57,6 +59,42 @@ export class AuthGatewayController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const result = await this.service.logout(this.readCookie(req, UPSTREAM_REFRESH_COOKIE), body.allDevices);
+    this.clearUpstreamCookies(res);
+    return result;
+  }
+
+  // ---- Canal del comercio afiliado -------------------------------------------------------------
+  // Rutas separadas del login interno a propósito: son dos poblaciones distintas y mezclarlas en
+  // un mismo endpoint acabaría con un `if` decidiendo quién eres, que es justo el error que este
+  // trabajo corrige.
+
+  @Public()
+  @Post('merchant/login')
+  async merchantLogin(
+    @Body(new ZodValidationPipe(merchantLoginSchema)) body: MerchantLoginDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const session = await this.service.merchantLogin(body.email, body.password);
+    this.setUpstreamCookies(res, { accessToken: session.upstreamAccessToken, refreshToken: session.upstreamRefreshToken });
+    return { accessToken: session.accessToken, tokenType: session.tokenType, expiresIn: session.expiresIn, user: session.user };
+  }
+
+  @Public()
+  @Post('merchant/refresh')
+  async merchantRefresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const session = await this.service.merchantRefresh(this.readCookie(req, UPSTREAM_REFRESH_COOKIE));
+    this.setUpstreamCookies(res, { accessToken: session.upstreamAccessToken, refreshToken: session.upstreamRefreshToken });
+    return { accessToken: session.accessToken, tokenType: session.tokenType, expiresIn: session.expiresIn, user: session.user };
+  }
+
+  @Public()
+  @Post('merchant/logout')
+  async merchantLogout(
+    @Body(new ZodValidationPipe(logoutSchema)) body: LogoutDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.service.merchantLogout(this.readCookie(req, UPSTREAM_REFRESH_COOKIE), body.allDevices);
     this.clearUpstreamCookies(res);
     return result;
   }

@@ -18,6 +18,26 @@ autorización por tenant.
 - `portal.mappers.ts`: proyecciones explícitas de salida. Ningún modelo Sequelize sale crudo.
 - `portal.constants.ts`: vocabulario de roles, estados y límites del canal.
 
+## De dónde sale la identidad
+
+El usuario partner se autentica en `POST /api/v1/auth/merchant/login`, que delega en el canal
+`/merchant/auth/*` de **AtlasBackend**: allí vive su identidad (`iam.merchant_users`), igual que la
+de los usuarios internos y la de los clientes BNPL.
+
+La división es deliberada y conviene no borrarla:
+
+| Pregunta                                     | Quién responde                                  |
+| -------------------------------------------- | ----------------------------------------------- |
+| ¿Quién es esta persona? ¿Puede autenticarse? | **AtlasBackend** — `iam.merchant_users`         |
+| ¿De qué comercio es? ¿Qué puede tocar?       | **Este backend** — `atlas_sales.merchant_users` |
+
+El enlace entre ambas es el `sub` del token, que este backend guarda en `merchant_users.user_id`.
+
+Antes de existir ese canal, `MERCHANT_ADMIN` se fabricaba mapeándolo desde el rol interno
+`MERCHANT_OPERATIONS`: el "usuario partner" era, en el único login real que existía, personal de
+Atlas. Si alguien vuelve a añadir `MERCHANT_ADMIN` a un rol interno para desatascar un 403, está
+reintroduciendo exactamente eso.
+
 ## Modelo de alcance
 
 `PortalScopeService` resuelve el alcance **contra la base, no contra el JWT**:

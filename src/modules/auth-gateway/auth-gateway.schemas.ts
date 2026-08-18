@@ -50,3 +50,13 @@ export const replaceInternalUserRolesSchema = z.object({
   reason: z.string().trim().min(8).max(500),
 });
 export type ReplaceInternalUserRolesDto = z.infer<typeof replaceInternalUserRolesSchema>;
+
+/**
+ * Login del canal del comercio. Mismo contrato que el interno, población distinta: se separa para
+ * que ninguna pantalla del portal pueda intentar autenticarse contra el plano interno por error.
+ */
+export const merchantLoginSchema = z.object({
+  email: z.string().trim().email().max(180),
+  password: z.string().min(1).max(128),
+});
+export type MerchantLoginDto = z.infer<typeof merchantLoginSchema>;

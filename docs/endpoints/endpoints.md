@@ -1154,12 +1154,37 @@ Lista paginada de `business_action_logs` con actor, proceso, acción, tablas imp
 Canal del usuario partner (`/api/v1/portal/*`). Documentación del módulo:
 [`src/modules/portal/README.md`](../../src/modules/portal/README.md).
 
+## Autenticación del comercio
+
+El usuario partner se autentica contra **AtlasBackend**, que es donde vive su identidad
+(`iam.merchant_users`), y este backend traduce esa sesión a su propio token de negocio:
+
+| Método | Ruta                            | Responsabilidad                                            |
+| ------ | ------------------------------- | ---------------------------------------------------------- |
+| POST   | `/api/v1/auth/merchant/login`   | Inicia sesión de comercio y emite el token de este backend |
+| POST   | `/api/v1/auth/merchant/refresh` | Rota la sesión upstream y reemite el token                 |
+| POST   | `/api/v1/auth/merchant/logout`  | Cierra la sesión upstream (idempotente)                    |
+
+El rol `merchant` de AtlasBackend se traduce a `MERCHANT_ADMIN`; un rol upstream que no se pueda
+traducir se rechaza en el login (`401`) en vez de emitir una sesión sin permisos que fallaría
+endpoint a endpoint.
+
+Hasta esta versión, `MERCHANT_ADMIN` se fabricaba mapeándolo desde `MERCHANT_OPERATIONS`, que es un
+rol **interno** de Atlas ("Operaciones de comercios"). Es decir: no existía la identidad del
+comercio y el canal lo operaba, en realidad, personal interno. Ese mapeo ya no otorga
+`MERCHANT_ADMIN`; el staff conserva `COMMERCIAL_EXECUTIVE`, que es lo que de verdad es.
+
+**El token no da acceso a ninguna cuenta por sí solo.** El alcance se sigue resolviendo contra
+`atlas_sales.merchant_users`: un comercio con token válido y sin membresía activa recibe
+`403 PORTAL_SCOPE_NOT_PROVISIONED`.
+
 ## Modelo de autorización del portal
 
 Todos los endpoints de esta sección resuelven primero el **alcance** del llamador con
 `PortalScopeService`, consultando `atlas_sales.merchant_users` (no el JWT):
 
-- `MERCHANT_ADMIN` (comercio): opera únicamente sobre las cuentas donde tiene membresía `ACTIVE`.
+- `MERCHANT_ADMIN` (comercio, autenticado en `/auth/merchant/login`): opera únicamente sobre las
+  cuentas donde tiene membresía `ACTIVE`.
   Los parámetros `merchantAccountId` / `accountId` / `advertiserId` son opcionales; si los envía,
   se validan contra su alcance. Sin membresía activa: `403 PORTAL_SCOPE_NOT_PROVISIONED`.
 - `ADMIN`, `COMMERCIAL_MANAGER`, `COMMERCIAL_EXECUTIVE` (staff interno): operan en nombre de un
