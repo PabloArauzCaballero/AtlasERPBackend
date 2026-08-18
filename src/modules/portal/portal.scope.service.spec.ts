@@ -105,15 +105,36 @@ describe('PortalScopeService', () => {
       expect(stub.merchantUserModel.findAll).not.toHaveBeenCalled();
     });
 
-    it('no compara `sub` contra la columna uuid cuando no es un UUID', async () => {
+    /**
+     * El `sub` del proveedor de identidad es OPACO. AtlasBackend emite bigints ("1", "27"); las
+     * fixtures locales usan UUID. Esta prueba existe porque durante un tiempo el enlace por
+     * identidad se filtraba con un patrón UUID: con identificadores reales no casaba nunca, así que
+     * el alcance del portal se resolvía SIEMPRE por el correo de respaldo y nadie lo notaba, porque
+     * respondía igual. Si alguien vuelve a "validar" el formato aquí, esto se pone rojo.
+     */
+    it.each([
+      ['bigint de AtlasBackend', '1'],
+      ['uuid de las fixtures', 'c1000000-0000-4000-8000-000000000001'],
+      ['identificador de un proveedor externo', 'auth0|not-a-uuid'],
+    ])('enlaza por identidad sea cual sea el formato del sub (%s)', async (_caso, sub) => {
       const { service, stub } = buildService();
       stub.merchantUserModel.findAll.mockResolvedValue([{ accountId: ACCOUNT_A }]);
 
-      await service.resolveScope({ ...merchantUser, sub: 'auth0|not-a-uuid' });
+      await service.resolveScope({ ...merchantUser, sub });
 
       const where = stub.merchantUserModel.findAll.mock.calls[0][0].where;
       const clauses = where[Op.or] as Record<string, unknown>[];
-      expect(clauses).toEqual([{ emailNormalized: 'partner@comercio.bo' }]);
+      expect(clauses).toEqual([{ userId: sub }, { emailNormalized: 'partner@comercio.bo' }]);
+    });
+
+    it('sin `sub` utilizable queda solo el enlace de respaldo por correo', async () => {
+      const { service, stub } = buildService();
+      stub.merchantUserModel.findAll.mockResolvedValue([{ accountId: ACCOUNT_A }]);
+
+      await service.resolveScope({ ...merchantUser, sub: '   ' });
+
+      const where = stub.merchantUserModel.findAll.mock.calls[0][0].where;
+      expect(where[Op.or]).toEqual([{ emailNormalized: 'partner@comercio.bo' }]);
     });
   });
 

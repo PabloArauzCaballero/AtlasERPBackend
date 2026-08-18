@@ -1174,6 +1174,9 @@ rol **interno** de Atlas ("Operaciones de comercios"). Es decir: no existía la 
 comercio y el canal lo operaba, en realidad, personal interno. Ese mapeo ya no otorga
 `MERCHANT_ADMIN`; el staff conserva `COMMERCIAL_EXECUTIVE`, que es lo que de verdad es.
 
+El `sub` del token es un identificador opaco del proveedor de identidad (hoy, un bigint): este
+backend lo guarda tal cual en `atlas_sales.merchant_users.user_id` y no presupone su formato.
+
 **El token no da acceso a ninguna cuenta por sí solo.** El alcance se sigue resolviendo contra
 `atlas_sales.merchant_users`: un comercio con token válido y sin membresía activa recibe
 `403 PORTAL_SCOPE_NOT_PROVISIONED`.

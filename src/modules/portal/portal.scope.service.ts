@@ -7,7 +7,18 @@ import { PinoLoggerService } from '../../common/logging/pino-logger.service';
 import type { AuthUser } from '../../common/types/auth-context.types';
 import { PORTAL_ACTIVE_MEMBERSHIP_STATUSES, PORTAL_INTERNAL_ROLES } from './portal.constants';
 
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/**
+ * El `sub` del token es un identificador OPACO del proveedor de identidad: hoy AtlasBackend emite
+ * bigints ("1", "27"), y las fixtures locales usan UUID. Este backend no debe presuponer el
+ * formato; sólo exige que venga algo y que no sea espacio en blanco.
+ *
+ * Antes se filtraba por un patrón UUID, y como los identificadores reales no lo cumplen, el enlace
+ * por identidad estable no se intentaba nunca: todo el alcance del portal se resolvía por el correo
+ * —el enlace de respaldo—, sin que nada lo delatara porque respondía igual.
+ */
+function isUsableIdentityReference(value: string | undefined | null): value is string {
+  return typeof value === 'string' && value.trim().length > 0;
+}
 
 /** Alcance efectivo de un llamador del portal, resuelto contra la base y no contra el JWT. */
 export interface PortalScope {
@@ -190,7 +201,7 @@ export class PortalScopeService {
     normalizedEmail: string | null,
   ): Promise<string[]> {
     const identityClauses: Record<string, unknown>[] = [];
-    if (UUID_PATTERN.test(userId)) identityClauses.push({ userId });
+    if (isUsableIdentityReference(userId)) identityClauses.push({ userId: userId.trim() });
     if (normalizedEmail) identityClauses.push({ emailNormalized: normalizedEmail });
     if (identityClauses.length === 0) return [];
 
@@ -210,7 +221,7 @@ export class PortalScopeService {
     transaction?: Transaction,
   ): Promise<AdvertiserUserModel[]> {
     const identityClauses: unknown[] = [];
-    if (UUID_PATTERN.test(scope.userId)) identityClauses.push({ userId: scope.userId });
+    if (isUsableIdentityReference(scope.userId)) identityClauses.push({ userId: scope.userId.trim() });
     if (scope.email) {
       identityClauses.push(sequelizeWhere(fn('lower', fn('btrim', col('email'))), scope.email));
     }

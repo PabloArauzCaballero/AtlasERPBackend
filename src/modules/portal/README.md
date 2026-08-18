@@ -32,6 +32,10 @@ La división es deliberada y conviene no borrarla:
 | ¿De qué comercio es? ¿Qué puede tocar?       | **Este backend** — `atlas_sales.merchant_users` |
 
 El enlace entre ambas es el `sub` del token, que este backend guarda en `merchant_users.user_id`.
+Ese identificador es **opaco**: AtlasBackend emite bigints (`"1"`, `"27"`) y las fixtures locales
+usan UUID, así que la columna es texto y el alcance no valida su formato. Declararla `uuid` dejó
+durante un tiempo el enlace preferente inservible —no casaba nunca, todo se resolvía por el correo
+de respaldo— sin que nada fallara a la vista.
 
 Antes de existir ese canal, `MERCHANT_ADMIN` se fabricaba mapeándolo desde el rol interno
 `MERCHANT_OPERATIONS`: el "usuario partner" era, en el único login real que existía, personal de

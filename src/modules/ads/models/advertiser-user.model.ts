@@ -13,7 +13,8 @@ export class AdvertiserUserModel extends Model {
   @ForeignKey(() => AdvertiserAccountModel)
   @Column({ field: 'advertiser_id', type: DataType.UUID, allowNull: false })
   declare advertiserId: string;
-  @Column({ field: 'user_id', type: DataType.UUID, allowNull: true }) declare userId: string | null;
+  // Texto y no UUID: el `sub` del proveedor de identidad es opaco (AtlasBackend emite bigints).
+  @Column({ field: 'user_id', type: DataType.STRING(64), allowNull: true }) declare userId: string | null;
   @Column({ type: DataType.STRING(180), allowNull: false }) declare email: string;
   @Column({ type: DataType.STRING(30), allowNull: false }) declare role: string;
   @Column({ type: DataType.STRING(30), allowNull: false, defaultValue: 'ACTIVE' })

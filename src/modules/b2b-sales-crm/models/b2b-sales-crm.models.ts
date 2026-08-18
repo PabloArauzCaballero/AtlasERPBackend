@@ -673,7 +673,10 @@ export class MerchantUserModel extends Model {
 
   // Identidad del usuario en AtlasBackend (`sub` del JWT). Es el enlace preferente para resolver
   // el alcance del portal del comercio; `emailNormalized` es el enlace de respaldo.
-  @Column({ type: DataType.UUID, field: 'user_id' })
+  //
+  // Texto, no UUID: el identificador del proveedor de identidad es opaco. AtlasBackend emite
+  // bigints y declararlo `uuid` dejaba el enlace preferente inservible sin que nada fallara.
+  @Column({ type: DataType.STRING(64), field: 'user_id' })
   declare userId: string | null;
 
   @Column(DataType.STRING(180))
