@@ -1,7 +1,7 @@
 {
-  "executedAt": "2026-07-09T15:06:25.623Z",
-  "baseUrl": "http://localhost:3000/api/v1",
-  "tokenProvided": false,
+  "executedAt": "2026-08-18T00:23:42.442Z",
+  "baseUrl": "http://localhost:3020/api/v1",
+  "tokenProvided": true,
   "passed": true,
   "results": [
     {
@@ -23,18 +23,18 @@
     {
       "method": "GET",
       "path": "/admin/ads/dashboard",
-      "status": 401,
-      "ok": false,
-      "expectedProtectedFailure": true,
-      "bodyPreview": "{\"success\":false,\"error\":{\"code\":\"UNAUTHORIZED\",\"message\":\"Token no enviado.\"}}"
+      "status": 200,
+      "ok": true,
+      "expectedProtectedFailure": false,
+      "bodyPreview": "{\"success\":true,\"data\":{\"revenueMicros\":0,\"billableSpendMicros\":0,\"activeCampaigns\":2,\"pendingReviews\":0,\"overdueInvoices\":0,\"invalidEventRate\":0,\"alerts\":[]}}"
     },
     {
       "method": "GET",
       "path": "/admin/ads/moderation/queue?status=PENDING_REVIEW",
-      "status": 401,
-      "ok": false,
-      "expectedProtectedFailure": true,
-      "bodyPreview": "{\"success\":false,\"error\":{\"code\":\"UNAUTHORIZED\",\"message\":\"Token no enviado.\"}}"
+      "status": 200,
+      "ok": true,
+      "expectedProtectedFailure": false,
+      "bodyPreview": "{\"success\":true,\"data\":{\"items\":[],\"meta\":{\"page\":1,\"limit\":25,\"totalItems\":0,\"totalPages\":0}}}"
     }
   ]
 }

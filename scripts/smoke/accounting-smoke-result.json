@@ -1,8 +1,8 @@
 {
   "suite": "accounting-smoke",
-  "baseUrl": "http://localhost:3000/api/v1",
-  "startedAt": "2026-07-09T15:06:24.885Z",
-  "finishedAt": "2026-07-09T15:06:24.977Z",
+  "baseUrl": "http://localhost:3020/api/v1",
+  "startedAt": "2026-08-18T00:23:41.857Z",
+  "finishedAt": "2026-08-18T00:23:41.953Z",
   "success": true,
   "totalSteps": 3,
   "passedSteps": 3,
@@ -17,7 +17,7 @@
       ],
       "actualStatus": 200,
       "ok": true,
-      "durationMs": 50,
+      "durationMs": 57,
       "responseBody": {
         "success": true,
         "data": {
@@ -35,7 +35,7 @@
       ],
       "actualStatus": 200,
       "ok": true,
-      "durationMs": 6,
+      "durationMs": 4,
       "responseBody": {
         "success": true,
         "data": {
@@ -55,15 +55,15 @@
       ],
       "actualStatus": 201,
       "ok": true,
-      "durationMs": 33,
+      "durationMs": 30,
       "responseBody": {
         "success": true,
         "data": {
-          "id": "dcbd1f58-2246-4c6c-806f-161035f10959",
+          "id": "6e118e9b-bed9-4253-b620-9a213f3443cc",
           "status": "ACTIVE",
-          "createdAt": "2026-07-09T15:06:24.962Z",
-          "updatedAt": "2026-07-09T15:06:24.962Z",
-          "code": "ATLAS-1783609584888",
+          "createdAt": "2026-08-18T00:23:41.945Z",
+          "updatedAt": "2026-08-18T00:23:41.946Z",
+          "code": "ATLAS-1787012621859",
           "legalName": "ATLAS Bolivia S.A.",
           "taxId": "123456789",
           "countryCode": "BO",
