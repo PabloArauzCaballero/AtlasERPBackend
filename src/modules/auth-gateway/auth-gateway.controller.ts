@@ -87,6 +87,14 @@ export class AuthGatewayController {
     return { accessToken: session.accessToken, tokenType: session.tokenType, expiresIn: session.expiresIn, user: session.user };
   }
 
+  @Roles('MERCHANT_ADMIN')
+  @Get('merchant/me')
+  async merchantMe(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const { result, refreshedTokens } = await this.service.merchantMe(this.readUpstreamTokens(req));
+    this.reapplyRefreshedCookies(res, refreshedTokens);
+    return { user: result };
+  }
+
   @Public()
   @Post('merchant/logout')
   async merchantLogout(

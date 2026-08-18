@@ -17,6 +17,7 @@ import type {
   AtlasInternalRoleListItem,
   AtlasInternalUserProfile,
   AtlasMerchantAuthResponse,
+  AtlasMerchantUserProfile,
 } from './auth-gateway.types';
 
 /**
@@ -204,6 +205,10 @@ export class AtlasIdentityClient {
       { body: { refreshToken } },
     );
     return this.withSessionTokens(data, cookies);
+  }
+
+  merchantMe(accessToken: string): Promise<AtlasMerchantUserProfile> {
+    return this.request('get', 'merchant/auth/me', { accessToken });
   }
 
   merchantLogout(refreshToken: string, allDevices: boolean): Promise<{ loggedOut: boolean }> {

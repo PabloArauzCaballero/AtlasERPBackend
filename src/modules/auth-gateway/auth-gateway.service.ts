@@ -190,6 +190,15 @@ export class AuthGatewayService {
     return this.buildMerchantSession(await this.identityClient.merchantRefresh(upstreamRefreshToken));
   }
 
+  /**
+   * Perfil del comercio autenticado. El front lo usa para restaurar la sesión tras recargar: el
+   * token propio de este backend no lleva el perfil, y releerlo del upstream evita mostrar datos
+   * de una identidad que entretanto pudo suspenderse.
+   */
+  async merchantMe(tokens: UpstreamTokens): Promise<ProxyResult<AtlasMerchantUserProfile>> {
+    return this.callWithRetry(tokens, (at) => this.identityClient.merchantMe(at));
+  }
+
   async merchantLogout(upstreamRefreshToken: string | undefined, allDevices: boolean): Promise<{ loggedOut: boolean }> {
     // Idempotente: cerrar una sesión que ya no existe no es un error.
     if (!upstreamRefreshToken) return { loggedOut: true };
