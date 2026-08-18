@@ -56,6 +56,13 @@ export class AdvertiserAccountModel extends Model {
   declare riskStatus: string;
   @Column({ field: 'created_by', type: DataType.UUID, allowNull: true }) declare createdBy:
     string | null;
+  /**
+   * Cuenta B2B del ERP (`atlas_sales.b2b_accounts`) dueña de este anunciante. Es el eje de
+   * autorización del portal del comercio: sin este enlace el anunciante no es visible ni
+   * operable desde `/portal/*` (fail-closed).
+   */
+  @Column({ field: 'merchant_account_id', type: DataType.UUID, allowNull: true })
+  declare merchantAccountId: string | null;
 
   @HasMany(() => CampaignModel, 'advertiser_id') declare campaigns?: CampaignModel[];
   @HasMany(() => BillingProfileModel, 'advertiser_id')
