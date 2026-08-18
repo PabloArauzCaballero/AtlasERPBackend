@@ -3,89 +3,129 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { AuthUser } from '../../common/types/auth-context.types';
-import { PortalService } from './portal.service';
+import { RequestId } from '../ads/decorators/request-id.decorator';
+import { PORTAL_PLAN_ADMIN_ROLES, PORTAL_ROLES } from './portal.constants';
+import { PortalService, type PortalActor } from './portal.service';
 import {
+  AdvertisersQueryDto,
   BranchesQueryDto,
   CampaignsQueryDto,
   CreatePlanDto,
   IdParamsDto,
+  PlansQueryDto,
   SetCampaignStatusDto,
   SubscribeDto,
   SubscriptionQueryDto,
+  advertisersQuerySchema,
   branchesQuerySchema,
   campaignsQuerySchema,
   createPlanSchema,
   idParamsSchema,
+  plansQuerySchema,
   setCampaignStatusSchema,
   subscribeSchema,
   subscriptionQuerySchema,
 } from './portal.schemas';
 
-const MERCHANT_ROLES = ['MERCHANT_ADMIN', 'COMMERCIAL_MANAGER', 'COMMERCIAL_EXECUTIVE', 'ADMIN'] as const;
-
+/**
+ * Portal del comercio (usuario partner).
+ *
+ * `@Roles` solo decide *quién es* el llamador; *qué puede tocar* lo decide siempre
+ * `PortalScopeService` a partir de sus membresías reales. Ningún handler pasa un identificador
+ * del cliente directamente a la capa de datos.
+ */
 @Controller('portal')
 export class PortalController {
   constructor(private readonly service: PortalService) {}
 
-  @Roles(...MERCHANT_ROLES)
+  @Roles(...PORTAL_ROLES)
   @Get('plans')
-  listPlans() {
-    return this.service.listPlans();
+  async listPlans(@Query(new ZodValidationPipe(plansQuerySchema)) query: PlansQueryDto) {
+    return this.service.listPlans(query);
   }
 
-  @Roles('ADMIN', 'COMMERCIAL_MANAGER')
+  @Roles(...PORTAL_PLAN_ADMIN_ROLES)
   @Post('plans')
-  createPlan(@Body(new ZodValidationPipe(createPlanSchema)) body: CreatePlanDto) {
-    return this.service.createPlan(body);
-  }
-
-  @Roles(...MERCHANT_ROLES)
-  @Get('subscription')
-  getSubscription(
-    @Query(new ZodValidationPipe(subscriptionQuerySchema)) query: SubscriptionQueryDto,
+  async createPlan(
+    @Body(new ZodValidationPipe(createPlanSchema)) body: CreatePlanDto,
+    @CurrentUser() user: AuthUser,
+    @RequestId() requestId: string,
   ) {
-    return this.service.getSubscription(query.merchantAccountId);
+    return this.service.createPlan(body, await this.buildActor(user, requestId));
   }
 
-  @Roles(...MERCHANT_ROLES)
-  @Post('subscription')
-  subscribe(
-    @Body(new ZodValidationPipe(subscribeSchema)) body: SubscribeDto,
+  @Roles(...PORTAL_ROLES)
+  @Get('subscription')
+  async getSubscription(
+    @Query(new ZodValidationPipe(subscriptionQuerySchema)) query: SubscriptionQueryDto,
     @CurrentUser() user: AuthUser,
   ) {
-    return this.service.subscribe(body, user);
+    const scope = await this.service.resolveScope(user);
+    return this.service.getSubscription(scope, query.merchantAccountId);
   }
 
-  @Roles(...MERCHANT_ROLES)
+  @Roles(...PORTAL_ROLES)
+  @Post('subscription')
+  async subscribe(
+    @Body(new ZodValidationPipe(subscribeSchema)) body: SubscribeDto,
+    @CurrentUser() user: AuthUser,
+    @RequestId() requestId: string,
+  ) {
+    return this.service.subscribe(body, await this.buildActor(user, requestId));
+  }
+
+  @Roles(...PORTAL_ROLES)
   @Get('branches')
-  listBranches(@Query(new ZodValidationPipe(branchesQuerySchema)) query: BranchesQueryDto) {
-    return this.service.listBranches(query);
+  async listBranches(
+    @Query(new ZodValidationPipe(branchesQuerySchema)) query: BranchesQueryDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    const scope = await this.service.resolveScope(user);
+    return this.service.listBranches(scope, query);
   }
 
-  @Roles(...MERCHANT_ROLES)
+  @Roles(...PORTAL_ROLES)
   @Get('billing')
-  getBilling(@Query(new ZodValidationPipe(subscriptionQuerySchema)) query: SubscriptionQueryDto) {
-    return this.service.getBillingPanel(query.merchantAccountId);
+  async getBilling(
+    @Query(new ZodValidationPipe(subscriptionQuerySchema)) query: SubscriptionQueryDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    const scope = await this.service.resolveScope(user);
+    return this.service.getBillingPanel(scope, query.merchantAccountId);
   }
 
-  @Roles(...MERCHANT_ROLES)
+  @Roles(...PORTAL_ROLES)
   @Get('advertisers')
-  listAdvertisers() {
-    return this.service.listAdvertisers();
+  async listAdvertisers(
+    @Query(new ZodValidationPipe(advertisersQuerySchema)) query: AdvertisersQueryDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    const scope = await this.service.resolveScope(user);
+    return this.service.listAdvertisers(scope, query);
   }
 
-  @Roles(...MERCHANT_ROLES)
+  @Roles(...PORTAL_ROLES)
   @Get('campaigns')
-  listCampaigns(@Query(new ZodValidationPipe(campaignsQuerySchema)) query: CampaignsQueryDto) {
-    return this.service.listCampaigns(query.advertiserId);
+  async listCampaigns(
+    @Query(new ZodValidationPipe(campaignsQuerySchema)) query: CampaignsQueryDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    const scope = await this.service.resolveScope(user);
+    return this.service.listCampaigns(scope, query);
   }
 
-  @Roles(...MERCHANT_ROLES)
+  @Roles(...PORTAL_ROLES)
   @Patch('campaigns/:id/status')
-  setCampaignStatus(
+  async setCampaignStatus(
     @Param(new ZodValidationPipe(idParamsSchema)) params: IdParamsDto,
     @Body(new ZodValidationPipe(setCampaignStatusSchema)) body: SetCampaignStatusDto,
+    @CurrentUser() user: AuthUser,
+    @RequestId() requestId: string,
   ) {
-    return this.service.setCampaignStatus(params.id, body.status);
+    return this.service.setCampaignStatus(params.id, body, await this.buildActor(user, requestId));
+  }
+
+  private async buildActor(user: AuthUser, requestId: string): Promise<PortalActor> {
+    return { user, requestId, scope: await this.service.resolveScope(user) };
   }
 }
