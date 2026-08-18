@@ -172,6 +172,16 @@
       "key": "requestId",
       "value": "00000000-0000-4000-8000-000000000207",
       "type": "string"
+    },
+    {
+      "key": "merchantAccountId",
+      "value": "a1000000-0000-4000-8000-000000000001",
+      "type": "string"
+    },
+    {
+      "key": "merchantPlanId",
+      "value": "00000000-0000-4000-8000-000000000030",
+      "type": "string"
     }
   ],
   "item": [
@@ -2879,6 +2889,332 @@
               ]
             },
             "description": ""
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - Portal del comercio",
+      "description": "Canal del usuario partner. El alcance se resuelve contra atlas_sales.merchant_users, no contra el JWT: con AUTH_DISABLED_FOR_LOCAL_TESTING=true el usuario local no tiene membresías y todo responde 403 PORTAL_SCOPE_NOT_PROVISIONED. Para ejercer el portal de verdad, siembra los fixtures (npm run db:seed:test-fixtures) y usa un token real (npm run dev:jwt merchant-alfa). Como staff interno (ADMIN, COMMERCIAL_MANAGER, COMMERCIAL_EXECUTIVE) los identificadores de cuenta son obligatorios. Los planes no tienen id fijo: toma merchantPlanId de la respuesta de GET /portal/plans antes de contratar.",
+      "item": [
+        {
+          "name": "Listar planes",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/portal/plans?page=1&limit=25&includeInactive=false",
+              "host": ["{{baseUrl}}"],
+              "path": ["portal", "plans"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "25"
+                },
+                {
+                  "key": "includeInactive",
+                  "value": "false"
+                }
+              ]
+            },
+            "description": "Por defecto solo planes ACTIVE."
+          }
+        },
+        {
+          "name": "Crear plan",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/portal/plans",
+              "host": ["{{baseUrl}}"],
+              "path": ["portal", "plans"]
+            },
+            "description": "Solo ADMIN y COMMERCIAL_MANAGER. 409 MERCHANT_PLAN_CODE_TAKEN si el código existe.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"DEMO_PLAN\",\n  \"name\": \"Plan Demo\",\n  \"description\": \"Plan creado desde Postman.\",\n  \"tier\": \"STANDARD\",\n  \"monthlyPrice\": 199.0,\n  \"currency\": \"BOB\",\n  \"features\": [\n    \"1 sucursal\",\n    \"Reportes básicos\"\n  ],\n  \"sortOrder\": 10\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Suscripción vigente",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/portal/subscription?merchantAccountId={{merchantAccountId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["portal", "subscription"],
+              "query": [
+                {
+                  "key": "merchantAccountId",
+                  "value": "{{merchantAccountId}}"
+                }
+              ]
+            },
+            "description": "El comercio puede omitir merchantAccountId; el staff interno debe enviarlo."
+          }
+        },
+        {
+          "name": "Contratar o cambiar plan",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/portal/subscription",
+              "host": ["{{baseUrl}}"],
+              "path": ["portal", "subscription"]
+            },
+            "description": "Cierra la suscripción anterior como REPLACED y abre la nueva en la misma transacción. Reintentar el mismo plan es idempotente.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchantAccountId\": \"{{merchantAccountId}}\",\n  \"planId\": \"{{merchantPlanId}}\",\n  \"autoRenew\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Listar sucursales",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/portal/branches?page=1&limit=25&accountId={{merchantAccountId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["portal", "branches"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "25"
+                },
+                {
+                  "key": "accountId",
+                  "value": "{{merchantAccountId}}"
+                }
+              ]
+            },
+            "description": "accountId es el nombre histórico del parámetro en este endpoint."
+          }
+        },
+        {
+          "name": "Panel de facturación",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/portal/billing?merchantAccountId={{merchantAccountId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["portal", "billing"],
+              "query": [
+                {
+                  "key": "merchantAccountId",
+                  "value": "{{merchantAccountId}}"
+                }
+              ]
+            },
+            "description": "Totales agregados en SQL sobre todos los documentos; la lista viene acotada a los 50 más recientes."
+          }
+        },
+        {
+          "name": "Listar anunciantes",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/portal/advertisers?page=1&limit=25&merchantAccountId={{merchantAccountId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["portal", "advertisers"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "25"
+                },
+                {
+                  "key": "merchantAccountId",
+                  "value": "{{merchantAccountId}}"
+                }
+              ]
+            },
+            "description": "Proyección explícita: sin taxId, creditLimitMicros ni contacto interno."
+          }
+        },
+        {
+          "name": "Listar campañas del anunciante",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/portal/campaigns?page=1&limit=25&advertiserId={{advertiserId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["portal", "campaigns"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "25"
+                },
+                {
+                  "key": "advertiserId",
+                  "value": "{{advertiserId}}"
+                }
+              ]
+            },
+            "description": "403 ADVERTISER_FORBIDDEN si el anunciante no pertenece al alcance del llamador."
+          }
+        },
+        {
+          "name": "Prender o apagar campaña",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Habilitar solo si AUTH_DISABLED_FOR_LOCAL_TESTING=false."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/portal/campaigns/{{campaignId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["portal", "campaigns", "{{campaignId}}", "status"]
+            },
+            "description": "Solo ACTIVE o PAUSED. Nunca activa una campaña sin aprobación de moderación (409 CAMPAIGN_NOT_APPROVED) ni con presupuesto agotado (409 CAMPAIGN_BUDGET_EXHAUSTED).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"PAUSED\",\n  \"reason\": \"Pausa solicitada por el comercio desde Postman.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
           }
         }
       ]

@@ -81,7 +81,7 @@ Estado verificado en esta entrega:
 
 - Type-check aprobado.
 - Lint aprobado.
-- Unit tests aprobados: 5 suites, 25 tests.
+- Unit tests aprobados: 17 suites, 121 tests.
 - E2E tests aprobados: 1 suite, 2 tests.
 - Build aprobado.
 - Audit producción: 0 vulnerabilidades.
@@ -94,6 +94,7 @@ Los smoke tests requieren PostgreSQL migrado, API corriendo y JWT válido.
 npm run smoke:b2b
 npm run smoke:accounting
 npm run smoke:ads
+npm run smoke:portal
 npm run smoke:all
 ```
 
