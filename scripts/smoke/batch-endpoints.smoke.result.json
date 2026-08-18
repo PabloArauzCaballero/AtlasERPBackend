@@ -1,6 +1,6 @@
 {
   "suite": "batch-endpoints-smoke",
-  "executedAt": "2026-08-18T01:22:11.870Z",
+  "executedAt": "2026-08-18T03:16:53.606Z",
   "baseUrl": "http://localhost:3020/api/v1",
   "strategy": "validation-only: expected 400 proves route, guard, and Zod pipe are reachable without creating records",
   "passed": true,
@@ -38,7 +38,7 @@
       ],
       "actualStatus": 400,
       "ok": true,
-      "durationMs": 8,
+      "durationMs": 7,
       "bodyPreview": "{\"success\":false,\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"Los datos enviados no son válidos.\",\"details\":[{\"path\":\"items.0.category\",\"message\":\"Required\"},{\"path\":\"items.0.businessLine\",\"message\":\"Required\"},{\"path\":\"items.1.category\",\"message\":\"Required\"},{\"path\":\"items.1.businessLine\",\"message\":\"Required\"}]}}"
     },
     {
@@ -50,7 +50,7 @@
       ],
       "actualStatus": 400,
       "ok": true,
-      "durationMs": 4,
+      "durationMs": 5,
       "bodyPreview": "{\"success\":false,\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"Los datos enviados no son válidos.\",\"details\":[{\"path\":\"items.1.documentNo\",\"message\":\"No se permiten números de documento duplicados dentro del mismo batch para la misma entidad legal.\"},{\"path\":\"items.1.sourceId\",\"message\":\"No se permiten claves de origen duplicadas dentro del mismo batch.\"}]}}"
     },
     {
@@ -74,7 +74,7 @@
       ],
       "actualStatus": 400,
       "ok": true,
-      "durationMs": 4,
+      "durationMs": 5,
       "bodyPreview": "{\"success\":false,\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"Los datos enviados no son válidos.\",\"details\":[{\"path\":\"items\",\"message\":\"Array must contain at least 1 element(s)\"}]}}"
     }
   ]

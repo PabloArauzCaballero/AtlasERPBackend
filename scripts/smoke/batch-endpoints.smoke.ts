@@ -40,7 +40,11 @@ function buildToken(): string {
       roleCode: 'ADMIN',
     },
     JWT_ACCESS_SECRET,
-    { expiresIn: '15m' },
+    {
+      expiresIn: '15m',
+      issuer: process.env.JWT_ACCESS_ISSUER ?? 'atlas-erp',
+      audience: process.env.JWT_ACCESS_AUDIENCE ?? 'atlas-erp-api',
+    },
   );
 }
 

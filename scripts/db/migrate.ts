@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from 'fs';
 import { basename, join } from 'path';
 import { Client } from 'pg';
 import { env } from '../../src/config/env';
+import { resolveDbSslOptions } from '../../src/config/db-ssl';
 import { PinoLoggerService } from '../../src/common/logger/pino-logger.service';
 
 type MigrationDirection = 'up' | 'down' | 'status';
@@ -19,7 +20,7 @@ async function main(): Promise<void> {
   const direction = parseDirection(process.argv[2]);
   const client = new Client({
     connectionString: env.DATABASE_URL,
-    ssl: env.DB_SSL ? { rejectUnauthorized: false } : undefined,
+    ssl: resolveDbSslOptions(env),
   });
 
   await client.connect();

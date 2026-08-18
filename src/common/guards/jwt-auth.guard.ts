@@ -105,13 +105,32 @@ export class JwtAuthGuard implements CanActivate {
     return token;
   }
 
+  /**
+   * Dos planos de credencial, cada uno con su llave y su par emisor/audiencia.
+   *
+   * La ruta de acceso verificaba sólo la firma: ni algoritmo, ni emisor, ni audiencia. Como
+   * `JWT_INTERNAL_SECRET` caía por omisión a `JWT_ACCESS_SECRET` (corregido en
+   * `config/env.ts`), un token de servicio pasaba por aquí y se convertía en la sesión de
+   * un usuario, con el `sub` y los roles que ese token declarase.
+   *
+   * `algorithms` se fija aunque hoy la llave sea simétrica y `jsonwebtoken` ya restrinja a
+   * HS* por el tipo de secreto: el día que alguien migre a una llave asimétrica, el
+   * comportamiento por omisión deja de ser el seguro y este parámetro es lo que evita que
+   * el cambio pase inadvertido.
+   */
   private verifyToken(token: string): JwtPayload {
     try {
-      return this.accessJwtService.verify<JwtPayload>(token, { secret: env.JWT_ACCESS_SECRET });
+      return this.accessJwtService.verify<JwtPayload>(token, {
+        secret: env.JWT_ACCESS_SECRET,
+        algorithms: ['HS256'],
+        issuer: env.JWT_ACCESS_ISSUER,
+        audience: env.JWT_ACCESS_AUDIENCE,
+      });
     } catch (accessTokenError) {
       try {
         return this.internalJwtService.verify<JwtPayload>(token, {
           secret: env.JWT_INTERNAL_SECRET,
+          algorithms: ['HS256'],
           issuer: env.JWT_INTERNAL_ISSUER,
           audience: env.JWT_INTERNAL_AUDIENCE,
         });

@@ -95,7 +95,12 @@ function issue(user: TestUser): string {
   return sign(
     { sub: user.sub, email: user.email, roles: user.roles, roleCode: user.roles[0] },
     env.JWT_ACCESS_SECRET,
-    { expiresIn: env.JWT_ACCESS_EXPIRES_IN as SignOptions['expiresIn'] },
+    {
+      expiresIn: env.JWT_ACCESS_EXPIRES_IN as SignOptions['expiresIn'],
+      // El guard exige emisor y audiencia: un token sin ellos ya no es una sesión.
+      issuer: env.JWT_ACCESS_ISSUER,
+      audience: env.JWT_ACCESS_AUDIENCE,
+    },
   );
 }
 

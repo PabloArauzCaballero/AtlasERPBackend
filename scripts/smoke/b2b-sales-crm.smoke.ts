@@ -16,7 +16,11 @@ const JWT_ACCESS_SECRET =
 const jwt = new JwtService({ secret: JWT_ACCESS_SECRET });
 const token = jwt.sign(
   { sub: '00000000-0000-0000-0000-000000000001', roleCode: 'ADMIN' },
-  { expiresIn: '15m' },
+  {
+    expiresIn: '15m',
+    issuer: process.env.JWT_ACCESS_ISSUER ?? 'atlas-erp',
+    audience: process.env.JWT_ACCESS_AUDIENCE ?? 'atlas-erp-api',
+  },
 );
 
 async function request(path: string, init?: RequestInit): Promise<unknown> {

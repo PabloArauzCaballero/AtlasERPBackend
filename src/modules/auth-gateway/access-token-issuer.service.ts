@@ -28,8 +28,19 @@ export class AccessTokenIssuerService {
       tokenType: 'access',
     };
 
+    /*
+     * `issuer` y `audience` viajan con la firma para que el token diga PARA QUÉ se emitió.
+     * Sin ellos, el guard no puede distinguir esta sesión de cualquier otro JWT firmado con
+     * la misma llave, y aceptaba como sesión de usuario un token de servicio.
+     *
+     * Al desplegar, los tokens emitidos antes de este cambio se rechazan: son 15 minutos
+     * como mucho (`JWT_ACCESS_EXPIRES_IN`) y se cura solo, porque el refresh es un token
+     * opaco del proveedor de identidad y no se ve afectado.
+     */
     const accessToken = this.jwtService.sign(payload, {
       expiresIn: env.JWT_ACCESS_EXPIRES_IN as JwtSignOptions['expiresIn'],
+      issuer: env.JWT_ACCESS_ISSUER,
+      audience: env.JWT_ACCESS_AUDIENCE,
     });
     return { accessToken, expiresIn: env.JWT_ACCESS_EXPIRES_IN };
   }

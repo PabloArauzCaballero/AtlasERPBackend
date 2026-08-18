@@ -119,6 +119,8 @@ async function main(): Promise<void> {
   const startedAt = new Date().toISOString();
   const token = sign({ sub: '00000000-0000-0000-0000-000000000001', role: 'admin' }, jwtSecret, {
     expiresIn: '15m',
+    issuer: process.env.JWT_ACCESS_ISSUER ?? 'atlas-erp',
+    audience: process.env.JWT_ACCESS_AUDIENCE ?? 'atlas-erp-api',
   });
 
   const uniqueSuffix = Date.now();

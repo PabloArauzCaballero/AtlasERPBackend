@@ -3,6 +3,7 @@ import { createHash } from 'crypto';
 import { relative, resolve } from 'path';
 import { Client } from 'pg';
 import { env } from '../../src/config/env';
+import { resolveDbSslOptions } from '../../src/config/db-ssl';
 import { PinoLoggerService } from '../../src/common/logger/pino-logger.service';
 
 const logger = new PinoLoggerService();
@@ -51,7 +52,7 @@ async function main(): Promise<void> {
 
   const client = new Client({
     connectionString: env.DATABASE_URL,
-    ssl: env.DB_SSL ? { rejectUnauthorized: false } : undefined,
+    ssl: resolveDbSslOptions(env),
   });
 
   logger.info('Conectando a PostgreSQL para ejecutar SQL.', {
