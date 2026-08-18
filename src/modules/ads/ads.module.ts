@@ -44,6 +44,8 @@ import { EmailMessagingProcessor } from './services/email-messaging.processor';
     EmailMessagingService,
     EmailMessagingProcessor,
   ],
-  exports: [AdminAdsService, AdsDeliveryService],
+  // `AdsAuditService` se exporta para que el portal del comercio escriba en `ad_audit_log` con el
+  // mismo formato y las mismas garantías transaccionales que la consola administrativa.
+  exports: [AdminAdsService, AdsDeliveryService, AdsAuditService],
 })
 export class AdsModule {}

@@ -6,8 +6,13 @@ export interface ActorContext {
   requestId: string;
 }
 
+/** Naturaleza del actor que quedó registrado en `ad_audit_log.actor_type`. */
+export type AdsAuditActorType = 'INTERNAL_ATLAS_USER' | 'MERCHANT_PORTAL_USER' | 'SYSTEM';
+
 export interface AuditInput {
   actor: ActorContext;
+  /** Por defecto `INTERNAL_ATLAS_USER`. El portal del comercio registra `MERCHANT_PORTAL_USER`. */
+  actorType?: AdsAuditActorType;
   entityType: string;
   entityId: string;
   action: string;
