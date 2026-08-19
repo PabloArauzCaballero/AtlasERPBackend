@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { JwtService } from '@nestjs/jwt';
 import pino from 'pino';
+import { resolveSmokeBaseUrl } from './smoke-base-url';
 
 const logger = pino({
   name: 'atlas-b2b-crm-ventas-smoke',
@@ -9,7 +10,7 @@ const logger = pino({
   redact: ['headers.authorization', '*.token'],
 });
 
-const API_BASE_URL = process.env.API_BASE_URL ?? 'http://localhost:3000/api/v1';
+const API_BASE_URL = resolveSmokeBaseUrl();
 const JWT_ACCESS_SECRET =
   process.env.JWT_ACCESS_SECRET ?? 'change_me_long_random_secret_32_chars_min';
 

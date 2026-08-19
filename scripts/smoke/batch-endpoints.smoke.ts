@@ -3,8 +3,9 @@ import { mkdir, writeFile } from 'fs/promises';
 import { dirname, resolve } from 'path';
 import { sign } from 'jsonwebtoken';
 import pino from 'pino';
+import { resolveSmokeBaseUrl } from './smoke-base-url';
 
-const API_BASE_URL = process.env.API_BASE_URL ?? 'http://localhost:3000/api/v1';
+const API_BASE_URL = resolveSmokeBaseUrl();
 const JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET ?? 'change_me_long_random_secret_32_chars_min';
 const REPORT_PATH = resolve(
   process.env.SMOKE_BATCH_REPORT_PATH ?? 'scripts/smoke/batch-endpoints.smoke.result.json',

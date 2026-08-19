@@ -16,9 +16,10 @@ import { mkdir, writeFile } from 'fs/promises';
 import { dirname, resolve } from 'path';
 import pino from 'pino';
 import { z } from 'zod';
+import { resolveSmokeBaseUrl } from './smoke-base-url';
 
 const smokeEnvSchema = z.object({
-  API_BASE_URL: z.string().url().default('http://localhost:3000/api/v1'),
+  API_BASE_URL: z.string().url().default(resolveSmokeBaseUrl()),
   ATLAS_PORTAL_SMOKE_TOKEN: z.string().min(1).optional(),
   /** Cuenta B2B que NO pertenece al dueño del token: debe responder 403. */
   ATLAS_PORTAL_SMOKE_FOREIGN_ACCOUNT_ID: z.string().uuid().optional(),
@@ -57,6 +58,16 @@ interface SmokeCase {
   path: string;
   body?: unknown;
   expect: Expectation;
+  /**
+   * Ruta sin guard: se juzga por su código real aunque el smoke corra sin token.
+   *
+   * La regla «sin token, todo debe ser 401» protege el portal entero, pero `/health` es público y
+   * responde 200 siempre. Corregir su veredicto después de ejecutarlo dejaba el reporte bien y el
+   * log mal: `run()` ya había emitido un `error` con «Caso del smoke INCUMPLIDO» para el único caso
+   * que no podía fallar. En `smoke:all` eso se lee como un ERP roto, y una alarma que siempre suena
+   * es una alarma que se aprende a ignorar.
+   */
+  isPublic?: boolean;
   /** Invariante de negocio que el caso protege; se copia al reporte. */
   guards: string;
 }
@@ -70,10 +81,11 @@ interface SmokeResult extends Omit<SmokeCase, 'body'> {
 
 const ANY_UUID = '00000000-0000-0000-0000-000000000000';
 
-function isSatisfied(expectation: Expectation, status: number): boolean {
+function isSatisfied(expectation: Expectation, status: number, isPublic = false): boolean {
   // Sin token el guard corta antes que cualquier regla de alcance o de schema: 401/403 es la
-  // única respuesta correcta para todo el portal, sea cual sea el caso.
-  if (!token) return status === 401 || status === 403;
+  // única respuesta correcta para todo el portal, sea cual sea el caso. Las rutas públicas quedan
+  // fuera de esa regla: no tienen guard que las corte.
+  if (!token && !isPublic) return status === 401 || status === 403;
 
   switch (expectation) {
     case 'reachable':
@@ -97,7 +109,7 @@ async function run(smokeCase: SmokeCase): Promise<SmokeResult> {
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });
     const text = await response.text();
-    const passed = isSatisfied(smokeCase.expect, response.status);
+    const passed = isSatisfied(smokeCase.expect, response.status, smokeCase.isPublic);
 
     logger[passed ? 'info' : 'error'](
       {
@@ -244,10 +256,9 @@ async function main(): Promise<void> {
     method: 'GET',
     path: '/health',
     expect: 'reachable',
+    isPublic: true,
     guards: 'El servicio está arriba.',
   });
-  // `/health` es público: no se le aplica la regla de "sin token, 401".
-  health.passed = health.status !== null && health.status >= 200 && health.status < 300;
 
   const { cases, skipped } = buildCases();
   const results = [health];

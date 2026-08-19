@@ -2,9 +2,10 @@ import { mkdirSync, writeFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { sign } from 'jsonwebtoken';
 import { PinoLoggerService } from '../../src/common/logger/pino-logger.service';
+import { resolveSmokeBaseUrl } from './smoke-base-url';
 
 const logger = new PinoLoggerService();
-const baseUrl = process.env.API_BASE_URL ?? 'http://localhost:3000/api/v1';
+const baseUrl = resolveSmokeBaseUrl();
 const jwtSecret = process.env.JWT_ACCESS_SECRET ?? 'change-this-secret-in-production';
 const outputPath = process.env.SMOKE_OUTPUT_PATH ?? join(__dirname, 'accounting-smoke-result.json');
 

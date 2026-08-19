@@ -140,6 +140,8 @@ prompt/
 
 ## Documentación
 
+- [Sonda de salud y quién la consume](docs/endpoints/health.md) — el panel de ATLAS depende de `GET /api/v1/health`.
+
 - Endpoints: `docs/endpoints/endpoints.md`.
 - OpenAPI: `docs/endpoints/openapi.yaml`.
 - Arquitectura: `docs/architecture/architecture.md`.
