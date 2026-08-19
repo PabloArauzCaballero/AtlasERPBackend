@@ -4,6 +4,8 @@ import { AtlasIdentityClient } from './atlas-identity.client';
 import { mapAtlasRolesToBusinessRoles, mapMerchantRoles } from './role-mapping';
 import type {
   AtlasInternalAuthResponse,
+  AtlasInternalLoginOutcome,
+  AtlasPinChallenge,
   AtlasMerchantAuthResponse,
   AtlasMerchantUserProfile,
   AtlasInternalPermissionListItem,
@@ -12,6 +14,7 @@ import type {
   RefreshedUpstreamTokens,
   UpstreamTokens,
 } from './auth-gateway.types';
+import { isPinChallenge } from './auth-gateway.types';
 
 export interface MerchantSessionResult {
   accessToken: string;
@@ -86,9 +89,31 @@ export class AuthGatewayService {
     }
   }
 
-  async login(email: string, password: string): Promise<AuthSessionResult> {
-    const auth = await this.identityClient.login(email, password);
-    return this.buildSession(auth);
+  /**
+   * El login interno puede terminar en sesión o en desafío de segundo factor, y el desafío se
+   * devuelve tal cual: este gateway no emite NINGÚN token propio mientras el segundo factor siga
+   * pendiente. Emitirlo "para ir adelantando" convertiría el 2FA en un trámite opcional.
+   */
+  async login(email: string, password: string): Promise<AuthSessionResult | AtlasPinChallenge> {
+    const outcome: AtlasInternalLoginOutcome = await this.identityClient.login(email, password);
+    if (isPinChallenge(outcome)) return outcome;
+    return this.buildSession(outcome);
+  }
+
+  /** Segundo paso: sólo aquí, con el PIN ya verificado upstream, nace la sesión del ERP. */
+  async loginPin(challengeToken: string, pin: string): Promise<AuthSessionResult> {
+    return this.buildSession(await this.identityClient.loginPin(challengeToken, pin));
+  }
+
+  async requestPasswordChange(tokens: UpstreamTokens, currentPassword: string): Promise<ProxyResult<AtlasPinChallenge>> {
+    return this.callWithRetry(tokens, (at) => this.identityClient.requestPasswordChange(at, currentPassword));
+  }
+
+  async confirmPasswordChange(
+    tokens: UpstreamTokens,
+    body: { challengeToken: string; code: string; newPassword: string },
+  ): Promise<ProxyResult<{ passwordChanged: boolean }>> {
+    return this.callWithRetry(tokens, (at) => this.identityClient.confirmPasswordChange(at, body));
   }
 
   async refresh(upstreamRefreshToken: string | undefined): Promise<AuthSessionResult> {

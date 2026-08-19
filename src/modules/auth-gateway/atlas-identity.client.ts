@@ -13,12 +13,15 @@ import { env } from '../../config/env';
 import type {
   AtlasInternalAccessProfile,
   AtlasInternalAuthResponse,
+  AtlasInternalLoginOutcome,
+  AtlasPinChallenge,
   AtlasInternalPermissionListItem,
   AtlasInternalRoleListItem,
   AtlasInternalUserProfile,
   AtlasMerchantAuthResponse,
   AtlasMerchantUserProfile,
 } from './auth-gateway.types';
+import { isPinChallenge } from './auth-gateway.types';
 
 /**
  * Nombres de las cookies de sesión que emite AtlasBackend
@@ -142,12 +145,51 @@ export class AtlasIdentityClient {
     return new InternalServerErrorException('El servicio de identidad no está disponible.');
   }
 
-  login(email: string, password: string): Promise<AtlasInternalAuthResponse> {
-    return this.request('post', 'internal/auth/login', { body: { email, password } });
+  /**
+   * Login interno. Puede terminar en sesión o en desafío de segundo factor.
+   *
+   * Va por `requestWithCookies` —no por `request`— porque AtlasBackend entrega los tokens de la
+   * sesión interna en cookies `HttpOnly` y los QUITA del cuerpo (`InternalSessionResponse`, con
+   * `tokenType: 'Cookie'`). Leyéndolos del cuerpo, como se hacía, `upstreamAccessToken` quedaba
+   * `undefined` y toda llamada proxy posterior moría con "Sesión no disponible": el canal interno
+   * del ERP no funcionaba, aunque las credenciales fueran correctas. El canal del comercio ya se
+   * había corregido así; éste se había quedado atrás.
+   */
+  async login(email: string, password: string): Promise<AtlasInternalLoginOutcome> {
+    const { data, cookies } = await this.requestWithCookies<AtlasInternalLoginOutcome>('post', 'internal/auth/login', {
+      body: { email, password },
+    });
+    // Un desafío no trae ni debe traer tokens: se devuelve tal cual para que el llamador lo canjee.
+    if (isPinChallenge(data)) return data;
+    return this.withInternalSessionTokens(data, cookies);
   }
 
-  refresh(refreshToken: string): Promise<AtlasInternalAuthResponse> {
-    return this.request('post', 'internal/auth/refresh', { body: { refreshToken } });
+  /** Segundo paso del login interno: `challengeToken` + PIN del correo, a cambio de la sesión. */
+  async loginPin(challengeToken: string, pin: string): Promise<AtlasInternalAuthResponse> {
+    const { data, cookies } = await this.requestWithCookies<AtlasInternalAuthResponse>('post', 'internal/auth/login/pin', {
+      body: { challengeToken, pin },
+    });
+    return this.withInternalSessionTokens(data, cookies);
+  }
+
+  async refresh(refreshToken: string): Promise<AtlasInternalAuthResponse> {
+    const { data, cookies } = await this.requestWithCookies<AtlasInternalAuthResponse>('post', 'internal/auth/refresh', {
+      body: { refreshToken },
+    });
+    return this.withInternalSessionTokens(data, cookies);
+  }
+
+  /** Primer paso del cambio de contraseña del usuario autenticado: valida la actual y manda el código. */
+  requestPasswordChange(accessToken: string, currentPassword: string): Promise<AtlasPinChallenge> {
+    return this.request('post', 'auth/password/change/request', { body: { currentPassword }, accessToken });
+  }
+
+  /** Segundo paso: canjea el desafío y el código por la contraseña nueva. */
+  confirmPasswordChange(
+    accessToken: string,
+    body: { challengeToken: string; code: string; newPassword: string },
+  ): Promise<{ passwordChanged: boolean }> {
+    return this.request('post', 'auth/password/change/confirm', { body, accessToken });
   }
 
   logout(refreshToken: string, allDevices: boolean): Promise<{ loggedOut: boolean }> {
@@ -219,6 +261,19 @@ export class AtlasIdentityClient {
    * Sin tokens no hay sesión: fallar aquí y no más adelante evita emitir un token de este backend
    * respaldado por una sesión upstream que no existe.
    */
+  /** Mismo criterio que `withSessionTokens`, para la población interna y sus cookies. */
+  private withInternalSessionTokens(
+    data: AtlasInternalAuthResponse & Partial<AtlasInternalAuthResponse>,
+    cookies: Record<string, string>,
+  ): AtlasInternalAuthResponse {
+    const accessToken = data.accessToken ?? cookies[ATLAS_ACCESS_COOKIE];
+    const refreshToken = data.refreshToken ?? cookies[ATLAS_REFRESH_COOKIE];
+    if (!accessToken || !refreshToken) {
+      throw new UnauthorizedException('El servicio de identidad no devolvió una sesión interna utilizable.');
+    }
+    return { ...data, accessToken, refreshToken };
+  }
+
   private withSessionTokens(
     data: Omit<AtlasMerchantAuthResponse, 'accessToken' | 'refreshToken'> & Partial<AtlasMerchantAuthResponse>,
     cookies: Record<string, string>,
