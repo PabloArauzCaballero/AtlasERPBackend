@@ -1,5 +1,11 @@
 /**
- * Inventario de tablas leído del `information_schema` de la base de ESTE backend.
+ * Inventario de tablas leído del catálogo de PostgreSQL de la base de ESTE backend.
+ *
+ * Se consulta `pg_catalog` y no `information_schema`, y la diferencia no es estética: la vista
+ * `key_column_usage` —la forma canónica de sacar las claves primarias— tardaba SEIS SEGUNDOS en una
+ * base de 121 tablas, más que el plazo entero de la petición, así que la federación del bloque
+ * fallaba por timeout y se reportaba como «el ERP no responde». La misma respuesta, exacta y con
+ * las mismas 1180 filas, sale de `pg_class`/`pg_index` en 10 ms.
  *
  * Deliberadamente la misma técnica que aplican Atlas Backend y el motor de decisión sobre las
  * suyas, y no una lectura de los modelos de Sequelize. Lo que existe en la base es la verdad: una
@@ -44,31 +50,18 @@ export class SchemaInventoryService {
   async collect(): Promise<CatalogManifestDataEntity[]> {
     const rows = await this.sequelize.query<ColumnRow>(
       `
-WITH pk AS (
-  SELECT kcu.table_schema, kcu.table_name, kcu.column_name
-    FROM information_schema.table_constraints tc
-    JOIN information_schema.key_column_usage kcu
-      ON kcu.constraint_schema = tc.constraint_schema
-     AND kcu.constraint_name = tc.constraint_name
-     AND kcu.table_schema = tc.table_schema
-     AND kcu.table_name = tc.table_name
-   WHERE tc.constraint_type = 'PRIMARY KEY'
-)
-SELECT c.table_schema AS "schemaName",
-       c.table_name   AS "tableName",
-       c.column_name  AS "columnName",
-       (pk.column_name IS NOT NULL) AS "isPrimaryKey"
-  FROM information_schema.columns c
-  JOIN information_schema.tables t
-    ON t.table_schema = c.table_schema
-   AND t.table_name = c.table_name
-   AND t.table_type = 'BASE TABLE'
-  LEFT JOIN pk
-    ON pk.table_schema = c.table_schema
-   AND pk.table_name = c.table_name
-   AND pk.column_name = c.column_name
- WHERE c.table_schema NOT IN ('pg_catalog', 'information_schema')
- ORDER BY c.table_schema, c.table_name, c.ordinal_position;
+SELECT n.nspname::text  AS "schemaName",
+       c.relname::text  AS "tableName",
+       a.attname::text  AS "columnName",
+       COALESCE(i.indisprimary, false) AS "isPrimaryKey"
+  FROM pg_class c
+  JOIN pg_namespace n ON n.oid = c.relnamespace
+  JOIN pg_attribute a ON a.attrelid = c.oid AND a.attnum > 0 AND NOT a.attisdropped
+  LEFT JOIN pg_index i ON i.indrelid = c.oid AND i.indisprimary AND a.attnum = ANY(i.indkey)
+ WHERE c.relkind = 'r'
+   AND n.nspname NOT IN ('pg_catalog', 'information_schema')
+   AND n.nspname NOT LIKE 'pg\\_%'
+ ORDER BY n.nspname, c.relname, a.attnum;
 `,
       { type: QueryTypes.SELECT },
     );
