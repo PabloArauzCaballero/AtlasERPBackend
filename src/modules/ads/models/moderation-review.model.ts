@@ -25,7 +25,7 @@ export class ModerationReviewModel extends Model {
   @ForeignKey(() => CreativeModel)
   @Column({ field: 'creative_id', type: DataType.UUID, allowNull: true })
   declare creativeId: string | null;
-  @Column({ field: 'reviewer_user_id', type: DataType.UUID, allowNull: true })
+  @Column({ field: 'reviewer_user_id', type: DataType.STRING(64), allowNull: true })
   declare reviewerUserId: string | null;
   @Column({ type: DataType.STRING(30), allowNull: false, defaultValue: 'PENDING_REVIEW' })
   declare decision: string;

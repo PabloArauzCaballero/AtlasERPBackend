@@ -28,7 +28,7 @@ export class SpendLedgerModel extends Model {
   @Column({ type: DataType.CHAR(3), allowNull: false, defaultValue: 'BOB' })
   declare currency: string;
   @Column({ type: DataType.STRING(120), allowNull: true }) declare reason: string | null;
-  @Column({ field: 'created_by', type: DataType.UUID, allowNull: true }) declare createdBy:
+  @Column({ field: 'created_by', type: DataType.STRING(64), allowNull: true }) declare createdBy:
     string | null;
   @BelongsTo(() => AdvertiserAccountModel, 'advertiser_id')
   declare advertiser?: AdvertiserAccountModel;

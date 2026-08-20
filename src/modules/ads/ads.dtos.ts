@@ -56,3 +56,32 @@ export type BulkCreateAdvertisersDto = z.infer<typeof bulkCreateAdvertisersSchem
 export type BulkTrackEventsDto = z.infer<typeof bulkTrackEventsSchema>;
 export type DeliveryRequestDto = z.infer<typeof deliveryRequestSchema>;
 export type TrackEventDto = z.infer<typeof trackEventSchema>;
+
+// --- Alta de la cadena publicitaria y segmentación -------------------------------------------
+// Viven al final y con sus propios imports porque son el contrato nuevo: separarlos deja claro,
+// leyendo el archivo, qué existía antes de que el módulo supiera crear campañas.
+import type {
+  adSetIdParamSchema,
+  campaignPerformanceQuerySchema,
+  createAdSchema,
+  createAdSetSchema,
+  createCampaignSchema,
+  createCreativeSchema,
+  segmentIdParamSchema,
+} from './ads.authoring.schemas';
+import type {
+  audienceContextSchema,
+  createTargetSegmentSchema,
+  listTargetSegmentsQuerySchema,
+} from './ads.segmentation.schemas';
+
+export type CreateCampaignDto = z.infer<typeof createCampaignSchema>;
+export type CreateAdSetDto = z.infer<typeof createAdSetSchema>;
+export type CreateCreativeDto = z.infer<typeof createCreativeSchema>;
+export type CreateAdDto = z.infer<typeof createAdSchema>;
+export type AdSetIdParamDto = z.infer<typeof adSetIdParamSchema>;
+export type SegmentIdParamDto = z.infer<typeof segmentIdParamSchema>;
+export type CampaignPerformanceQueryDto = z.infer<typeof campaignPerformanceQuerySchema>;
+export type CreateTargetSegmentDto = z.infer<typeof createTargetSegmentSchema>;
+export type ListTargetSegmentsQueryDto = z.infer<typeof listTargetSegmentsQuerySchema>;
+export type AudienceContextDto = z.infer<typeof audienceContextSchema>;

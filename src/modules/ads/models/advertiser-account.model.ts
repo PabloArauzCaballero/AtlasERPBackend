@@ -2,6 +2,7 @@ import { Column, DataType, HasMany, Model, Table } from 'sequelize-typescript';
 import { CampaignModel } from './campaign.model';
 import { BillingProfileModel } from './billing-profile.model';
 import { ContractModel } from './contract.model';
+import { InvoiceModel } from './invoice.model';
 import { AdvertiserUserModel } from './advertiser-user.model';
 
 @Table({
@@ -54,7 +55,7 @@ export class AdvertiserAccountModel extends Model {
     defaultValue: 'NORMAL',
   })
   declare riskStatus: string;
-  @Column({ field: 'created_by', type: DataType.UUID, allowNull: true }) declare createdBy:
+  @Column({ field: 'created_by', type: DataType.STRING(64), allowNull: true }) declare createdBy:
     string | null;
   /**
    * Cuenta B2B del ERP (`atlas_sales.b2b_accounts`) dueña de este anunciante. Es el eje de
@@ -68,6 +69,11 @@ export class AdvertiserAccountModel extends Model {
   @HasMany(() => BillingProfileModel, 'advertiser_id')
   declare billingProfiles?: BillingProfileModel[];
   @HasMany(() => ContractModel, 'advertiser_id') declare contracts?: ContractModel[];
+  // Sin este lado de la relación, `InvoiceModel` sólo declaraba su `@BelongsTo` y Sequelize no
+  // podía resolver el `include` inverso: `findById` lanzaba «InvoiceModel is not associated to
+  // AdvertiserAccountModel» SIEMPRE. Eso dejaba muerto el detalle del anunciante y el alta de
+  // perfil de facturación, con el error saliendo como «error de base de datos» genérico.
+  @HasMany(() => InvoiceModel, 'advertiser_id') declare invoices?: InvoiceModel[];
   @HasMany(() => AdvertiserUserModel, 'advertiser_id')
   declare advertiserUsers?: AdvertiserUserModel[];
 }

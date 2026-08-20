@@ -16,6 +16,7 @@ import { EventsRepository } from '../repositories/events.repository';
 import { AdsAuditService } from './audit.service';
 import { BusinessActionLogsService } from '../../business-action-logs/business-action-logs.service';
 import { serializeModel, serializePaginated } from '../ads.mappers';
+import { audienceMatchesSegment, type EvaluableSegment } from '../ads.segmentation';
 import type { ActorContext } from '../ads.types';
 import type {
   DeliveryMonitorQueryDto,
@@ -56,7 +57,32 @@ export class AdsDeliveryService {
       new Date(),
       input.corporateClientHash,
     );
-    const winner = this.pickWinner(eligibleAds);
+    if (eligibleAds.length === 0) {
+      return { adAvailable: false, reason: 'NO_ELIGIBLE_AD' };
+    }
+
+    // La segmentación se aplica DESPUÉS de los filtros duros (estado, fechas, presupuesto, tope de
+    // frecuencia) y sobre los candidatos que ya trajo la consulta. Se evalúa aquí y no en SQL
+    // porque la gramática de reglas —operadores, listas, rangos— traducida a SQL sería un
+    // generador de consultas dinámico sobre JSONB, y este conjunto está acotado a 50 filas.
+    const targeted = eligibleAds.filter((ad) =>
+      audienceMatchesSegment(
+        (ad.adSet?.targetSegment as EvaluableSegment | undefined) ?? null,
+        input.audience,
+      ),
+    );
+    // Se distingue de `NO_ELIGIBLE_AD` a propósito: «no había anuncios» y «los había y ninguno
+    // apuntaba a esta audiencia» llevan a conversaciones distintas con el anunciante, y
+    // colapsarlas deja la segmentación imposible de depurar desde fuera.
+    if (targeted.length === 0) {
+      this.logger.debug(
+        { placementCode: placement.code, candidates: eligibleAds.length },
+        'All eligible ads filtered out by audience segment',
+      );
+      return { adAvailable: false, reason: 'NO_AUDIENCE_MATCH' };
+    }
+
+    const winner = this.pickWinner(targeted);
     if (!winner || !winner.adSet || !winner.creative || !winner.adSet.campaign) {
       return { adAvailable: false, reason: 'NO_ELIGIBLE_AD' };
     }
@@ -238,6 +264,26 @@ export class AdsDeliveryService {
         transaction,
       );
     }
+
+    // El agregado por día se escribe DESPUÉS del detalle y dentro de la misma transacción: el
+    // evento es la verdad y la métrica su resumen, así que nunca puede existir un resumen de algo
+    // que no llegó a registrarse.
+    await this.eventsRepository.accumulateDailyMetric(
+      {
+        eventType: input.eventType,
+        advertiserId: decision.advertiserId,
+        campaignId: decision.campaignId,
+        adSetId: decision.adSetId,
+        adId: decision.adId,
+        placementId: decision.placementId,
+        costMicros,
+        isBillable,
+        eventTime:
+          event.get('eventTime') instanceof Date ? (event.get('eventTime') as Date) : new Date(),
+      },
+      transaction,
+    );
+
     return { event: serializeModel(event), ledgerCreated: isBillable, duplicate: false };
   }
 

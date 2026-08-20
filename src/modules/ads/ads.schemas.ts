@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { audienceContextSchema } from './ads.segmentation.schemas';
 import {
   advertiserStatuses,
   approvalStatuses,
@@ -216,6 +217,13 @@ export const deliveryRequestSchema = z.object({
   corporateClientHash: z.string().trim().min(16).max(128).optional(),
   contextHash: z.string().trim().min(16).max(128).optional(),
   surface: z.string().trim().min(2).max(80).optional(),
+  /**
+   * Atributos NO personales del comercio y del contexto contra los que se evalúan los segmentos.
+   * Es opcional para no romper a quien ya integra, pero omitirlo tiene consecuencia visible: un
+   * conjunto de anuncios con segmento deja de ser elegible, porque una regla que no se puede
+   * comprobar no se da por cumplida (ver `ads.segmentation.ts`).
+   */
+  audience: audienceContextSchema.optional(),
 });
 
 export const trackEventSchema = z.object({
