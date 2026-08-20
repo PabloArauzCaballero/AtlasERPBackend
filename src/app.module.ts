@@ -16,6 +16,7 @@ import { PinoLoggerModule } from './common/logging/pino-logger.module';
 import { DatabaseModule } from './database/sequelize.module';
 import { HealthModule } from './modules/health/health.module';
 import { AuthGatewayModule } from './modules/auth-gateway/auth-gateway.module';
+import { PartnerOnboardingGatewayModule } from './modules/partner-onboarding-gateway/partner-onboarding-gateway.module';
 import { B2BSalesCrmModule } from './modules/b2b-sales-crm/b2b-sales-crm.module';
 import { AccountingModule } from './modules/accounting/accounting.module';
 import { AdsModule } from './modules/ads/ads.module';
@@ -60,6 +61,7 @@ import { BusinessActionLogsModule } from './modules/business-action-logs/busines
     DatabaseModule,
     HealthModule,
     AuthGatewayModule,
+    PartnerOnboardingGatewayModule,
     B2BSalesCrmModule,
     AccountingModule,
     AdsModule,
