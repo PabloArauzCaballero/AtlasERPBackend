@@ -1,0 +1,97 @@
+# Stack local del ATLAS ERP Backend: PostgreSQL + migraciones + API.
+#
+# ## Por qué este archivo existe ahora
+#
+# El ERP se catalogaba en el panel de sistemas de ATLAS como un servicio ACTIVO con healthcheck,
+# pero no había forma reproducible de levantarlo: sólo un Dockerfile suelto. El resultado era que
+# el bloque del ERP salía siempre «no configurado» en el portal, y nadie podía distinguir eso de
+# «el ERP está caído» — que es exactamente la ambigüedad que el panel existe para eliminar.
+#
+# ## Forma
+#
+#   docker compose up -d                      # sólo PostgreSQL
+#   docker compose --profile app up -d --build  # migraciones (one-shot) → API
+#
+# `migrate` es un servicio propio y no un paso del arranque de la API: migrar muta el esquema, y
+# con más de una réplica sería una carrera. Un fallo de migración debe impedir que la API arranque,
+# no dejarla servir contra un esquema a medias.
+
+x-erp-build: &erp-build
+  image: atlas-erp-backend:local
+  build:
+    context: .
+    dockerfile: Dockerfile
+    cache_from:
+      - atlas-erp-backend:local
+
+x-erp-env: &erp-env
+  NODE_ENV: development
+  PORT: '3007'
+  API_GLOBAL_PREFIX: api/v1
+  DATABASE_URL: postgres://atlas:atlas@postgres:5432/atlas_erp
+  DB_SSL: 'false'
+  DB_LOGGING: 'false'
+  STARTUP_SEEDS_ENABLED: 'true'
+  JWT_ACCESS_SECRET: ${ERP_JWT_ACCESS_SECRET:-local-development-access-secret-32-chars}
+  JWT_INTERNAL_SECRET: ${ERP_JWT_INTERNAL_SECRET:-local-development-internal-secret-32ch}
+  # Credencial de UN SOLO propósito con la que Atlas Backend lee el manifiesto de catálogo de este
+  # bloque. Es la misma cadena que allí se configura como `ERP_BACKEND_CATALOG_API_KEY`; si las
+  # dos divergen, el portal muestra el bloque como no federado en vez de fallar en silencio.
+  PLATFORM_CATALOG_API_KEY: ${PLATFORM_CATALOG_API_KEY:-local-platform-catalog-key-32-characters}
+  CORS_ALLOWED_ORIGINS: http://localhost:5273,http://localhost:3000
+  LOG_LEVEL: info
+  EMAIL_PROVIDER_MODE: mock
+  EMAIL_FROM: no-reply@atlas.local
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: atlas
+      POSTGRES_PASSWORD: atlas
+      POSTGRES_DB: atlas_erp
+    ports:
+      - '${ERP_POSTGRES_PUBLISH_PORT:-5462}:5432'
+    volumes:
+      - atlas-erp-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U atlas -d atlas_erp']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 45s
+
+  migrate:
+    <<: *erp-build
+    profiles: ['app']
+    environment:
+      <<: *erp-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ['npm', 'run', 'db:migrate:prod']
+    restart: 'no'
+
+  api:
+    <<: *erp-build
+    profiles: ['app']
+    environment:
+      <<: *erp-env
+    ports:
+      - '${ERP_API_PUBLISH_PORT:-3007}:3007'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1:3007/api/v1/health >/dev/null || exit 1']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+volumes:
+  atlas-erp-postgres-data:

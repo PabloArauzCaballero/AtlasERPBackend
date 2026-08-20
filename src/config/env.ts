@@ -86,6 +86,21 @@ const envSchema = z
     JWT_INTERNAL_ISSUER: z.string().min(3).default('atlas-internal'),
     JWT_INTERNAL_AUDIENCE: z.string().min(3).default('atlas-ads'),
 
+    /**
+     * Credencial de UN SOLO propósito: leer `/api/v1/platform/catalog-manifest`.
+     *
+     * El manifiesto enumera las rutas que este proceso sirve y las tablas que su base contiene, y
+     * lo consume el catálogo unificado del portal interno de ATLAS. Es una llave aparte —y no el
+     * JWT interno— porque quien tiene `JWT_INTERNAL_SECRET` puede firmarse un token con cualquier
+     * rol: dársela a otro producto para que lea una lista de tablas sería cambiar el permiso
+     * mínimo por el máximo.
+     *
+     * Opcional, y su ausencia APAGA el endpoint (`PlatformCatalogKeyGuard` responde 503). Un
+     * despliegue que no la configura no acaba con el mapa del servicio abierto al puerto: acaba
+     * con un bloque que el panel reporta, correctamente, como no configurado.
+     */
+    PLATFORM_CATALOG_API_KEY: z.string().min(20).optional(),
+
     // Gateway de identidad: AtlasBackend es la fuente de verdad de usuarios internos/roles.
     // Este backend nunca expone el token de AtlasBackend al navegador (ver auth-gateway module).
     ATLAS_IDENTITY_BASE_URL: z.string().url().default('http://localhost:3005/api/v1'),
@@ -118,6 +133,22 @@ const envSchema = z
     LOG_LEVEL: z
       .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
       .default('info'),
+    /**
+     * Formatear el log en columnas legibles con `pino-pretty`.
+     *
+     * Existe como interruptor propio porque atarlo a `NODE_ENV` rompía la imagen de producción en
+     * cuanto se la ejecutaba con `NODE_ENV=development` —el caso normal de un stack local
+     * containerizado—: `pino-pretty` es una devDependency, no está en la imagen, y `pino` aborta el
+     * arranque con «unable to determine transport target». El proceso no llegaba ni a escuchar, y
+     * el síntoma (un contenedor en bucle de reinicio) no mencionaba el log por ninguna parte.
+     *
+     * Por omisión APAGADO: JSON es lo que esperan los recolectores, y quien quiere leerlo a ojo en
+     * local lo enciende a propósito con `yarn start:dev`, donde la dependencia sí existe.
+     */
+    LOG_PRETTY: z
+      .enum(['true', 'false'])
+      .default('false')
+      .transform((value) => value === 'true'),
 
     DEFAULT_MIN_MDR_RATE_PERCENT: z.coerce.number().positive().default(2.5),
     DEFAULT_TAX_RATE_PERCENT: z.coerce.number().min(0).max(100).default(13),

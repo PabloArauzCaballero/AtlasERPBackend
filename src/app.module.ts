@@ -22,6 +22,7 @@ import { AdsModule } from './modules/ads/ads.module';
 import { FilesModule } from './modules/files/files.module';
 import { PortalModule } from './modules/portal/portal.module';
 import { BusinessActionLogsModule } from './modules/business-action-logs/business-action-logs.module';
+import { PlatformCatalogModule } from './modules/platform-catalog/platform-catalog.module';
 
 @Module({
   imports: [
@@ -49,7 +50,7 @@ import { BusinessActionLogsModule } from './modules/business-action-logs/busines
           ],
           censor: '[REDACTED]',
         },
-        ...(env.NODE_ENV === 'development' ? { transport: { target: 'pino-pretty' } } : {}),
+        ...(env.LOG_PRETTY ? { transport: { target: 'pino-pretty' } } : {}),
       },
     }),
     JwtModule.register({
@@ -66,6 +67,9 @@ import { BusinessActionLogsModule } from './modules/business-action-logs/busines
     FilesModule,
     PortalModule,
     BusinessActionLogsModule,
+    // Espejo de introspección para el catálogo unificado del portal interno de ATLAS. Va al
+    // final a propósito: lee el router ya montado y no participa en él.
+    PlatformCatalogModule,
   ],
   providers: [
     HttpExceptionFilter,
