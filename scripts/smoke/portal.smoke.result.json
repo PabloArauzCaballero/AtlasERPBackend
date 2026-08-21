@@ -1,9 +1,13 @@
 {
-  "executedAt": "2026-08-18T03:16:53.162Z",
-  "baseUrl": "http://localhost:3020/api/v1",
-  "tokenProvided": true,
-  "mode": "authorized",
-  "skippedForMissingEnv": [],
+  "executedAt": "2026-08-21T17:33:14.500Z",
+  "baseUrl": "http://localhost:3007/api/v1",
+  "tokenProvided": false,
+  "mode": "fail-closed-only",
+  "skippedForMissingEnv": [
+    "ATLAS_PORTAL_SMOKE_FOREIGN_ACCOUNT_ID",
+    "ATLAS_PORTAL_SMOKE_FOREIGN_ADVERTISER_ID",
+    "ATLAS_PORTAL_SMOKE_FOREIGN_CAMPAIGN_ID"
+  ],
   "passed": true,
   "results": [
     {
@@ -11,6 +15,7 @@
       "method": "GET",
       "path": "/health",
       "expect": "reachable",
+      "isPublic": true,
       "guards": "El servicio está arriba.",
       "status": 200,
       "passed": true,
@@ -22,9 +27,9 @@
       "path": "/portal/plans",
       "expect": "reachable",
       "guards": "El catálogo de planes responde y solo expone planes activos por defecto.",
-      "status": 200,
+      "status": 401,
       "passed": true,
-      "bodyPreview": "{\"success\":true,\"data\":[{\"id\":\"7450f91b-8fa3-4915-b423-d1a2b58f6ac4\",\"code\":\"STARTER\",\"name\":\"Starter\",\"description\":\"Ideal para comercios que inician su operación digital.\",\"tier\":\"STARTER\",\"monthlyPrice\":\"0.00\",\"currency\":\"BOB\",\"features\":[\"1 sucursal\",\"Registro de ventas BNPL\",\"Reportes básicos\",\"Soporte por correo\"],\"status\":\"ACTIVE\",\"sortOrder\":1},{\"id\":\"0c933039-46a1-48f5-bebe-ec814c9c90d5\",\"code\":\"GROWTH\",\"name\":\"Growth\",\"description\":\"Para comercios en expansión con múltiples sucursales.\",\"tier\":\"STANDARD\",\"monthlyPrice\":\"349.00\",\"currency\":\"BOB\",\"features\":[\"Hasta 5 sucursales\",\"Campañas de publicidad básicas\",\"Panel de consumo y facturación\",\"Soporte prioritario\"],\"status\":\"ACTIVE\",\"sortOrder\":2},{\"id\":\"dcf84af0-c4cb-4f93-9551-eb7e4cf74332\",\"code\":\"SCALE\",\"name\":\"Scale\",\"description\":\"Operación multi-sucursal con control de campañas avanzado.\",\"tier\":\"PREMIUM\",\"monthlyPrice\":\"899.00\",\"currency\":\"BOB\",\"features\":[\"Sucursales ilimitadas\",\"Segmentación de campañas avanzada\",\"Facturación consolidada\",\"Gerente de cuenta dedicado\"],\"status\":\"ACTIVE\",\"sortOrder\":3}]}"
+      "bodyPreview": "{\"success\":false,\"error\":{\"code\":\"UNAUTHORIZED\",\"message\":\"Token no enviado.\"}}"
     },
     {
       "name": "subscription:current",
@@ -32,9 +37,9 @@
       "path": "/portal/subscription",
       "expect": "reachable",
       "guards": "La suscripción se resuelve desde las membresías del usuario, sin recibir la cuenta.",
-      "status": 200,
+      "status": 401,
       "passed": true,
-      "bodyPreview": "{\"success\":true,\"data\":{\"id\":\"6ff229c6-8759-4dac-8290-66801629e884\",\"merchantAccountId\":\"a1000000-0000-4000-8000-000000000001\",\"planId\":\"7450f91b-8fa3-4915-b423-d1a2b58f6ac4\",\"status\":\"ACTIVE\",\"autoRenew\":true,\"startedAt\":\"2026-08-18T00:24:39.509Z\",\"currentPeriodEnd\":\"2026-09-18T00:24:39.509Z\",\"endedAt\":null,\"plan\":{\"id\":\"7450f91b-8fa3-4915-b423-d1a2b58f6ac4\",\"code\":\"STARTER\",\"name\":\"Starter\",\"description\":\"Ideal para comercios que inician su operación digital.\",\"tier\":\"STARTER\",\"monthlyPrice\":\"0.00\",\"currency\":\"BOB\",\"features\":[\"1 sucursal\",\"Registro de ventas BNPL\",\"Reportes básicos\",\"Soporte por correo\"],\"status\":\"ACTIVE\",\"sortOrder\":1}}}"
+      "bodyPreview": "{\"success\":false,\"error\":{\"code\":\"UNAUTHORIZED\",\"message\":\"Token no enviado.\"}}"
     },
     {
       "name": "branches:list",
@@ -42,9 +47,9 @@
       "path": "/portal/branches",
       "expect": "reachable",
       "guards": "Las sucursales se acotan al alcance del usuario.",
-      "status": 200,
+      "status": 401,
       "passed": true,
-      "bodyPreview": "{\"success\":true,\"data\":[{\"id\":\"d1000000-0000-4000-8000-000000000001\",\"accountId\":\"a1000000-0000-4000-8000-000000000001\",\"name\":\"Alfa Centro\",\"city\":\"Santa Cruz de la Sierra\",\"address\":\"Av. Monseñor Rivero 100\",\"status\":\"ACTIVE\",\"canOriginateBnpl\":true,\"activatedAt\":\"2026-08-18T00:21:21.217Z\"},{\"id\":\"d1000000-0000-4000-8000-000000000002\",\"accountId\":\"a1000000-0000-4000-8000-000000000001\",\"name\":\"Alfa Norte\",\"city\":\"Santa Cruz de la Sierra\",\"address\":\"Av. Banzer 2000\",\"status\":\"ACTIVE\",\"canOriginateBnpl\":true,\"activatedAt\":\"2026-08-18T00:21:21.217Z\"}]}"
+      "bodyPreview": "{\"success\":false,\"error\":{\"code\":\"UNAUTHORIZED\",\"message\":\"Token no enviado.\"}}"
     },
     {
       "name": "billing:panel",
@@ -52,9 +57,9 @@
       "path": "/portal/billing",
       "expect": "reachable",
       "guards": "El panel de facturación calcula totales sobre el universo completo, no sobre la página.",
-      "status": 200,
+      "status": 401,
       "passed": true,
-      "bodyPreview": "{\"success\":true,\"data\":{\"merchantAccountId\":\"a1000000-0000-4000-8000-000000000001\",\"subscription\":{\"id\":\"6ff229c6-8759-4dac-8290-66801629e884\",\"merchantAccountId\":\"a1000000-0000-4000-8000-000000000001\",\"planId\":\"7450f91b-8fa3-4915-b423-d1a2b58f6ac4\",\"status\":\"ACTIVE\",\"autoRenew\":true,\"startedAt\":\"2026-08-18T00:24:39.509Z\",\"currentPeriodEnd\":\"2026-09-18T00:24:39.509Z\",\"endedAt\":null,\"plan\":{\"id\":\"7450f91b-8fa3-4915-b423-d1a2b58f6ac4\",\"code\":\"STARTER\",\"name\":\"Starter\",\"description\":\"Ideal para comercios que inician su operación digital.\",\"tier\":\"STARTER\",\"monthlyPrice\":\"0.00\",\"currency\":\"BOB\",\"features\":[\"1 sucursal\",\"Registro de ventas BNPL\",\"Reportes básicos\",\"Soporte por correo\"],\"status\":\"ACTIVE\",\"sortOrder\":1}},\"invoices\":[{\"id\":\"e1000000-0000-4000-8000-000000000002\",\"invoiceNumber\":\"FAC-TEST-0002\",\"invoiceDate\":\"2026-08-13\",\"dueDate\":\"2026-08-28\",\"subtotalAmount\":\"2000.00\",\"taxAmount\":\"260.00\",\"totalAmount\":\"2260.00\",\"status\":\"ISSUED\"},{\"id\":\"e1000000-0000-4000-8000-000000000001\",\"invoiceNumber\":\"FAC-TEST-0001\",\"invoiceDate\":\"2026-07-19\",\"dueDate\":\"2026-08-03\",\"subtotalAmount\":\"1000.00\",\"taxAmount\":\"130.00\",\"totalAmount\":\"1130.00\",\"status\":\"ISSUED\"}],\"receivables\":[{\"id\":\"f1000"
+      "bodyPreview": "{\"success\":false,\"error\":{\"code\":\"UNAUTHORIZED\",\"message\":\"Token no enviado.\"}}"
     },
     {
       "name": "advertisers:list",
@@ -62,9 +67,9 @@
       "path": "/portal/advertisers",
       "expect": "reachable",
       "guards": "Solo devuelve los anunciantes de las cuentas del usuario, con DTO sin datos sensibles.",
-      "status": 200,
+      "status": 401,
       "passed": true,
-      "bodyPreview": "{\"success\":true,\"data\":[{\"id\":\"11000000-0000-4000-8000-000000000001\",\"merchantAccountId\":\"a1000000-0000-4000-8000-000000000001\",\"legalName\":\"Comercio Alfa SRL\",\"tradeName\":\"Alfa Store\",\"status\":\"ACTIVE\",\"billingMode\":\"POSTPAID\",\"currency\":\"BOB\",\"city\":\"Santa Cruz de la Sierra\",\"businessCategory\":\"RETAIL\"}]}"
+      "bodyPreview": "{\"success\":false,\"error\":{\"code\":\"UNAUTHORIZED\",\"message\":\"Token no enviado.\"}}"
     },
     {
       "name": "plans:page-size-cap",
@@ -72,9 +77,9 @@
       "path": "/portal/plans?limit=1000",
       "expect": "rejected",
       "guards": "El tope duro de paginación se aplica en el schema, no en el servicio.",
-      "status": 400,
+      "status": 401,
       "passed": true,
-      "bodyPreview": "{\"success\":false,\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"Los datos enviados no son válidos.\",\"details\":[{\"path\":\"limit\",\"message\":\"Number must be less than or equal to 100\"}]}}"
+      "bodyPreview": "{\"success\":false,\"error\":{\"code\":\"UNAUTHORIZED\",\"message\":\"Token no enviado.\"}}"
     },
     {
       "name": "campaigns:advertiser-required",
@@ -82,9 +87,9 @@
       "path": "/portal/campaigns",
       "expect": "rejected",
       "guards": "El listado de campañas exige anunciante: no existe un listado global.",
-      "status": 400,
+      "status": 401,
       "passed": true,
-      "bodyPreview": "{\"success\":false,\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"Los datos enviados no son válidos.\",\"details\":[{\"path\":\"advertiserId\",\"message\":\"Required\"}]}}"
+      "bodyPreview": "{\"success\":false,\"error\":{\"code\":\"UNAUTHORIZED\",\"message\":\"Token no enviado.\"}}"
     },
     {
       "name": "campaigns:status-enum",
@@ -92,49 +97,9 @@
       "path": "/portal/campaigns/00000000-0000-0000-0000-000000000000/status",
       "expect": "rejected",
       "guards": "El comercio solo puede alternar ACTIVE/PAUSED; archivar es una operación interna.",
-      "status": 400,
+      "status": 401,
       "passed": true,
-      "bodyPreview": "{\"success\":false,\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"Los datos enviados no son válidos.\",\"details\":[{\"path\":\"status\",\"message\":\"Invalid enum value. Expected 'ACTIVE' | 'PAUSED', received 'ARCHIVED'\"}]}}"
-    },
-    {
-      "name": "scope:foreign-account-billing",
-      "method": "GET",
-      "path": "/portal/billing?merchantAccountId=a1000000-0000-4000-8000-000000000002",
-      "expect": "denied",
-      "guards": "BOLA: la facturación de otro comercio no puede leerse enviando su identificador.",
-      "status": 403,
-      "passed": true,
-      "bodyPreview": "{\"success\":false,\"error\":{\"code\":\"MERCHANT_ACCOUNT_FORBIDDEN\",\"message\":\"No tienes permiso para operar esta cuenta de comercio.\"}}"
-    },
-    {
-      "name": "scope:foreign-account-branches",
-      "method": "GET",
-      "path": "/portal/branches?accountId=a1000000-0000-4000-8000-000000000002",
-      "expect": "denied",
-      "guards": "BOLA: las sucursales de otro comercio no pueden listarse.",
-      "status": 403,
-      "passed": true,
-      "bodyPreview": "{\"success\":false,\"error\":{\"code\":\"MERCHANT_ACCOUNT_FORBIDDEN\",\"message\":\"No tienes permiso para operar esta cuenta de comercio.\"}}"
-    },
-    {
-      "name": "scope:foreign-advertiser-campaigns",
-      "method": "GET",
-      "path": "/portal/campaigns?advertiserId=11000000-0000-4000-8000-000000000002",
-      "expect": "denied",
-      "guards": "BOLA: las campañas de un anunciante ajeno no pueden listarse.",
-      "status": 403,
-      "passed": true,
-      "bodyPreview": "{\"success\":false,\"error\":{\"code\":\"ADVERTISER_FORBIDDEN\",\"message\":\"No tienes permiso para operar este anunciante.\"}}"
-    },
-    {
-      "name": "scope:foreign-campaign-toggle",
-      "method": "PATCH",
-      "path": "/portal/campaigns/13000000-0000-4000-8000-000000000004/status",
-      "expect": "denied",
-      "guards": "BOLA en mutación: no se puede apagar la campaña de otro comercio.",
-      "status": 403,
-      "passed": true,
-      "bodyPreview": "{\"success\":false,\"error\":{\"code\":\"ADVERTISER_FORBIDDEN\",\"message\":\"No tienes permiso para operar este anunciante.\"}}"
+      "bodyPreview": "{\"success\":false,\"error\":{\"code\":\"UNAUTHORIZED\",\"message\":\"Token no enviado.\"}}"
     }
   ]
 }

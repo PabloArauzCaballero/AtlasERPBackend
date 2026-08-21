@@ -1,7 +1,7 @@
 {
   "suite": "batch-endpoints-smoke",
-  "executedAt": "2026-08-18T03:16:53.606Z",
-  "baseUrl": "http://localhost:3020/api/v1",
+  "executedAt": "2026-08-21T17:33:15.221Z",
+  "baseUrl": "http://localhost:3007/api/v1",
   "strategy": "validation-only: expected 400 proves route, guard, and Zod pipe are reachable without creating records",
   "passed": true,
   "steps": [
@@ -14,7 +14,7 @@
       ],
       "actualStatus": 200,
       "ok": true,
-      "durationMs": 48,
+      "durationMs": 33,
       "bodyPreview": "{\"success\":true,\"data\":{\"status\":\"ok\",\"service\":\"atlas-integrated-backend\"}}"
     },
     {
@@ -26,7 +26,7 @@
       ],
       "actualStatus": 200,
       "ok": true,
-      "durationMs": 5,
+      "durationMs": 4,
       "bodyPreview": "{\"success\":true,\"data\":{\"status\":\"ready\",\"database\":\"ok\"}}"
     },
     {
@@ -38,7 +38,7 @@
       ],
       "actualStatus": 400,
       "ok": true,
-      "durationMs": 7,
+      "durationMs": 6,
       "bodyPreview": "{\"success\":false,\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"Los datos enviados no son válidos.\",\"details\":[{\"path\":\"items.0.category\",\"message\":\"Required\"},{\"path\":\"items.0.businessLine\",\"message\":\"Required\"},{\"path\":\"items.1.category\",\"message\":\"Required\"},{\"path\":\"items.1.businessLine\",\"message\":\"Required\"}]}}"
     },
     {
@@ -62,7 +62,7 @@
       ],
       "actualStatus": 400,
       "ok": true,
-      "durationMs": 5,
+      "durationMs": 6,
       "bodyPreview": "{\"success\":false,\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"Los datos enviados no son válidos.\",\"details\":[{\"path\":\"items.1.taxId\",\"message\":\"No se permiten taxId duplicados dentro del mismo batch por país.\"}]}}"
     },
     {
@@ -74,7 +74,7 @@
       ],
       "actualStatus": 400,
       "ok": true,
-      "durationMs": 5,
+      "durationMs": 4,
       "bodyPreview": "{\"success\":false,\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"Los datos enviados no son válidos.\",\"details\":[{\"path\":\"items\",\"message\":\"Array must contain at least 1 element(s)\"}]}}"
     }
   ]
