@@ -63,8 +63,20 @@ interface AtlasEnvelope<T> {
 export class AtlasIdentityClient {
   constructor(private readonly http: HttpService) {}
 
+  /**
+   * `x-atlas-product` identifica al ERP ante el proveedor de identidad.
+   *
+   * Los correos de código y de cambio de contraseña los redacta AtlasBackend, no este servicio, así
+   * que sin esta cabecera la cabecera del correo lleva un rótulo genérico: quien recibe un PIN
+   * pedido desde el ERP no puede confirmar a qué está entrando, que es justo lo que separa un
+   * acceso propio de uno que no pidió.
+   */
   private baseHeaders(): Record<string, string> {
-    return { 'x-tenant-id': env.ATLAS_IDENTITY_TENANT_ID, Accept: 'application/json' };
+    return {
+      'x-tenant-id': env.ATLAS_IDENTITY_TENANT_ID,
+      'x-atlas-product': 'erp',
+      Accept: 'application/json',
+    };
   }
 
   private authHeaders(accessToken: string): Record<string, string> {
