@@ -8,3 +8,6 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .DS_Store
+
+# Grafo de conocimiento: artefacto generado, se regenera con `graphify update .`
+graphify-out/
