@@ -28,7 +28,7 @@ USER node
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD wget -qO- "http://127.0.0.1:${PORT:-3000}/api/v1/health" >/dev/null || exit 1
-# `dist/src/main.js` y no `dist/main.js`: `tsconfig.build.json` compila `src/` y `scripts/`, así
-# que el raíz común es la carpeta del proyecto y la salida conserva el `src/`. Con la ruta corta
-# la imagen se construía bien y moría al arrancar, que es el peor momento para enterarse.
+# `dist/src/main.js`, no `dist/main.js`. `tsconfig.build.json` incluye `src/**` Y `scripts/**`, así
+# que la raíz común que ve tsc es el repositorio y la salida conserva el prefijo `src/`. Con la ruta
+# corta la imagen construía sin un error y moría al arrancar con MODULE_NOT_FOUND.
 CMD ["node", "dist/src/main.js"]

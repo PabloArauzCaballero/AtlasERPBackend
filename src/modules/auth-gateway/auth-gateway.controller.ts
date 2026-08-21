@@ -35,8 +35,24 @@ import { isPinChallenge } from './auth-gateway.types';
 
 const UPSTREAM_ACCESS_COOKIE = 'atlas_upstream_at';
 const UPSTREAM_REFRESH_COOKIE = 'atlas_upstream_rt';
-// Cookies del token de identidad upstream, restringidas a este controller: nunca deben viajar
-// hacia otros módulos de este backend ni ser legibles por JS del navegador.
+
+/**
+ * Alcance del token de ACCESO upstream: todo el prefijo de la API.
+ *
+ * Estaba limitado a `/api/v1/auth`, y esa restricción dejaba de tener sentido en cuanto este
+ * backend empezó a hacer de pasarela de dominio hacia AtlasBackend —el expediente del partner—:
+ * el navegador simplemente no manda la cookie a una ruta fuera de su `path`, así que la pasarela
+ * se quedaba sin credencial y la única salida habría sido darle una credencial de MÁQUINA, capaz
+ * de operar el expediente de cualquier comercio.
+ *
+ * Se amplía el de acceso y **no** el de refresco, que es el que de verdad importa: el de acceso
+ * dura una hora y sólo sirve para actuar como quien ya inició sesión; el de refresco emite
+ * sesiones nuevas y sigue confinado a `/api/v1/auth`. Lo que protegía la restricción original
+ * —que JS no pueda leerla y que no viaje a otro origen— lo siguen dando `httpOnly`, `secure` y
+ * `sameSite`, que no se tocan.
+ */
+const UPSTREAM_ACCESS_COOKIE_PATH = '/api/v1';
+/** El de refresco no se amplía: emite sesiones, y sólo el gateway de autenticación lo necesita. */
 const UPSTREAM_COOKIE_PATH = '/api/v1/auth';
 
 @Controller('auth')
@@ -263,7 +279,7 @@ export class AuthGatewayController {
       secure,
       sameSite: 'lax',
       maxAge: 60 * 60 * 1000,
-      path: UPSTREAM_COOKIE_PATH,
+      path: UPSTREAM_ACCESS_COOKIE_PATH,
     });
     res.cookie(UPSTREAM_REFRESH_COOKIE, tokens.refreshToken, {
       httpOnly: true,
@@ -275,7 +291,10 @@ export class AuthGatewayController {
   }
 
   private clearUpstreamCookies(res: Response): void {
-    res.clearCookie(UPSTREAM_ACCESS_COOKIE, { path: UPSTREAM_COOKIE_PATH });
+    // Cada cookie se borra con SU path: el navegador sólo elimina la que coincide, así que
+    // limpiar el token de acceso con la ruta del de refresco lo dejaría vivo en el navegador
+    // después de cerrar sesión — un cierre que no cierra nada.
+    res.clearCookie(UPSTREAM_ACCESS_COOKIE, { path: UPSTREAM_ACCESS_COOKIE_PATH });
     res.clearCookie(UPSTREAM_REFRESH_COOKIE, { path: UPSTREAM_COOKIE_PATH });
   }
 }

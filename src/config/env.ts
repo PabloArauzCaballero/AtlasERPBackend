@@ -133,23 +133,6 @@ const envSchema = z
     LOG_LEVEL: z
       .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
       .default('info'),
-    /**
-     * Formatear el log en columnas legibles con `pino-pretty`.
-     *
-     * Existe como interruptor propio porque atarlo a `NODE_ENV` rompía la imagen de producción en
-     * cuanto se la ejecutaba con `NODE_ENV=development` —el caso normal de un stack local
-     * containerizado—: `pino-pretty` es una devDependency, no está en la imagen, y `pino` aborta el
-     * arranque con «unable to determine transport target». El proceso no llegaba ni a escuchar, y
-     * el síntoma (un contenedor en bucle de reinicio) no mencionaba el log por ninguna parte.
-     *
-     * Por omisión APAGADO: JSON es lo que esperan los recolectores, y quien quiere leerlo a ojo en
-     * local lo enciende a propósito con `yarn start:dev`, donde la dependencia sí existe.
-     */
-    LOG_PRETTY: z
-      .enum(['true', 'false'])
-      .default('false')
-      .transform((value) => value === 'true'),
-
     DEFAULT_MIN_MDR_RATE_PERCENT: z.coerce.number().positive().default(2.5),
     DEFAULT_TAX_RATE_PERCENT: z.coerce.number().min(0).max(100).default(13),
 

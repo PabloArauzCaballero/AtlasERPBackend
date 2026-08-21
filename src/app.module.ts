@@ -16,6 +16,7 @@ import { PinoLoggerModule } from './common/logging/pino-logger.module';
 import { DatabaseModule } from './database/sequelize.module';
 import { HealthModule } from './modules/health/health.module';
 import { AuthGatewayModule } from './modules/auth-gateway/auth-gateway.module';
+import { PartnerOnboardingGatewayModule } from './modules/partner-onboarding-gateway/partner-onboarding-gateway.module';
 import { B2BSalesCrmModule } from './modules/b2b-sales-crm/b2b-sales-crm.module';
 import { AccountingModule } from './modules/accounting/accounting.module';
 import { AdsModule } from './modules/ads/ads.module';
@@ -23,6 +24,28 @@ import { FilesModule } from './modules/files/files.module';
 import { PortalModule } from './modules/portal/portal.module';
 import { BusinessActionLogsModule } from './modules/business-action-logs/business-action-logs.module';
 import { PlatformCatalogModule } from './modules/platform-catalog/platform-catalog.module';
+
+/**
+ * ¿Está instalado `pino-pretty`?
+ *
+ * El transporte bonito es una comodidad de desarrollo y vive en `devDependencies`. La imagen de
+ * producción se construye con `npm ci --omit=dev`, así que ahí NO existe — y pino, al no poder
+ * resolver el target, lanza «unable to determine transport target» **durante la construcción del
+ * módulo**: Nest no llega a levantar y el contenedor muere al arrancar, con un error que no menciona
+ * ni los logs ni las dependencias.
+ *
+ * Aparecía en cuanto se corría esa imagen con un `.env` de desarrollo, que es exactamente lo que
+ * hace el auto-despliegue local de esta máquina. Comprobarlo convierte un arranque imposible en una
+ * degradación: sin el paquete, los logs salen en JSON, que es lo que un contenedor debe emitir.
+ */
+function prettyDisponible(): boolean {
+  try {
+    require.resolve('pino-pretty');
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 @Module({
   imports: [
@@ -50,7 +73,7 @@ import { PlatformCatalogModule } from './modules/platform-catalog/platform-catal
           ],
           censor: '[REDACTED]',
         },
-        ...(env.LOG_PRETTY ? { transport: { target: 'pino-pretty' } } : {}),
+        ...(env.NODE_ENV === 'development' && prettyDisponible() ? { transport: { target: 'pino-pretty' } } : {}),
       },
     }),
     JwtModule.register({
@@ -61,6 +84,7 @@ import { PlatformCatalogModule } from './modules/platform-catalog/platform-catal
     DatabaseModule,
     HealthModule,
     AuthGatewayModule,
+    PartnerOnboardingGatewayModule,
     B2BSalesCrmModule,
     AccountingModule,
     AdsModule,
