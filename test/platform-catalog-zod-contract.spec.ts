@@ -119,6 +119,19 @@ describe('contractsOfHandler', () => {
   });
 
   /**
+   * El inventario de rutas recorre CLASES (`wrapper.metatype`), no prototipos. Buscar los metadatos
+   * en `controller.constructor` sin distinguir devolvía `Function` cuando llegaba la clase, así que
+   * el manifiesto salía sin un solo contrato —y nada lo delataba: 169 endpoints correctos y vacíos.
+   */
+  it('encuentra los metadatos tanto por la clase como por el prototipo', () => {
+    const porClase = contractsOfHandler(handler('record'), ProbeController);
+    const porPrototipo = contractsOfHandler(handler('record'), controller);
+
+    expect(porClase).toEqual(porPrototipo);
+    expect(porClase.body).toEqual({ amount: 'number|required', reference: 'string|required' });
+  });
+
+  /**
    * Una ruta sin validación no produce contrato. Publicar `{}` diría «no recibe nada» con la misma
    * forma con la que una ruta sin Zod diría «no lo sé»: son cosas distintas.
    */

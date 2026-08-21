@@ -119,7 +119,15 @@ export function contractsOfHandler(handler: object, controller: object): {
   path: ContractMap;
 } {
   const empty = { body: {}, query: {}, path: {} };
-  const metadata = Reflect.getMetadata(ROUTE_ARGS_METADATA, controller.constructor ?? controller, (handler as { name?: string }).name ?? '') as
+  /*
+   * Nest guarda estos metadatos en la CLASE del controlador, no en su prototipo. Quien llama puede
+   * tener a mano cualquiera de los dos —el inventario de rutas recorre clases; una prueba es más
+   * cómoda con el prototipo— así que se admiten ambos y se resuelve aquí. Mirar
+   * `controller.constructor` sin distinguir devolvía `Function` cuando llegaba la clase, y entonces
+   * NO había metadatos: el manifiesto salía sin un solo contrato y nada lo delataba.
+   */
+  const target = typeof controller === 'function' ? controller : controller.constructor;
+  const metadata = Reflect.getMetadata(ROUTE_ARGS_METADATA, target, (handler as { name?: string }).name ?? '') as
     | Record<string, RouteArg>
     | undefined;
   if (!metadata) return empty;
@@ -127,7 +135,7 @@ export function contractsOfHandler(handler: object, controller: object): {
   const result = { body: {} as ContractMap, query: {} as ContractMap, path: {} as ContractMap };
   for (const [key, arg] of Object.entries(metadata)) {
     const paramType = Number(key.split(':')[0]);
-    const target =
+    const origin =
       paramType === RouteParamtypes.BODY
         ? 'body'
         : paramType === RouteParamtypes.QUERY
@@ -135,12 +143,12 @@ export function contractsOfHandler(handler: object, controller: object): {
           : paramType === RouteParamtypes.PARAM
             ? 'path'
             : null;
-    if (!target) continue;
+    if (!origin) continue;
 
     for (const pipe of arg.pipes ?? []) {
       const schema = (pipe as { schema?: unknown })?.schema;
       if (!schema) continue;
-      Object.assign(result[target], contractFromZod(schema));
+      Object.assign(result[origin], contractFromZod(schema));
     }
   }
   return result;
