@@ -14,6 +14,7 @@ import { DiscoveryService, MetadataScanner } from '@nestjs/core';
 import { IS_PUBLIC_KEY } from '../../common/decorators/public.decorator';
 import { ROLES_KEY } from '../../common/decorators/roles.decorator';
 import type { CatalogManifestEndpoint } from './platform-catalog.types';
+import { contractsOfHandler } from './zod-contract.util';
 
 const READONLY_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
@@ -64,12 +65,29 @@ export class RouteInventoryService {
           isReadonly: READONLY_METHODS.has(method),
           isDestructive: method === 'DELETE',
           riskLevel: riskLevelOf(method, isPublic),
+          // El contrato sale del `ZodValidationPipe` que ya valida la ruta: no hay documento
+          // OpenAPI en este bloque, pero sí el esquema real que acepta o rechaza la petición.
+          ...contractFieldsOf(handler, controller),
         });
       }
     }
 
     return endpoints.sort((left, right) => left.code.localeCompare(right.code));
   }
+}
+
+/**
+ * Sólo se publican los mapas que tienen algo. Un `minPayloadSchema: {}` en cada GET diría «este
+ * endpoint no recibe nada» con la misma forma con la que un POST sin Zod diría «no lo sé»: son
+ * cosas distintas y el catálogo debe poder distinguirlas.
+ */
+function contractFieldsOf(handler: object, controller: object): Partial<CatalogManifestEndpoint> {
+  const contracts = contractsOfHandler(handler, controller);
+  return {
+    ...(Object.keys(contracts.body).length ? { minPayloadSchema: contracts.body } : {}),
+    ...(Object.keys(contracts.query).length ? { queryParamsSchema: contracts.query } : {}),
+    ...(Object.keys(contracts.path).length ? { pathParamsSchema: contracts.path } : {}),
+  };
 }
 
 function metadataOf<T>(key: string, handler: object, controller: object): T | undefined {

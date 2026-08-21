@@ -46,6 +46,16 @@ export interface CatalogManifestEndpoint {
   isReadonly: boolean;
   isDestructive: boolean;
   riskLevel: string;
+  /**
+   * El CONTRATO de entrada, en el formato abreviado que ATLAS ingiere: `{ campo: 'tipo|required' }`.
+   *
+   * Opcional porque una ruta puede no validar con Zod. Sin él, ATLAS cataloga el endpoint sin un
+   * solo campo y el generador de datos de prueba de su laboratorio de QA no tiene de dónde derivar
+   * un payload — hay que escribirlo a mano, que es lo que hace que nadie pruebe el caso inválido.
+   */
+  minPayloadSchema?: Record<string, string>;
+  queryParamsSchema?: Record<string, string>;
+  pathParamsSchema?: Record<string, string>;
 }
 
 export interface CatalogManifestDataEntity {
