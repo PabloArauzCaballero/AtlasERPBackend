@@ -34,25 +34,37 @@ export class ReceiptsService {
 
   async list(user: AuthUser) {
     const rows = await this.receiptModel.findAll();
-    const items = rows.filter((row) => { try { this.legalEntityAccessService.assertCanAccessLegalEntity(user, row.legalEntityId); return true; } catch { return false; } });
+    const items = rows.filter((row) => {
+      try {
+        this.legalEntityAccessService.assertCanAccessLegalEntity(user, row.legalEntityId);
+        return true;
+      } catch {
+        return false;
+      }
+    });
     return { items, total: items.length };
   }
 
   async update(id: string, input: Record<string, unknown>, user: AuthUser) {
     const row = await this.receiptModel.findByPk(id);
-    if (!row) throw new NotFoundException({ code: 'RECEIPT_NOT_FOUND', message: 'El recibo no existe.' });
+    if (!row)
+      throw new NotFoundException({ code: 'RECEIPT_NOT_FOUND', message: 'El recibo no existe.' });
     this.legalEntityAccessService.assertCanAccessLegalEntity(user, row.legalEntityId);
     const allowed = ['receiptNo', 'receiptDate', 'status', 'bankAccountId'];
-    await row.update(Object.fromEntries(Object.entries(input).filter(([key]) => allowed.includes(key))));
+    await row.update(
+      Object.fromEntries(Object.entries(input).filter(([key]) => allowed.includes(key))),
+    );
     return row;
   }
 
   async remove(id: string, user: AuthUser) {
     const row = await this.receiptModel.findByPk(id);
-    if (!row) throw new NotFoundException({ code: 'RECEIPT_NOT_FOUND', message: 'El recibo no existe.' });
+    if (!row)
+      throw new NotFoundException({ code: 'RECEIPT_NOT_FOUND', message: 'El recibo no existe.' });
     this.legalEntityAccessService.assertCanAccessLegalEntity(user, row.legalEntityId);
     await this.receiptAllocationModel.destroy({ where: { receiptId: id } });
-    await row.destroy(); return { id, deleted: true };
+    await row.destroy();
+    return { id, deleted: true };
   }
 
   record(input: RecordReceiptDto, user: AuthUser) {

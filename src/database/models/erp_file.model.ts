@@ -57,6 +57,11 @@ export class ErpFileModel extends Model {
   @Column({ type: DataType.UUID, field: 'uploaded_by', allowNull: true })
   declare uploadedBy: string | null;
 
-  @Column({ type: DataType.DATE, field: 'created_at', allowNull: false, defaultValue: DataType.NOW })
+  @Column({
+    type: DataType.DATE,
+    field: 'created_at',
+    allowNull: false,
+    defaultValue: DataType.NOW,
+  })
   declare createdAt: Date;
 }

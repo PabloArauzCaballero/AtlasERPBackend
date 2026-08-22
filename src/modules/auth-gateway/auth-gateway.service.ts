@@ -48,7 +48,11 @@ export class AuthGatewayService {
 
   private buildSession(auth: AtlasInternalAuthResponse): AuthSessionResult {
     const businessRoles = mapAtlasRolesToBusinessRoles(auth.user.roles);
-    const issued = this.tokenIssuer.issue({ sub: auth.user.id, roles: businessRoles, email: auth.user.email });
+    const issued = this.tokenIssuer.issue({
+      sub: auth.user.id,
+      roles: businessRoles,
+      email: auth.user.email,
+    });
 
     return {
       accessToken: issued.accessToken,
@@ -75,7 +79,13 @@ export class AuthGatewayService {
       }
       const refreshed = await this.identityClient.refresh(tokens.refreshToken);
       const result = await fn(refreshed.accessToken);
-      return { result, refreshedTokens: { accessToken: refreshed.accessToken, refreshToken: refreshed.refreshToken } };
+      return {
+        result,
+        refreshedTokens: {
+          accessToken: refreshed.accessToken,
+          refreshToken: refreshed.refreshToken,
+        },
+      };
     }
 
     try {
@@ -85,7 +95,13 @@ export class AuthGatewayService {
       if (!(error instanceof UnauthorizedException) || !tokens.refreshToken) throw error;
       const refreshed = await this.identityClient.refresh(tokens.refreshToken);
       const result = await fn(refreshed.accessToken);
-      return { result, refreshedTokens: { accessToken: refreshed.accessToken, refreshToken: refreshed.refreshToken } };
+      return {
+        result,
+        refreshedTokens: {
+          accessToken: refreshed.accessToken,
+          refreshToken: refreshed.refreshToken,
+        },
+      };
     }
   }
 
@@ -124,27 +140,43 @@ export class AuthGatewayService {
     return this.buildSession(auth);
   }
 
-  async logout(upstreamRefreshToken: string | undefined, allDevices: boolean): Promise<{ loggedOut: boolean }> {
+  async logout(
+    upstreamRefreshToken: string | undefined,
+    allDevices: boolean,
+  ): Promise<{ loggedOut: boolean }> {
     if (!upstreamRefreshToken) return { loggedOut: true };
     return this.identityClient.logout(upstreamRefreshToken, allDevices);
   }
 
   async me(tokens: UpstreamTokens): Promise<ProxyResult<AtlasInternalUserProfile>> {
-    const { result, refreshedTokens } = await this.callWithRetry(tokens, (at) => this.identityClient.me(at));
+    const { result, refreshedTokens } = await this.callWithRetry(tokens, (at) =>
+      this.identityClient.me(at),
+    );
     return { result: result.user, refreshedTokens };
   }
 
   async listUsers(tokens: UpstreamTokens): Promise<ProxyResult<AtlasInternalUserProfile[]>> {
-    const { result, refreshedTokens } = await this.callWithRetry(tokens, (at) => this.identityClient.listUsers(at));
+    const { result, refreshedTokens } = await this.callWithRetry(tokens, (at) =>
+      this.identityClient.listUsers(at),
+    );
     return { result: result.items, refreshedTokens };
   }
 
-  async getUser(tokens: UpstreamTokens, id: string): Promise<ProxyResult<AtlasInternalUserProfile>> {
-    const { result, refreshedTokens } = await this.callWithRetry(tokens, (at) => this.identityClient.getUser(at, id));
+  async getUser(
+    tokens: UpstreamTokens,
+    id: string,
+  ): Promise<ProxyResult<AtlasInternalUserProfile>> {
+    const { result, refreshedTokens } = await this.callWithRetry(tokens, (at) =>
+      this.identityClient.getUser(at, id),
+    );
     return { result: result.user, refreshedTokens };
   }
 
-  async updateUser(tokens: UpstreamTokens, id: string, body: unknown): Promise<ProxyResult<AtlasInternalUserProfile>> {
+  async updateUser(
+    tokens: UpstreamTokens,
+    id: string,
+    body: unknown,
+  ): Promise<ProxyResult<AtlasInternalUserProfile>> {
     const { result, refreshedTokens } = await this.callWithRetry(tokens, (at) =>
       this.identityClient.updateUser(at, id, body),
     );
@@ -163,16 +195,25 @@ export class AuthGatewayService {
   }
 
   async listRoles(tokens: UpstreamTokens): Promise<ProxyResult<AtlasInternalRoleListItem[]>> {
-    const { result, refreshedTokens } = await this.callWithRetry(tokens, (at) => this.identityClient.listRoles(at));
+    const { result, refreshedTokens } = await this.callWithRetry(tokens, (at) =>
+      this.identityClient.listRoles(at),
+    );
     return { result: result.items, refreshedTokens };
   }
 
-  async getRole(tokens: UpstreamTokens, id: string): Promise<ProxyResult<AtlasInternalRoleListItem>> {
+  async getRole(
+    tokens: UpstreamTokens,
+    id: string,
+  ): Promise<ProxyResult<AtlasInternalRoleListItem>> {
     return this.callWithRetry(tokens, (at) => this.identityClient.getRole(at, id));
   }
 
-  async listPermissions(tokens: UpstreamTokens): Promise<ProxyResult<AtlasInternalPermissionListItem[]>> {
-    const { result, refreshedTokens } = await this.callWithRetry(tokens, (at) => this.identityClient.listPermissions(at));
+  async listPermissions(
+    tokens: UpstreamTokens,
+  ): Promise<ProxyResult<AtlasInternalPermissionListItem[]>> {
+    const { result, refreshedTokens } = await this.callWithRetry(tokens, (at) =>
+      this.identityClient.listPermissions(at),
+    );
     return { result: result.items, refreshedTokens };
   }
   // ---- Canal del comercio afiliado -----------------------------------------------------------

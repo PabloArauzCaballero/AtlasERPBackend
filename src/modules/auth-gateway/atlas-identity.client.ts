@@ -151,7 +151,8 @@ export class AtlasIdentityClient {
       if (status === 401) return new UnauthorizedException(message);
       if (status === 403) return new ForbiddenException(message);
       if (status === 404) return new NotFoundException(message);
-      if (status !== undefined && status >= 400 && status < 500) return new BadRequestException(message);
+      if (status !== undefined && status >= 400 && status < 500)
+        return new BadRequestException(message);
       return new InternalServerErrorException('El servicio de identidad no está disponible.');
     }
     return new InternalServerErrorException('El servicio de identidad no está disponible.');
@@ -224,7 +225,11 @@ export class AtlasIdentityClient {
     return this.request('patch', `internal/users/${id}`, { body, accessToken });
   }
 
-  replaceUserRoles(accessToken: string, id: string, body: unknown): Promise<AtlasInternalAccessProfile> {
+  replaceUserRoles(
+    accessToken: string,
+    id: string,
+    body: unknown,
+  ): Promise<AtlasInternalAccessProfile> {
     return this.request('patch', `internal/users/${id}/roles`, { body, accessToken });
   }
 

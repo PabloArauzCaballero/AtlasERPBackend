@@ -109,10 +109,14 @@ export class MerchantAccountingBridgeService {
       lines,
     };
 
-    this.logger.infoContext(MerchantAccountingBridgeService.name, 'Posteando factura merchant al mayor', {
-      merchantInvoiceId: invoice.id,
-      total,
-    });
+    this.logger.infoContext(
+      MerchantAccountingBridgeService.name,
+      'Posteando factura merchant al mayor',
+      {
+        merchantInvoiceId: invoice.id,
+        total,
+      },
+    );
 
     const created = await this.accountingDocuments.createDraft(dto, user);
     await invoice.update({ accountingDocumentId: created.document.id });

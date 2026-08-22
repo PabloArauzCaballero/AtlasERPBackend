@@ -67,6 +67,8 @@ function describeFatalError(error: unknown): string {
 }
 
 void bootstrap().catch((error: unknown) => {
-  process.stderr.write(`Fallo fatal al iniciar API integrada ATLAS: ${describeFatalError(error)}\n`);
+  process.stderr.write(
+    `Fallo fatal al iniciar API integrada ATLAS: ${describeFatalError(error)}\n`,
+  );
   process.exitCode = 1;
 });

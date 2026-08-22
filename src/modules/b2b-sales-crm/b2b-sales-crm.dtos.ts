@@ -7,6 +7,8 @@ import type {
   listActivitiesQuerySchema,
   listOpportunitiesQuerySchema,
   postMerchantInvoiceToGlSchema,
+  ratingHistoryQuerySchema,
+  ratingSweepSchema,
   completeChecklistItemSchema,
   contractIdParamsSchema,
   bulkCreateAccountsSchema,
@@ -72,3 +74,5 @@ export type CreateActivityDto = z.infer<typeof createActivitySchema>;
 export type UpdateActivityDto = z.infer<typeof updateActivitySchema>;
 export type ListActivitiesQueryDto = z.infer<typeof listActivitiesQuerySchema>;
 export type PostMerchantInvoiceToGlDto = z.infer<typeof postMerchantInvoiceToGlSchema>;
+export type RatingHistoryQueryDto = z.infer<typeof ratingHistoryQuerySchema>;
+export type RatingSweepDto = z.infer<typeof ratingSweepSchema>;

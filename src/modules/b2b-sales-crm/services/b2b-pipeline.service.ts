@@ -68,9 +68,7 @@ export class B2BPipelineService extends B2BSalesCrmUseCaseBase {
     return toOpportunityResponse(opportunity);
   }
 
-  async listOpportunities(
-    query: ListOpportunitiesQueryDto,
-  ): Promise<Record<string, unknown>[]> {
+  async listOpportunities(query: ListOpportunitiesQueryDto): Promise<Record<string, unknown>[]> {
     const where: Record<string, unknown> = {};
     if (query.accountId) where.accountId = query.accountId;
     if (query.stage) where.stage = query.stage;

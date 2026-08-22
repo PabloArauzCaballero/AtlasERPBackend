@@ -212,7 +212,14 @@ export class B2BSalesCrmRepository {
 
     return this.accounts.findAndCountAll({
       distinct: true,
-      include: [{ model: this.accountTags, attributes: ['id', 'name'], through: { attributes: [] }, ...(input.tag ? { required: true, where: { name: { [Op.iLike]: input.tag } } } : {}) }],
+      include: [
+        {
+          model: this.accountTags,
+          attributes: ['id', 'name'],
+          through: { attributes: [] },
+          ...(input.tag ? { required: true, where: { name: { [Op.iLike]: input.tag } } } : {}),
+        },
+      ],
       where,
       offset: input.offset,
       limit: input.limit,

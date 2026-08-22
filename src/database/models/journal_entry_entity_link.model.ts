@@ -25,7 +25,12 @@ export class JournalEntryEntityLinkModel extends Model {
   @Column({ type: DataType.UUID, field: 'entity_id', allowNull: false })
   declare entityId: string;
 
-  @Column({ type: DataType.STRING(40), field: 'relation', allowNull: false, defaultValue: 'DEFAULT' })
+  @Column({
+    type: DataType.STRING(40),
+    field: 'relation',
+    allowNull: false,
+    defaultValue: 'DEFAULT',
+  })
   declare relation: string;
 
   @Column({ type: DataType.JSONB, field: 'metadata', allowNull: false, defaultValue: {} })
@@ -34,6 +39,11 @@ export class JournalEntryEntityLinkModel extends Model {
   @Column({ type: DataType.UUID, field: 'created_by', allowNull: true })
   declare createdBy: string | null;
 
-  @Column({ type: DataType.DATE, field: 'created_at', allowNull: false, defaultValue: DataType.NOW })
+  @Column({
+    type: DataType.DATE,
+    field: 'created_at',
+    allowNull: false,
+    defaultValue: DataType.NOW,
+  })
   declare createdAt: Date;
 }

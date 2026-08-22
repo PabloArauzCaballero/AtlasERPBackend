@@ -34,13 +34,21 @@ export class B2BAccountsService extends B2BSalesCrmUseCaseBase {
     super(repository, logger);
   }
 
-  private async attachTags(accountId: string, names: string[], transaction: Transaction): Promise<void> {
+  private async attachTags(
+    accountId: string,
+    names: string[],
+    transaction: Transaction,
+  ): Promise<void> {
     for (const name of names) {
       const [tag] = await this.repository.accountTags.findOrCreate({
-        where: { name }, defaults: { name }, transaction,
+        where: { name },
+        defaults: { name },
+        transaction,
       });
       await this.repository.accountTagLinks.findOrCreate({
-        where: { accountId, tagId: tag.id }, defaults: { accountId, tagId: tag.id }, transaction,
+        where: { accountId, tagId: tag.id },
+        defaults: { accountId, tagId: tag.id },
+        transaction,
       });
     }
   }
@@ -174,10 +182,15 @@ export class B2BAccountsService extends B2BSalesCrmUseCaseBase {
             taxId: item.taxId ?? null,
             accountType: item.accountType,
             industry: item.industry ?? null,
-            category: item.category, businessLine: item.businessLine,
-            businessDescription: item.businessDescription ?? null, websiteUrl: item.websiteUrl ?? null,
-            countryCode: item.countryCode, city: item.city ?? null, address: item.address ?? null,
-            employeeCount: item.employeeCount ?? null, foundedYear: item.foundedYear ?? null,
+            category: item.category,
+            businessLine: item.businessLine,
+            businessDescription: item.businessDescription ?? null,
+            websiteUrl: item.websiteUrl ?? null,
+            countryCode: item.countryCode,
+            city: item.city ?? null,
+            address: item.address ?? null,
+            employeeCount: item.employeeCount ?? null,
+            foundedYear: item.foundedYear ?? null,
             annualRevenue: item.annualRevenue?.toFixed(2) ?? null,
             lifecycleStatus: AccountLifecycleStatus.LEAD,
             ownerUserId: item.ownerUserId ?? user.sub,

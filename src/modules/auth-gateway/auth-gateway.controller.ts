@@ -110,8 +110,16 @@ export class AuthGatewayController {
   @Post('refresh')
   async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const session = await this.service.refresh(this.readCookie(req, UPSTREAM_REFRESH_COOKIE));
-    this.setUpstreamCookies(res, { accessToken: session.upstreamAccessToken, refreshToken: session.upstreamRefreshToken });
-    return { accessToken: session.accessToken, tokenType: session.tokenType, expiresIn: session.expiresIn, user: session.user };
+    this.setUpstreamCookies(res, {
+      accessToken: session.upstreamAccessToken,
+      refreshToken: session.upstreamRefreshToken,
+    });
+    return {
+      accessToken: session.accessToken,
+      tokenType: session.tokenType,
+      expiresIn: session.expiresIn,
+      user: session.user,
+    };
   }
 
   @Public()
@@ -121,7 +129,10 @@ export class AuthGatewayController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const result = await this.service.logout(this.readCookie(req, UPSTREAM_REFRESH_COOKIE), body.allDevices);
+    const result = await this.service.logout(
+      this.readCookie(req, UPSTREAM_REFRESH_COOKIE),
+      body.allDevices,
+    );
     this.clearUpstreamCookies(res);
     return result;
   }
@@ -192,7 +203,10 @@ export class AuthGatewayController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { result, refreshedTokens } = await this.service.getUser(this.readUpstreamTokens(req), params.id);
+    const { result, refreshedTokens } = await this.service.getUser(
+      this.readUpstreamTokens(req),
+      params.id,
+    );
     this.reapplyRefreshedCookies(res, refreshedTokens);
     return { user: result };
   }
@@ -205,7 +219,11 @@ export class AuthGatewayController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { result, refreshedTokens } = await this.service.updateUser(this.readUpstreamTokens(req), params.id, body);
+    const { result, refreshedTokens } = await this.service.updateUser(
+      this.readUpstreamTokens(req),
+      params.id,
+      body,
+    );
     this.reapplyRefreshedCookies(res, refreshedTokens);
     return { user: result };
   }
@@ -218,7 +236,11 @@ export class AuthGatewayController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { result, refreshedTokens } = await this.service.replaceUserRoles(this.readUpstreamTokens(req), params.id, body);
+    const { result, refreshedTokens } = await this.service.replaceUserRoles(
+      this.readUpstreamTokens(req),
+      params.id,
+      body,
+    );
     this.reapplyRefreshedCookies(res, refreshedTokens);
     return { user: result };
   }
@@ -238,7 +260,10 @@ export class AuthGatewayController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { result, refreshedTokens } = await this.service.getRole(this.readUpstreamTokens(req), params.id);
+    const { result, refreshedTokens } = await this.service.getRole(
+      this.readUpstreamTokens(req),
+      params.id,
+    );
     this.reapplyRefreshedCookies(res, refreshedTokens);
     return result;
   }
@@ -246,7 +271,9 @@ export class AuthGatewayController {
   @Roles('ADMIN', 'AUDITOR')
   @Get('permissions')
   async listPermissions(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
-    const { result, refreshedTokens } = await this.service.listPermissions(this.readUpstreamTokens(req));
+    const { result, refreshedTokens } = await this.service.listPermissions(
+      this.readUpstreamTokens(req),
+    );
     this.reapplyRefreshedCookies(res, refreshedTokens);
     return { items: result };
   }
@@ -268,7 +295,10 @@ export class AuthGatewayController {
     };
   }
 
-  private reapplyRefreshedCookies(res: Response, refreshedTokens: RefreshedUpstreamTokens | undefined): void {
+  private reapplyRefreshedCookies(
+    res: Response,
+    refreshedTokens: RefreshedUpstreamTokens | undefined,
+  ): void {
     if (refreshedTokens) this.setUpstreamCookies(res, refreshedTokens);
   }
 

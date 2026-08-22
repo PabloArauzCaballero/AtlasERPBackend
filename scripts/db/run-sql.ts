@@ -5,43 +5,13 @@ import { Client } from 'pg';
 import { env } from '../../src/config/env';
 import { resolveDbSslOptions } from '../../src/config/db-ssl';
 import { PinoLoggerService } from '../../src/common/logger/pino-logger.service';
+import { LEGACY_SQL_PROBES } from '../../src/database/startup-migrations';
 
 const logger = new PinoLoggerService();
 
 interface AppliedSqlFile {
   checksum: string;
 }
-
-interface LegacyProbe {
-  filePath: string;
-  sql: string;
-}
-
-const legacyProbes: LegacyProbe[] = [
-  {
-    filePath: 'src/database/sql/accounting/001_schema_atlas_accounting.sql',
-    sql: "SELECT to_regclass('atlas_accounting.legal_entity') IS NOT NULL AS exists",
-  },
-  {
-    filePath: 'src/database/sql/accounting/002_hardening_atlas_accounting.sql',
-    sql: `
-      SELECT EXISTS (
-        SELECT 1
-        FROM pg_constraint
-        WHERE conname = 'chk_accounting_period_close_status'
-          AND conrelid = 'atlas_accounting.accounting_period'::regclass
-      ) AS exists
-    `,
-  },
-  {
-    filePath: 'src/database/migrations/20260708203000-create-atlas-ads-schema.sql',
-    sql: "SELECT to_regclass('public.ad_advertiser_accounts') IS NOT NULL AS exists",
-  },
-  {
-    filePath: 'src/database/migrations/20260709010000-create-business-action-logs.sql',
-    sql: "SELECT to_regclass('atlas_audit.business_action_logs') IS NOT NULL AS exists",
-  },
-];
 
 async function main(): Promise<void> {
   const filePaths = process.argv.slice(2);
@@ -161,7 +131,7 @@ async function getAppliedSqlFile(
 }
 
 async function wasLegacySqlAlreadyApplied(client: Client, filePath: string): Promise<boolean> {
-  const probe = legacyProbes.find((candidate) => candidate.filePath === filePath);
+  const probe = LEGACY_SQL_PROBES.find((candidate) => candidate.filePath === filePath);
   if (!probe) return false;
 
   const result = await client.query<{ exists: boolean }>(probe.sql);

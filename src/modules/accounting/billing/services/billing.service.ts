@@ -53,24 +53,42 @@ export class BillingService {
 
   async listInvoices(user: AuthUser) {
     const rows = await this.arInvoiceModel.findAll({ order: [['createdAt', 'DESC']] });
-    const items = rows.filter((row) => { try { this.legalEntityAccessService.assertCanAccessLegalEntity(user, row.legalEntityId); return true; } catch { return false; } });
+    const items = rows.filter((row) => {
+      try {
+        this.legalEntityAccessService.assertCanAccessLegalEntity(user, row.legalEntityId);
+        return true;
+      } catch {
+        return false;
+      }
+    });
     return { items, total: items.length };
   }
 
   async updateInvoice(id: string, input: Record<string, unknown>, user: AuthUser) {
     const row = await this.arInvoiceModel.findByPk(id);
-    if (!row) throw new NotFoundException({ code: 'AR_INVOICE_NOT_FOUND', message: 'La factura no existe.' });
+    if (!row)
+      throw new NotFoundException({
+        code: 'AR_INVOICE_NOT_FOUND',
+        message: 'La factura no existe.',
+      });
     this.legalEntityAccessService.assertCanAccessLegalEntity(user, row.legalEntityId);
     const allowed = ['invoiceNo', 'invoiceDate', 'dueDate', 'status'];
-    await row.update(Object.fromEntries(Object.entries(input).filter(([key]) => allowed.includes(key))));
+    await row.update(
+      Object.fromEntries(Object.entries(input).filter(([key]) => allowed.includes(key))),
+    );
     return row;
   }
 
   async deleteInvoice(id: string, user: AuthUser) {
     const row = await this.arInvoiceModel.findByPk(id);
-    if (!row) throw new NotFoundException({ code: 'AR_INVOICE_NOT_FOUND', message: 'La factura no existe.' });
+    if (!row)
+      throw new NotFoundException({
+        code: 'AR_INVOICE_NOT_FOUND',
+        message: 'La factura no existe.',
+      });
     this.legalEntityAccessService.assertCanAccessLegalEntity(user, row.legalEntityId);
-    await row.destroy(); return { id, deleted: true };
+    await row.destroy();
+    return { id, deleted: true };
   }
 
   createBillingEvent(input: CreateBillingEventDto, user: AuthUser) {

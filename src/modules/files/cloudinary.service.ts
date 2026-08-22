@@ -41,7 +41,9 @@ export class CloudinaryService {
       .sort()
       .map((key) => `${key}=${params[key]}`)
       .join('&');
-    return createHash('sha1').update(`${toSign}${env.CLOUDINARY_API_SECRET ?? ''}`).digest('hex');
+    return createHash('sha1')
+      .update(`${toSign}${env.CLOUDINARY_API_SECRET ?? ''}`)
+      .digest('hex');
   }
 
   buildUploadSignature(folder: string): UploadSignature {
