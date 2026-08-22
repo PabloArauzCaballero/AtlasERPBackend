@@ -50,6 +50,12 @@ src/
   common/                  Guards, pipes, filters, interceptors y tipos compartidos
   modules/
     b2b-sales-crm/         Dominio CRM/Ventas B2B
+    accounting/            Contabilidad y asientos
+    ads/                   Publicidad B2B (anunciantes, campañas, delivery, ledger)
+    portal/                Portal del comercio (usuario partner)
+    business-action-logs/  Bitácora transversal de acciones de negocio
+    auth-gateway/          Verificación de identidad contra AtlasBackend
+    files/                 Documentos del ERP
     health/                Diagnóstico
 ```
 
@@ -61,6 +67,9 @@ src/
 4. `B2BBilling`: facturas, CxC comercial y pagos.
 5. `BNPLCoreLink`: compra BNPL, cuotas, CxP ATLAS→comercio y recuperación consumidor.
 6. `ReconciliationAudit`: conciliación y auditoría.
+7. `MerchantPortal`: canal del usuario partner. Es el único contexto que cruza CRM, contabilidad y
+   publicidad en una misma sesión, por lo que su autorización es por tenant y fail-closed
+   (`PortalScopeService`), y comparte las invariantes de campaña con `ads`.
 
 ## Persistencia
 

@@ -1148,3 +1148,232 @@ page, pageSize, moduleCode, businessProcess, actionCode, status, aggregateType, 
 ### Respuesta
 
 Lista paginada de `business_action_logs` con actor, proceso, acción, tablas impactadas, cantidad de registros afectados, estado y fecha.
+
+# Endpoints — Portal del comercio
+
+Canal del usuario partner (`/api/v1/portal/*`). Documentación del módulo:
+[`src/modules/portal/README.md`](../../src/modules/portal/README.md).
+
+## Autenticación del comercio
+
+El usuario partner se autentica contra **AtlasBackend**, que es donde vive su identidad
+(`iam.merchant_users`), y este backend traduce esa sesión a su propio token de negocio:
+
+| Método | Ruta                            | Responsabilidad                                            |
+| ------ | ------------------------------- | ---------------------------------------------------------- |
+| POST   | `/api/v1/auth/merchant/login`   | Inicia sesión de comercio y emite el token de este backend |
+| POST   | `/api/v1/auth/merchant/refresh` | Rota la sesión upstream y reemite el token                 |
+| POST   | `/api/v1/auth/merchant/logout`  | Cierra la sesión upstream (idempotente)                    |
+
+El rol `merchant` de AtlasBackend se traduce a `MERCHANT_ADMIN`; un rol upstream que no se pueda
+traducir se rechaza en el login (`401`) en vez de emitir una sesión sin permisos que fallaría
+endpoint a endpoint.
+
+Hasta esta versión, `MERCHANT_ADMIN` se fabricaba mapeándolo desde `MERCHANT_OPERATIONS`, que es un
+rol **interno** de Atlas ("Operaciones de comercios"). Es decir: no existía la identidad del
+comercio y el canal lo operaba, en realidad, personal interno. Ese mapeo ya no otorga
+`MERCHANT_ADMIN`; el staff conserva `COMMERCIAL_EXECUTIVE`, que es lo que de verdad es.
+
+El `sub` del token es un identificador opaco del proveedor de identidad (hoy, un bigint): este
+backend lo guarda tal cual en `atlas_sales.merchant_users.user_id` y no presupone su formato.
+
+**El token no da acceso a ninguna cuenta por sí solo.** El alcance se sigue resolviendo contra
+`atlas_sales.merchant_users`: un comercio con token válido y sin membresía activa recibe
+`403 PORTAL_SCOPE_NOT_PROVISIONED`.
+
+## Modelo de autorización del portal
+
+Todos los endpoints de esta sección resuelven primero el **alcance** del llamador con
+`PortalScopeService`, consultando `atlas_sales.merchant_users` (no el JWT):
+
+- `MERCHANT_ADMIN` (comercio, autenticado en `/auth/merchant/login`): opera únicamente sobre las
+  cuentas donde tiene membresía `ACTIVE`.
+  Los parámetros `merchantAccountId` / `accountId` / `advertiserId` son opcionales; si los envía,
+  se validan contra su alcance. Sin membresía activa: `403 PORTAL_SCOPE_NOT_PROVISIONED`.
+- `ADMIN`, `COMMERCIAL_MANAGER`, `COMMERCIAL_EXECUTIVE` (staff interno): operan en nombre de un
+  comercio durante soporte u onboarding y **deben** indicar la cuenta
+  (`400 MERCHANT_ACCOUNT_REQUIRED` si la omiten). Cada uso queda registrado como acceso delegado.
+
+Errores transversales de alcance: `403 MERCHANT_ACCOUNT_FORBIDDEN`, `403 ADVERTISER_FORBIDDEN`.
+Todos los listados son paginados (`page`, `limit`) con tope duro de 100 filas.
+
+## GET /api/v1/portal/plans
+
+### Responsabilidad
+
+Cataloga los planes comerciales disponibles para el comercio.
+
+### Roles
+
+`MERCHANT_ADMIN`, `ADMIN`, `COMMERCIAL_MANAGER`, `COMMERCIAL_EXECUTIVE`.
+
+### Query
+
+```txt
+page, limit, includeInactive ('true' | 'false', por defecto 'false')
+```
+
+## POST /api/v1/portal/plans
+
+### Responsabilidad
+
+Da de alta un plan comercial. Es dato maestro de precio: no lo toca el comercio.
+
+### Roles
+
+`ADMIN`, `COMMERCIAL_MANAGER`.
+
+### Body
+
+```txt
+code (A-Z0-9_), name, description?, tier, monthlyPrice (2 decimales), currency (ISO-3), features[], sortOrder
+```
+
+### Errores esperados
+
+- `409 MERCHANT_PLAN_CODE_TAKEN` si el código ya existe.
+- `400` si el precio trae más de dos decimales (la columna es `numeric(18,2)`).
+
+### Business action log
+
+`MERCHANT_PLAN_ADMINISTRATION` / `CREATE_MERCHANT_PLAN`.
+
+## GET /api/v1/portal/subscription
+
+### Responsabilidad
+
+Devuelve la suscripción vigente del comercio, con su plan y el fin del período en curso.
+
+### Query
+
+```txt
+merchantAccountId?
+```
+
+## POST /api/v1/portal/subscription
+
+### Responsabilidad
+
+Contrata o cambia de plan: cierra la suscripción anterior (`REPLACED`) y abre la nueva en la misma
+transacción, bajo lock de la cuenta.
+
+### Body
+
+```txt
+merchantAccountId?, planId, autoRenew (por defecto true)
+```
+
+### Reglas aplicadas
+
+- La cuenta debe estar en estado contratable (`QUALIFIED`, `CUSTOMER`); si no,
+  `409 MERCHANT_ACCOUNT_NOT_SUBSCRIBABLE`.
+- El plan debe existir y estar `ACTIVE`; si no, `404 MERCHANT_PLAN_NOT_AVAILABLE`.
+- Reintentar el mismo plan con la misma renovación es idempotente: no genera una suscripción nueva.
+- El fin de período se calcula sin desbordar de mes (31-ene → 28/29-feb).
+
+### Impacto multi-tabla
+
+- `atlas_sales.merchant_subscriptions`
+- `atlas_audit.business_action_logs`
+
+### Business action log
+
+`MERCHANT_SUBSCRIPTION` / `SELECT_MERCHANT_PLAN` o `CHANGE_MERCHANT_PLAN`.
+
+## GET /api/v1/portal/branches
+
+### Responsabilidad
+
+Lista las sucursales del comercio.
+
+### Query
+
+```txt
+page, limit, accountId?
+```
+
+## GET /api/v1/portal/billing
+
+### Responsabilidad
+
+Panel de facturación del comercio: facturas y cobros recientes más los totales facturado y
+pendiente.
+
+### Query
+
+```txt
+merchantAccountId?
+```
+
+### Regla aplicada
+
+Los totales se agregan en SQL sobre el universo completo de documentos y se devuelven como decimal
+exacto; la lista de documentos viene acotada a los 50 más recientes. Los totales no se derivan de
+la lista truncada.
+
+## GET /api/v1/portal/advertisers
+
+### Responsabilidad
+
+Lista los anunciantes publicitarios de las cuentas del comercio.
+
+### Query
+
+```txt
+page, limit, merchantAccountId?
+```
+
+### Regla aplicada
+
+Proyección explícita: no se exponen `taxId`, `creditLimitMicros` ni el contacto interno del
+anunciante.
+
+## GET /api/v1/portal/campaigns
+
+### Responsabilidad
+
+Lista las campañas de un anunciante propio, indicando cuáles puede alternar el comercio.
+
+### Query
+
+```txt
+page, limit, advertiserId (obligatorio)
+```
+
+### Errores esperados
+
+- `403 ADVERTISER_FORBIDDEN` si el anunciante no pertenece al alcance del llamador.
+
+## PATCH /api/v1/portal/campaigns/:id/status
+
+### Responsabilidad
+
+Prende o apaga una campaña propia. Única mutación del portal sobre un agregado facturable de
+publicidad.
+
+### Body
+
+```txt
+status ('ACTIVE' | 'PAUSED'), reason? (8 a 500 caracteres)
+```
+
+### Reglas aplicadas
+
+- Propiedad del anunciante verificada antes de cualquier lectura de negocio.
+- Anunciante `ACTIVE` y no bloqueado por riesgo (`ADVERTISER_NOT_ACTIVE`, `ADVERTISER_RISK_BLOCKED`).
+- Solo campañas ya lanzadas (`CAMPAIGN_NOT_TOGGLEABLE`); el alta y la edición siguen siendo internas.
+- Invariantes compartidas con la consola administrativa: nunca activar sin aprobación de moderación
+  (`CAMPAIGN_NOT_APPROVED`) ni reactivar una campaña terminal (`INVALID_CAMPAIGN_TRANSITION`).
+- Al reactivar: presupuesto no agotado (`CAMPAIGN_BUDGET_EXHAUSTED`) y campaña dentro de su ventana
+  de vigencia.
+- La fila se bloquea (`LOCK UPDATE`) y la operación es idempotente si el estado ya es el pedido.
+
+### Impacto multi-tabla
+
+- `ad_campaigns`
+- `ad_audit_log`
+- `atlas_audit.business_action_logs`
+
+### Business action log
+
+`MERCHANT_CAMPAIGN_CONTROL` / `PORTAL_UPDATE_CAMPAIGN_STATUS`, con estado previo y posterior.

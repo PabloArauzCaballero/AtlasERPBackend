@@ -703,8 +703,20 @@ export class MerchantUserModel extends Model {
   @Column({ type: DataType.UUID, field: 'branch_id' })
   declare branchId: string | null;
 
+  // Identidad del usuario en AtlasBackend (`sub` del JWT). Es el enlace preferente para resolver
+  // el alcance del portal del comercio; `emailNormalized` es el enlace de respaldo.
+  //
+  // Texto, no UUID: el identificador del proveedor de identidad es opaco. AtlasBackend emite
+  // bigints y declararlo `uuid` dejaba el enlace preferente inservible sin que nada fallara.
+  @Column({ type: DataType.STRING(64), field: 'user_id' })
+  declare userId: string | null;
+
   @Column(DataType.STRING(180))
   declare email: string;
+
+  // Columna generada por PostgreSQL: lower(btrim(email)). Solo lectura.
+  @Column({ type: DataType.STRING(180), field: 'email_normalized' })
+  declare emailNormalized: string;
 
   @Column({ type: DataType.STRING(180), field: 'full_name' })
   declare fullName: string;
@@ -1355,6 +1367,10 @@ export class MerchantPlanModel extends Model {
   @Default(DataType.NOW)
   @Column({ type: DataType.DATE, field: 'created_at' })
   declare createdAt: Date;
+
+  @Default(DataType.NOW)
+  @Column({ type: DataType.DATE, field: 'updated_at' })
+  declare updatedAt: Date;
 }
 
 @Table({ schema: SALES_SCHEMA, tableName: 'merchant_subscriptions', timestamps: false })
@@ -1392,9 +1408,21 @@ export class MerchantSubscriptionModel extends Model {
   @Column({ type: DataType.UUID, field: 'selected_by_user_id' })
   declare selectedByUserId: string | null;
 
+  // Cierre de la suscripción. La restricción `ck_merchant_subscriptions_ended_at` exige que toda
+  // suscripción no ACTIVE tenga fecha de cierre, y que ninguna ACTIVE la tenga.
+  @Column({ type: DataType.DATE, field: 'ended_at' })
+  declare endedAt: Date | null;
+
+  @Column({ type: DataType.UUID, field: 'ended_by_user_id' })
+  declare endedByUserId: string | null;
+
   @Default(DataType.NOW)
   @Column({ type: DataType.DATE, field: 'created_at' })
   declare createdAt: Date;
+
+  @Default(DataType.NOW)
+  @Column({ type: DataType.DATE, field: 'updated_at' })
+  declare updatedAt: Date;
 
   @BelongsTo(() => MerchantPlanModel)
   declare plan?: MerchantPlanModel;

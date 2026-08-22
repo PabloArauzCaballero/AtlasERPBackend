@@ -44,7 +44,7 @@ export class CreativeModel extends Model {
     defaultValue: 'NOT_SUBMITTED',
   })
   declare policyReviewStatus: string;
-  @Column({ field: 'created_by', type: DataType.UUID, allowNull: true }) declare createdBy:
+  @Column({ field: 'created_by', type: DataType.STRING(64), allowNull: true }) declare createdBy:
     string | null;
   @BelongsTo(() => AdvertiserAccountModel, 'advertiser_id')
   declare advertiser?: AdvertiserAccountModel;

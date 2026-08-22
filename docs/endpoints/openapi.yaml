@@ -11,6 +11,7 @@ tags:
   - name: Contabilidad
   - name: Publicidad externa
   - name: Auditoría
+  - name: Portal del comercio
 paths:
   /health:
     get:
@@ -1155,6 +1156,182 @@ paths:
       responses:
         '200':
           description: Lista paginada de acciones de negocio
+  /portal/plans:
+    get:
+      summary: Catálogo de planes comerciales
+      description: Roles MERCHANT_ADMIN, ADMIN, COMMERCIAL_MANAGER y COMMERCIAL_EXECUTIVE.
+        Por defecto solo devuelve planes ACTIVE.
+      parameters:
+        - $ref: '#/components/parameters/PortalPage'
+        - $ref: '#/components/parameters/PortalLimit'
+        - name: includeInactive
+          in: query
+          schema:
+            type: string
+            enum: ['true', 'false']
+            default: 'false'
+      responses:
+        '200':
+          description: Lista paginada de planes
+      tags:
+        - Portal del comercio
+    post:
+      summary: Crear plan comercial
+      description: Dato maestro de precio. Solo roles ADMIN y COMMERCIAL_MANAGER.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PortalCreatePlanRequest'
+      responses:
+        '201':
+          description: Plan creado
+        '400':
+          description: Precio con más de dos decimales o payload inválido
+        '403':
+          description: Rol insuficiente
+        '409':
+          description: MERCHANT_PLAN_CODE_TAKEN
+      tags:
+        - Portal del comercio
+  /portal/subscription:
+    get:
+      summary: Suscripción vigente del comercio
+      description: El alcance se resuelve contra atlas_sales.merchant_users. El staff
+        interno debe indicar merchantAccountId.
+      parameters:
+        - $ref: '#/components/parameters/PortalMerchantAccountId'
+      responses:
+        '200':
+          description: Suscripción vigente con su plan y fin de período
+        '400':
+          description: MERCHANT_ACCOUNT_REQUIRED (staff interno sin cuenta indicada)
+        '403':
+          description: PORTAL_SCOPE_NOT_PROVISIONED o MERCHANT_ACCOUNT_FORBIDDEN
+      tags:
+        - Portal del comercio
+    post:
+      summary: Contratar o cambiar de plan
+      description: Cierra la suscripción anterior como REPLACED y abre la nueva en la
+        misma transacción, bajo lock de la cuenta. Reintentar el mismo plan es idempotente.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PortalSubscribeRequest'
+      responses:
+        '201':
+          description: Suscripción vigente actualizada
+        '403':
+          description: PORTAL_SCOPE_NOT_PROVISIONED o MERCHANT_ACCOUNT_FORBIDDEN
+        '404':
+          description: MERCHANT_PLAN_NOT_AVAILABLE o MERCHANT_ACCOUNT_NOT_FOUND
+        '409':
+          description: MERCHANT_ACCOUNT_NOT_SUBSCRIBABLE
+      tags:
+        - Portal del comercio
+  /portal/branches:
+    get:
+      summary: Sucursales del comercio
+      parameters:
+        - $ref: '#/components/parameters/PortalPage'
+        - $ref: '#/components/parameters/PortalLimit'
+        - name: accountId
+          in: query
+          description: Nombre histórico del parámetro en este endpoint. Obligatorio
+            para staff interno.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Lista paginada de sucursales
+        '403':
+          description: PORTAL_SCOPE_NOT_PROVISIONED o MERCHANT_ACCOUNT_FORBIDDEN
+      tags:
+        - Portal del comercio
+  /portal/billing:
+    get:
+      summary: Panel de facturación del comercio
+      description: Los totales se agregan en SQL sobre el universo completo de documentos
+        y se devuelven como decimal exacto; la lista viene acotada a los 50 más recientes.
+      parameters:
+        - $ref: '#/components/parameters/PortalMerchantAccountId'
+      responses:
+        '200':
+          description: Documentos recientes y totales facturado y pendiente
+        '403':
+          description: PORTAL_SCOPE_NOT_PROVISIONED o MERCHANT_ACCOUNT_FORBIDDEN
+      tags:
+        - Portal del comercio
+  /portal/advertisers:
+    get:
+      summary: Anunciantes de las cuentas del comercio
+      description: Proyección explícita, sin taxId, creditLimitMicros ni contacto interno.
+      parameters:
+        - $ref: '#/components/parameters/PortalPage'
+        - $ref: '#/components/parameters/PortalLimit'
+        - $ref: '#/components/parameters/PortalMerchantAccountId'
+      responses:
+        '200':
+          description: Lista paginada de anunciantes
+        '403':
+          description: PORTAL_SCOPE_NOT_PROVISIONED o MERCHANT_ACCOUNT_FORBIDDEN
+      tags:
+        - Portal del comercio
+  /portal/campaigns:
+    get:
+      summary: Campañas de un anunciante propio
+      description: Indica cuáles campañas puede alternar el comercio.
+      parameters:
+        - $ref: '#/components/parameters/PortalPage'
+        - $ref: '#/components/parameters/PortalLimit'
+        - name: advertiserId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Lista paginada de campañas
+        '403':
+          description: ADVERTISER_FORBIDDEN
+      tags:
+        - Portal del comercio
+  /portal/campaigns/{id}/status:
+    patch:
+      summary: Prender o apagar una campaña propia
+      description: Comparte las invariantes de la consola administrativa (nunca activar
+        sin aprobación de moderación) y suma las del canal. Bloquea la fila y escribe
+        ad_audit_log y business_action_logs en la misma transacción.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PortalCampaignStatusRequest'
+      responses:
+        '200':
+          description: Campaña actualizada con estado previo y posterior
+        '403':
+          description: ADVERTISER_FORBIDDEN, ADVERTISER_NOT_ACTIVE o ADVERTISER_RISK_BLOCKED
+        '404':
+          description: CAMPAIGN_NOT_FOUND o ADVERTISER_NOT_FOUND
+        '409':
+          description: CAMPAIGN_NOT_TOGGLEABLE, CAMPAIGN_NOT_APPROVED, INVALID_CAMPAIGN_TRANSITION,
+            CAMPAIGN_BUDGET_EXHAUSTED o CAMPAIGN_SCHEDULE_EXPIRED
+      tags:
+        - Portal del comercio
 components:
   securitySchemes:
     bearerAuth:
@@ -1887,6 +2064,82 @@ components:
           minItems: 2
           items:
             $ref: '#/components/schemas/AccountingJournalLineCreate'
+    PortalCreatePlanRequest:
+      type: object
+      required:
+        - code
+        - name
+      properties:
+        code:
+          type: string
+          pattern: '^[A-Z0-9_]+$'
+          minLength: 2
+          maxLength: 40
+        name:
+          type: string
+          maxLength: 120
+        description:
+          type: string
+          maxLength: 2000
+        tier:
+          type: string
+          enum:
+            - STARTER
+            - STANDARD
+            - PREMIUM
+            - ENTERPRISE
+          default: STANDARD
+        monthlyPrice:
+          type: number
+          minimum: 0
+          multipleOf: 0.01
+          description: Máximo dos decimales; la columna es numeric(18,2).
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+          default: BOB
+        features:
+          type: array
+          maxItems: 40
+          items:
+            type: string
+            maxLength: 160
+        sortOrder:
+          type: integer
+          minimum: 0
+          maximum: 10000
+          default: 0
+    PortalSubscribeRequest:
+      type: object
+      required:
+        - planId
+      properties:
+        merchantAccountId:
+          type: string
+          format: uuid
+          description: Opcional para el comercio (se deriva de su alcance); obligatorio
+            para staff interno.
+        planId:
+          type: string
+          format: uuid
+        autoRenew:
+          type: boolean
+          default: true
+    PortalCampaignStatusRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - PAUSED
+        reason:
+          type: string
+          minLength: 8
+          maxLength: 500
   parameters:
     CrmIdPath:
       name: id
@@ -1959,12 +2212,35 @@ components:
         minimum: 1
         maximum: 100
         default: 20
+    PortalPage:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    PortalLimit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 50
+    PortalMerchantAccountId:
+      name: merchantAccountId
+      in: query
+      description: Opcional para el comercio (se deriva de su alcance); obligatorio para
+        staff interno.
+      schema:
+        type: string
+        format: uuid
   responses:
     CrmValidationError:
       description: Datos inválidos
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: '#/components/schemas/CrmErrorResponse'
 security:
   - bearerAuth: []

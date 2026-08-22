@@ -2,9 +2,10 @@ import { mkdir, writeFile } from 'fs/promises';
 import { dirname, resolve } from 'path';
 import pino from 'pino';
 import { z } from 'zod';
+import { resolveSmokeBaseUrl } from './smoke-base-url';
 
 const smokeEnvSchema = z.object({
-  API_BASE_URL: z.string().url().default('http://localhost:3000/api/v1'),
+  API_BASE_URL: z.string().url().default(resolveSmokeBaseUrl()),
   ATLAS_ADS_SMOKE_TOKEN: z.string().min(1).optional(),
   SMOKE_REPORT_PATH: z.string().min(1).default('scripts/smoke/admin-ads.smoke.result.json'),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),

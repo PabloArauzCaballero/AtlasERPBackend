@@ -1,6 +1,6 @@
 {
-  "executedAt": "2026-07-09T15:06:25.623Z",
-  "baseUrl": "http://localhost:3000/api/v1",
+  "executedAt": "2026-08-21T17:33:13.756Z",
+  "baseUrl": "http://localhost:3007/api/v1",
   "tokenProvided": false,
   "passed": true,
   "results": [

@@ -1,0 +1,105 @@
+{
+  "executedAt": "2026-08-21T17:33:14.500Z",
+  "baseUrl": "http://localhost:3007/api/v1",
+  "tokenProvided": false,
+  "mode": "fail-closed-only",
+  "skippedForMissingEnv": [
+    "ATLAS_PORTAL_SMOKE_FOREIGN_ACCOUNT_ID",
+    "ATLAS_PORTAL_SMOKE_FOREIGN_ADVERTISER_ID",
+    "ATLAS_PORTAL_SMOKE_FOREIGN_CAMPAIGN_ID"
+  ],
+  "passed": true,
+  "results": [
+    {
+      "name": "health",
+      "method": "GET",
+      "path": "/health",
+      "expect": "reachable",
+      "isPublic": true,
+      "guards": "El servicio está arriba.",
+      "status": 200,
+      "passed": true,
+      "bodyPreview": "{\"success\":true,\"data\":{\"status\":\"ok\",\"service\":\"atlas-integrated-backend\"}}"
+    },
+    {
+      "name": "plans:list",
+      "method": "GET",
+      "path": "/portal/plans",
+      "expect": "reachable",
+      "guards": "El catálogo de planes responde y solo expone planes activos por defecto.",
+      "status": 401,
+      "passed": true,
+      "bodyPreview": "{\"success\":false,\"error\":{\"code\":\"UNAUTHORIZED\",\"message\":\"Token no enviado.\"}}"
+    },
+    {
+      "name": "subscription:current",
+      "method": "GET",
+      "path": "/portal/subscription",
+      "expect": "reachable",
+      "guards": "La suscripción se resuelve desde las membresías del usuario, sin recibir la cuenta.",
+      "status": 401,
+      "passed": true,
+      "bodyPreview": "{\"success\":false,\"error\":{\"code\":\"UNAUTHORIZED\",\"message\":\"Token no enviado.\"}}"
+    },
+    {
+      "name": "branches:list",
+      "method": "GET",
+      "path": "/portal/branches",
+      "expect": "reachable",
+      "guards": "Las sucursales se acotan al alcance del usuario.",
+      "status": 401,
+      "passed": true,
+      "bodyPreview": "{\"success\":false,\"error\":{\"code\":\"UNAUTHORIZED\",\"message\":\"Token no enviado.\"}}"
+    },
+    {
+      "name": "billing:panel",
+      "method": "GET",
+      "path": "/portal/billing",
+      "expect": "reachable",
+      "guards": "El panel de facturación calcula totales sobre el universo completo, no sobre la página.",
+      "status": 401,
+      "passed": true,
+      "bodyPreview": "{\"success\":false,\"error\":{\"code\":\"UNAUTHORIZED\",\"message\":\"Token no enviado.\"}}"
+    },
+    {
+      "name": "advertisers:list",
+      "method": "GET",
+      "path": "/portal/advertisers",
+      "expect": "reachable",
+      "guards": "Solo devuelve los anunciantes de las cuentas del usuario, con DTO sin datos sensibles.",
+      "status": 401,
+      "passed": true,
+      "bodyPreview": "{\"success\":false,\"error\":{\"code\":\"UNAUTHORIZED\",\"message\":\"Token no enviado.\"}}"
+    },
+    {
+      "name": "plans:page-size-cap",
+      "method": "GET",
+      "path": "/portal/plans?limit=1000",
+      "expect": "rejected",
+      "guards": "El tope duro de paginación se aplica en el schema, no en el servicio.",
+      "status": 401,
+      "passed": true,
+      "bodyPreview": "{\"success\":false,\"error\":{\"code\":\"UNAUTHORIZED\",\"message\":\"Token no enviado.\"}}"
+    },
+    {
+      "name": "campaigns:advertiser-required",
+      "method": "GET",
+      "path": "/portal/campaigns",
+      "expect": "rejected",
+      "guards": "El listado de campañas exige anunciante: no existe un listado global.",
+      "status": 401,
+      "passed": true,
+      "bodyPreview": "{\"success\":false,\"error\":{\"code\":\"UNAUTHORIZED\",\"message\":\"Token no enviado.\"}}"
+    },
+    {
+      "name": "campaigns:status-enum",
+      "method": "PATCH",
+      "path": "/portal/campaigns/00000000-0000-0000-0000-000000000000/status",
+      "expect": "rejected",
+      "guards": "El comercio solo puede alternar ACTIVE/PAUSED; archivar es una operación interna.",
+      "status": 401,
+      "passed": true,
+      "bodyPreview": "{\"success\":false,\"error\":{\"code\":\"UNAUTHORIZED\",\"message\":\"Token no enviado.\"}}"
+    }
+  ]
+}

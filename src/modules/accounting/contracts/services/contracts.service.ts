@@ -28,17 +28,19 @@ export class ContractsService {
 
   async list(user: AuthUser) {
     const rows = await this.contractHeaderModel.findAll({ order: [['createdAt', 'DESC']] });
-    return {
-      items: rows.filter((row) => {
-        try {
-          this.legalEntityAccessService.assertCanAccessLegalEntity(user, row.legalEntityId);
-          return true;
-        } catch {
-          return false;
-        }
-      }),
-      total: rows.length,
-    };
+    const items = rows.filter((row) => {
+      try {
+        this.legalEntityAccessService.assertCanAccessLegalEntity(user, row.legalEntityId);
+        return true;
+      } catch {
+        return false;
+      }
+    });
+    // `items.length`, NO `rows.length`. El contador salía del listado SIN filtrar, así que decía
+    // cuántos contratos existen en entidades legales que quien pregunta no puede ver: la fila se
+    // ocultaba y su existencia no. Es la misma cuenta que hacen facturas, recibos y documentos
+    // contables; era el único de los cuatro que se había separado.
+    return { items, total: items.length };
   }
 
   async update(id: string, input: Record<string, unknown>, user: AuthUser) {

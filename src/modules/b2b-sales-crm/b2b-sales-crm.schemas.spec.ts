@@ -12,15 +12,14 @@ const uuid = '00000000-0000-0000-0000-000000000001';
 
 describe('B2B Sales CRM schemas', () => {
   it('acepta batch de cuentas y rechaza taxId duplicado dentro del mismo lote', () => {
-    // `category` y `businessLine` son obligatorios desde que el perfil de cuenta se endureció
-    // (migración `robust-b2b-account-profile`): una cuenta B2B sin rubro ni línea de negocio no se
-    // puede enrutar a un ejecutivo ni casar con una regla de MDR, así que el esquema las exige.
+    // `category` y `businessLine` son obligatorios desde la migración de perfil comercial robusto
+    // (20260712120000), que las declaró NOT NULL en `atlas_sales.b2b_accounts`.
     const baseAccount = {
       legalName: 'Empresa Uno SRL',
       tradeName: 'Empresa Uno',
       taxId: '123456',
-      category: 'Retail',
-      businessLine: 'Venta de electrodomésticos',
+      category: 'RETAIL',
+      businessLine: 'Tienda de electrodomésticos',
       primaryContact: { fullName: 'Contacto Uno', email: 'uno@example.com' },
     };
 

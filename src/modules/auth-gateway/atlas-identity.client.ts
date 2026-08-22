@@ -13,10 +13,39 @@ import { env } from '../../config/env';
 import type {
   AtlasInternalAccessProfile,
   AtlasInternalAuthResponse,
+  AtlasInternalLoginOutcome,
+  AtlasPinChallenge,
   AtlasInternalPermissionListItem,
   AtlasInternalRoleListItem,
   AtlasInternalUserProfile,
+  AtlasMerchantAuthResponse,
+  AtlasMerchantUserProfile,
 } from './auth-gateway.types';
+import { isPinChallenge } from './auth-gateway.types';
+
+/**
+ * Nombres de las cookies de sesión que emite AtlasBackend
+ * (`common/utils/http/auth-cookies.util.ts`). Si allá cambian, aquí deja de haber sesión: por eso
+ * `withSessionTokens` falla en vez de emitir un token propio sin respaldo upstream.
+ */
+const ATLAS_ACCESS_COOKIE = 'atlas_internal_access';
+const ATLAS_REFRESH_COOKIE = 'atlas_internal_refresh';
+
+/**
+ * Extrae `nombre=valor` de las cabeceras `set-cookie`. No interpreta atributos (`Path`, `HttpOnly`,
+ * `Max-Age`): este gateway no es un navegador, sólo necesita el valor para reenviarlo al upstream.
+ */
+export function parseSetCookies(header: string[] | string | undefined): Record<string, string> {
+  if (!header) return {};
+  const cookies: Record<string, string> = {};
+  for (const entry of Array.isArray(header) ? header : [header]) {
+    const [pair] = entry.split(';');
+    const separator = pair?.indexOf('=') ?? -1;
+    if (!pair || separator <= 0) continue;
+    cookies[pair.slice(0, separator).trim()] = decodeURIComponent(pair.slice(separator + 1).trim());
+  }
+  return cookies;
+}
 
 interface AtlasEnvelope<T> {
   data?: T;
@@ -34,12 +63,57 @@ interface AtlasEnvelope<T> {
 export class AtlasIdentityClient {
   constructor(private readonly http: HttpService) {}
 
+  /**
+   * `x-atlas-product` identifica al ERP ante el proveedor de identidad.
+   *
+   * Los correos de código y de cambio de contraseña los redacta AtlasBackend, no este servicio, así
+   * que sin esta cabecera la cabecera del correo lleva un rótulo genérico: quien recibe un PIN
+   * pedido desde el ERP no puede confirmar a qué está entrando, que es justo lo que separa un
+   * acceso propio de uno que no pidió.
+   */
   private baseHeaders(): Record<string, string> {
-    return { 'x-tenant-id': env.ATLAS_IDENTITY_TENANT_ID, Accept: 'application/json' };
+    return {
+      'x-tenant-id': env.ATLAS_IDENTITY_TENANT_ID,
+      'x-atlas-product': 'erp',
+      Accept: 'application/json',
+    };
   }
 
   private authHeaders(accessToken: string): Record<string, string> {
     return { ...this.baseHeaders(), Authorization: `Bearer ${accessToken}` };
+  }
+
+  /**
+   * Igual que `request`, pero devolviendo también las cookies de la respuesta.
+   *
+   * AtlasBackend entrega los tokens de sesión en cookies `HttpOnly` y los QUITA del cuerpo: es
+   * deliberado, para que el JavaScript de un navegador no pueda leerlos. Este gateway no es un
+   * navegador, así que los recoge de `set-cookie`; el cuerpo queda como respaldo por si el
+   * upstream vuelve a incluirlos.
+   */
+  private async requestWithCookies<T>(
+    method: Method,
+    path: string,
+    options: { body?: unknown; accessToken?: string } = {},
+  ): Promise<{ data: T; cookies: Record<string, string> }> {
+    try {
+      const response = await firstValueFrom(
+        this.http.request<AtlasEnvelope<T> | T>({
+          method,
+          url: `${env.ATLAS_IDENTITY_BASE_URL}/${path.replace(/^\/+/, '')}`,
+          data: options.body,
+          headers: options.accessToken ? this.authHeaders(options.accessToken) : this.baseHeaders(),
+          timeout: env.ATLAS_IDENTITY_TIMEOUT_MS,
+        }),
+      );
+
+      const payload = response.data;
+      const data =
+        payload && typeof payload === 'object' && 'data' in payload ? ((payload as AtlasEnvelope<T>).data as T) : (payload as T);
+      return { data, cookies: parseSetCookies(response.headers['set-cookie']) };
+    } catch (error) {
+      throw this.translateError(error);
+    }
   }
 
   private async request<T>(
@@ -84,12 +158,51 @@ export class AtlasIdentityClient {
     return new InternalServerErrorException('El servicio de identidad no está disponible.');
   }
 
-  login(email: string, password: string): Promise<AtlasInternalAuthResponse> {
-    return this.request('post', 'internal/auth/login', { body: { email, password } });
+  /**
+   * Login interno. Puede terminar en sesión o en desafío de segundo factor.
+   *
+   * Va por `requestWithCookies` —no por `request`— porque AtlasBackend entrega los tokens de la
+   * sesión interna en cookies `HttpOnly` y los QUITA del cuerpo (`InternalSessionResponse`, con
+   * `tokenType: 'Cookie'`). Leyéndolos del cuerpo, como se hacía, `upstreamAccessToken` quedaba
+   * `undefined` y toda llamada proxy posterior moría con "Sesión no disponible": el canal interno
+   * del ERP no funcionaba, aunque las credenciales fueran correctas. El canal del comercio ya se
+   * había corregido así; éste se había quedado atrás.
+   */
+  async login(email: string, password: string): Promise<AtlasInternalLoginOutcome> {
+    const { data, cookies } = await this.requestWithCookies<AtlasInternalLoginOutcome>('post', 'internal/auth/login', {
+      body: { email, password },
+    });
+    // Un desafío no trae ni debe traer tokens: se devuelve tal cual para que el llamador lo canjee.
+    if (isPinChallenge(data)) return data;
+    return this.withInternalSessionTokens(data, cookies);
   }
 
-  refresh(refreshToken: string): Promise<AtlasInternalAuthResponse> {
-    return this.request('post', 'internal/auth/refresh', { body: { refreshToken } });
+  /** Segundo paso del login interno: `challengeToken` + PIN del correo, a cambio de la sesión. */
+  async loginPin(challengeToken: string, pin: string): Promise<AtlasInternalAuthResponse> {
+    const { data, cookies } = await this.requestWithCookies<AtlasInternalAuthResponse>('post', 'internal/auth/login/pin', {
+      body: { challengeToken, pin },
+    });
+    return this.withInternalSessionTokens(data, cookies);
+  }
+
+  async refresh(refreshToken: string): Promise<AtlasInternalAuthResponse> {
+    const { data, cookies } = await this.requestWithCookies<AtlasInternalAuthResponse>('post', 'internal/auth/refresh', {
+      body: { refreshToken },
+    });
+    return this.withInternalSessionTokens(data, cookies);
+  }
+
+  /** Primer paso del cambio de contraseña del usuario autenticado: valida la actual y manda el código. */
+  requestPasswordChange(accessToken: string, currentPassword: string): Promise<AtlasPinChallenge> {
+    return this.request('post', 'auth/password/change/request', { body: { currentPassword }, accessToken });
+  }
+
+  /** Segundo paso: canjea el desafío y el código por la contraseña nueva. */
+  confirmPasswordChange(
+    accessToken: string,
+    body: { challengeToken: string; code: string; newPassword: string },
+  ): Promise<{ passwordChanged: boolean }> {
+    return this.request('post', 'auth/password/change/confirm', { body, accessToken });
   }
 
   logout(refreshToken: string, allDevices: boolean): Promise<{ loggedOut: boolean }> {
@@ -131,4 +244,63 @@ export class AtlasIdentityClient {
   listPermissions(accessToken: string): Promise<{ items: AtlasInternalPermissionListItem[] }> {
     return this.request('get', 'internal/permissions', { accessToken });
   }
+  // ---- Canal del comercio afiliado -----------------------------------------------------------
+  // Población distinta de la interna: otro endpoint, otro vocabulario de roles y ninguna
+  // capacidad sobre `/internal/*`.
+
+  async merchantLogin(email: string, password: string): Promise<AtlasMerchantAuthResponse> {
+    const { data, cookies } = await this.requestWithCookies<Omit<AtlasMerchantAuthResponse, 'accessToken' | 'refreshToken'>>(
+      'post',
+      'merchant/auth/login',
+      { body: { email, password } },
+    );
+    return this.withSessionTokens(data, cookies);
+  }
+
+  async merchantRefresh(refreshToken: string): Promise<AtlasMerchantAuthResponse> {
+    const { data, cookies } = await this.requestWithCookies<Omit<AtlasMerchantAuthResponse, 'accessToken' | 'refreshToken'>>(
+      'post',
+      'merchant/auth/refresh',
+      { body: { refreshToken } },
+    );
+    return this.withSessionTokens(data, cookies);
+  }
+
+  merchantMe(accessToken: string): Promise<AtlasMerchantUserProfile> {
+    return this.request('get', 'merchant/auth/me', { accessToken });
+  }
+
+  merchantLogout(refreshToken: string, allDevices: boolean): Promise<{ loggedOut: boolean }> {
+    return this.request('post', 'merchant/auth/logout', { body: { refreshToken, allDevices } });
+  }
+
+  /**
+   * Sin tokens no hay sesión: fallar aquí y no más adelante evita emitir un token de este backend
+   * respaldado por una sesión upstream que no existe.
+   */
+  /** Mismo criterio que `withSessionTokens`, para la población interna y sus cookies. */
+  private withInternalSessionTokens(
+    data: AtlasInternalAuthResponse & Partial<AtlasInternalAuthResponse>,
+    cookies: Record<string, string>,
+  ): AtlasInternalAuthResponse {
+    const accessToken = data.accessToken ?? cookies[ATLAS_ACCESS_COOKIE];
+    const refreshToken = data.refreshToken ?? cookies[ATLAS_REFRESH_COOKIE];
+    if (!accessToken || !refreshToken) {
+      throw new UnauthorizedException('El servicio de identidad no devolvió una sesión interna utilizable.');
+    }
+    return { ...data, accessToken, refreshToken };
+  }
+
+  private withSessionTokens(
+    data: Omit<AtlasMerchantAuthResponse, 'accessToken' | 'refreshToken'> & Partial<AtlasMerchantAuthResponse>,
+    cookies: Record<string, string>,
+  ): AtlasMerchantAuthResponse {
+    const accessToken = data.accessToken ?? cookies[ATLAS_ACCESS_COOKIE];
+    const refreshToken = data.refreshToken ?? cookies[ATLAS_REFRESH_COOKIE];
+    if (!accessToken || !refreshToken) {
+      throw new UnauthorizedException('El servicio de identidad no devolvió una sesión de comercio utilizable.');
+    }
+    return { accessToken, refreshToken, user: data.user };
+  }
+
 }

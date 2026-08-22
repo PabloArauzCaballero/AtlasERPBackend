@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { JwtService } from '@nestjs/jwt';
 import pino from 'pino';
+import { resolveSmokeBaseUrl } from './smoke-base-url';
 
 const logger = pino({
   name: 'atlas-b2b-crm-ventas-smoke',
@@ -9,14 +10,18 @@ const logger = pino({
   redact: ['headers.authorization', '*.token'],
 });
 
-const API_BASE_URL = process.env.API_BASE_URL ?? 'http://localhost:3000/api/v1';
+const API_BASE_URL = resolveSmokeBaseUrl();
 const JWT_ACCESS_SECRET =
   process.env.JWT_ACCESS_SECRET ?? 'change_me_long_random_secret_32_chars_min';
 
 const jwt = new JwtService({ secret: JWT_ACCESS_SECRET });
 const token = jwt.sign(
   { sub: '00000000-0000-0000-0000-000000000001', roleCode: 'ADMIN' },
-  { expiresIn: '15m' },
+  {
+    expiresIn: '15m',
+    issuer: process.env.JWT_ACCESS_ISSUER ?? 'atlas-erp',
+    audience: process.env.JWT_ACCESS_AUDIENCE ?? 'atlas-erp-api',
+  },
 );
 
 async function request(path: string, init?: RequestInit): Promise<unknown> {

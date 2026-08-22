@@ -1,6 +1,7 @@
 import { setTimeout as wait } from 'timers/promises';
 import { Client } from 'pg';
 import { env } from '../../config/env';
+import { resolveDbSslOptions } from '../../config/db-ssl';
 import { PinoLoggerService } from '../../common/logger/pino-logger.service';
 
 interface OutboxRow {
@@ -26,7 +27,7 @@ async function main(): Promise<void> {
 
   const client = new Client({
     connectionString: env.DATABASE_URL,
-    ssl: env.DB_SSL ? { rejectUnauthorized: false } : undefined,
+    ssl: resolveDbSslOptions(env),
   });
 
   await client.connect();

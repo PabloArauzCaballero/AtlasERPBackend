@@ -8,9 +8,11 @@ import { InventoryRepository } from '../repositories/inventory.repository';
 import { PoliciesRepository } from '../repositories/policies.repository';
 import { ReportingRepository } from '../repositories/reporting.repository';
 import { AdsAuditService } from './audit.service';
+import { assertCampaignTransition } from '../ads.campaign-transitions';
 import { BusinessActionLogsService } from '../../business-action-logs/business-action-logs.service';
 import { serializeModel, serializePaginated, toPlacementResponse } from '../ads.mappers';
 import type {
+  CampaignPerformanceQueryDto,
   BulkCreateAdvertisersDto,
   CreateAdvertiserDto,
   CreateBillingProfileDto,
@@ -168,6 +170,37 @@ export class AdminAdsService {
         auditIds,
       };
     });
+  }
+
+  /**
+   * Vistas, clicks, conversiones y gasto de una campaña.
+   *
+   * Comprueba primero que la campaña EXISTE: sin eso, un identificador equivocado devolvería una
+   * lista vacía, que se lee como «esta campaña no tuvo ni una impresión» — la peor respuesta
+   * posible, porque parece un dato y es un error de tecleo.
+   */
+  async getCampaignPerformance(campaignId: string, query: CampaignPerformanceQueryDto) {
+    const campaign = await this.campaignsRepository.findById(campaignId);
+    if (!campaign) {
+      throw new NotFoundException({
+        code: 'CAMPAIGN_NOT_FOUND',
+        message: 'La campaña no existe.',
+      });
+    }
+    const rows = await this.reportingRepository.getCampaignPerformance(campaignId, query);
+    return {
+      campaignId,
+      groupBy: query.groupBy,
+      items: rows.map((row) => ({
+        bucket: row.bucket,
+        bucketLabel: row.bucketLabel,
+        impressions: Number(row.impressions),
+        clicks: Number(row.clicks),
+        conversions: Number(row.conversions),
+        billableEvents: Number(row.billableEvents),
+        spendMicros: Number(row.spendMicros),
+      })),
+    };
   }
 
   async createBillingProfile(
@@ -394,17 +427,7 @@ export class AdminAdsService {
     approvalStatus: string,
     nextStatus: string,
   ): void {
-    if (['ENDED', 'ARCHIVED'].includes(currentStatus) && nextStatus === 'ACTIVE') {
-      throw new ConflictException({
-        code: 'INVALID_CAMPAIGN_TRANSITION',
-        message: 'No se puede reactivar una campaña finalizada o archivada.',
-      });
-    }
-    if (nextStatus === 'ACTIVE' && approvalStatus !== 'APPROVED') {
-      throw new ConflictException({
-        code: 'CAMPAIGN_NOT_APPROVED',
-        message: 'No se puede activar una campaña sin aprobación de moderación.',
-      });
-    }
+    // Regla compartida con el portal del comercio: ver `ads.campaign-transitions.ts`.
+    assertCampaignTransition(currentStatus, approvalStatus, nextStatus);
   }
 }

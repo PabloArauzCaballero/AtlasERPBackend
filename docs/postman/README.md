@@ -4,7 +4,20 @@ Esta carpeta contiene la colección Postman del backend integrado ATLAS.
 
 ## Archivo principal
 
-- `collection.json`: colección actualizada para probar endpoints de CRM/Ventas B2B, contabilidad, publicidad externa, delivery Ads, endpoints BULK/BATCH y Business Action Logs.
+- `collection.json`: colección actualizada para probar endpoints de CRM/Ventas B2B, contabilidad, publicidad externa, delivery Ads, endpoints BULK/BATCH, Business Action Logs y Portal del comercio.
+
+## Portal del comercio
+
+La carpeta `06 - Portal del comercio` no funciona con `AUTH_DISABLED_FOR_LOCAL_TESTING=true`: el alcance del portal se resuelve contra `atlas_sales.merchant_users`, y el usuario local de pruebas no tiene membresías, así que todo responde `403 PORTAL_SCOPE_NOT_PROVISIONED`. Es el comportamiento correcto (fail-closed), no un error de configuración.
+
+Para ejercerla de verdad:
+
+```bash
+npm run db:seed:test-fixtures     # comercios Alfa y Beta, sucursales, facturas, anunciantes y campañas
+npm run dev:jwt merchant-alfa     # token del usuario partner del Comercio Alfa
+```
+
+Pega ese token en la variable `accessToken` y habilita el header `Authorization` de cada request.
 
 ## Pruebas locales sin token
 

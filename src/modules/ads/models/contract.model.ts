@@ -25,7 +25,7 @@ export class ContractModel extends Model {
     string | null;
   @Column({ type: DataType.STRING(30), allowNull: false, defaultValue: 'DRAFT' })
   declare status: string;
-  @Column({ field: 'approved_by', type: DataType.UUID, allowNull: true }) declare approvedBy:
+  @Column({ field: 'approved_by', type: DataType.STRING(64), allowNull: true }) declare approvedBy:
     string | null;
   @Column({ field: 'signed_at', type: DataType.DATE, allowNull: true })
   declare signedAt: Date | null;

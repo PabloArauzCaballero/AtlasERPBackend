@@ -8,6 +8,7 @@ import {
   AdvertiserAccountModel,
   CampaignModel,
   CreativeModel,
+  TargetSegmentModel,
   DeliveryDecisionModel,
   InventoryPlacementModel,
 } from '../models';
@@ -102,6 +103,11 @@ export class DeliveryRepository {
               include: [{ model: AdvertiserAccountModel, required: true }],
             },
             { model: InventoryPlacementModel, required: true, where: { id: placement.id } },
+            // El segmento viaja con el candidato para que la evaluación de audiencia ocurra en
+            // memoria, sobre un conjunto ya acotado, en vez de traducir la gramática de reglas a
+            // SQL. `required: false` es deliberado: un conjunto SIN segmento entrega a todos, y
+            // un INNER JOIN aquí lo dejaría fuera — que es el error contrario, y silencioso.
+            { model: TargetSegmentModel, required: false },
           ],
         },
       ],

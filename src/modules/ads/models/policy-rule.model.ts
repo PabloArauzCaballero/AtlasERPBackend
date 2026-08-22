@@ -19,7 +19,7 @@ export class PolicyRuleModel extends Model {
   @Column({ type: DataType.TEXT, allowNull: false }) declare description: string;
   @Column({ field: 'is_active', type: DataType.BOOLEAN, allowNull: false, defaultValue: true })
   declare isActive: boolean;
-  @Column({ field: 'created_by', type: DataType.UUID, allowNull: true }) declare createdBy:
+  @Column({ field: 'created_by', type: DataType.STRING(64), allowNull: true }) declare createdBy:
     string | null;
   @Column({ field: 'updated_by', type: DataType.UUID, allowNull: true }) declare updatedBy:
     string | null;

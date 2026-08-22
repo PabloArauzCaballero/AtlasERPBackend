@@ -88,6 +88,83 @@ export class EventsRepository {
     return this.eventModel.create(values, { transaction });
   }
 
+  /**
+   * Acumula el evento en `ad_daily_metrics`, la tabla agregada por día que existía desde la
+   * migración inicial y a la que NADIE escribía nunca: estaba declarada, registrada como modelo y
+   * vacía para siempre, de modo que cualquier informe construido sobre ella habría dicho que no
+   * hubo ni una impresión.
+   *
+   * Va en la MISMA transacción que el evento. Separarlas dejaría el agregado divergiendo del
+   * detalle en cada fallo parcial, y un contador de vistas que no cuadra con los eventos es peor
+   * que no tener contador: obliga a desconfiar de los dos.
+   *
+   * `ON CONFLICT` sobre la clave primaria (día + anunciante + campaña + conjunto + anuncio +
+   * espacio) hace la acumulación idempotente respecto a la fila, no al evento; la idempotencia del
+   * evento la garantiza antes `uq_ad_event_tracking_idempotency`.
+   */
+  async accumulateDailyMetric(
+    event: {
+      eventType: string;
+      advertiserId: string;
+      campaignId: string;
+      adSetId: string;
+      adId: string;
+      placementId: string | null;
+      costMicros: number;
+      isBillable: boolean;
+      eventTime: Date;
+    },
+    transaction: Transaction,
+  ): Promise<void> {
+    // La clave primaria incluye `placement_id`, y en PostgreSQL toda columna de la clave es NOT
+    // NULL aunque se declare nullable. Un evento sin espacio no puede agregarse, y perderlo en
+    // silencio sería justo lo que este método viene a arreglar: se registra y se sigue.
+    if (!event.placementId) {
+      this.logger.warn(
+        { adId: event.adId, eventType: event.eventType },
+        'Ad event without placement: daily metric not accumulated',
+      );
+      return;
+    }
+
+    await this.eventModel.sequelize!.query(
+      `INSERT INTO ad_daily_metrics (
+         metric_date, advertiser_id, campaign_id, ad_set_id, ad_id, placement_id,
+         impressions, clicks, conversions, billable_events, spend_micros, updated_at
+       ) VALUES (
+         (:eventTime::timestamptz)::date, :advertiserId, :campaignId, :adSetId, :adId, :placementId,
+         :impressions, :clicks, :conversions, :billableEvents, :spendMicros, now()
+       )
+       ON CONFLICT (metric_date, advertiser_id, campaign_id, ad_set_id, ad_id, placement_id)
+       DO UPDATE SET
+         impressions = ad_daily_metrics.impressions + EXCLUDED.impressions,
+         clicks = ad_daily_metrics.clicks + EXCLUDED.clicks,
+         conversions = ad_daily_metrics.conversions + EXCLUDED.conversions,
+         billable_events = ad_daily_metrics.billable_events + EXCLUDED.billable_events,
+         spend_micros = ad_daily_metrics.spend_micros + EXCLUDED.spend_micros,
+         updated_at = now()`,
+      {
+        type: QueryTypes.INSERT,
+        transaction,
+        replacements: {
+          eventTime: event.eventTime.toISOString(),
+          advertiserId: event.advertiserId,
+          campaignId: event.campaignId,
+          adSetId: event.adSetId,
+          adId: event.adId,
+          placementId: event.placementId,
+          impressions: event.eventType === 'IMPRESSION' ? 1 : 0,
+          clicks: event.eventType === 'CLICK' ? 1 : 0,
+          conversions: event.eventType === 'CONVERSION' ? 1 : 0,
+          billableEvents: event.isBillable ? 1 : 0,
+          // Sólo el gasto FACTURABLE suma: un evento marcado como fraude no se cobra, y sumarlo
+          // aquí haría que el informe del anunciante no cuadrara con su factura.
+          spendMicros: event.isBillable ? event.costMicros : 0,
+        },
+      },
+    );
+  }
+
   updateEventBillableStatus(
     event: AdEventModel,
     isBillable: boolean,

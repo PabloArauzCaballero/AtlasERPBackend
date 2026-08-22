@@ -1,6 +1,11 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
-import { WhereOptions } from 'sequelize';
+import { Op, QueryTypes, Transaction } from 'sequelize';
 import { Sequelize } from 'sequelize-typescript';
 import {
   B2BAccountModel,
@@ -11,15 +16,66 @@ import {
   MerchantSubscriptionModel,
 } from '../b2b-sales-crm/models/b2b-sales-crm.models';
 import { AdvertiserAccountModel, CampaignModel } from '../ads/models';
-import { AuthUser } from '../../common/types/auth-context.types';
+import { AdsAuditService } from '../ads/services/audit.service';
+import { assertCampaignTransition } from '../ads/ads.campaign-transitions';
+import { BusinessActionLogsService } from '../business-action-logs/business-action-logs.service';
 import { PinoLoggerService } from '../../common/logging/pino-logger.service';
-import { BranchesQueryDto, CreatePlanDto, SubscribeDto } from './portal.schemas';
+import { computePeriodEnd } from '../../common/time/billing-period.util';
+import { normalizeAmount } from '../../common/money/decimal-amount.util';
+import type { AuthUser } from '../../common/types/auth-context.types';
+import {
+  PORTAL_BILLING_DOCUMENT_LIMIT,
+  PORTAL_MODULE_CODE,
+  PORTAL_SUBSCRIBABLE_ACCOUNT_STATUSES,
+  PORTAL_TOGGLEABLE_CAMPAIGN_STATUSES,
+} from './portal.constants';
+import {
+  toAdvertiserDto,
+  toBranchDto,
+  toCampaignDto,
+  toInvoiceDto,
+  toPlanDto,
+  toReceivableDto,
+  toSubscriptionDto,
+  type PortalAdvertiserDto,
+  type PortalBranchDto,
+  type PortalCampaignDto,
+  type PortalPlanDto,
+  type PortalSubscriptionDto,
+} from './portal.mappers';
+import { PortalScopeService, type PortalScope } from './portal.scope.service';
+import type {
+  AdvertisersQueryDto,
+  BranchesQueryDto,
+  CampaignsQueryDto,
+  CreatePlanDto,
+  PlansQueryDto,
+  SetCampaignStatusDto,
+  SubscribeDto,
+} from './portal.schemas';
+
+/** Contexto del llamador ya resuelto: identidad + correlador + alcance por tenant. */
+export interface PortalActor {
+  user: AuthUser;
+  requestId: string;
+  scope: PortalScope;
+}
+
+interface BillingTotalsRow {
+  invoice_count: string;
+  invoiced_total: string;
+  open_receivable_count: string;
+  open_total: string;
+}
 
 @Injectable()
 export class PortalService {
   constructor(
     private readonly sequelize: Sequelize,
     private readonly logger: PinoLoggerService,
+    private readonly scopeService: PortalScopeService,
+    private readonly adsAuditService: AdsAuditService,
+    private readonly businessActionLogs: BusinessActionLogsService,
     @InjectModel(MerchantPlanModel) private readonly planModel: typeof MerchantPlanModel,
     @InjectModel(MerchantSubscriptionModel)
     private readonly subscriptionModel: typeof MerchantSubscriptionModel,
@@ -33,149 +89,544 @@ export class PortalService {
     @InjectModel(CampaignModel) private readonly campaignModel: typeof CampaignModel,
   ) {}
 
-  listPlans() {
-    return this.planModel.findAll({
-      where: { status: 'ACTIVE' } as WhereOptions,
+  /** Resuelve el alcance del llamador. Punto de entrada obligatorio de todos los endpoints. */
+  resolveScope(user: AuthUser): Promise<PortalScope> {
+    return this.scopeService.resolveScope(user);
+  }
+
+  // ------------------------------------------------------------------ Planes
+
+  async listPlans(query: PlansQueryDto): Promise<PortalPlanDto[]> {
+    const plans = await this.planModel.findAll({
+      where: query.includeInactive === 'true' ? {} : { status: 'ACTIVE' },
       order: [
         ['sortOrder', 'ASC'],
         ['monthlyPrice', 'ASC'],
+        ['code', 'ASC'],
       ],
-    });
-  }
-
-  createPlan(input: CreatePlanDto) {
-    this.logger.infoContext(PortalService.name, 'Creando plan merchant', { code: input.code });
-    return this.planModel.create(input as unknown as Record<string, unknown>);
-  }
-
-  getSubscription(merchantAccountId: string) {
-    return this.subscriptionModel.findOne({
-      where: { merchantAccountId, status: 'ACTIVE' } as WhereOptions,
-      include: [{ model: MerchantPlanModel }],
-      order: [['startedAt', 'DESC']],
-    });
-  }
-
-  async subscribe(input: SubscribeDto, user: AuthUser) {
-    const account = await this.accountModel.findByPk(input.merchantAccountId);
-    if (!account) {
-      throw new NotFoundException('Cuenta merchant no encontrada.');
-    }
-    const plan = await this.planModel.findByPk(input.planId);
-    if (!plan || plan.status !== 'ACTIVE') {
-      throw new NotFoundException('Plan no encontrado o inactivo.');
-    }
-
-    this.logger.infoContext(PortalService.name, 'Selección de plan merchant', {
-      merchantAccountId: input.merchantAccountId,
-      planId: input.planId,
+      limit: query.limit,
+      offset: (query.page - 1) * query.limit,
     });
 
+    return plans.map((plan) => toPlanDto(plan));
+  }
+
+  /**
+   * Alta de un plan comercial. Es dato maestro de precio: se valida la unicidad del código antes
+   * de insertar para devolver un conflicto de dominio en vez de un error de restricción, y queda
+   * registrado en la bitácora de acciones de negocio.
+   */
+  async createPlan(input: CreatePlanDto, actor: PortalActor): Promise<PortalPlanDto> {
     return this.sequelize.transaction(async (transaction) => {
-      // Cierra cualquier suscripción activa previa (una sola ACTIVE por comercio).
-      await this.subscriptionModel.update(
-        { status: 'REPLACED' },
-        {
-          where: { merchantAccountId: input.merchantAccountId, status: 'ACTIVE' } as WhereOptions,
-          transaction,
-        },
-      );
+      const existing = await this.planModel.findOne({
+        where: { code: input.code },
+        transaction,
+      });
+      if (existing) {
+        throw new ConflictException({
+          code: 'MERCHANT_PLAN_CODE_TAKEN',
+          message: `Ya existe un plan con el código ${input.code}.`,
+        });
+      }
 
-      const periodEnd = new Date();
-      periodEnd.setMonth(periodEnd.getMonth() + 1);
-
-      const subscription = await this.subscriptionModel.create(
+      const plan = await this.planModel.create(
         {
-          merchantAccountId: input.merchantAccountId,
-          planId: input.planId,
+          code: input.code,
+          name: input.name,
+          description: input.description ?? null,
+          tier: input.tier,
+          monthlyPrice: normalizeAmount(input.monthlyPrice),
+          currency: input.currency,
+          features: input.features,
           status: 'ACTIVE',
-          autoRenew: input.autoRenew,
-          startedAt: new Date(),
-          currentPeriodEnd: periodEnd,
-          selectedByUserId: user?.sub ?? null,
+          sortOrder: input.sortOrder,
         },
         { transaction },
       );
 
-      return this.subscriptionModel.findByPk(subscription.id, {
-        include: [{ model: MerchantPlanModel }],
+      await this.businessActionLogs.record({
+        moduleCode: PORTAL_MODULE_CODE,
+        businessProcess: 'MERCHANT_PLAN_ADMINISTRATION',
+        actionCode: 'CREATE_MERCHANT_PLAN',
+        actorUserId: actor.user.sub,
+        actorRole: actor.user.role ?? null,
+        aggregateType: 'MERCHANT_PLAN',
+        aggregateId: plan.id,
+        requestId: actor.requestId,
+        affectedTables: ['atlas_sales.merchant_plans'],
+        affectedRecordCount: 1,
+        status: 'SUCCESS',
+        inputSummary: {
+          code: input.code,
+          tier: input.tier,
+          monthlyPrice: normalizeAmount(input.monthlyPrice),
+          currency: input.currency,
+        },
+        outputSummary: { planId: plan.id },
         transaction,
       });
+
+      this.logger.infoContext(PortalService.name, 'Plan merchant creado', {
+        planId: plan.id,
+        code: input.code,
+        userId: actor.user.sub,
+        requestId: actor.requestId,
+      });
+
+      return toPlanDto(plan);
     });
   }
 
-  listBranches(query: BranchesQueryDto) {
-    return this.branchModel.findAll({
-      where: { accountId: query.accountId } as WhereOptions,
+  // ----------------------------------------------------------- Suscripciones
+
+  async getSubscription(
+    scope: PortalScope,
+    requestedAccountId?: string,
+  ): Promise<PortalSubscriptionDto | null> {
+    const merchantAccountId = this.scopeService.resolveAccountId(scope, requestedAccountId);
+    const subscription = await this.findActiveSubscription(merchantAccountId);
+    return toSubscriptionDto(subscription);
+  }
+
+  /**
+   * Selección o cambio de plan.
+   *
+   * La cuenta se bloquea con `SELECT ... FOR UPDATE` durante toda la transacción: sin ese candado
+   * dos peticiones concurrentes pasan ambas por el `UPDATE` de cierre sin ver filas y ambas
+   * insertan, dejando el resultado a merced del índice único parcial (error de restricción crudo)
+   * o, si el índice se cayera, dos suscripciones activas y doble cobro mensual.
+   */
+  async subscribe(input: SubscribeDto, actor: PortalActor): Promise<PortalSubscriptionDto> {
+    const merchantAccountId = this.scopeService.resolveAccountId(
+      actor.scope,
+      input.merchantAccountId,
+    );
+
+    return this.sequelize.transaction(async (transaction) => {
+      const account = await this.accountModel.findByPk(merchantAccountId, {
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!account) {
+        throw new NotFoundException({
+          code: 'MERCHANT_ACCOUNT_NOT_FOUND',
+          message: 'Cuenta merchant no encontrada.',
+        });
+      }
+      if (
+        !(PORTAL_SUBSCRIBABLE_ACCOUNT_STATUSES as readonly string[]).includes(
+          account.lifecycleStatus,
+        )
+      ) {
+        throw new ConflictException({
+          code: 'MERCHANT_ACCOUNT_NOT_SUBSCRIBABLE',
+          message: `Una cuenta en estado ${account.lifecycleStatus} no puede contratar planes.`,
+        });
+      }
+
+      const plan = await this.planModel.findByPk(input.planId, { transaction });
+      if (!plan || plan.status !== 'ACTIVE') {
+        throw new NotFoundException({
+          code: 'MERCHANT_PLAN_NOT_AVAILABLE',
+          message: 'Plan no encontrado o inactivo.',
+        });
+      }
+
+      const now = new Date();
+      const previous = await this.subscriptionModel.findOne({
+        where: { merchantAccountId, status: 'ACTIVE' },
+        transaction,
+      });
+
+      if (previous && previous.planId === input.planId && previous.autoRenew === input.autoRenew) {
+        // Reintento idempotente: el comercio ya está en ese plan con la misma renovación.
+        this.logger.infoContext(PortalService.name, 'Selección de plan sin cambios', {
+          merchantAccountId,
+          planId: input.planId,
+          userId: actor.user.sub,
+          requestId: actor.requestId,
+        });
+        return this.loadSubscriptionDto(previous.id, transaction);
+      }
+
+      const closedCount = await this.subscriptionModel.update(
+        { status: 'REPLACED', endedAt: now, endedByUserId: actor.user.sub, updatedAt: now },
+        { where: { merchantAccountId, status: 'ACTIVE' }, transaction },
+      );
+
+      const subscription = await this.subscriptionModel.create(
+        {
+          merchantAccountId,
+          planId: input.planId,
+          status: 'ACTIVE',
+          autoRenew: input.autoRenew,
+          startedAt: now,
+          currentPeriodEnd: computePeriodEnd(now),
+          selectedByUserId: actor.user.sub,
+          endedAt: null,
+          endedByUserId: null,
+          createdAt: now,
+          updatedAt: now,
+        },
+        { transaction },
+      );
+
+      await this.businessActionLogs.record({
+        moduleCode: PORTAL_MODULE_CODE,
+        businessProcess: 'MERCHANT_SUBSCRIPTION',
+        actionCode: previous ? 'CHANGE_MERCHANT_PLAN' : 'SELECT_MERCHANT_PLAN',
+        actorUserId: actor.user.sub,
+        actorRole: actor.user.role ?? null,
+        aggregateType: 'MERCHANT_SUBSCRIPTION',
+        aggregateId: subscription.id,
+        correlationId: merchantAccountId,
+        requestId: actor.requestId,
+        affectedTables: ['atlas_sales.merchant_subscriptions'],
+        affectedRecordCount: (closedCount[0] ?? 0) + 1,
+        status: 'SUCCESS',
+        inputSummary: {
+          merchantAccountId,
+          planId: input.planId,
+          autoRenew: input.autoRenew,
+          delegated: actor.scope.isInternalOperator,
+        },
+        outputSummary: {
+          subscriptionId: subscription.id,
+          previousSubscriptionId: previous?.id ?? null,
+          currentPeriodEnd: subscription.currentPeriodEnd?.toISOString() ?? null,
+        },
+        transaction,
+      });
+
+      this.logger.infoContext(PortalService.name, 'Plan merchant contratado', {
+        merchantAccountId,
+        planId: input.planId,
+        subscriptionId: subscription.id,
+        replacedSubscriptions: closedCount[0] ?? 0,
+        userId: actor.user.sub,
+        requestId: actor.requestId,
+      });
+
+      return this.loadSubscriptionDto(subscription.id, transaction);
+    });
+  }
+
+  // -------------------------------------------------------------- Sucursales
+
+  async listBranches(scope: PortalScope, query: BranchesQueryDto): Promise<PortalBranchDto[]> {
+    const accountId = this.scopeService.resolveAccountId(scope, query.accountId);
+    const branches = await this.branchModel.findAll({
+      where: { accountId },
       order: [['name', 'ASC']],
+      limit: query.limit,
+      offset: (query.page - 1) * query.limit,
     });
+
+    return branches.map((branch) => toBranchDto(branch));
   }
 
-  /** Panel de consumo/facturación del comercio: suscripción, facturas, cobros y totales. */
-  async getBillingPanel(merchantAccountId: string) {
-    const [subscription, invoices, receivables] = await Promise.all([
-      this.getSubscription(merchantAccountId),
+  // ------------------------------------------------------- Panel de consumo
+
+  /**
+   * Panel de consumo y facturación del comercio.
+   *
+   * Los totales se calculan en la base sobre el universo completo de documentos y con aritmética
+   * `numeric`, no sumando en JavaScript la página devuelta: la versión anterior acumulaba en coma
+   * flotante solo las primeras 100 filas y presentaba ese resultado como "monto acumulado", lo que
+   * subdeclaraba el facturado y el saldo abierto de cualquier comercio con historial.
+   */
+  async getBillingPanel(scope: PortalScope, requestedAccountId?: string) {
+    const merchantAccountId = this.scopeService.resolveAccountId(scope, requestedAccountId);
+
+    const [subscription, invoices, receivables, totals] = await Promise.all([
+      this.findActiveSubscription(merchantAccountId),
       this.invoiceModel.findAll({
-        where: { accountId: merchantAccountId } as WhereOptions,
-        order: [['invoiceDate', 'DESC']],
-        limit: 100,
+        where: { accountId: merchantAccountId },
+        order: [
+          ['invoiceDate', 'DESC'],
+          ['id', 'DESC'],
+        ],
+        limit: PORTAL_BILLING_DOCUMENT_LIMIT,
       }),
       this.receivableModel.findAll({
-        where: { accountId: merchantAccountId } as WhereOptions,
-        order: [['issuedAt', 'DESC']],
-        limit: 100,
+        where: { accountId: merchantAccountId },
+        order: [
+          ['issuedAt', 'DESC'],
+          ['id', 'DESC'],
+        ],
+        limit: PORTAL_BILLING_DOCUMENT_LIMIT,
       }),
+      this.loadBillingTotals(merchantAccountId),
     ]);
 
-    const invoicedTotal = invoices.reduce((sum, row) => sum + Number(row.totalAmount ?? 0), 0);
-    const openTotal = receivables.reduce((sum, row) => sum + Number(row.amountOpen ?? 0), 0);
+    const subscriptionDto = toSubscriptionDto(subscription);
 
     return {
-      subscription,
-      invoices,
-      receivables,
+      merchantAccountId,
+      subscription: subscriptionDto,
+      invoices: invoices.map((invoice) => toInvoiceDto(invoice)),
+      receivables: receivables.map((receivable) => toReceivableDto(receivable)),
+      documentLimit: PORTAL_BILLING_DOCUMENT_LIMIT,
       summary: {
-        invoiceCount: invoices.length,
-        invoicedTotal,
-        openReceivableCount: receivables.filter((row) => Number(row.amountOpen ?? 0) > 0).length,
-        openTotal,
-        monthlyPlanPrice: subscription?.plan ? Number(subscription.plan.monthlyPrice ?? 0) : 0,
-        planName: subscription?.plan?.name ?? null,
+        invoiceCount: totals.invoiceCount,
+        invoicedTotal: totals.invoicedTotal,
+        openReceivableCount: totals.openReceivableCount,
+        openTotal: totals.openTotal,
+        monthlyPlanPrice: subscriptionDto?.plan?.monthlyPrice ?? '0.00',
+        planName: subscriptionDto?.plan?.name ?? null,
+        currency: subscriptionDto?.plan?.currency ?? null,
       },
     };
   }
 
-  // ---- Control acotado de campañas del comercio ----
+  // ---------------------------------------------- Publicidad del comercio
 
-  listAdvertisers() {
-    return this.advertiserModel.findAll({ order: [['tradeName', 'ASC']] });
+  async listAdvertisers(
+    scope: PortalScope,
+    query: AdvertisersQueryDto,
+  ): Promise<PortalAdvertiserDto[]> {
+    const advertiserIds = await this.scopeService.resolveAccessibleAdvertiserIds(
+      scope,
+      query.merchantAccountId,
+    );
+
+    // `null` = staff interno sin cuenta indicada: sin filtro de propiedad, con tope de página.
+    if (advertiserIds !== null && advertiserIds.length === 0) return [];
+
+    const advertisers = await this.advertiserModel.findAll({
+      ...(advertiserIds === null ? {} : { where: { id: { [Op.in]: advertiserIds } } }),
+      order: [['tradeName', 'ASC']],
+      limit: query.limit,
+      offset: (query.page - 1) * query.limit,
+    });
+
+    return advertisers.map((advertiser) => toAdvertiserDto(advertiser));
   }
 
-  listCampaigns(advertiserId: string) {
-    return this.campaignModel.findAll({
-      where: { advertiserId } as WhereOptions,
+  async listCampaigns(scope: PortalScope, query: CampaignsQueryDto): Promise<PortalCampaignDto[]> {
+    await this.scopeService.assertAdvertiserAccess(scope, query.advertiserId);
+
+    const campaigns = await this.campaignModel.findAll({
+      where: { advertiserId: query.advertiserId },
       order: [['createdAt', 'DESC']],
+      limit: query.limit,
+      offset: (query.page - 1) * query.limit,
+    });
+
+    return campaigns.map((campaign) =>
+      toCampaignDto(campaign, this.isCampaignToggleable(campaign)),
+    );
+  }
+
+  /**
+   * Encendido/apagado de una campaña por el comercio.
+   *
+   * Es la única mutación del portal sobre un agregado facturable de publicidad, así que replica
+   * las garantías de la consola administrativa y añade las propias del canal:
+   *
+   * 1. Propiedad del anunciante (`PortalScopeService`), antes de tocar nada.
+   * 2. Anunciante habilitado: `status = ACTIVE` y `risk_status <> BLOCKED`.
+   * 3. Solo campañas ya lanzadas (`ACTIVE`/`PAUSED`); el alta y la edición siguen siendo internas.
+   * 4. Las invariantes compartidas de transición — en particular, jamás activar sin aprobación
+   *    de moderación.
+   * 5. Al reactivar: presupuesto no agotado y campaña dentro de su ventana de vigencia.
+   * 6. Bloqueo de fila, `ad_audit_log` y bitácora de acciones de negocio en la misma transacción.
+   */
+  async setCampaignStatus(
+    campaignId: string,
+    input: SetCampaignStatusDto,
+    actor: PortalActor,
+  ): Promise<PortalCampaignDto> {
+    return this.sequelize.transaction(async (transaction) => {
+      const campaign = await this.campaignModel.findByPk(campaignId, {
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!campaign) {
+        throw new NotFoundException({
+          code: 'CAMPAIGN_NOT_FOUND',
+          message: 'Campaña no encontrada.',
+        });
+      }
+
+      await this.scopeService.assertAdvertiserAccess(
+        actor.scope,
+        campaign.advertiserId,
+        transaction,
+      );
+
+      const before = campaign.get({ plain: true }) as Record<string, unknown>;
+      const advertiser = await this.advertiserModel.findByPk(campaign.advertiserId, {
+        transaction,
+      });
+      this.assertAdvertiserCanDeliver(advertiser);
+      this.assertCampaignIsToggleable(campaign);
+      assertCampaignTransition(campaign.status, campaign.approvalStatus, input.status);
+      if (input.status === 'ACTIVE') this.assertCampaignCanResume(campaign);
+
+      if (campaign.status === input.status) {
+        // Idempotente: el estado deseado ya es el actual, no se genera ruido de auditoría.
+        return toCampaignDto(campaign, this.isCampaignToggleable(campaign));
+      }
+
+      await campaign.update({ status: input.status }, { transaction });
+
+      const reason =
+        input.reason ??
+        `Cambio de estado ${campaign.status} desde el portal del comercio por el usuario ${actor.user.sub}.`;
+
+      const audit = await this.adsAuditService.record({
+        actor: { user: actor.user, requestId: actor.requestId },
+        actorType: actor.scope.isInternalOperator ? 'INTERNAL_ATLAS_USER' : 'MERCHANT_PORTAL_USER',
+        entityType: 'CAMPAIGN',
+        entityId: campaign.id,
+        action: 'PORTAL_UPDATE_CAMPAIGN_STATUS',
+        reason,
+        severity: input.status === 'PAUSED' ? 'HIGH' : 'MEDIUM',
+        before,
+        after: campaign.get({ plain: true }) as Record<string, unknown>,
+        transaction,
+      });
+
+      await this.businessActionLogs.record({
+        moduleCode: PORTAL_MODULE_CODE,
+        businessProcess: 'MERCHANT_CAMPAIGN_CONTROL',
+        actionCode: 'PORTAL_UPDATE_CAMPAIGN_STATUS',
+        actorUserId: actor.user.sub,
+        actorRole: actor.user.role ?? null,
+        aggregateType: 'CAMPAIGN',
+        aggregateId: campaign.id,
+        correlationId: campaign.advertiserId,
+        requestId: actor.requestId,
+        affectedTables: ['ad_campaigns', 'ad_audit_log'],
+        affectedRecordCount: 2,
+        status: 'SUCCESS',
+        inputSummary: {
+          from: before.status ?? null,
+          to: input.status,
+          delegated: actor.scope.isInternalOperator,
+        },
+        outputSummary: { campaignId: campaign.id, auditId: audit.auditId },
+        transaction,
+      });
+
+      this.logger.infoContext(PortalService.name, 'Cambio de estado de campaña desde el portal', {
+        campaignId: campaign.id,
+        advertiserId: campaign.advertiserId,
+        from: before.status ?? null,
+        to: input.status,
+        userId: actor.user.sub,
+        requestId: actor.requestId,
+        auditId: audit.auditId,
+      });
+
+      return toCampaignDto(campaign, this.isCampaignToggleable(campaign));
     });
   }
 
-  /** El comercio solo puede prender/apagar campañas ya lanzadas (ACTIVE↔PAUSED). */
-  async setCampaignStatus(id: string, status: 'ACTIVE' | 'PAUSED') {
-    const campaign = await this.campaignModel.findByPk(id);
-    if (!campaign) {
-      throw new NotFoundException('Campaña no encontrada.');
-    }
-    if (!['ACTIVE', 'PAUSED'].includes(campaign.status)) {
-      throw new BadRequestException({
-        code: 'CAMPAIGN_NOT_TOGGLEABLE',
-        message: 'Solo se pueden prender/apagar campañas ya lanzadas (activas o pausadas).',
+  // ----------------------------------------------------------------- Apoyo
+
+  private findActiveSubscription(
+    merchantAccountId: string,
+    transaction?: Transaction,
+  ): Promise<MerchantSubscriptionModel | null> {
+    return this.subscriptionModel.findOne({
+      where: { merchantAccountId, status: 'ACTIVE' },
+      include: [{ model: MerchantPlanModel }],
+      order: [['startedAt', 'DESC']],
+      transaction,
+    });
+  }
+
+  private async loadSubscriptionDto(
+    subscriptionId: string,
+    transaction: Transaction,
+  ): Promise<PortalSubscriptionDto> {
+    const subscription = await this.subscriptionModel.findByPk(subscriptionId, {
+      include: [{ model: MerchantPlanModel }],
+      transaction,
+    });
+    const dto = toSubscriptionDto(subscription);
+    if (!dto) {
+      throw new NotFoundException({
+        code: 'MERCHANT_SUBSCRIPTION_NOT_FOUND',
+        message: 'No se pudo recuperar la suscripción recién registrada.',
       });
     }
-    this.logger.infoContext(PortalService.name, 'Cambio de estado de campaña por comercio', {
-      campaignId: id,
-      from: campaign.status,
-      to: status,
+    return dto;
+  }
+
+  private async loadBillingTotals(merchantAccountId: string): Promise<{
+    invoiceCount: number;
+    invoicedTotal: string;
+    openReceivableCount: number;
+    openTotal: string;
+  }> {
+    const [row] = await this.sequelize.query<BillingTotalsRow>(
+      `SELECT
+         (SELECT count(*) FROM atlas_sales.merchant_invoices WHERE account_id = $1) AS invoice_count,
+         (SELECT coalesce(sum(total_amount), 0) FROM atlas_sales.merchant_invoices WHERE account_id = $1) AS invoiced_total,
+         (SELECT count(*) FROM atlas_sales.merchant_receivables WHERE account_id = $1 AND amount_open > 0) AS open_receivable_count,
+         (SELECT coalesce(sum(amount_open), 0) FROM atlas_sales.merchant_receivables WHERE account_id = $1) AS open_total`,
+      { bind: [merchantAccountId], type: QueryTypes.SELECT },
+    );
+
+    return {
+      invoiceCount: Number(row?.invoice_count ?? 0),
+      invoicedTotal: normalizeAmount(row?.invoiced_total ?? '0'),
+      openReceivableCount: Number(row?.open_receivable_count ?? 0),
+      openTotal: normalizeAmount(row?.open_total ?? '0'),
+    };
+  }
+
+  private isCampaignToggleable(campaign: CampaignModel): boolean {
+    return (PORTAL_TOGGLEABLE_CAMPAIGN_STATUSES as readonly string[]).includes(campaign.status);
+  }
+
+  private assertCampaignIsToggleable(campaign: CampaignModel): void {
+    if (this.isCampaignToggleable(campaign)) return;
+    throw new ConflictException({
+      code: 'CAMPAIGN_NOT_TOGGLEABLE',
+      message: 'Solo se pueden prender/apagar campañas ya lanzadas (activas o pausadas).',
     });
-    await campaign.update({ status });
-    return campaign;
+  }
+
+  private assertAdvertiserCanDeliver(advertiser: AdvertiserAccountModel | null): void {
+    if (!advertiser) {
+      throw new NotFoundException({
+        code: 'ADVERTISER_NOT_FOUND',
+        message: 'El anunciante de la campaña no existe.',
+      });
+    }
+    if (advertiser.status !== 'ACTIVE') {
+      throw new ForbiddenException({
+        code: 'ADVERTISER_NOT_ACTIVE',
+        message: `El anunciante está en estado ${advertiser.status} y no puede operar campañas.`,
+      });
+    }
+    if (advertiser.riskStatus === 'BLOCKED') {
+      throw new ForbiddenException({
+        code: 'ADVERTISER_RISK_BLOCKED',
+        message: 'El anunciante está bloqueado por riesgo. Contacta a tu ejecutivo comercial.',
+      });
+    }
+  }
+
+  private assertCampaignCanResume(campaign: CampaignModel): void {
+    const budgetTotal = BigInt(String(campaign.budgetTotalMicros ?? 0));
+    const spendTotal = BigInt(String(campaign.spendTotalMicros ?? 0));
+    if (budgetTotal > 0n && spendTotal >= budgetTotal) {
+      throw new ConflictException({
+        code: 'CAMPAIGN_BUDGET_EXHAUSTED',
+        message: 'La campaña agotó su presupuesto total y no puede reactivarse.',
+      });
+    }
+
+    if (campaign.endsAt && new Date(campaign.endsAt).getTime() <= Date.now()) {
+      throw new ConflictException({
+        code: 'CAMPAIGN_SCHEDULE_EXPIRED',
+        message: 'La campaña terminó su ventana de vigencia y no puede reactivarse.',
+      });
+    }
   }
 }

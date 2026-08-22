@@ -1,10 +1,22 @@
 import { mkdirSync, writeFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { sign } from 'jsonwebtoken';
-import { PinoLoggerService } from '../../src/common/logger/pino-logger.service';
+import pino from 'pino';
+import { resolveSmokeBaseUrl } from './smoke-base-url';
 
-const logger = new PinoLoggerService();
-const baseUrl = process.env.API_BASE_URL ?? 'http://localhost:3000/api/v1';
+/**
+ * Logger PROPIO del smoke, no el de la aplicación.
+ *
+ * Importar `PinoLoggerService` arrastraba `src/config/env`, que valida el entorno COMPLETO del
+ * servidor: un script cuyo único trabajo es hacer peticiones HTTP contra una API remota se negaba
+ * a arrancar por no tener `DATABASE_URL` ni `CORS_ALLOWED_ORIGINS` —dos valores que no necesita y
+ * que en la máquina de quien corre el smoke no tienen por qué existir—.
+ *
+ * Los demás smokes de este repositorio ya usan `pino` directamente; éste era el único que se
+ * ataba al arranque de la app, y por eso era el único que no podía correr.
+ */
+const logger = pino({ name: 'atlas-accounting-smoke' });
+const baseUrl = resolveSmokeBaseUrl();
 const jwtSecret = process.env.JWT_ACCESS_SECRET ?? 'change-this-secret-in-production';
 const outputPath = process.env.SMOKE_OUTPUT_PATH ?? join(__dirname, 'accounting-smoke-result.json');
 
@@ -48,17 +60,20 @@ async function requestStep(
     const durationMs = Date.now() - startedAt;
     const ok = expectedStatuses.includes(response.status);
 
-    logger.info('Smoke step ejecutado.', {
-      layer: 'script',
-      script: 'accounting-smoke',
-      name,
-      method,
-      path,
-      expectedStatuses,
-      actualStatus: response.status,
-      ok,
-      durationMs,
-    });
+    logger.info(
+      {
+        layer: 'script',
+        script: 'accounting-smoke',
+        name,
+        method,
+        path,
+        expectedStatuses,
+        actualStatus: response.status,
+        ok,
+        durationMs,
+      },
+      'Smoke step ejecutado.',
+    );
 
     return {
       name,
@@ -72,15 +87,18 @@ async function requestStep(
     };
   } catch (error) {
     const durationMs = Date.now() - startedAt;
-    logger.error('Smoke step falló por error de red o runtime.', {
-      layer: 'script',
-      script: 'accounting-smoke',
-      name,
-      method,
-      path,
-      error,
-      durationMs,
-    });
+    logger.error(
+      {
+        layer: 'script',
+        script: 'accounting-smoke',
+        name,
+        method,
+        path,
+        error,
+        durationMs,
+      },
+      'Smoke step falló por error de red o runtime.',
+    );
 
     return {
       name,
@@ -106,19 +124,24 @@ function parseBody(value: string): unknown {
 function saveReport(report: SmokeReport): void {
   mkdirSync(dirname(outputPath), { recursive: true });
   writeFileSync(outputPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
-  logger.info('Resultado de smoke guardado.', {
-    layer: 'script',
-    script: 'accounting-smoke',
-    outputPath,
-    success: report.success,
-    failedSteps: report.failedSteps,
-  });
+  logger.info(
+    {
+      layer: 'script',
+      script: 'accounting-smoke',
+      outputPath,
+      success: report.success,
+      failedSteps: report.failedSteps,
+    },
+    'Resultado de smoke guardado.',
+  );
 }
 
 async function main(): Promise<void> {
   const startedAt = new Date().toISOString();
   const token = sign({ sub: '00000000-0000-0000-0000-000000000001', role: 'admin' }, jwtSecret, {
     expiresIn: '15m',
+    issuer: process.env.JWT_ACCESS_ISSUER ?? 'atlas-erp',
+    audience: process.env.JWT_ACCESS_AUDIENCE ?? 'atlas-erp-api',
   });
 
   const uniqueSuffix = Date.now();
@@ -190,10 +213,13 @@ void main().catch((error) => {
     ],
   };
   saveReport(report);
-  logger.error('Smoke detenido por error fatal.', {
-    layer: 'script',
-    script: 'accounting-smoke',
-    error,
-  });
+  logger.error(
+    {
+      layer: 'script',
+      script: 'accounting-smoke',
+      error,
+    },
+    'Smoke detenido por error fatal.',
+  );
   process.exitCode = 1;
 });

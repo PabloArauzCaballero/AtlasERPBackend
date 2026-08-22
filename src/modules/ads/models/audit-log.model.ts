@@ -10,8 +10,8 @@ import { Column, DataType, Model, Table } from 'sequelize-typescript';
 export class AuditLogModel extends Model {
   @Column({ type: DataType.UUID, primaryKey: true, defaultValue: DataType.UUIDV4 })
   declare id: string;
-  @Column({ field: 'actor_user_id', type: DataType.UUID, allowNull: true }) declare actorUserId:
-    string | null;
+  @Column({ field: 'actor_user_id', type: DataType.STRING(64), allowNull: true })
+  declare actorUserId: string | null;
   @Column({ field: 'actor_type', type: DataType.STRING(40), allowNull: false })
   declare actorType: string;
   @Column({ field: 'entity_type', type: DataType.STRING(80), allowNull: false })

@@ -1,3 +1,16 @@
+-- Plan de cuentas MÍNIMO. **No es el que se siembra por defecto** — ver `db:seed:accounting`.
+--
+-- Son 42 cuentas sin jerarquía, pensadas para arrancar el módulo contable en una prueba local sin
+-- cargar el plan completo. El plan real de ATLAS Bolivia son 1122 cuentas con su árbol, sus
+-- mayores, sus períodos y sus reglas de contabilización, y vive en
+-- `official/atlas_official_bootstrap_seeds.json`.
+--
+-- Durante un tiempo ESTE archivo era lo que corría `yarn db:seed`, y el efecto medido era que una
+-- instalación nueva quedaba con 42 cuentas, **cero mayores y cero períodos**: el módulo contable no
+-- podía registrar un solo asiento, y el plan completo sólo entraba si alguien recordaba
+-- `db:seed:official`. Se conserva como `db:seed:accounting:minimal` porque sigue siendo útil para
+-- una prueba acotada, pero ya no es el camino por defecto.
+
 SET search_path TO atlas_accounting;
 
 INSERT INTO chart_of_accounts (code, name, version_no, effective_from, status)

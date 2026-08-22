@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { createHmac } from 'node:crypto';
 import { z } from 'zod';
 
 const commaSeparatedList = (value: string): string[] =>
@@ -46,6 +47,24 @@ const envSchema = z
       .enum(['true', 'false'])
       .default('false')
       .transform((value) => value === 'true'),
+    /**
+     * Validar el certificado del servidor de base de datos. Por defecto SÍ.
+     *
+     * El valor por omisión importa más que la variable: hasta ahora activar `DB_SSL`
+     * desactivaba la validación en los siete puntos de conexión del backend, de modo que
+     * producción —donde `DB_SSL=true` es obligatorio, ver más abajo— cifraba contra
+     * cualquiera que respondiera en el puerto. Ponerlo en `false` sigue siendo posible para
+     * el entorno local con certificado autofirmado, pero es un acto deliberado y está
+     * prohibido en producción.
+     */
+    DB_SSL_REJECT_UNAUTHORIZED: z
+      .enum(['true', 'false'])
+      .default('true')
+      .transform((value) => value === 'true'),
+    /** CA propia en PEM, para el Postgres gestionado con autoridad interna. */
+    DB_SSL_CA: z.string().min(1).optional(),
+    /** Ruta a la CA en PEM. `DB_SSL_CA` gana si están las dos. */
+    DB_SSL_CA_FILE: z.string().min(1).optional(),
     DB_LOGGING: z
       .enum(['true', 'false'])
       .default('false')
@@ -61,9 +80,33 @@ const envSchema = z
 
     JWT_ACCESS_SECRET: z.string().min(32),
     JWT_ACCESS_EXPIRES_IN: z.string().min(1).default('15m'),
+    /**
+     * Emisor y audiencia del token de SESIÓN de usuario.
+     *
+     * Existen para que un token valga sólo para el propósito con el que se emitió. Sin
+     * ellos, cualquier JWT firmado con `JWT_ACCESS_SECRET` —el de un servicio, el de una
+     * sonda, el de un script— es indistinguible de una sesión de usuario para el guard.
+     */
+    JWT_ACCESS_ISSUER: z.string().min(3).default('atlas-erp'),
+    JWT_ACCESS_AUDIENCE: z.string().min(3).default('atlas-erp-api'),
     JWT_INTERNAL_SECRET: z.string().min(20).optional(),
     JWT_INTERNAL_ISSUER: z.string().min(3).default('atlas-internal'),
     JWT_INTERNAL_AUDIENCE: z.string().min(3).default('atlas-ads'),
+
+    /**
+     * Credencial de UN SOLO propósito: leer `/api/v1/platform/catalog-manifest`.
+     *
+     * El manifiesto enumera las rutas que este proceso sirve y las tablas que su base contiene, y
+     * lo consume el catálogo unificado del portal interno de ATLAS. Es una llave aparte —y no el
+     * JWT interno— porque quien tiene `JWT_INTERNAL_SECRET` puede firmarse un token con cualquier
+     * rol: dársela a otro producto para que lea una lista de tablas sería cambiar el permiso
+     * mínimo por el máximo.
+     *
+     * Opcional, y su ausencia APAGA el endpoint (`PlatformCatalogKeyGuard` responde 503). Un
+     * despliegue que no la configura no acaba con el mapa del servicio abierto al puerto: acaba
+     * con un bloque que el panel reporta, correctamente, como no configurado.
+     */
+    PLATFORM_CATALOG_API_KEY: z.string().min(20).optional(),
 
     // Gateway de identidad: AtlasBackend es la fuente de verdad de usuarios internos/roles.
     // Este backend nunca expone el token de AtlasBackend al navegador (ver auth-gateway module).
@@ -97,7 +140,6 @@ const envSchema = z
     LOG_LEVEL: z
       .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
       .default('info'),
-
     DEFAULT_MIN_MDR_RATE_PERCENT: z.coerce.number().positive().default(2.5),
     DEFAULT_TAX_RATE_PERCENT: z.coerce.number().min(0).max(100).default(13),
 
@@ -169,6 +211,27 @@ const envSchema = z
         message: 'DB_SSL debe estar activo en producción salvo red privada justificada.',
       });
     }
+
+    /*
+     * Exigir TLS y a la vez no comprobar contra quién se cifra deja el requisito en el
+     * papel: un intermediario que presente cualquier certificado sigue leyendo el tráfico.
+     * Si el servidor usa una autoridad interna, la salida es declararla en `DB_SSL_CA` /
+     * `DB_SSL_CA_FILE`, que valida contra ella; no apagar la comprobación.
+     */
+    if (
+      value.NODE_ENV === 'production' &&
+      value.DB_SSL &&
+      !value.DB_SSL_REJECT_UNAUTHORIZED
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['DB_SSL_REJECT_UNAUTHORIZED'],
+        message:
+          'DB_SSL_REJECT_UNAUTHORIZED no puede ser false en producción: el cifrado sin ' +
+          'validar el certificado no protege frente a un intermediario. Declara la CA en ' +
+          'DB_SSL_CA o DB_SSL_CA_FILE si el certificado no lo firma una autoridad pública.',
+      });
+    }
     if (
       value.EMAIL_PROVIDER_MODE === 'sendgrid' &&
       (!value.SENDGRID_API_KEY || !value.EMAIL_FROM)
@@ -187,6 +250,35 @@ const envSchema = z
         message: 'JWT_ACCESS_SECRET debe cambiarse en producción.',
       });
     }
+
+    /*
+     * En producción los dos planos de credencial se declaran por separado y con llaves
+     * distintas. Compartir la llave significa que comprometer un token de servicio entrega
+     * sesiones de usuario, y al revés; rotar una obliga a rotar la otra, que es como se
+     * termina no rotando ninguna.
+     */
+    if (value.NODE_ENV === 'production' && !value.JWT_INTERNAL_SECRET) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['JWT_INTERNAL_SECRET'],
+        message:
+          'JWT_INTERNAL_SECRET es obligatorio en producción: los tokens de servicio no ' +
+          'pueden firmarse con la llave de las sesiones de usuario.',
+      });
+    }
+    if (
+      value.NODE_ENV === 'production' &&
+      value.JWT_INTERNAL_SECRET &&
+      value.JWT_INTERNAL_SECRET === value.JWT_ACCESS_SECRET
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['JWT_INTERNAL_SECRET'],
+        message:
+          'JWT_INTERNAL_SECRET debe ser distinto de JWT_ACCESS_SECRET: con la misma llave ' +
+          'un token de servicio es aceptado como sesión de usuario.',
+      });
+    }
   })
   .transform((value) => {
     const apiPrefix = value.GLOBAL_API_PREFIX ?? value.API_PREFIX ?? value.API_GLOBAL_PREFIX;
@@ -195,7 +287,26 @@ const envSchema = z
       API_GLOBAL_PREFIX: apiPrefix,
       GLOBAL_API_PREFIX: apiPrefix,
       API_PREFIX: apiPrefix,
-      JWT_INTERNAL_SECRET: value.JWT_INTERNAL_SECRET ?? value.JWT_ACCESS_SECRET,
+      /*
+       * El respaldo ya NO es `JWT_ACCESS_SECRET`.
+       *
+       * Igualarlos fundía dos planos de credencial que el resto del código trata como
+       * separados —la sesión de una persona y el token de servicio entre backends— en una
+       * sola llave. Con `JwtAuthGuard` probando primero la ruta de acceso y sin `iss`/`aud`
+       * que los distinga, un token de servicio se aceptaba como sesión de usuario, y al
+       * revés. Y como la variable era opcional, bastaba con no declararla para caer ahí sin
+       * un solo síntoma.
+       *
+       * Fuera de producción se deriva una llave DISTINTA del secreto de acceso, para que
+       * levantar el proyecto en local siga sin pedir configuración extra y aun así los dos
+       * planos nunca compartan clave. En producción no se deriva nada: se exige declararla
+       * y que sea distinta (ver `superRefine`).
+       */
+      JWT_INTERNAL_SECRET:
+        value.JWT_INTERNAL_SECRET ??
+        createHmac('sha256', value.JWT_ACCESS_SECRET)
+          .update('atlas:jwt:internal:v1')
+          .digest('hex'),
     };
   });
 

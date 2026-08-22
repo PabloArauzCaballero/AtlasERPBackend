@@ -1,15 +1,29 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { AccessTokenIssuerService } from './access-token-issuer.service';
 import { AtlasIdentityClient } from './atlas-identity.client';
-import { mapAtlasRolesToBusinessRoles } from './role-mapping';
+import { mapAtlasRolesToBusinessRoles, mapMerchantRoles } from './role-mapping';
 import type {
   AtlasInternalAuthResponse,
+  AtlasInternalLoginOutcome,
+  AtlasPinChallenge,
+  AtlasMerchantAuthResponse,
+  AtlasMerchantUserProfile,
   AtlasInternalPermissionListItem,
   AtlasInternalRoleListItem,
   AtlasInternalUserProfile,
   RefreshedUpstreamTokens,
   UpstreamTokens,
 } from './auth-gateway.types';
+import { isPinChallenge } from './auth-gateway.types';
+
+export interface MerchantSessionResult {
+  accessToken: string;
+  tokenType: 'Bearer';
+  expiresIn: string;
+  user: AtlasMerchantUserProfile;
+  upstreamAccessToken: string;
+  upstreamRefreshToken: string;
+}
 
 export interface AuthSessionResult {
   accessToken: string;
@@ -91,9 +105,31 @@ export class AuthGatewayService {
     }
   }
 
-  async login(email: string, password: string): Promise<AuthSessionResult> {
-    const auth = await this.identityClient.login(email, password);
-    return this.buildSession(auth);
+  /**
+   * El login interno puede terminar en sesión o en desafío de segundo factor, y el desafío se
+   * devuelve tal cual: este gateway no emite NINGÚN token propio mientras el segundo factor siga
+   * pendiente. Emitirlo "para ir adelantando" convertiría el 2FA en un trámite opcional.
+   */
+  async login(email: string, password: string): Promise<AuthSessionResult | AtlasPinChallenge> {
+    const outcome: AtlasInternalLoginOutcome = await this.identityClient.login(email, password);
+    if (isPinChallenge(outcome)) return outcome;
+    return this.buildSession(outcome);
+  }
+
+  /** Segundo paso: sólo aquí, con el PIN ya verificado upstream, nace la sesión del ERP. */
+  async loginPin(challengeToken: string, pin: string): Promise<AuthSessionResult> {
+    return this.buildSession(await this.identityClient.loginPin(challengeToken, pin));
+  }
+
+  async requestPasswordChange(tokens: UpstreamTokens, currentPassword: string): Promise<ProxyResult<AtlasPinChallenge>> {
+    return this.callWithRetry(tokens, (at) => this.identityClient.requestPasswordChange(at, currentPassword));
+  }
+
+  async confirmPasswordChange(
+    tokens: UpstreamTokens,
+    body: { challengeToken: string; code: string; newPassword: string },
+  ): Promise<ProxyResult<{ passwordChanged: boolean }>> {
+    return this.callWithRetry(tokens, (at) => this.identityClient.confirmPasswordChange(at, body));
   }
 
   async refresh(upstreamRefreshToken: string | undefined): Promise<AuthSessionResult> {
@@ -180,4 +216,59 @@ export class AuthGatewayService {
     );
     return { result: result.items, refreshedTokens };
   }
+  // ---- Canal del comercio afiliado -----------------------------------------------------------
+
+  /**
+   * Sesión de un usuario de COMERCIO. La identidad la resuelve AtlasBackend; este backend sólo
+   * traduce su rol al vocabulario propio y emite su token de negocio.
+   *
+   * `MERCHANT_ADMIN` aquí no abre ninguna cuenta: quién puede tocar qué comercio lo decide
+   * `PortalScopeService` contra `atlas_sales.merchant_users`. Un comercio con token válido y sin
+   * membresía activa sigue recibiendo 403.
+   */
+  private buildMerchantSession(auth: AtlasMerchantAuthResponse): MerchantSessionResult {
+    const businessRoles = mapMerchantRoles([auth.user.role]);
+    if (businessRoles.length === 0) {
+      // Fail-closed: un rol upstream que no sabemos traducir no se convierte en una sesión sin
+      // permisos, se rechaza. Una sesión vacía parecería funcionar y fallaría endpoint a endpoint.
+      throw new UnauthorizedException('El rol del usuario de comercio no está habilitado en este backend.');
+    }
+
+    const issued = this.tokenIssuer.issue({ sub: auth.user.id, roles: businessRoles, email: auth.user.email });
+    return {
+      accessToken: issued.accessToken,
+      tokenType: 'Bearer',
+      expiresIn: issued.expiresIn,
+      user: auth.user,
+      upstreamAccessToken: auth.accessToken,
+      upstreamRefreshToken: auth.refreshToken,
+    };
+  }
+
+  async merchantLogin(email: string, password: string): Promise<MerchantSessionResult> {
+    return this.buildMerchantSession(await this.identityClient.merchantLogin(email, password));
+  }
+
+  async merchantRefresh(upstreamRefreshToken: string | undefined): Promise<MerchantSessionResult> {
+    if (!upstreamRefreshToken) {
+      throw new UnauthorizedException('Sesión no disponible. Inicia sesión nuevamente.');
+    }
+    return this.buildMerchantSession(await this.identityClient.merchantRefresh(upstreamRefreshToken));
+  }
+
+  /**
+   * Perfil del comercio autenticado. El front lo usa para restaurar la sesión tras recargar: el
+   * token propio de este backend no lleva el perfil, y releerlo del upstream evita mostrar datos
+   * de una identidad que entretanto pudo suspenderse.
+   */
+  async merchantMe(tokens: UpstreamTokens): Promise<ProxyResult<AtlasMerchantUserProfile>> {
+    return this.callWithRetry(tokens, (at) => this.identityClient.merchantMe(at));
+  }
+
+  async merchantLogout(upstreamRefreshToken: string | undefined, allDevices: boolean): Promise<{ loggedOut: boolean }> {
+    // Idempotente: cerrar una sesión que ya no existe no es un error.
+    if (!upstreamRefreshToken) return { loggedOut: true };
+    return this.identityClient.merchantLogout(upstreamRefreshToken, allDevices);
+  }
+
 }

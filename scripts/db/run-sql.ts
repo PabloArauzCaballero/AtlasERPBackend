@@ -3,6 +3,7 @@ import { createHash } from 'crypto';
 import { relative, resolve } from 'path';
 import { Client } from 'pg';
 import { env } from '../../src/config/env';
+import { resolveDbSslOptions } from '../../src/config/db-ssl';
 import { PinoLoggerService } from '../../src/common/logger/pino-logger.service';
 import { LEGACY_SQL_PROBES } from '../../src/database/startup-migrations';
 
@@ -21,7 +22,7 @@ async function main(): Promise<void> {
 
   const client = new Client({
     connectionString: env.DATABASE_URL,
-    ssl: env.DB_SSL ? { rejectUnauthorized: false } : undefined,
+    ssl: resolveDbSslOptions(env),
   });
 
   logger.info('Conectando a PostgreSQL para ejecutar SQL.', {
@@ -39,6 +40,24 @@ async function main(): Promise<void> {
       const migrationKey = normalizeMigrationPath(absoluteFilePath);
       const sql = readFileSync(absoluteFilePath, 'utf8');
       const checksum = createHash('sha256').update(sql).digest('hex');
+
+      // Una reversa nunca se registra como aplicada: lo que hace es DESAPLICAR su migración de
+      // ida, así que borra la fila de esa. Sin esto, aplicar el `.down.sql` dejaba la base
+      // revertida pero el ledger diciendo "aplicada", y el siguiente `up` se omitía en silencio.
+      if (isDownMigration(migrationKey)) {
+        await runInTransaction(client, async () => {
+          await client.query(sql);
+          await unmarkSqlFileApplied(client, upMigrationKeyOf(migrationKey));
+        });
+        logger.info('Reversa SQL ejecutada; su migración de ida vuelve a estar pendiente.', {
+          layer: 'script',
+          script: 'run-sql',
+          filePath: migrationKey,
+          revertedFilePath: upMigrationKeyOf(migrationKey),
+        });
+        continue;
+      }
+
       const applied = await getAppliedSqlFile(client, migrationKey);
 
       if (applied) {
@@ -64,8 +83,13 @@ async function main(): Promise<void> {
         continue;
       }
 
-      await client.query(sql);
-      await markSqlFileApplied(client, migrationKey, checksum);
+      // Ejecución y registro en la MISMA transacción: si el proceso muere entre una y otro, el
+      // archivo se volvería a ejecutar; los scripts son idempotentes, pero depender de eso para
+      // la consistencia del ledger es depender de una convención, no de una garantía.
+      await runInTransaction(client, async () => {
+        await client.query(sql);
+        await markSqlFileApplied(client, migrationKey, checksum);
+      });
       logger.info('SQL ejecutado correctamente.', {
         layer: 'script',
         script: 'run-sql',
@@ -112,6 +136,30 @@ async function wasLegacySqlAlreadyApplied(client: Client, filePath: string): Pro
 
   const result = await client.query<{ exists: boolean }>(probe.sql);
   return result.rows[0]?.exists === true;
+}
+
+/** `20260817120000-x.down.sql` revierte a `20260817120000-x.sql`. */
+function isDownMigration(migrationKey: string): boolean {
+  return migrationKey.endsWith('.down.sql');
+}
+
+function upMigrationKeyOf(downMigrationKey: string): string {
+  return downMigrationKey.replace(/\.down\.sql$/, '.sql');
+}
+
+async function runInTransaction(client: Client, work: () => Promise<void>): Promise<void> {
+  await client.query('BEGIN');
+  try {
+    await work();
+    await client.query('COMMIT');
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  }
+}
+
+async function unmarkSqlFileApplied(client: Client, filePath: string): Promise<void> {
+  await client.query('DELETE FROM public.atlas_sql_migrations WHERE file_path = $1', [filePath]);
 }
 
 async function markSqlFileApplied(

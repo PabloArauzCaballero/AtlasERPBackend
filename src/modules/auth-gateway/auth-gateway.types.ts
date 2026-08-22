@@ -31,6 +31,34 @@ export interface AtlasInternalAccessProfile {
   user: AtlasInternalUserProfile;
 }
 
+/**
+ * Desafío de segundo factor de AtlasBackend. Lo devuelven DOS flujos con la misma forma —el login
+ * interno (`internal/auth/login`) y el cambio de contraseña (`auth/password/change/request`)—, y
+ * ambos se completan canjeando `challengeToken` más el código de 6 dígitos que llega por correo.
+ */
+export interface AtlasPinChallenge {
+  pinChallengeRequired: true;
+  challengeToken: string;
+  expiresInMinutes: number;
+}
+
+/**
+ * El login interno termina en UNA de dos cosas, y las dos son un éxito: la sesión, o el desafío.
+ * Tiparlo como unión es lo que obliga a cada consumidor a decidir qué hace con el desafío en vez
+ * de leer `accessToken` de un objeto que no lo trae.
+ */
+export type AtlasInternalLoginOutcome = AtlasInternalAuthResponse | AtlasPinChallenge;
+
+/**
+ * El parámetro es `object` y no la unión concreta a propósito: el mismo predicado decide sobre la
+ * respuesta cruda del upstream y sobre la sesión ya construida por este gateway, que no comparten
+ * más campo que éste. Estrecharlo obligaría a un `as` en cada uso, que es exactamente el escape que
+ * un type guard existe para evitar.
+ */
+export function isPinChallenge(outcome: object): outcome is AtlasPinChallenge {
+  return (outcome as AtlasPinChallenge).pinChallengeRequired === true;
+}
+
 export interface AtlasInternalRoleListItem {
   id: string;
   code: string;
@@ -62,4 +90,27 @@ export interface UpstreamTokens {
 export interface RefreshedUpstreamTokens {
   accessToken: string;
   refreshToken: string;
+}
+
+/**
+ * Perfil del usuario de COMERCIO que devuelve `/merchant/auth/*` de AtlasBackend. Es identidad,
+ * no membresía: a qué comercio pertenece esta persona lo resuelve `PortalScopeService` contra
+ * `atlas_sales.merchant_users`, no este payload.
+ */
+export interface AtlasMerchantUserProfile {
+  id: string;
+  email: string;
+  fullName: string | null;
+  userCode: string | null;
+  phone: string | null;
+  role: 'merchant';
+  status: string;
+  mustChangePassword: boolean;
+  lastLoginAt: string | null;
+}
+
+export interface AtlasMerchantAuthResponse {
+  accessToken: string;
+  refreshToken: string;
+  user: AtlasMerchantUserProfile;
 }

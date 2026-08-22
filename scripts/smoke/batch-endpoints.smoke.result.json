@@ -1,0 +1,81 @@
+{
+  "suite": "batch-endpoints-smoke",
+  "executedAt": "2026-08-21T17:33:15.221Z",
+  "baseUrl": "http://localhost:3007/api/v1",
+  "strategy": "validation-only: expected 400 proves route, guard, and Zod pipe are reachable without creating records",
+  "passed": true,
+  "steps": [
+    {
+      "name": "health",
+      "method": "GET",
+      "path": "/health",
+      "expectedStatuses": [
+        200
+      ],
+      "actualStatus": 200,
+      "ok": true,
+      "durationMs": 33,
+      "bodyPreview": "{\"success\":true,\"data\":{\"status\":\"ok\",\"service\":\"atlas-integrated-backend\"}}"
+    },
+    {
+      "name": "ready",
+      "method": "GET",
+      "path": "/ready",
+      "expectedStatuses": [
+        200
+      ],
+      "actualStatus": 200,
+      "ok": true,
+      "durationMs": 4,
+      "bodyPreview": "{\"success\":true,\"data\":{\"status\":\"ready\",\"database\":\"ok\"}}"
+    },
+    {
+      "name": "b2b accounts bulk validation",
+      "method": "POST",
+      "path": "/b2b/accounts/bulk",
+      "expectedStatuses": [
+        400
+      ],
+      "actualStatus": 400,
+      "ok": true,
+      "durationMs": 6,
+      "bodyPreview": "{\"success\":false,\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"Los datos enviados no son válidos.\",\"details\":[{\"path\":\"items.0.category\",\"message\":\"Required\"},{\"path\":\"items.0.businessLine\",\"message\":\"Required\"},{\"path\":\"items.1.category\",\"message\":\"Required\"},{\"path\":\"items.1.businessLine\",\"message\":\"Required\"}]}}"
+    },
+    {
+      "name": "accounting documents bulk validation",
+      "method": "POST",
+      "path": "/accounting/documents/bulk",
+      "expectedStatuses": [
+        400
+      ],
+      "actualStatus": 400,
+      "ok": true,
+      "durationMs": 5,
+      "bodyPreview": "{\"success\":false,\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"Los datos enviados no son válidos.\",\"details\":[{\"path\":\"items.1.documentNo\",\"message\":\"No se permiten números de documento duplicados dentro del mismo batch para la misma entidad legal.\"},{\"path\":\"items.1.sourceId\",\"message\":\"No se permiten claves de origen duplicadas dentro del mismo batch.\"}]}}"
+    },
+    {
+      "name": "ads advertisers bulk validation",
+      "method": "POST",
+      "path": "/admin/ads/advertisers/bulk",
+      "expectedStatuses": [
+        400
+      ],
+      "actualStatus": 400,
+      "ok": true,
+      "durationMs": 6,
+      "bodyPreview": "{\"success\":false,\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"Los datos enviados no son válidos.\",\"details\":[{\"path\":\"items.1.taxId\",\"message\":\"No se permiten taxId duplicados dentro del mismo batch por país.\"}]}}"
+    },
+    {
+      "name": "ads events bulk validation",
+      "method": "POST",
+      "path": "/ads/events/bulk",
+      "expectedStatuses": [
+        400
+      ],
+      "actualStatus": 400,
+      "ok": true,
+      "durationMs": 4,
+      "bodyPreview": "{\"success\":false,\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"Los datos enviados no son válidos.\",\"details\":[{\"path\":\"items\",\"message\":\"Array must contain at least 1 element(s)\"}]}}"
+    }
+  ]
+}

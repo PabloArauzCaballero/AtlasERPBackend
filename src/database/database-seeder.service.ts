@@ -14,7 +14,13 @@ const REFERENCE_SEEDS = [
   'src/database/seeders/20260708204000-seed-atlas-ads-defaults.sql',
   'src/database/seeders/20260712121000-seed-b2b-account-taxonomy.sql',
 ];
-const DEVELOPMENT_SEEDS = ['src/database/seeders/20260708191000-seed-atlas-b2b-sales-crm.sql'];
+const DEVELOPMENT_SEEDS = [
+  'src/database/seeders/20260708191000-seed-atlas-b2b-sales-crm.sql',
+  // Membresía de los dos partners de desarrollo. Va DESPUÉS del seed base porque necesita los
+  // tipos y enums que aquél deja en su sitio, y su contraparte —la identidad con contraseña— la
+  // siembra AtlasBackend en su perfil `development`.
+  'src/database/seeders/20260821140000-seed-partners-desarrollo.sql',
+];
 
 @Injectable()
 export class DatabaseSeederService implements OnApplicationBootstrap {

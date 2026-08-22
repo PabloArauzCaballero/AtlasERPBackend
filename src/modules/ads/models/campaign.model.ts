@@ -44,7 +44,7 @@ export class CampaignModel extends Model {
   declare spendTotalMicros: number;
   @Column({ field: 'starts_at', type: DataType.DATE, allowNull: false }) declare startsAt: Date;
   @Column({ field: 'ends_at', type: DataType.DATE, allowNull: true }) declare endsAt: Date | null;
-  @Column({ field: 'created_by', type: DataType.UUID, allowNull: true }) declare createdBy:
+  @Column({ field: 'created_by', type: DataType.STRING(64), allowNull: true }) declare createdBy:
     string | null;
   @BelongsTo(() => AdvertiserAccountModel, 'advertiser_id')
   declare advertiser?: AdvertiserAccountModel;
