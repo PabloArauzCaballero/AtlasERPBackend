@@ -129,6 +129,14 @@ export class B2BSalesCrmService {
     return this.contractsService.signAndActivateContract(contractId, input);
   }
 
+  listOnboardingCases(): Promise<Record<string, unknown>[]> {
+    return this.onboardingService.listOnboardingCases();
+  }
+
+  getOnboardingCase(onboardingCaseId: string): Promise<Record<string, unknown>> {
+    return this.onboardingService.getOnboardingCase(onboardingCaseId);
+  }
+
   createOnboardingCase(input: CreateOnboardingCaseDto): Promise<Record<string, unknown>> {
     return this.onboardingService.createOnboardingCase(input);
   }

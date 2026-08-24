@@ -65,11 +65,7 @@ export class B2BBnplBillingService extends B2BSalesCrmUseCaseBase {
         input.financedAmount,
       );
       this.assertInstallmentsMatchFinancedAmount(input.installments, input.financedAmount);
-      await this.repository.consumers.findOrCreate({
-        where: { id: input.consumerId },
-        defaults: { id: input.consumerId, externalRef: input.consumerExternalRef ?? null },
-        transaction,
-      });
+      const consumerId = await this.resolveConsumerId(input, transaction);
 
       const purchaseDate = new Date().toISOString().slice(0, 10);
       const activeVersion = await this.repository.findActiveContractVersion(
@@ -95,7 +91,7 @@ export class B2BBnplBillingService extends B2BSalesCrmUseCaseBase {
         {
           merchantAccountId: input.merchantAccountId,
           branchId: input.branchId,
-          consumerId: input.consumerId,
+          consumerId,
           contractVersionId: activeVersion.id,
           purchaseAmount: input.purchaseAmount.toFixed(2),
           downPaymentAmount: input.downPaymentAmount.toFixed(2),
@@ -358,4 +354,45 @@ export class B2BBnplBillingService extends B2BSalesCrmUseCaseBase {
       { transaction },
     );
   }
+
+  /**
+   * Traduce lo que el comercio SI conoce —el documento del cliente— al identificador interno.
+   *
+   * Antes `consumerId` era obligatorio y de tipo uuid: en el mostrador nadie tiene ese dato, asi
+   * que la pantalla de registro BNPL era inservible para su unico usuario previsto. Ahora:
+   *  - si llega el uuid, se respeta (integraciones que ya lo tienen);
+   *  - si llega el documento, se busca por el y se reutiliza el cliente si ya compro antes —que es
+   *    lo que evita duplicar a la misma persona en cada compra—;
+   *  - si no existe, se crea uno nuevo con ese documento.
+   */
+  private async resolveConsumerId(
+    input: { consumerId?: string; consumerExternalRef?: string },
+    transaction: Transaction,
+  ): Promise<string> {
+    if (input.consumerId) {
+      await this.repository.consumers.findOrCreate({
+        where: { id: input.consumerId },
+        defaults: { id: input.consumerId, externalRef: input.consumerExternalRef ?? null },
+        transaction,
+      });
+      return input.consumerId;
+    }
+
+    const externalRef = input.consumerExternalRef?.trim();
+    if (!externalRef) {
+      throw new ConflictException(
+        'Indique el documento del cliente o su identificador en Atlas.',
+      );
+    }
+
+    const existing = await this.repository.consumers.findOne({
+      where: { externalRef },
+      transaction,
+    });
+    if (existing) return existing.id;
+
+    const created = await this.repository.consumers.create({ externalRef }, { transaction });
+    return created.id;
+  }
+
 }

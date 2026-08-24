@@ -296,7 +296,12 @@ export const registerPurchaseSchema = z
   .object({
     merchantAccountId: uuid,
     branchId: uuid,
-    consumerId: uuid,
+    /*
+     * El comercio no conoce el uuid interno de su cliente: conoce su DOCUMENTO. Se acepta uno u
+     * otro y el servicio resuelve. Exigir el uuid obligaba a teclear un identificador que en el
+     * mostrador nadie tiene delante, y era la razon por la que esta pantalla no se podia usar.
+     */
+    consumerId: uuid.optional(),
     consumerExternalRef: z.string().trim().max(120).optional(),
     purchaseAmount: positiveMoney,
     downPaymentAmount: money,

@@ -66,6 +66,42 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
     });
   }
 
+  /**
+   * Lista los casos con el NOMBRE del comercio, no solo su uuid.
+   *
+   * Sin esta lectura la pantalla no tenia de donde sacar los casos y pedia teclear el uuid a mano:
+   * un vendedor no se sabe un uuid de memoria, asi que el flujo era inoperable fuera de una demo
+   * preparada. Devuelve `tradeName` para que el desplegable diga «CPA Centro...» y no un hexadecimal.
+   */
+  async listOnboardingCases(): Promise<Record<string, unknown>[]> {
+    this.logger.infoContext(B2BOnboardingService.name, 'B2B CRM use case started', {
+      useCase: 'listOnboardingCases',
+    });
+    const rows = await this.repository.onboardingCases.findAll({
+      include: [this.repository.accounts, this.repository.checklistItems],
+      /* El ATRIBUTO del modelo, no la columna: con `started_at` Sequelize genera una referencia
+         que Postgres no resuelve dentro de la subconsulta que produce `limit` + `include`. */
+      order: [['startedAt', 'DESC']],
+      limit: 200,
+    });
+
+    return rows.map((row) => ({
+      id: row.id,
+      accountId: row.accountId,
+      tradeName: row.account?.tradeName ?? row.account?.legalName ?? null,
+      status: row.status,
+      startedAt: row.startedAt,
+      completedAt: row.completedAt,
+      pendingItems: (row.checklistItems ?? []).filter((item) => item.status === 'PENDING').length,
+      checklistItems: (row.checklistItems ?? []).map((item) => ({
+        id: item.id,
+        itemType: item.itemType,
+        description: item.description,
+        status: item.status,
+      })),
+    }));
+  }
+
   async getOnboardingCase(id: string, transaction?: Transaction): Promise<Record<string, unknown>> {
     this.logger.infoContext(B2BOnboardingService.name, 'B2B CRM use case started', {
       useCase: 'getOnboardingCase',
@@ -190,8 +226,46 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
       throw new NotFoundException('Ítem de checklist no encontrado.');
     }
 
-    await item.update({ status: input.status, completedByUserId: user.sub });
+    await item.update({
+      status: input.status,
+      completedByUserId: await this.resolveInternalUserId(user),
+    });
     return this.getOnboardingCase(onboardingCaseId);
+  }
+
+  /**
+   * Traduce el principal del token al usuario interno DE ESTE backend.
+   *
+   * Atlas parte la identidad a proposito: quien es la persona y como inicia sesion vive en
+   * AtlasBackend, que emite identificadores opacos (bigints: `"1"`, `"27"`); a que puede tocar
+   * aqui responde `atlas_sales.internal_users`, cuya clave es un `uuid`. `completed_by_user_id`
+   * apunta a esa tabla.
+   *
+   * Antes se guardaba `user.sub` directamente y Postgres rechazaba `"1"` como uuid: completar un
+   * requisito moria en un 500 «Ocurrio un error al consultar o modificar la base de datos.» y, sin
+   * poder completarlo, la activacion quedaba bloqueada para siempre por su propio control. Es el
+   * mismo error que ya se corrigio en la revision manual del motor: dos identidades distintas para
+   * la misma persona.
+   *
+   * Se resuelve por correo, que es lo unico que ambas bases comparten. Si la persona autentica
+   * contra AtlasBackend y aun no tiene reflejo aqui, se crea: es exactamente lo que ya hace el
+   * canal del comercio con `merchant_users.user_id`, y evita que un analista recien dado de alta
+   * arriba se quede sin poder trabajar abajo.
+   */
+  private async resolveInternalUserId(user: AuthUser): Promise<string | null> {
+    const email = user.email?.trim().toLowerCase();
+    if (!email) return null;
+
+    const existing = await this.repository.internalUsers.findOne({ where: { email } });
+    if (existing) return existing.id;
+
+    const created = await this.repository.internalUsers.create({
+      email,
+      fullName: email,
+      roleCode: user.roleCode ?? user.role ?? 'ADMIN',
+      isActive: true,
+    });
+    return created.id;
   }
 
   async activateOnboardingCase(onboardingCaseId: string): Promise<Record<string, unknown>> {

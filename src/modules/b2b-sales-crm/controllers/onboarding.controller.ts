@@ -1,4 +1,4 @@
-import { Body, Controller, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
@@ -22,6 +22,24 @@ import { B2BSalesCrmService } from '../services/b2b-sales-crm.service';
 @Controller('b2b/onboarding')
 export class OnboardingController {
   constructor(private readonly service: B2BSalesCrmService) {}
+
+  /*
+   * Lectura de la cola de onboarding. Faltaba: sin ella la pantalla no podia ofrecer un desplegable
+   * y obligaba a teclear el uuid del caso, que nadie conoce de memoria.
+   */
+  @Roles('OPERATIONS', 'LEGAL', 'ADMIN', 'COMMERCIAL_EXECUTIVE')
+  @Get('cases')
+  listCases(): Promise<Record<string, unknown>[]> {
+    return this.service.listOnboardingCases();
+  }
+
+  @Roles('OPERATIONS', 'LEGAL', 'ADMIN', 'COMMERCIAL_EXECUTIVE')
+  @Get('cases/:onboardingCaseId')
+  getCase(
+    @Param(new ZodValidationPipe(onboardingCaseIdParamsSchema)) params: OnboardingCaseIdParamsDto,
+  ): Promise<Record<string, unknown>> {
+    return this.service.getOnboardingCase(params.onboardingCaseId);
+  }
 
   @Roles('OPERATIONS', 'LEGAL', 'ADMIN')
   @Post('cases')

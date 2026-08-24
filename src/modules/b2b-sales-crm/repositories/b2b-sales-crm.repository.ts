@@ -9,6 +9,7 @@ import {
   AccountTagModel,
   B2BAccountTagModel,
   AuditLogModel,
+  InternalUserModel,
   B2BAccountModel,
   B2BContactModel,
   B2BContractModel,
@@ -41,6 +42,7 @@ import {
 export class B2BSalesCrmRepository {
   constructor(
     @InjectConnection() readonly sequelize: Sequelize,
+    @InjectModel(InternalUserModel) readonly internalUsers: typeof InternalUserModel,
     @InjectModel(B2BAccountModel) readonly accounts: typeof B2BAccountModel,
     @InjectModel(AccountTagModel) readonly accountTags: typeof AccountTagModel,
     @InjectModel(B2BAccountTagModel) readonly accountTagLinks: typeof B2BAccountTagModel,

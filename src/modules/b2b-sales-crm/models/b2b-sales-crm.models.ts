@@ -755,6 +755,10 @@ export class MerchantOnboardingCaseModel extends Model {
   @Column({ type: DataType.DATE, field: 'completed_at' })
   declare completedAt: Date | null;
 
+  /* La cuenta, para poder listar los casos por el NOMBRE del comercio y no por su uuid. */
+  @BelongsTo(() => B2BAccountModel)
+  declare account?: B2BAccountModel;
+
   @HasMany(() => OnboardingChecklistItemModel)
   declare checklistItems?: OnboardingChecklistItemModel[];
 }

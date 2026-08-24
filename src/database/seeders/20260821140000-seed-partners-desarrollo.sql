@@ -15,13 +15,19 @@
 --
 -- Idempotente. NO ejecutar en producción: son cuentas con contraseña conocida.
 
+-- `category` y `business_line` son NOT NULL desde que la cuenta B2B pasó a describir el negocio
+-- (y no solo a nombrarlo). Sin ellas este seed moría con «null value in column "category"» y las dos
+-- identidades de partner se quedaban sin membresía: el portal se abría y denegaba todo.
 INSERT INTO atlas_sales.b2b_accounts
-  (id, legal_name, trade_name, tax_id, account_type, industry, lifecycle_status)
+  (id, legal_name, trade_name, tax_id, account_type, industry, lifecycle_status,
+   category, business_line, city, country_code)
 VALUES
   ('a9000000-0000-4000-8000-000000009001', 'Centro de Preparacion Academica CPA SRL',
-   'CPA Centro Preparacion Academica', 'DEV-PARTNER-CPA-001', 'MERCHANT', 'EDUCATION', 'CUSTOMER'),
+   'CPA Centro Preparacion Academica', 'DEV-PARTNER-CPA-001', 'MERCHANT', 'EDUCATION', 'CUSTOMER',
+   'EDUCACION', 'Preparacion academica preuniversitaria', 'Santa Cruz de la Sierra', 'BO'),
   ('a9000000-0000-4000-8000-000000009002', 'Pabliarca Comercio SRL',
-   'Pabliarca', 'DEV-PARTNER-PABLIARCA-002', 'MERCHANT', 'RETAIL', 'CUSTOMER')
+   'Pabliarca', 'DEV-PARTNER-PABLIARCA-002', 'MERCHANT', 'RETAIL', 'CUSTOMER',
+   'RETAIL', 'Venta de electrodomesticos y tecnologia', 'Santa Cruz de la Sierra', 'BO')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO atlas_sales.merchant_branches
