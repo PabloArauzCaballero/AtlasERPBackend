@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { AtlasPartnerClient } from './atlas-partner.client';
+import { MerchantCreditGatewayController } from './merchant-credit-gateway.controller';
 import { PartnerOnboardingGatewayController } from './partner-onboarding-gateway.controller';
 
 /**
@@ -13,7 +14,7 @@ import { PartnerOnboardingGatewayController } from './partner-onboarding-gateway
  */
 @Module({
   imports: [HttpModule],
-  controllers: [PartnerOnboardingGatewayController],
+  controllers: [PartnerOnboardingGatewayController, MerchantCreditGatewayController],
   providers: [AtlasPartnerClient],
 })
 export class PartnerOnboardingGatewayModule {}

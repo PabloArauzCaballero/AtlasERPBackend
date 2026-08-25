@@ -30,6 +30,17 @@ export class PartnerOnboardingGatewayController {
     return this.client.forward({ method: 'POST', path: 'partner-onboarding/start', accessToken: this.token(req), body });
   }
 
+  /* Cual es MI expediente. Va antes de `:partnerId/...` o `mine` encajaria en el parametro. */
+  @Get('mine')
+  @Roles('merchant', 'MERCHANT_ADMIN', 'MERCHANT_OPERATIONS', 'ADMIN')
+  mine(@Req() req: Request) {
+    return this.client.forward({
+      method: 'GET',
+      path: 'partner-onboarding/mine',
+      accessToken: this.token(req),
+    });
+  }
+
   @Get(':partnerId/status')
   @Roles('merchant', 'MERCHANT_OPERATIONS', 'ADMIN')
   status(@Req() req: Request, @Param('partnerId') partnerId: string) {
