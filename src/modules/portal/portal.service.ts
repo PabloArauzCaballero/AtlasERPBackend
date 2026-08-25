@@ -182,6 +182,48 @@ export class PortalService {
 
   // ----------------------------------------------------------- Suscripciones
 
+  /**
+   * Lo que este comercio le debe a Atlas: la comision de cada venta.
+   *
+   * El `accountId` sale del ALCANCE, no del parametro: un comercio no puede consultar la comision
+   * de otro, y el staff interno si elige pero queda auditado como acceso delegado. Es el mismo
+   * `resolveAccountId` que gobierna el resto del portal.
+   */
+  async listCommissions(scope: PortalScope, requestedAccountId?: string) {
+    const merchantAccountId = this.scopeService.resolveAccountId(scope, requestedAccountId);
+    const filas = await this.receivableModel.findAll({
+      where: { accountId: merchantAccountId, sourceType: 'MDR' } as never,
+      order: [['issued_at', 'DESC']],
+      limit: 200,
+    });
+
+    const total = filas.reduce((suma, fila) => suma + Number(fila.amountOriginal), 0);
+    /*
+     * Lo ABIERTO es lo que de verdad debe. Una comision ya facturada y pagada dejo de ser deuda, y
+     * presentarla como pendiente haria que el comercio provisionara dos veces el mismo dinero.
+     */
+    const abierto = filas.reduce((suma, fila) => suma + Number(fila.amountOpen), 0);
+
+    return {
+      summary: {
+        chargedTotal: normalizeAmount(String(total)),
+        owedToAtlas: normalizeAmount(String(abierto)),
+        settled: normalizeAmount(String(total - abierto)),
+        salesCharged: filas.length,
+      },
+      commissions: filas.map((fila) => ({
+        id: fila.id,
+        purchaseId: fila.sourceId,
+        amountCharged: normalizeAmount(fila.amountOriginal),
+        amountOpen: normalizeAmount(fila.amountOpen),
+        currency: fila.currency,
+        issuedAt: fila.issuedAt,
+        dueDate: fila.dueDate,
+        status: fila.status,
+      })),
+    };
+  }
+
   async getSubscription(
     scope: PortalScope,
     requestedAccountId?: string,

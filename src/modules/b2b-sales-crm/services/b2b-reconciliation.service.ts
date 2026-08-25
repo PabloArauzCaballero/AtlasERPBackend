@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Op, Transaction } from 'sequelize';
+import { Op, Transaction, WhereOptions } from 'sequelize';
 import { PinoLoggerService } from '../../../common/logging/pino-logger.service';
 import type { AuthUser } from '../../../common/types/auth-context.types';
 import {
@@ -43,6 +43,50 @@ export class B2BReconciliationService extends B2BSalesCrmUseCaseBase {
   }
 
   /** Facturas emitidas al comercio, por numero y estado: es como se las busca para contabilizar. */
+  /**
+   * Lo que el comercio le debe a Atlas por usar el servicio: la comision de cada venta.
+   *
+   * Cada venta BNPL genera una cuenta por cobrar de tipo `MDR` —la comision calculada con la regla
+   * que le tocaba a esa venta—. Aqui se suman: cuanto se le cobro en total, cuanto sigue abierto y
+   * el detalle venta a venta.
+   *
+   * `amountOpen` y no `amountOriginal` es lo que de verdad debe: una comision ya facturada y pagada
+   * dejo de ser deuda, y presentarla como pendiente haria que el comercio provisionara dos veces
+   * el mismo dinero.
+   */
+  async listCommissions(accountId: string): Promise<Record<string, unknown>> {
+    this.logger.infoContext(B2BReconciliationService.name, 'B2B CRM use case started', {
+      useCase: 'listCommissions',
+    });
+    const rows = await this.repository.receivables.findAll({
+      where: { accountId, sourceType: 'MDR' } as WhereOptions,
+      order: [['issued_at', 'DESC']],
+      limit: 200,
+    });
+
+    const total = rows.reduce((suma, fila) => suma + Number(fila.amountOriginal), 0);
+    const abierto = rows.reduce((suma, fila) => suma + Number(fila.amountOpen), 0);
+
+    return {
+      summary: {
+        chargedTotal: total.toFixed(2),
+        owedToAtlas: abierto.toFixed(2),
+        settled: (total - abierto).toFixed(2),
+        salesCharged: rows.length,
+      },
+      commissions: rows.map((fila) => ({
+        id: fila.id,
+        purchaseId: fila.sourceId,
+        amountCharged: fila.amountOriginal,
+        amountOpen: fila.amountOpen,
+        currency: fila.currency,
+        issuedAt: fila.issuedAt,
+        dueDate: fila.dueDate,
+        status: fila.status,
+      })),
+    };
+  }
+
   async listMerchantInvoices(): Promise<Record<string, unknown>[]> {
     const rows = await this.repository.invoices.findAll({
       order: [['invoiceDate', 'DESC']],

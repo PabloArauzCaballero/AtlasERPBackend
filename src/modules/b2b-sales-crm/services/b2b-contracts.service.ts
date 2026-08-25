@@ -1,5 +1,5 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { Op } from 'sequelize';
+import { Op, WhereOptions } from 'sequelize';
 import { PinoLoggerService } from '../../../common/logging/pino-logger.service';
 import {
   ContractStatus,
@@ -7,7 +7,12 @@ import {
   OpportunityStage,
   ProposalStatus,
 } from '../b2b-sales-crm.enums';
-import type { CreateContractFromProposalDto, SignContractDto } from '../b2b-sales-crm.dtos';
+import type {
+  CreateContractFromProposalDto,
+  CreateMdrRuleDto,
+  SignContractDto,
+  UpdateMdrRuleDto,
+} from '../b2b-sales-crm.dtos';
 import { toContractVersionResponse } from '../b2b-sales-crm.mapper';
 import { B2BSalesCrmRepository } from '../repositories/b2b-sales-crm.repository';
 import { B2BSalesCrmUseCaseBase } from './b2b-sales-crm-use-case.base';
@@ -149,5 +154,83 @@ export class B2BContractsService extends B2BSalesCrmUseCaseBase {
         version: toContractVersionResponse(version),
       };
     });
+  }
+  /**
+   * Las reglas de comision de una version contractual, ordenadas de la mas especifica a la general.
+   *
+   * Ese orden no es cosmetico: es EL orden en que el motor las elige. Enseñarlas al reves dejaria
+   * creer que una regla general anula a una segmentada, que es exactamente lo contrario de lo que
+   * pasa cuando llega la venta.
+   */
+  async listMdrRules(contractVersionId?: string): Promise<Record<string, unknown>[]> {
+    this.logger.infoContext(B2BContractsService.name, 'B2B CRM use case started', { useCase: 'listMdrRules' });
+    const rules = await this.repository.mdrRules.findAll({
+      where: (contractVersionId ? { contractVersionId } : {}) as WhereOptions,
+      order: [['created_at', 'DESC']],
+      limit: 200,
+    });
+
+    const especificidad = (regla: { branchId: string | null; productCategory: string | null; riskSegment: string | null }) =>
+      (regla.branchId ? 4 : 0) + (regla.productCategory ? 2 : 0) + (regla.riskSegment ? 1 : 0);
+
+    return rules
+      .map((regla) => ({
+        id: regla.id,
+        contractVersionId: regla.contractVersionId,
+        ratePercent: regla.ratePercent,
+        productCategory: regla.productCategory,
+        branchId: regla.branchId,
+        riskSegment: regla.riskSegment,
+        minFeeAmount: regla.minFeeAmount,
+        maxFeeAmount: regla.maxFeeAmount,
+        isActive: regla.isActive,
+        /* Cuanto pesa esta regla frente a las demas: es lo que decide cual gana. */
+        specificity: especificidad(regla),
+      }))
+      .sort((a, b) => b.specificity - a.specificity);
+  }
+
+  async createMdrRule(input: CreateMdrRuleDto): Promise<Record<string, unknown>> {
+    this.logger.infoContext(B2BContractsService.name, 'B2B CRM use case started', { useCase: 'createMdrRule' });
+
+    if (input.minFeeAmount !== undefined && input.maxFeeAmount !== undefined && input.minFeeAmount > input.maxFeeAmount) {
+      throw new ConflictException('El piso de la comisión no puede superar su techo.');
+    }
+
+    const version = await this.repository.contractVersions.findByPk(input.contractVersionId);
+    if (!version) throw new NotFoundException('Versión contractual no encontrada.');
+
+    const regla = await this.repository.mdrRules.create({
+      contractVersionId: input.contractVersionId,
+      ratePercent: input.ratePercent,
+      productCategory: input.productCategory ?? null,
+      branchId: input.branchId ?? null,
+      riskSegment: input.riskSegment ?? null,
+      minFeeAmount: input.minFeeAmount ?? null,
+      maxFeeAmount: input.maxFeeAmount ?? null,
+      isActive: true,
+    } as never);
+    return { id: regla.id, ratePercent: regla.ratePercent, isActive: regla.isActive };
+  }
+
+  /**
+   * Edita o desactiva una regla. La segmentacion NO se cambia.
+   *
+   * Cambiar a que segmento aplica una regla existente reescribe en silencio como se cobro el pasado
+   * cuando alguien audite por que una venta pago lo que pago. Para cobrar distinto a otro segmento
+   * se crea otra regla; para dejar de cobrar asi, se desactiva esta.
+   */
+  async updateMdrRule(ruleId: string, input: UpdateMdrRuleDto): Promise<Record<string, unknown>> {
+    this.logger.infoContext(B2BContractsService.name, 'B2B CRM use case started', { useCase: 'updateMdrRule' });
+    const regla = await this.repository.mdrRules.findByPk(ruleId);
+    if (!regla) throw new NotFoundException('Regla de comisión no encontrada.');
+
+    await regla.update({
+      ...(input.ratePercent !== undefined ? { ratePercent: input.ratePercent } : {}),
+      ...(input.minFeeAmount !== undefined ? { minFeeAmount: input.minFeeAmount } : {}),
+      ...(input.maxFeeAmount !== undefined ? { maxFeeAmount: input.maxFeeAmount } : {}),
+      ...(input.isActive !== undefined ? { isActive: input.isActive } : {}),
+    });
+    return { id: regla.id, ratePercent: regla.ratePercent, isActive: regla.isActive };
   }
 }

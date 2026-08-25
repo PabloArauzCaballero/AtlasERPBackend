@@ -75,6 +75,23 @@ export class PortalController {
   }
 
   @Roles(...PORTAL_ROLES)
+  /*
+   * Lo que este comercio le debe a Atlas por usar el servicio: la comision de cada venta.
+   *
+   * Va por el canal del PORTAL y no por `/b2b/*` porque quien lo mira es el comercio sobre lo suyo,
+   * y `PortalScopeService` es quien resuelve de que cuenta se trata: pedirle el `accountId` habria
+   * dejado que uno consultara la comision de otro.
+   */
+  @Roles(...PORTAL_ROLES)
+  @Get('commissions')
+  async commissions(
+    @Query('merchantAccountId') merchantAccountId: string | undefined,
+    @CurrentUser() user: AuthUser,
+  ) {
+    const scope = await this.service.resolveScope(user);
+    return this.service.listCommissions(scope, merchantAccountId);
+  }
+
   @Get('branches')
   async listBranches(
     @Query(new ZodValidationPipe(branchesQuerySchema)) query: BranchesQueryDto,

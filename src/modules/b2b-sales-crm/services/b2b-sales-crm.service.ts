@@ -6,6 +6,8 @@ import type {
   BulkCreateAccountsDto,
   CreateAccountDto,
   CreateBranchDto,
+  CreateMdrRuleDto,
+  UpdateMdrRuleDto,
   SetBranchStatusDto,
   UpdateBranchDto,
   CreateContactDto,
@@ -135,6 +137,10 @@ export class B2BSalesCrmService {
     return this.reconciliationService.listInstallments();
   }
 
+  listCommissions(accountId: string): Promise<Record<string, unknown>> {
+    return this.reconciliationService.listCommissions(accountId);
+  }
+
   listMerchantInvoices(): Promise<Record<string, unknown>[]> {
     return this.reconciliationService.listMerchantInvoices();
   }
@@ -153,6 +159,18 @@ export class B2BSalesCrmService {
 
   listApprovals(onlyPending?: boolean): Promise<Record<string, unknown>[]> {
     return this.pipelineService.listApprovals(onlyPending);
+  }
+
+  listMdrRules(contractVersionId?: string): Promise<Record<string, unknown>[]> {
+    return this.contractsService.listMdrRules(contractVersionId);
+  }
+
+  createMdrRule(input: CreateMdrRuleDto): Promise<Record<string, unknown>> {
+    return this.contractsService.createMdrRule(input);
+  }
+
+  updateMdrRule(ruleId: string, input: UpdateMdrRuleDto): Promise<Record<string, unknown>> {
+    return this.contractsService.updateMdrRule(ruleId, input);
   }
 
   listContracts(): Promise<Record<string, unknown>[]> {

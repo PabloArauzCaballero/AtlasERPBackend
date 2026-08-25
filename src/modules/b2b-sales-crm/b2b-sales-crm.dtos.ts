@@ -15,6 +15,10 @@ import type {
   createAccountSchema,
   branchIdParamsSchema,
   createBranchSchema,
+  createMdrRuleSchema,
+  mdrRuleIdParamsSchema,
+  mdrRulesQuerySchema,
+  updateMdrRuleSchema,
   setBranchStatusSchema,
   updateBranchSchema,
   createContactSchema,
@@ -64,6 +68,10 @@ export type CreateContractFromProposalDto = z.infer<typeof createContractFromPro
 export type SignContractDto = z.infer<typeof signContractSchema>;
 export type CreateOnboardingCaseDto = z.infer<typeof createOnboardingCaseSchema>;
 export type CreateBranchDto = z.infer<typeof createBranchSchema>;
+export type CreateMdrRuleDto = z.infer<typeof createMdrRuleSchema>;
+export type UpdateMdrRuleDto = z.infer<typeof updateMdrRuleSchema>;
+export type MdrRuleIdParamsDto = z.infer<typeof mdrRuleIdParamsSchema>;
+export type MdrRulesQueryDto = z.infer<typeof mdrRulesQuerySchema>;
 export type UpdateBranchDto = z.infer<typeof updateBranchSchema>;
 export type SetBranchStatusDto = z.infer<typeof setBranchStatusSchema>;
 export type BranchIdParamsDto = z.infer<typeof branchIdParamsSchema>;

@@ -312,6 +312,47 @@ export type SetBranchStatusDto = z.infer<typeof setBranchStatusSchema>;
 export const branchIdParamsSchema = z.object({ branchId: uuid });
 export type BranchIdParamsDto = z.infer<typeof branchIdParamsSchema>;
 
+/**
+ * Una regla de comision (MDR), y las tres dimensiones por las que se segmenta.
+ *
+ * Las tres son OPCIONALES a proposito, y esa es toda la flexibilidad del modelo: una regla sin
+ * ninguna es la tarifa base del contrato; con `productCategory` cobra distinto la electronica que
+ * la farmacia; con `branchId` distingue una sucursal cara de una barata; con `riskSegment` cobra
+ * mas por el credito que mas riesgo trae. Se combinan libremente, y gana la mas especifica.
+ *
+ * `minFeeAmount` y `maxFeeAmount` son el piso y el techo. El piso existe porque una venta de Bs 20
+ * al 3 % deja Bs 0,60, que no paga ni el costo de procesarla; el techo, porque una venta de
+ * Bs 50.000 al 3 % son Bs 1.500 de comision y ningun comercio acepta eso sin un limite.
+ */
+export const createMdrRuleSchema = z.object({
+  contractVersionId: uuid,
+  ratePercent: z.number().min(0).max(100),
+  productCategory: z.string().trim().min(1).max(120).optional(),
+  branchId: uuid.optional(),
+  riskSegment: z.string().trim().min(1).max(60).optional(),
+  minFeeAmount: z.number().min(0).optional(),
+  maxFeeAmount: z.number().min(0).optional(),
+});
+export type CreateMdrRuleDto = z.infer<typeof createMdrRuleSchema>;
+
+export const updateMdrRuleSchema = z
+  .object({
+    ratePercent: z.number().min(0).max(100).optional(),
+    minFeeAmount: z.number().min(0).nullable().optional(),
+    maxFeeAmount: z.number().min(0).nullable().optional(),
+    isActive: z.boolean().optional(),
+  })
+  .refine((valor) => Object.keys(valor).length > 0, { message: 'Indique al menos un campo a modificar.' });
+export type UpdateMdrRuleDto = z.infer<typeof updateMdrRuleSchema>;
+
+export const mdrRuleIdParamsSchema = z.object({ ruleId: uuid });
+export type MdrRuleIdParamsDto = z.infer<typeof mdrRuleIdParamsSchema>;
+
+export const mdrRulesQuerySchema = z.object({
+  contractVersionId: uuid.optional(),
+});
+export type MdrRulesQueryDto = z.infer<typeof mdrRulesQuerySchema>;
+
 export const createMerchantUserSchema = z.object({
   accountId: uuid,
   branchId: uuid.optional(),
