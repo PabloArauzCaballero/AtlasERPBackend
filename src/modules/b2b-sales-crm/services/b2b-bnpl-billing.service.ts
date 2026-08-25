@@ -36,7 +36,7 @@ export class B2BBnplBillingService extends B2BSalesCrmUseCaseBase {
     super(repository, logger);
   }
 
-  async registerPurchase(input: RegisterPurchaseDto): Promise<Record<string, unknown>> {
+  async registerPurchase(input: RegisterPurchaseDto & { merchantAccountId: string }): Promise<Record<string, unknown>> {
     this.logger.infoContext(B2BBnplBillingService.name, 'B2B CRM use case started', {
       useCase: 'registerPurchase',
     });

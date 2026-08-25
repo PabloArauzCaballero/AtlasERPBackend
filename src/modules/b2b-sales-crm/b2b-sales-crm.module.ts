@@ -33,12 +33,15 @@ import { B2BSalesCrmService } from './services/b2b-sales-crm.service';
 import { MerchantAccountingBridgeService } from './services/merchant-accounting-bridge.service';
 import { BusinessActionLogsModule } from '../business-action-logs/business-action-logs.module';
 import { AccountingModule } from '../accounting/accounting.module';
+import { PortalModule } from '../portal/portal.module';
 
 @Module({
   imports: [
     SequelizeModule.forFeature([...atlasSalesModels, ...creditRatingModels]),
     BusinessActionLogsModule,
     AccountingModule,
+    /* Para que el canal del comercio no pueda registrar compras de otra cuenta. */
+    PortalModule,
   ],
   controllers: [
     ActivitiesController,

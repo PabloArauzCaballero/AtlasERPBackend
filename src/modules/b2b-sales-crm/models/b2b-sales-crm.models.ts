@@ -791,7 +791,9 @@ export class OnboardingChecklistItemModel extends Model {
 
 @Table({ schema: SALES_SCHEMA, tableName: 'consumers_ref', timestamps: false })
 export class ConsumerRefModel extends Model {
+  /* Sin `@Default` la fila nacia sin id y el INSERT moria: el cliente nuevo no se podia crear. */
   @PrimaryKey
+  @Default(DataType.UUIDV4)
   @Column(DataType.UUID)
   declare id: string;
 

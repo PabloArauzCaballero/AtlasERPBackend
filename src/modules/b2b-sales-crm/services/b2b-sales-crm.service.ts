@@ -161,7 +161,7 @@ export class B2BSalesCrmService {
     return this.onboardingService.activateOnboardingCase(onboardingCaseId);
   }
 
-  registerPurchase(input: RegisterPurchaseDto): Promise<Record<string, unknown>> {
+  registerPurchase(input: RegisterPurchaseDto & { merchantAccountId: string }): Promise<Record<string, unknown>> {
     return this.bnplBillingService.registerPurchase(input);
   }
 

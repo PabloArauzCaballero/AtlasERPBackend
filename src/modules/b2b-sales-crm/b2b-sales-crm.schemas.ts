@@ -294,7 +294,11 @@ export const completeChecklistItemSchema = z.object({
 
 export const registerPurchaseSchema = z
   .object({
-    merchantAccountId: uuid,
+    /*
+     * Opcional: un comercio no manda su propia cuenta, la deriva su membresia. Se mantiene para el
+     * operador interno, que si elige sobre que comercio actua (y queda auditado como tal).
+     */
+    merchantAccountId: uuid.optional(),
     branchId: uuid,
     /*
      * El comercio no conoce el uuid interno de su cliente: conoce su DOCUMENTO. Se acepta uno u
