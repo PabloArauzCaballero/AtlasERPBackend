@@ -46,6 +46,12 @@ x-erp-env: &erp-env
   # el login interno moria en «El servicio de identidad no esta disponible.» y el portal del ERP
   # nunca se pudo abrir en local.
   ATLAS_IDENTITY_BASE_URL: ${ATLAS_IDENTITY_BASE_URL:-http://host.docker.internal:53005/api/v1}
+  # 8 s es el default del codigo, pensado para un servidor dedicado. En una maquina de desarrollo
+  # —donde conviven los dos backends, Postgres, Redis, MinIO, Metro y Next— el login hace hash de
+  # contrasena compitiendo por CPU con todo eso, y el mismo trayecto que tarda 200 ms tarda 6 s. Con
+  # el default, el portal declara caido un backend que solo estaba ocupado; y el mensaje que sale
+  # —«el servicio no esta disponible»— manda a buscar el fallo donde no esta.
+  ATLAS_IDENTITY_TIMEOUT_MS: ${ATLAS_IDENTITY_TIMEOUT_MS:-30000}
   LOG_LEVEL: info
   EMAIL_PROVIDER_MODE: mock
   EMAIL_FROM: no-reply@atlas.local

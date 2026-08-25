@@ -19,13 +19,17 @@ const UPSTREAM_ACCESS_COOKIE = 'atlas_upstream_at';
  *
  * Los roles se declaran igualmente porque son la puerta de ESTE backend: sin ellos, cualquier
  * sesión del ERP podría usar el portal como trampolín hacia el otro servicio.
+ *
+ * `MERCHANT_ADMIN` está en todas: es el rol que la sesión del DUEÑO del comercio trae de verdad.
+ * Faltaba en casi todas menos en `mine`, y el efecto era desconcertante —el portal sabía decir cuál
+ * era tu expediente y devolvía 403 al abrirlo—, que en pantalla se veía como una página vacía.
  */
 @Controller('partner-onboarding')
 export class PartnerOnboardingGatewayController {
   constructor(private readonly client: AtlasPartnerClient) {}
 
   @Post('start')
-  @Roles('merchant', 'MERCHANT_OPERATIONS', 'ADMIN')
+  @Roles('merchant', 'MERCHANT_ADMIN', 'MERCHANT_OPERATIONS', 'ADMIN')
   start(@Req() req: Request, @Body() body: unknown) {
     return this.client.forward({ method: 'POST', path: 'partner-onboarding/start', accessToken: this.token(req), body });
   }
@@ -42,7 +46,7 @@ export class PartnerOnboardingGatewayController {
   }
 
   @Get(':partnerId/status')
-  @Roles('merchant', 'MERCHANT_OPERATIONS', 'ADMIN')
+  @Roles('merchant', 'MERCHANT_ADMIN', 'MERCHANT_OPERATIONS', 'ADMIN')
   status(@Req() req: Request, @Param('partnerId') partnerId: string) {
     return this.client.forward({
       method: 'GET',
@@ -51,8 +55,20 @@ export class PartnerOnboardingGatewayController {
     });
   }
 
+  /** Corregir nombre de fachada, rubro y telefono. Admite el expediente ya aprobado. */
+  @Patch(':partnerId/commercial-profile')
+  @Roles('merchant', 'MERCHANT_ADMIN', 'MERCHANT_OPERATIONS', 'ADMIN')
+  updateCommercialProfile(@Req() req: Request, @Param('partnerId') partnerId: string, @Body() body: unknown) {
+    return this.client.forward({
+      method: 'PATCH',
+      path: `partner-onboarding/${encodeURIComponent(partnerId)}/commercial-profile`,
+      accessToken: this.token(req),
+      body,
+    });
+  }
+
   @Post(':partnerId/submit')
-  @Roles('merchant', 'MERCHANT_OPERATIONS', 'ADMIN')
+  @Roles('merchant', 'MERCHANT_ADMIN', 'MERCHANT_OPERATIONS', 'ADMIN')
   submit(@Req() req: Request, @Param('partnerId') partnerId: string) {
     return this.client.forward({
       method: 'POST',
@@ -62,7 +78,7 @@ export class PartnerOnboardingGatewayController {
   }
 
   @Post(':partnerId/branches')
-  @Roles('merchant', 'MERCHANT_OPERATIONS', 'ADMIN')
+  @Roles('merchant', 'MERCHANT_ADMIN', 'MERCHANT_OPERATIONS', 'ADMIN')
   registerBranch(@Req() req: Request, @Param('partnerId') partnerId: string, @Body() body: unknown) {
     return this.client.forward({
       method: 'POST',
@@ -73,7 +89,7 @@ export class PartnerOnboardingGatewayController {
   }
 
   @Get(':partnerId/branches')
-  @Roles('merchant', 'MERCHANT_OPERATIONS', 'ADMIN')
+  @Roles('merchant', 'MERCHANT_ADMIN', 'MERCHANT_OPERATIONS', 'ADMIN')
   listBranches(@Req() req: Request, @Param('partnerId') partnerId: string) {
     return this.client.forward({
       method: 'GET',
@@ -83,7 +99,7 @@ export class PartnerOnboardingGatewayController {
   }
 
   @Post(':partnerId/qr-codes/upload-url')
-  @Roles('merchant', 'MERCHANT_OPERATIONS', 'ADMIN')
+  @Roles('merchant', 'MERCHANT_ADMIN', 'MERCHANT_OPERATIONS', 'ADMIN')
   qrUploadUrl(@Req() req: Request, @Param('partnerId') partnerId: string, @Body() body: unknown) {
     return this.client.forward({
       method: 'POST',
@@ -94,7 +110,7 @@ export class PartnerOnboardingGatewayController {
   }
 
   @Post(':partnerId/qr-codes')
-  @Roles('merchant', 'MERCHANT_OPERATIONS', 'ADMIN')
+  @Roles('merchant', 'MERCHANT_ADMIN', 'MERCHANT_OPERATIONS', 'ADMIN')
   registerQr(@Req() req: Request, @Param('partnerId') partnerId: string, @Body() body: unknown) {
     return this.client.forward({
       method: 'POST',
@@ -105,7 +121,7 @@ export class PartnerOnboardingGatewayController {
   }
 
   @Get(':partnerId/qr-codes')
-  @Roles('merchant', 'MERCHANT_OPERATIONS', 'ADMIN')
+  @Roles('merchant', 'MERCHANT_ADMIN', 'MERCHANT_OPERATIONS', 'ADMIN')
   listQr(@Req() req: Request, @Param('partnerId') partnerId: string) {
     return this.client.forward({
       method: 'GET',
@@ -115,7 +131,7 @@ export class PartnerOnboardingGatewayController {
   }
 
   @Post(':partnerId/branches/:branchId/pos-terminals')
-  @Roles('merchant', 'MERCHANT_OPERATIONS', 'ADMIN')
+  @Roles('merchant', 'MERCHANT_ADMIN', 'MERCHANT_OPERATIONS', 'ADMIN')
   registerPos(
     @Req() req: Request,
     @Param('partnerId') partnerId: string,
@@ -131,7 +147,7 @@ export class PartnerOnboardingGatewayController {
   }
 
   @Get(':partnerId/pos-terminals')
-  @Roles('merchant', 'MERCHANT_OPERATIONS', 'ADMIN')
+  @Roles('merchant', 'MERCHANT_ADMIN', 'MERCHANT_OPERATIONS', 'ADMIN')
   listPos(@Req() req: Request, @Param('partnerId') partnerId: string) {
     return this.client.forward({
       method: 'GET',
@@ -141,7 +157,7 @@ export class PartnerOnboardingGatewayController {
   }
 
   @Patch(':partnerId/pos-terminals/:terminalId')
-  @Roles('merchant', 'MERCHANT_OPERATIONS', 'ADMIN')
+  @Roles('merchant', 'MERCHANT_ADMIN', 'MERCHANT_OPERATIONS', 'ADMIN')
   changePosStatus(
     @Req() req: Request,
     @Param('partnerId') partnerId: string,
