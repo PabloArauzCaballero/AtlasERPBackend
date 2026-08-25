@@ -61,6 +61,46 @@ export class MerchantCreditGatewayController {
     });
   }
 
+  /**
+   * Los comprobantes de transferencia que esperan la palabra del comercio.
+   *
+   * El dinero de una transferencia entra en SU cuenta, no en la de Atlas: es el unico que puede
+   * decir si llego. Hasta ahora el comprobante se quedaba en el telefono del cliente.
+   */
+  @Get(':partnerId/payment-claims')
+  @Roles('merchant', 'MERCHANT_ADMIN', 'MERCHANT_OPERATIONS', 'OPERATIONS', 'ADMIN')
+  listPaymentClaims(
+    @Req() req: Request,
+    @Param('partnerId') partnerId: string,
+    @Query('onlyPending') onlyPending?: string,
+  ) {
+    const filtro = onlyPending === undefined ? '' : `?onlyPending=${encodeURIComponent(onlyPending)}`;
+    return this.client.forward({
+      method: 'GET',
+      path: `merchant/partners/${encodeURIComponent(partnerId)}/payment-claims${filtro}`,
+      accessToken: this.token(req),
+    });
+  }
+
+  /** Confirmar o rechazar. Al confirmar, AtlasBackend registra el pago del prestamo. */
+  @Post(':partnerId/payment-claims/:claimId/verification')
+  @Roles('merchant', 'MERCHANT_ADMIN', 'MERCHANT_OPERATIONS', 'OPERATIONS', 'ADMIN')
+  verifyPaymentClaim(
+    @Req() req: Request,
+    @Param('partnerId') partnerId: string,
+    @Param('claimId') claimId: string,
+    @Body() body: unknown,
+  ) {
+    return this.client.forward({
+      method: 'POST',
+      path:
+        `merchant/partners/${encodeURIComponent(partnerId)}` +
+        `/payment-claims/${encodeURIComponent(claimId)}/verification`,
+      accessToken: this.token(req),
+      body,
+    });
+  }
+
   private token(req: Request): string | undefined {
     return (req.cookies as Record<string, string> | undefined)?.[UPSTREAM_ACCESS_COOKIE];
   }

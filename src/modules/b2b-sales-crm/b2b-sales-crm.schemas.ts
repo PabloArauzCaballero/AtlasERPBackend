@@ -279,6 +279,39 @@ export const createBranchSchema = z.object({
   address: z.string().trim().max(500).optional(),
 });
 
+/**
+ * Edicion de una sucursal. Todo opcional: se envia solo lo que cambia.
+ *
+ * `accountId` NO esta: una sucursal no se muda de comercio. Permitir cambiarlo seria mover
+ * ubicaciones —con sus ventas y sus usuarios— de una cuenta a otra con un PATCH.
+ */
+export const updateBranchSchema = z
+  .object({
+    name: z.string().trim().min(2).max(160).optional(),
+    city: z.string().trim().min(2).max(120).optional(),
+    address: z.string().trim().max(500).optional(),
+    canOriginateBnpl: z.boolean().optional(),
+  })
+  .refine((valor) => Object.keys(valor).length > 0, {
+    message: 'Indique al menos un campo a modificar.',
+  });
+export type UpdateBranchDto = z.infer<typeof updateBranchSchema>;
+
+/**
+ * Alta y baja de una sucursal. No se BORRA: se desactiva.
+ *
+ * Una sucursal borrada se lleva por delante el historial de las ventas que origino. Lo que se
+ * necesita es que deje de operar, no que deje de haber existido.
+ */
+export const setBranchStatusSchema = z.object({
+  status: z.enum(['ACTIVE', 'INACTIVE']),
+  reason: z.string().trim().min(3).max(300).optional(),
+});
+export type SetBranchStatusDto = z.infer<typeof setBranchStatusSchema>;
+
+export const branchIdParamsSchema = z.object({ branchId: uuid });
+export type BranchIdParamsDto = z.infer<typeof branchIdParamsSchema>;
+
 export const createMerchantUserSchema = z.object({
   accountId: uuid,
   branchId: uuid.optional(),

@@ -13,7 +13,10 @@ import type {
   contractIdParamsSchema,
   bulkCreateAccountsSchema,
   createAccountSchema,
+  branchIdParamsSchema,
   createBranchSchema,
+  setBranchStatusSchema,
+  updateBranchSchema,
   createContactSchema,
   createContractFromProposalSchema,
   createMerchantUserSchema,
@@ -61,6 +64,9 @@ export type CreateContractFromProposalDto = z.infer<typeof createContractFromPro
 export type SignContractDto = z.infer<typeof signContractSchema>;
 export type CreateOnboardingCaseDto = z.infer<typeof createOnboardingCaseSchema>;
 export type CreateBranchDto = z.infer<typeof createBranchSchema>;
+export type UpdateBranchDto = z.infer<typeof updateBranchSchema>;
+export type SetBranchStatusDto = z.infer<typeof setBranchStatusSchema>;
+export type BranchIdParamsDto = z.infer<typeof branchIdParamsSchema>;
 export type CreateMerchantUserDto = z.infer<typeof createMerchantUserSchema>;
 export type CompleteChecklistItemDto = z.infer<typeof completeChecklistItemSchema>;
 export type RegisterPurchaseDto = z.infer<typeof registerPurchaseSchema>;

@@ -8,6 +8,8 @@ import type {
   CreateBranchDto,
   CreateMerchantUserDto,
   CreateOnboardingCaseDto,
+  SetBranchStatusDto,
+  UpdateBranchDto,
 } from '../b2b-sales-crm.dtos';
 import { B2BSalesCrmRepository } from '../repositories/b2b-sales-crm.repository';
 import { B2BSalesCrmUseCaseBase } from './b2b-sales-crm-use-case.base';
@@ -149,6 +151,62 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
           ),
         ),
       },
+    };
+  }
+
+  /** Edita una sucursal existente. No cambia de comercio: eso movería ventas de cuenta. */
+  async updateBranch(branchId: string, input: UpdateBranchDto): Promise<Record<string, unknown>> {
+    this.logger.infoContext(B2BOnboardingService.name, 'B2B CRM use case started', {
+      useCase: 'updateBranch',
+    });
+    const branch = await this.repository.branches.findByPk(branchId);
+    if (!branch) throw new NotFoundException('Sucursal no encontrada.');
+
+    await branch.update({
+      ...(input.name !== undefined ? { name: input.name } : {}),
+      ...(input.city !== undefined ? { city: input.city } : {}),
+      ...(input.address !== undefined ? { address: input.address } : {}),
+      ...(input.canOriginateBnpl !== undefined ? { canOriginateBnpl: input.canOriginateBnpl } : {}),
+    });
+    return this.describeBranch(branch);
+  }
+
+  /**
+   * Da de alta o de baja una sucursal. NO la borra.
+   *
+   * Borrarla se llevaria por delante el historial de las ventas que origino. Una sucursal cerrada
+   * tiene que seguir siendo consultable: sus cuotas siguen venciendo y alguien tendra que explicar
+   * de donde salieron. Al desactivarla se le quita ademas la capacidad de originar BNPL, que es lo
+   * que de verdad significa «cerrada» para el negocio.
+   */
+  async setBranchStatus(branchId: string, input: SetBranchStatusDto): Promise<Record<string, unknown>> {
+    this.logger.infoContext(B2BOnboardingService.name, 'B2B CRM use case started', {
+      useCase: 'setBranchStatus',
+    });
+    const branch = await this.repository.branches.findByPk(branchId);
+    if (!branch) throw new NotFoundException('Sucursal no encontrada.');
+
+    const activa = input.status === 'ACTIVE';
+    await branch.update({
+      status: input.status,
+      canOriginateBnpl: activa ? branch.canOriginateBnpl : false,
+      ...(activa && !branch.activatedAt ? { activatedAt: new Date() } : {}),
+    });
+    return this.describeBranch(branch);
+  }
+
+  private describeBranch(branch: {
+    id: string; accountId: string; name: string; city: string | null;
+    address: string | null; status: string; canOriginateBnpl: boolean;
+  }): Record<string, unknown> {
+    return {
+      id: branch.id,
+      accountId: branch.accountId,
+      name: branch.name,
+      city: branch.city,
+      address: branch.address,
+      status: branch.status,
+      canOriginateBnpl: branch.canOriginateBnpl,
     };
   }
 

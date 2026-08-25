@@ -9,13 +9,19 @@ import type {
   CreateMerchantUserDto,
   CreateOnboardingCaseDto,
   OnboardingCaseIdParamsDto,
+  SetBranchStatusDto,
+  UpdateBranchDto,
+  BranchIdParamsDto,
 } from '../b2b-sales-crm.dtos';
 import {
+  branchIdParamsSchema,
   completeChecklistItemSchema,
   createBranchSchema,
   createMerchantUserSchema,
   createOnboardingCaseSchema,
   onboardingCaseIdParamsSchema,
+  setBranchStatusSchema,
+  updateBranchSchema,
 } from '../b2b-sales-crm.schemas';
 import { B2BSalesCrmService } from '../services/b2b-sales-crm.service';
 
@@ -50,6 +56,25 @@ export class OnboardingController {
   }
 
   @Roles('OPERATIONS', 'ADMIN')
+  /* Editar y dar de baja una sucursal. Faltaban: solo se podian crear, nunca corregir ni cerrar. */
+  @Roles('OPERATIONS', 'ADMIN', 'MERCHANT_ADMIN')
+  @Patch('branches/:branchId')
+  updateBranch(
+    @Param(new ZodValidationPipe(branchIdParamsSchema)) params: BranchIdParamsDto,
+    @Body(new ZodValidationPipe(updateBranchSchema)) body: UpdateBranchDto,
+  ): Promise<Record<string, unknown>> {
+    return this.service.updateBranch(params.branchId, body);
+  }
+
+  @Roles('OPERATIONS', 'ADMIN', 'MERCHANT_ADMIN')
+  @Patch('branches/:branchId/status')
+  setBranchStatus(
+    @Param(new ZodValidationPipe(branchIdParamsSchema)) params: BranchIdParamsDto,
+    @Body(new ZodValidationPipe(setBranchStatusSchema)) body: SetBranchStatusDto,
+  ): Promise<Record<string, unknown>> {
+    return this.service.setBranchStatus(params.branchId, body);
+  }
+
   @Post('branches')
   createBranch(
     @Body(new ZodValidationPipe(createBranchSchema)) body: CreateBranchDto,

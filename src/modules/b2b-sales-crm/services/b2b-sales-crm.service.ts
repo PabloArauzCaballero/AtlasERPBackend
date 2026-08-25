@@ -6,6 +6,8 @@ import type {
   BulkCreateAccountsDto,
   CreateAccountDto,
   CreateBranchDto,
+  SetBranchStatusDto,
+  UpdateBranchDto,
   CreateContactDto,
   CreateContractFromProposalDto,
   CreateMerchantUserDto,
@@ -171,6 +173,14 @@ export class B2BSalesCrmService {
 
   createBranch(input: CreateBranchDto): Promise<Record<string, unknown>> {
     return this.onboardingService.createBranch(input);
+  }
+
+  updateBranch(branchId: string, input: UpdateBranchDto): Promise<Record<string, unknown>> {
+    return this.onboardingService.updateBranch(branchId, input);
+  }
+
+  setBranchStatus(branchId: string, input: SetBranchStatusDto): Promise<Record<string, unknown>> {
+    return this.onboardingService.setBranchStatus(branchId, input);
   }
 
   createMerchantUser(input: CreateMerchantUserDto): Promise<Record<string, unknown>> {
