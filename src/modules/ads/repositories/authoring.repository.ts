@@ -193,6 +193,33 @@ export class AdsAuthoringRepository {
     return this.segmentModel.findOne({ where: { id } as WhereOptions, transaction });
   }
 
+  /**
+   * Conjuntos, creatividades y espacios, para poder ELEGIRLOS.
+   *
+   * Faltaban las lecturas y por eso la pantalla de campanas pedia sus uuids tecleados —incluso una
+   * lista de espacios separada por comas—. Un identificador copiado a mano en un campo de texto es
+   * una via de equivocarse en silencio: la campana se crea, apunta a otro sitio y nadie lo nota.
+   */
+  listAdSets(campaignId?: string) {
+    return this.adSetModel.findAll({
+      where: (campaignId ? { campaign_id: campaignId } : {}) as WhereOptions,
+      order: [['created_at', 'DESC']],
+      limit: 200,
+    });
+  }
+
+  listCreatives(advertiserId?: string) {
+    return this.creativeModel.findAll({
+      where: (advertiserId ? { advertiser_id: advertiserId } : {}) as WhereOptions,
+      order: [['created_at', 'DESC']],
+      limit: 200,
+    });
+  }
+
+  listPlacements() {
+    return this.placementModel.findAll({ order: [['code', 'ASC']], limit: 200 });
+  }
+
   listSegments(query: ListTargetSegmentsQueryDto) {
     const where: WhereOptions = {};
     if (query.advertiserId) where.advertiser_id = query.advertiserId;

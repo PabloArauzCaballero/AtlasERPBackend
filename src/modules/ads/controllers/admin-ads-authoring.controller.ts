@@ -106,6 +106,22 @@ export class AdminAdsAuthoringController {
     return this.authoringService.createSegment(body, { user, requestId });
   }
 
+  /* Conjuntos, creatividades y espacios: sin estas lecturas la pantalla pedia uuids a mano. */
+  @Get('ad-sets')
+  listAdSets(@Query('campaignId') campaignId?: string) {
+    return this.authoringService.listAdSets(campaignId);
+  }
+
+  @Get('creatives')
+  listCreatives(@Query('advertiserId') advertiserId?: string) {
+    return this.authoringService.listCreatives(advertiserId);
+  }
+
+  @Get('placements')
+  listPlacements() {
+    return this.authoringService.listPlacements();
+  }
+
   @Get('segments')
   @Roles(
     'ADS_ADMIN_VIEWER',

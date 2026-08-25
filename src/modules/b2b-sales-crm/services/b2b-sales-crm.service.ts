@@ -129,6 +129,34 @@ export class B2BSalesCrmService {
     return this.contractsService.signAndActivateContract(contractId, input);
   }
 
+  listInstallments(): Promise<Record<string, unknown>[]> {
+    return this.reconciliationService.listInstallments();
+  }
+
+  listMerchantInvoices(): Promise<Record<string, unknown>[]> {
+    return this.reconciliationService.listMerchantInvoices();
+  }
+
+  listPayables(): Promise<Record<string, unknown>[]> {
+    return this.reconciliationService.listPayables();
+  }
+
+  listRecoveries(): Promise<Record<string, unknown>[]> {
+    return this.reconciliationService.listRecoveries();
+  }
+
+  listProposals(): Promise<Record<string, unknown>[]> {
+    return this.pipelineService.listProposals();
+  }
+
+  listApprovals(onlyPending?: boolean): Promise<Record<string, unknown>[]> {
+    return this.pipelineService.listApprovals(onlyPending);
+  }
+
+  listContracts(): Promise<Record<string, unknown>[]> {
+    return this.pipelineService.listContracts();
+  }
+
   listOnboardingCases(): Promise<Record<string, unknown>[]> {
     return this.onboardingService.listOnboardingCases();
   }

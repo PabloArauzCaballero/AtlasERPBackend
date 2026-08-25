@@ -238,6 +238,18 @@ export class AdsAuthoringService {
     });
   }
 
+  async listAdSets(campaignId?: string) {
+    return this.authoringRepository.listAdSets(campaignId);
+  }
+
+  async listCreatives(advertiserId?: string) {
+    return this.authoringRepository.listCreatives(advertiserId);
+  }
+
+  async listPlacements() {
+    return this.authoringRepository.listPlacements();
+  }
+
   async listSegments(query: ListTargetSegmentsQueryDto) {
     return serializePaginated(await this.authoringRepository.listSegments(query));
   }

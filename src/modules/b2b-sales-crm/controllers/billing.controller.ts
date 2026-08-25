@@ -1,4 +1,4 @@
-import { Body, Controller, Param, Post, Patch } from '@nestjs/common';
+import { Get, Body, Controller, Param, Post, Patch } from '@nestjs/common';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
@@ -24,6 +24,13 @@ export class BillingController {
     private readonly service: B2BSalesCrmService,
     private readonly bridge: MerchantAccountingBridgeService,
   ) {}
+
+  /* Lectura de facturas de comercio. Faltaba: la pantalla pedia el uuid de la factura a mano. */
+  @Roles('FINANCE', 'OPERATIONS', 'ADMIN')
+  @Get('invoices')
+  listInvoices(): Promise<Record<string, unknown>[]> {
+    return this.service.listMerchantInvoices();
+  }
 
   @Roles('FINANCE', 'ADMIN')
   @Post('invoices')

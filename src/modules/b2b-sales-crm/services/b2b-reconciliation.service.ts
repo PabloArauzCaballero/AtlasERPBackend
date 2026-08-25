@@ -20,6 +20,67 @@ export class B2BReconciliationService extends B2BSalesCrmUseCaseBase {
     super(repository, logger);
   }
 
+  /**
+   * Las piezas sueltas de la conciliacion, para poder ELEGIRLAS.
+   *
+   * Faltaban las lecturas, y por eso la pantalla de conciliacion pedia tres uuids tecleados —cuota,
+   * payable y recuperacion—. Nadie los conoce: solo se obtenian copiandolos de la respuesta de otra
+   * llamada, asi que el flujo era inoperable para quien tenia que usarlo.
+   */
+  async listInstallments(): Promise<Record<string, unknown>[]> {
+    const rows = await this.repository.installments.findAll({
+      order: [['dueDate', 'ASC']],
+      limit: 200,
+    });
+    return rows.map((row) => ({
+      id: row.id,
+      purchaseId: row.purchaseId,
+      installmentNumber: row.installmentNumber,
+      dueDate: row.dueDate,
+      amount: row.amount,
+      status: row.status,
+    }));
+  }
+
+  /** Facturas emitidas al comercio, por numero y estado: es como se las busca para contabilizar. */
+  async listMerchantInvoices(): Promise<Record<string, unknown>[]> {
+    const rows = await this.repository.invoices.findAll({
+      order: [['invoiceDate', 'DESC']],
+      limit: 200,
+    });
+    return rows.map((row) => ({
+      id: row.id,
+      invoiceNumber: row.invoiceNumber,
+      accountId: row.accountId,
+      invoiceDate: row.invoiceDate,
+      totalAmount: row.totalAmount,
+      status: row.status,
+    }));
+  }
+
+  async listPayables(): Promise<Record<string, unknown>[]> {
+    const rows = await this.repository.payables.findAll({ order: [['id', 'DESC']], limit: 200 });
+    return rows.map((row) => ({
+      id: row.id,
+      accountId: row.accountId,
+      amount: row.amount,
+      status: row.status,
+      scheduledPaymentDate: row.scheduledPaymentDate,
+    }));
+  }
+
+  async listRecoveries(): Promise<Record<string, unknown>[]> {
+    const rows = await this.repository.recoveries.findAll({ order: [['id', 'DESC']], limit: 200 });
+    return rows.map((row) => ({
+      id: row.id,
+      consumerId: row.consumerId,
+      amountCoveredByAtlas: row.amountCoveredByAtlas,
+      amountRecovered: row.amountRecovered,
+      recoveryStatus: row.recoveryStatus,
+      daysPastDue: row.daysPastDue,
+    }));
+  }
+
   async runReconciliation(
     input: RunReconciliationDto,
     user: AuthUser,

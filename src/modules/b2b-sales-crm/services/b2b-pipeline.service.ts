@@ -79,6 +79,73 @@ export class B2BPipelineService extends B2BSalesCrmUseCaseBase {
     return opportunities.map(toOpportunityResponse);
   }
 
+  /**
+   * Las propuestas, con el nombre de la cuenta.
+   *
+   * Faltaba la lectura, y por eso la pantalla pedia teclear el uuid de la oportunidad y el de la
+   * propuesta: sin listado no habia de donde elegirlos. Nadie se sabe un uuid, asi que el flujo
+   * solo funcionaba encadenando identificadores copiados de la respuesta anterior.
+   */
+  async listProposals(): Promise<Record<string, unknown>[]> {
+    const proposals = await this.repository.proposals.findAll({
+      include: [this.repository.accounts],
+      order: [['createdAt', 'DESC']],
+      limit: 200,
+    });
+    return proposals.map((proposal) => ({
+      id: proposal.id,
+      proposalNumber: proposal.proposalNumber,
+      opportunityId: proposal.opportunityId,
+      accountId: proposal.accountId,
+      tradeName: proposal.account?.tradeName ?? proposal.account?.legalName ?? null,
+      status: proposal.status,
+      validUntil: proposal.validUntil,
+      totalEstimatedMonthlyRevenue: proposal.totalEstimatedMonthlyRevenue,
+      createdAt: proposal.createdAt,
+    }));
+  }
+
+  /** Las aprobaciones pendientes de decision. Sin esto la cola no se podia ni leer. */
+  async listApprovals(onlyPending = true): Promise<Record<string, unknown>[]> {
+    const approvals = await this.repository.approvalRequests.findAll({
+      where: (onlyPending ? { status: 'PENDING' } : {}) as WhereOptions,
+      order: [['createdAt', 'DESC']],
+      limit: 200,
+    });
+    return approvals.map((approval) => ({
+      id: approval.id,
+      proposalId: approval.proposalId,
+      contractVersionId: approval.contractVersionId,
+      approvalType: approval.approvalType,
+      reason: approval.reason,
+      status: approval.status,
+      requestedByUserId: approval.requestedByUserId,
+      approvedByUserId: approval.approvedByUserId,
+      decidedAt: approval.decidedAt,
+      createdAt: approval.createdAt,
+    }));
+  }
+
+  /** Los contratos, con el nombre del comercio: es por lo que se los busca. */
+  async listContracts(): Promise<Record<string, unknown>[]> {
+    const contracts = await this.repository.contracts.findAll({
+      include: [this.repository.accounts],
+      order: [['createdAt', 'DESC']],
+      limit: 200,
+    });
+    return contracts.map((contract) => ({
+      id: contract.id,
+      contractNumber: contract.contractNumber,
+      accountId: contract.accountId,
+      tradeName: contract.account?.tradeName ?? contract.account?.legalName ?? null,
+      status: contract.status,
+      startDate: contract.startDate,
+      endDate: contract.endDate,
+      billingCycle: contract.billingCycle,
+      signedAt: contract.signedAt,
+    }));
+  }
+
   async moveOpportunityStage(
     id: string,
     input: MoveOpportunityStageDto,

@@ -1,4 +1,4 @@
-import { Body, Controller, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
@@ -22,6 +22,23 @@ import { B2BSalesCrmService } from '../services/b2b-sales-crm.service';
 @Controller('b2b/proposals')
 export class ProposalsController {
   constructor(private readonly service: B2BSalesCrmService) {}
+
+  /* Lectura de la cartera de propuestas. Faltaba, y por eso la pantalla pedia uuids tecleados. */
+  @Roles('COMMERCIAL_EXECUTIVE', 'COMMERCIAL_MANAGER', 'FINANCE', 'LEGAL', 'ADMIN')
+  @Get()
+  listProposals(): Promise<Record<string, unknown>[]> {
+    return this.service.listProposals();
+  }
+
+  /*
+   * La cola de aprobaciones. Sin esto la pantalla admitia que «el backend solo expone la decision
+   * PATCH» y obligaba a actuar sobre un uuid obtenido a mano del flujo de propuesta.
+   */
+  @Roles('COMMERCIAL_MANAGER', 'FINANCE', 'LEGAL', 'ADMIN')
+  @Get('approvals')
+  listApprovals(@Query('onlyPending') onlyPending?: string): Promise<Record<string, unknown>[]> {
+    return this.service.listApprovals(onlyPending !== 'false');
+  }
 
   @Roles('COMMERCIAL_EXECUTIVE', 'COMMERCIAL_MANAGER', 'ADMIN')
   @Post()

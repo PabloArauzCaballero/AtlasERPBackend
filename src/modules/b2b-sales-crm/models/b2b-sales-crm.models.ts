@@ -407,6 +407,10 @@ export class CommercialProposalModel extends Model {
   @Column({ type: DataType.DATE, field: 'created_at' })
   declare createdAt: Date;
 
+  /* La cuenta, para poder listar por el NOMBRE del comercio y no por su uuid. */
+  @BelongsTo(() => B2BAccountModel)
+  declare account?: B2BAccountModel;
+
   @HasMany(() => ProposalLineModel)
   declare lines?: ProposalLineModel[];
 }
@@ -531,6 +535,10 @@ export class B2BContractModel extends Model {
   @Default(DataType.NOW)
   @Column({ type: DataType.DATE, field: 'created_at' })
   declare createdAt: Date;
+
+  /* La cuenta, para poder listar por el NOMBRE del comercio y no por su uuid. */
+  @BelongsTo(() => B2BAccountModel)
+  declare account?: B2BAccountModel;
 
   @HasMany(() => ContractVersionModel)
   declare versions?: ContractVersionModel[];

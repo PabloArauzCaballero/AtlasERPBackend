@@ -1,4 +1,4 @@
-import { Body, Controller, Param, Patch, Post } from '@nestjs/common';
+import { Get, Body, Controller, Param, Patch, Post } from '@nestjs/common';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
 import type {
@@ -20,6 +20,28 @@ import { B2BSalesCrmService } from '../services/b2b-sales-crm.service';
 @Controller('b2b/coverage')
 export class CoverageController {
   constructor(private readonly service: B2BSalesCrmService) {}
+
+  /*
+   * Lectura de las piezas de la conciliacion. Faltaba, y por eso la pantalla pedia tres uuids
+   * tecleados: cuota, payable y recuperacion. Solo se obtenian copiandolos de otra respuesta.
+   */
+  @Roles('FINANCE', 'OPERATIONS', 'ADMIN')
+  @Get('installments')
+  listInstallments(): Promise<Record<string, unknown>[]> {
+    return this.service.listInstallments();
+  }
+
+  @Roles('FINANCE', 'OPERATIONS', 'ADMIN')
+  @Get('payables')
+  listPayables(): Promise<Record<string, unknown>[]> {
+    return this.service.listPayables();
+  }
+
+  @Roles('FINANCE', 'OPERATIONS', 'ADMIN')
+  @Get('recoveries')
+  listRecoveries(): Promise<Record<string, unknown>[]> {
+    return this.service.listRecoveries();
+  }
 
   @Roles('FINANCE', 'OPERATIONS', 'ADMIN')
   @Post('payables')

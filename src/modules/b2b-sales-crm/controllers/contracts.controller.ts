@@ -1,4 +1,4 @@
-import { Body, Controller, Param, Patch, Post } from '@nestjs/common';
+import { Get, Body, Controller, Param, Patch, Post } from '@nestjs/common';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
 import type {
@@ -16,6 +16,13 @@ import { B2BSalesCrmService } from '../services/b2b-sales-crm.service';
 @Controller('b2b/contracts')
 export class ContractsController {
   constructor(private readonly service: B2BSalesCrmService) {}
+
+  /* Lectura de contratos, para poder ELEGIR uno en vez de teclear su uuid. */
+  @Roles('COMMERCIAL_EXECUTIVE', 'COMMERCIAL_MANAGER', 'LEGAL', 'FINANCE', 'ADMIN')
+  @Get()
+  listContracts(): Promise<Record<string, unknown>[]> {
+    return this.service.listContracts();
+  }
 
   @Roles('LEGAL', 'COMMERCIAL_MANAGER', 'ADMIN')
   @Post('from-proposal')
