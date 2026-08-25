@@ -82,6 +82,17 @@ export class MerchantCreditGatewayController {
     });
   }
 
+  /** La cartera: que le deben, quien y cuando. Alimenta creditos, calendario y panel. */
+  @Get(':partnerId/portfolio')
+  @Roles('merchant', 'MERCHANT_ADMIN', 'MERCHANT_OPERATIONS', 'OPERATIONS', 'ADMIN')
+  portfolio(@Req() req: Request, @Param('partnerId') partnerId: string) {
+    return this.client.forward({
+      method: 'GET',
+      path: `merchant/partners/${encodeURIComponent(partnerId)}/payment-claims/portfolio`,
+      accessToken: this.token(req),
+    });
+  }
+
   /** Confirmar o rechazar. Al confirmar, AtlasBackend registra el pago del prestamo. */
   @Post(':partnerId/payment-claims/:claimId/verification')
   @Roles('merchant', 'MERCHANT_ADMIN', 'MERCHANT_OPERATIONS', 'OPERATIONS', 'ADMIN')
