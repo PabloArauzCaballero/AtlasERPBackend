@@ -131,6 +131,24 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
         status: item.status,
         completedByUserId: item.completedByUserId,
       })),
+      /*
+       * Las DOS condiciones que `activateOnboardingCase` comprueba de verdad antes de habilitar al
+       * comercio. Se devuelven aqui para que la pantalla pueda decir en que estado esta cada una en
+       * vez de dibujar cuatro comprobaciones siempre en verde: un panel que afirma «READY» sin haber
+       * mirado nada es peor que no tener panel, porque convence a quien lo lee de que ya comprobo.
+       */
+      readiness: {
+        pendingChecklistItems: (caseRecord.checklistItems ?? []).filter(
+          (item) => item.status !== 'COMPLETED' && item.status !== 'WAIVED',
+        ).length,
+        hasActiveContract: Boolean(
+          await this.repository.findActiveContractVersion(
+            caseRecord.accountId,
+            new Date().toISOString().slice(0, 10),
+            transaction,
+          ),
+        ),
+      },
     };
   }
 

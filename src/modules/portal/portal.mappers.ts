@@ -24,6 +24,10 @@ export interface PortalPlanDto {
   description: string | null;
   tier: string;
   monthlyPrice: string;
+  /** Lo que cuesta llegar a 1.000 personas, en unidades de `currency`. */
+  cpmPrice: string;
+  /** Lo que cuesta un clic, en unidades de `currency`. */
+  cpcPrice: string;
   currency: string;
   features: string[];
   status: string;
@@ -134,6 +138,13 @@ export function toPlanDto(plan: MerchantPlanModel): PortalPlanDto {
     description: plan.description ?? null,
     tier: plan.tier,
     monthlyPrice: normalizeAmount(plan.monthlyPrice),
+    /*
+     * La tarifa sale en unidades de la moneda, no en micros: los micros existen para que el reparto
+     * de un CPM entre mil impresiones no se redondee a cero, y ese calculo es del motor de entrega.
+     * Quien lee esto es una pantalla de precios, y un precio con seis decimales no se lee.
+     */
+    cpmPrice: normalizeAmount(String(Number(plan.cpmMicros ?? 0) / 1_000_000)),
+    cpcPrice: normalizeAmount(String(Number(plan.cpcMicros ?? 0) / 1_000_000)),
     currency: plan.currency,
     features: toFeatureList(plan.features),
     status: plan.status,

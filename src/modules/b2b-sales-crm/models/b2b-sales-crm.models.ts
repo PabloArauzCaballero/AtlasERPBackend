@@ -1350,10 +1350,28 @@ export class MerchantPlanModel extends Model {
   @Column(DataType.STRING(30))
   declare tier: string;
 
+  /**
+   * En desuso: el comercio ya no paga una cuota mensual, paga por alcance y por clics.
+   *
+   * Se mantiene en cero y sin borrar para no romper lo que aun la lee. Lo que distingue a un plan
+   * de otro son `cpmMicros` y `cpcMicros`.
+   */
   @AllowNull(false)
   @Default(0)
   @Column({ type: DataType.DECIMAL(18, 2), field: 'monthly_price' })
   declare monthlyPrice: string;
+
+  /** Precio por cada 1.000 personas alcanzadas, en micros. */
+  @AllowNull(false)
+  @Default(0)
+  @Column({ type: DataType.BIGINT, field: 'cpm_micros' })
+  declare cpmMicros: string;
+
+  /** Precio por clic, en micros. */
+  @AllowNull(false)
+  @Default(0)
+  @Column({ type: DataType.BIGINT, field: 'cpc_micros' })
+  declare cpcMicros: string;
 
   @Default('BOB')
   @Column(DataType.CHAR(3))

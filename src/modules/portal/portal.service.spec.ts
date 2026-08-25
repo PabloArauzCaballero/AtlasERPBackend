@@ -94,6 +94,8 @@ function buildHarness(queryRows: unknown[] = []): Harness {
     create: jest.fn(),
   };
   const branchModel = { findAll: jest.fn().mockResolvedValue([]) };
+  /* El usuario de comercio detras del `sub` del token: es lo que se guarda como actor. */
+  const merchantUserModel = { findOne: jest.fn().mockResolvedValue({ id: 'b1000000-0000-4000-8000-000000000001' }) };
   const accountModel = { findByPk: jest.fn() };
   const invoiceModel = { findAll: jest.fn().mockResolvedValue([]) };
   const receivableModel = { findAll: jest.fn().mockResolvedValue([]) };
@@ -109,6 +111,7 @@ function buildHarness(queryRows: unknown[] = []): Harness {
     planModel as never,
     subscriptionModel as never,
     branchModel as never,
+    merchantUserModel as never,
     accountModel as never,
     invoiceModel as never,
     receivableModel as never,

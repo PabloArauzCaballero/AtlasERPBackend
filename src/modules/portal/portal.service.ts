@@ -14,6 +14,7 @@ import {
   MerchantPlanModel,
   MerchantReceivableModel,
   MerchantSubscriptionModel,
+  MerchantUserModel,
 } from '../b2b-sales-crm/models/b2b-sales-crm.models';
 import { AdvertiserAccountModel, CampaignModel } from '../ads/models';
 import { AdsAuditService } from '../ads/services/audit.service';
@@ -80,6 +81,7 @@ export class PortalService {
     @InjectModel(MerchantSubscriptionModel)
     private readonly subscriptionModel: typeof MerchantSubscriptionModel,
     @InjectModel(MerchantBranchModel) private readonly branchModel: typeof MerchantBranchModel,
+    @InjectModel(MerchantUserModel) private readonly merchantUserModel: typeof MerchantUserModel,
     @InjectModel(B2BAccountModel) private readonly accountModel: typeof B2BAccountModel,
     @InjectModel(MerchantInvoiceModel) private readonly invoiceModel: typeof MerchantInvoiceModel,
     @InjectModel(MerchantReceivableModel)
@@ -101,7 +103,8 @@ export class PortalService {
       where: query.includeInactive === 'true' ? {} : { status: 'ACTIVE' },
       order: [
         ['sortOrder', 'ASC'],
-        ['monthlyPrice', 'ASC'],
+        /* Por tarifa, no por cuota: `monthlyPrice` es cero en todos desde que se cobra por entrega. */
+        ['cpmMicros', 'ASC'],
         ['code', 'ASC'],
       ],
       limit: query.limit,
@@ -233,6 +236,7 @@ export class PortalService {
       }
 
       const now = new Date();
+      const actorId = await this.resolveActorUserId(actor.user.sub, transaction);
       const previous = await this.subscriptionModel.findOne({
         where: { merchantAccountId, status: 'ACTIVE' },
         transaction,
@@ -250,7 +254,7 @@ export class PortalService {
       }
 
       const closedCount = await this.subscriptionModel.update(
-        { status: 'REPLACED', endedAt: now, endedByUserId: actor.user.sub, updatedAt: now },
+        { status: 'REPLACED', endedAt: now, endedByUserId: actorId, updatedAt: now },
         { where: { merchantAccountId, status: 'ACTIVE' }, transaction },
       );
 
@@ -262,7 +266,7 @@ export class PortalService {
           autoRenew: input.autoRenew,
           startedAt: now,
           currentPeriodEnd: computePeriodEnd(now),
-          selectedByUserId: actor.user.sub,
+          selectedByUserId: actorId,
           endedAt: null,
           endedByUserId: null,
           createdAt: now,
@@ -629,4 +633,26 @@ export class PortalService {
       });
     }
   }
+  /**
+   * Traduce el principal del token al usuario de comercio DE ESTE backend.
+   *
+   * `selected_by_user_id` y `ended_by_user_id` son `uuid`, pero `user.sub` es el identificador
+   * opaco que emite AtlasBackend —un bigint como `"9002"`—. Guardarlo tal cual reventaba el
+   * INSERT y el comercio no podia cambiar de tarifa: la pantalla decia «Ocurrio un error al
+   * consultar o modificar la base de datos», que no dice nada de lo que pasa.
+   *
+   * El enlace es `merchant_users.user_id`, que guarda ese `sub` como texto: es el mismo puente que
+   * ya usa `PortalScopeService` para decidir a que comercio pertenece quien llama. Si no hay
+   * reflejo —personal interno operando en nombre del comercio— se guarda `null`: es preferible no
+   * saber quien fue a inventar un identificador que no apunta a nadie.
+   */
+  private async resolveActorUserId(sub: string, transaction: Transaction): Promise<string | null> {
+    if (!sub) return null;
+    const merchantUser = await this.merchantUserModel.findOne({
+      where: { userId: String(sub) },
+      transaction,
+    });
+    return merchantUser?.id ?? null;
+  }
+
 }
