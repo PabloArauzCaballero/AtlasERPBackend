@@ -1,5 +1,5 @@
-import { Body, Controller, Get, Param, Patch, Post, Req } from '@nestjs/common';
-import type { Request } from 'express';
+import { Body, Controller, Get, Header, Param, Patch, Post, Req, Res, StreamableFile } from '@nestjs/common';
+import type { Request, Response } from 'express';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { AtlasPartnerClient } from './atlas-partner.client';
 
@@ -128,6 +128,31 @@ export class PartnerOnboardingGatewayController {
       path: `partner-onboarding/${encodeURIComponent(partnerId)}/qr-codes`,
       accessToken: this.token(req),
     });
+  }
+
+  /**
+   * La imagen del QR, para poder mirar lo que se subió.
+   *
+   * La lista de arriba devuelve el prefijo del hash, que prueba que el archivo existe pero no deja
+   * ver si es el QR correcto. Un comercio que sube la imagen equivocada no se entera hasta que un
+   * cliente transfiere a la cuenta de otro.
+   */
+  @Get(':partnerId/qr-codes/:qrId/content')
+  @Roles('merchant', 'MERCHANT_ADMIN', 'MERCHANT_OPERATIONS', 'ADMIN')
+  @Header('Cache-Control', 'private, max-age=60')
+  async qrContent(
+    @Req() req: Request,
+    @Param('partnerId') partnerId: string,
+    @Param('qrId') qrId: string,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    const imagen = await this.client.forwardBinary({
+      method: 'GET',
+      path: `partner-onboarding/${encodeURIComponent(partnerId)}/qr-codes/${encodeURIComponent(qrId)}/content`,
+      accessToken: this.token(req),
+    });
+    res.setHeader('Content-Type', imagen.contentType);
+    return new StreamableFile(imagen.buffer);
   }
 
   @Post(':partnerId/branches/:branchId/pos-terminals')

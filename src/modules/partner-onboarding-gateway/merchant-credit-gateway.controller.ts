@@ -1,5 +1,5 @@
-import { Body, Controller, Get, Param, Post, Query, Req } from '@nestjs/common';
-import type { Request } from 'express';
+import { Body, Controller, Get, Header, Param, Post, Query, Req, Res, StreamableFile } from '@nestjs/common';
+import type { Request, Response } from 'express';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { AtlasPartnerClient } from './atlas-partner.client';
 
@@ -91,6 +91,32 @@ export class MerchantCreditGatewayController {
       path: `merchant/partners/${encodeURIComponent(partnerId)}/payment-claims/portfolio`,
       accessToken: this.token(req),
     });
+  }
+
+  /**
+   * La imagen del comprobante que subio el cliente.
+   *
+   * La cola enseñaba el importe declarado y la referencia del banco, pero no el papel: el comercio
+   * confirmaba o rechazaba sin ver nada, y confirmar registra un pago real contra el prestamo.
+   */
+  @Get(':partnerId/payment-claims/:claimId/proof')
+  @Roles('merchant', 'MERCHANT_ADMIN', 'MERCHANT_OPERATIONS', 'OPERATIONS', 'ADMIN')
+  @Header('Cache-Control', 'private, max-age=60')
+  async paymentClaimProof(
+    @Req() req: Request,
+    @Param('partnerId') partnerId: string,
+    @Param('claimId') claimId: string,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    const imagen = await this.client.forwardBinary({
+      method: 'GET',
+      path:
+        `merchant/partners/${encodeURIComponent(partnerId)}` +
+        `/payment-claims/${encodeURIComponent(claimId)}/proof`,
+      accessToken: this.token(req),
+    });
+    res.setHeader('Content-Type', imagen.contentType);
+    return new StreamableFile(imagen.buffer);
   }
 
   /** Confirmar o rechazar. Al confirmar, AtlasBackend registra el pago del prestamo. */

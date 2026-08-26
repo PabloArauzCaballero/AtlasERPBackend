@@ -76,6 +76,72 @@ export class AtlasPartnerClient {
   }
 
   /**
+   * Reenvía una lectura BINARIA: la imagen de un QR, el comprobante de una transferencia.
+   *
+   * Es un método aparte y no una bandera de `forward` porque lo que cambia no es un detalle: aquél
+   * desenvuelve el sobre `{ requestId, data }` de AtlasBackend y devuelve un objeto del dominio, y
+   * aquí no hay sobre que abrir — hay bytes. Meter las dos cosas en la misma firma obligaría a que
+   * el tipo de retorno mintiera en una de las dos.
+   *
+   * El token sigue siendo el del ACTOR por la misma razón que en `forward`: con una credencial de
+   * máquina este gateway podría descargar el comprobante bancario de cualquier cliente.
+   */
+  async forwardBinary(input: {
+    method: Method;
+    path: string;
+    accessToken: string | undefined;
+  }): Promise<{ buffer: Buffer; contentType: string }> {
+    if (!input.accessToken) {
+      throw new UnauthorizedException('No hay sesión de identidad para operar el expediente.');
+    }
+
+    try {
+      const response = await firstValueFrom(
+        this.http.request<ArrayBuffer>({
+          method: input.method,
+          url: `${env.ATLAS_IDENTITY_BASE_URL}/${input.path.replace(/^\/+/, '')}`,
+          responseType: 'arraybuffer',
+          headers: {
+            Authorization: `Bearer ${input.accessToken}`,
+            'x-tenant-id': env.ATLAS_IDENTITY_TENANT_ID,
+            Accept: 'image/*,application/octet-stream',
+          },
+          timeout: env.ATLAS_IDENTITY_TIMEOUT_MS,
+        }),
+      );
+
+      return {
+        buffer: Buffer.from(response.data),
+        contentType: (response.headers['content-type'] as string | undefined) ?? 'application/octet-stream',
+      };
+    } catch (error) {
+      throw this.translateBinaryError(error);
+    }
+  }
+
+  /**
+   * El error de una lectura binaria llega como bytes, no como JSON.
+   *
+   * Con `responseType: 'arraybuffer'`, axios entrega TAMBIÉN el cuerpo del error en binario, así
+   * que `translateError` leía `data.error.message` sobre un `Buffer` y no encontraba nada: cada
+   * 404 del upstream se convertía en «El servicio del expediente no respondió», que manda a buscar
+   * el fallo al sitio equivocado. Aquí se decodifica antes de traducir.
+   */
+  private translateBinaryError(error: unknown): Error {
+    const axiosError = error as AxiosError<ArrayBuffer>;
+    const raw = axiosError.response?.data;
+    if (raw) {
+      try {
+        const decoded = JSON.parse(Buffer.from(raw).toString('utf8')) as unknown;
+        (axiosError as AxiosError<unknown>).response!.data = decoded;
+      } catch {
+        (axiosError as AxiosError<unknown>).response!.data = undefined;
+      }
+    }
+    return this.translateError(axiosError);
+  }
+
+  /**
    * Traduce el fallo upstream al mismo código, conservando su mensaje.
    *
    * El mensaje se conserva **entero y a propósito**: AtlasBackend publica en él lo que un cuerpo
