@@ -177,10 +177,16 @@ export class B2BSalesCrmRepository {
     category?: string;
     businessLine?: string;
     tag?: string;
+    includeArchived?: boolean;
     sortBy: string;
     sortOrder: 'ASC' | 'DESC';
   }): Promise<{ rows: B2BAccountModel[]; count: number }> {
     const whereParts: WhereOptions[] = [];
+
+    // Una cuenta archivada sigue existiendo; solo se oculta de los listados salvo que se pida verla.
+    if (!input.includeArchived) {
+      whereParts.push({ archivedAt: null });
+    }
 
     if (input.status) {
       whereParts.push({ lifecycleStatus: input.status });

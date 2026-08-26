@@ -282,6 +282,7 @@ export class B2BAccountsService extends B2BSalesCrmUseCaseBase {
       ...(query.category ? { category: query.category } : {}),
       ...(query.businessLine ? { businessLine: query.businessLine } : {}),
       ...(query.tag ? { tag: query.tag } : {}),
+      ...(query.includeArchived === 'true' ? { includeArchived: true } : {}),
     });
 
     return {
@@ -309,6 +310,93 @@ export class B2BAccountsService extends B2BSalesCrmUseCaseBase {
       ...toAccountResponse(account),
       contacts: account.contacts?.map(toContactResponse) ?? [],
     };
+  }
+
+  /**
+   * Archiva una cuenta (soft-delete reversible): la saca de los listados operativos sin borrar la
+   * fila ni romper las referencias de contratos, facturas y auditoría que cuelgan de ella.
+   */
+  async archiveAccount(accountId: string, user: AuthUser): Promise<Record<string, unknown>> {
+    this.logger.infoContext(B2BAccountsService.name, 'B2B CRM use case started', {
+      useCase: 'archiveAccount',
+    });
+    return this.repository.transaction(async (transaction) => {
+      const account = await this.repository.accounts.findByPk(accountId, { transaction });
+
+      if (!account) {
+        throw new NotFoundException('Cuenta B2B no encontrada.');
+      }
+      if (account.archivedAt) {
+        throw new ConflictException('La cuenta ya estaba archivada.');
+      }
+
+      account.archivedAt = new Date();
+      await account.save({ transaction });
+      await account.reload({ include: [this.repository.accountTags], transaction });
+
+      await this.repository.audit(
+        {
+          entityName: 'b2b_accounts',
+          entityId: account.id,
+          action: 'ARCHIVE',
+          changedByUserId: user.sub,
+          newValues: toAccountResponse(account),
+        },
+        transaction,
+      );
+
+      await this.businessActionLogsService.record({
+        moduleCode: 'B2B_SALES_CRM',
+        businessProcess: 'B2B_ACCOUNT_ONBOARDING',
+        actionCode: 'ARCHIVE_ACCOUNT',
+        actorUserId: user.sub,
+        actorRole: user.role ?? null,
+        aggregateType: 'B2B_ACCOUNT',
+        aggregateId: account.id,
+        affectedTables: ['b2b_sales.b2b_accounts', 'b2b_sales.audit_logs'],
+        affectedRecordCount: 1,
+        status: 'SUCCESS',
+        inputSummary: { accountId: account.id },
+        outputSummary: { accountId: account.id, archivedAt: account.archivedAt },
+        transaction,
+      });
+
+      return toAccountResponse(account);
+    });
+  }
+
+  /** Deshace el archivado: la cuenta vuelve a aparecer en los listados con su estado intacto. */
+  async restoreAccount(accountId: string, user: AuthUser): Promise<Record<string, unknown>> {
+    this.logger.infoContext(B2BAccountsService.name, 'B2B CRM use case started', {
+      useCase: 'restoreAccount',
+    });
+    return this.repository.transaction(async (transaction) => {
+      const account = await this.repository.accounts.findByPk(accountId, { transaction });
+
+      if (!account) {
+        throw new NotFoundException('Cuenta B2B no encontrada.');
+      }
+      if (!account.archivedAt) {
+        throw new ConflictException('La cuenta no está archivada.');
+      }
+
+      account.archivedAt = null;
+      await account.save({ transaction });
+      await account.reload({ include: [this.repository.accountTags], transaction });
+
+      await this.repository.audit(
+        {
+          entityName: 'b2b_accounts',
+          entityId: account.id,
+          action: 'RESTORE',
+          changedByUserId: user.sub,
+          newValues: toAccountResponse(account),
+        },
+        transaction,
+      );
+
+      return toAccountResponse(account);
+    });
   }
 
   async createContact(

@@ -35,6 +35,7 @@ export function toAccountResponse(account: B2BAccountModel): Record<string, unkn
     territoryId: account.territoryId,
     riskTier: account.riskTier,
     expectedMonthlyVolume: account.expectedMonthlyVolume,
+    archivedAt: account.archivedAt ?? null,
     createdAt: account.createdAt,
     updatedAt: account.updatedAt,
   };

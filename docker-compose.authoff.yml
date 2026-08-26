@@ -1,0 +1,6 @@
+# DEV-ONLY: abre la API para demo/pruebas locales sin login (usuario ADMIN local con todos los
+# roles). El login real sigue funcionando; esto solo cubre las peticiones sin token. Nunca en prod.
+services:
+  api:
+    environment:
+      AUTH_DISABLED_FOR_LOCAL_TESTING: 'true'

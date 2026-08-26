@@ -179,6 +179,11 @@ export class B2BAccountModel extends Model {
   @Column({ type: DataType.DATE, field: 'updated_at' })
   declare updatedAt: Date;
 
+  /** Archivado (soft-delete reversible): con fecha, la cuenta sale de los listados operativos. */
+  @Index
+  @Column({ type: DataType.DATE, field: 'archived_at' })
+  declare archivedAt: Date | null;
+
   @BelongsTo(() => InternalUserModel)
   declare owner?: InternalUserModel;
 

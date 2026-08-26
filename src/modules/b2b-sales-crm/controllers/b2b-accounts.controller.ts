@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
@@ -68,6 +68,26 @@ export class B2BAccountsController {
     @Body(new ZodValidationPipe(createContactSchema)) body: CreateContactDto,
   ): Promise<Record<string, unknown>> {
     return this.service.createContact(params.accountId, body);
+  }
+
+  // Archivar/restaurar mueve una cuenta fuera o dentro de los listados: decisión de gestión, no de
+  // un ejecutivo de línea. Por eso el permiso es el mismo que el de la carga masiva.
+  @Roles('COMMERCIAL_MANAGER', 'ADMIN')
+  @Patch(':accountId/archive')
+  archiveAccount(
+    @Param(new ZodValidationPipe(accountIdParamsSchema)) params: AccountIdParamsDto,
+    @CurrentUser() user: AuthUser,
+  ): Promise<Record<string, unknown>> {
+    return this.service.archiveAccount(params.accountId, user);
+  }
+
+  @Roles('COMMERCIAL_MANAGER', 'ADMIN')
+  @Patch(':accountId/restore')
+  restoreAccount(
+    @Param(new ZodValidationPipe(accountIdParamsSchema)) params: AccountIdParamsDto,
+    @CurrentUser() user: AuthUser,
+  ): Promise<Record<string, unknown>> {
+    return this.service.restoreAccount(params.accountId, user);
   }
 
   @Roles('COMMERCIAL_EXECUTIVE', 'COMMERCIAL_MANAGER', 'ADMIN')

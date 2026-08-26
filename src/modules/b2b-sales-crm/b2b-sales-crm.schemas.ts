@@ -59,6 +59,7 @@ export const listAccountsQuerySchema = z.object({
   category: z.string().trim().min(1).max(120).optional(),
   businessLine: z.string().trim().min(1).max(160).optional(),
   tag: z.string().trim().min(1).max(80).optional(),
+  includeArchived: z.enum(['true', 'false']).optional(),
   sortBy: z.enum(['createdAt', 'tradeName', 'legalName', 'lifecycleStatus']).default('createdAt'),
   sortOrder: z.enum(['ASC', 'DESC']).default('DESC'),
 });

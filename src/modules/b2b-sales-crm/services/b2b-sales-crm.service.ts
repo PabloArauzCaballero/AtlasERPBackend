@@ -69,6 +69,14 @@ export class B2BSalesCrmService {
     return this.accountsService.getAccount(id);
   }
 
+  archiveAccount(accountId: string, user: AuthUser): Promise<Record<string, unknown>> {
+    return this.accountsService.archiveAccount(accountId, user);
+  }
+
+  restoreAccount(accountId: string, user: AuthUser): Promise<Record<string, unknown>> {
+    return this.accountsService.restoreAccount(accountId, user);
+  }
+
   createContact(accountId: string, input: CreateContactDto): Promise<Record<string, unknown>> {
     return this.accountsService.createContact(accountId, input);
   }
