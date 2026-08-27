@@ -52,6 +52,17 @@ x-erp-env: &erp-env
   # el default, el portal declara caido un backend que solo estaba ocupado; y el mensaje que sale
   # —«el servicio no esta disponible»— manda a buscar el fallo donde no esta.
   ATLAS_IDENTITY_TIMEOUT_MS: ${ATLAS_IDENTITY_TIMEOUT_MS:-30000}
+  # Generador documental. Es el MISMO worker que imprime los informes del motor de decisión
+  # (`AtlasDecisionEngineBackend/docker-compose.pdf-worker.yml`), no una copia: mantener dos
+  # generadores sería mantener dos maquetaciones y dos pies de página institucionales.
+  #
+  # `host.docker.internal` y no el nombre del servicio: el worker vive en la red del motor y este
+  # backend en la suya. Es el mismo salto que ya hace el front del ERP hacia esta API, y evita
+  # atar el ciclo de vida de los dos proyectos con una red externa compartida.
+  PDF_WORKER_URL: ${PDF_WORKER_URL:-http://host.docker.internal:3100}
+  # Sin clave, `/documents/generate` responde 503 explicándolo. No degrada a «sin autenticar»:
+  # el worker imprime con la identidad institucional de Atlas.
+  PDF_WORKER_SERVICE_KEY: ${PDF_WORKER_SERVICE_KEY:-}
   LOG_LEVEL: info
   EMAIL_PROVIDER_MODE: mock
   EMAIL_FROM: no-reply@atlas.local

@@ -114,6 +114,26 @@ const envSchema = z
     ATLAS_IDENTITY_TENANT_ID: z.string().min(1).default('1'),
     ATLAS_IDENTITY_TIMEOUT_MS: z.coerce.number().int().positive().default(8000),
 
+    /*
+     * Generador documental (worker de PDF).
+     *
+     * El worker vive fuera de este backend —es el mismo que usa el motor de decisión— y exige una
+     * clave de SERVICIO. Esa clave no puede llegar al navegador: por eso el ERP hace de puerta
+     * (`/documents/generate`), autentica con su propia sesión y sólo entonces pone la clave en el
+     * salto que va al worker.
+     *
+     * Sin `PDF_WORKER_URL` la función queda apagada y el endpoint responde 503 explicándolo, que
+     * es mejor que un 500 desde las tripas de `fetch` o, peor, un PDF que nadie sabe quién generó.
+     */
+    PDF_WORKER_URL: z.string().url().optional(),
+    PDF_WORKER_SERVICE_KEY: z.string().min(32).optional(),
+    PDF_WORKER_SERVICE_HEADER: z
+      .string()
+      .trim()
+      .regex(/^[a-z][a-z0-9-]{2,40}$/)
+      .default('x-pdf-service-key'),
+    PDF_WORKER_TIMEOUT_MS: z.coerce.number().int().positive().default(60000),
+
     AUTH_DISABLED_FOR_LOCAL_TESTING: z
       .enum(['true', 'false'])
       .default('false')

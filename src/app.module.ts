@@ -21,6 +21,7 @@ import { B2BSalesCrmModule } from './modules/b2b-sales-crm/b2b-sales-crm.module'
 import { AccountingModule } from './modules/accounting/accounting.module';
 import { AdsModule } from './modules/ads/ads.module';
 import { FilesModule } from './modules/files/files.module';
+import { DocumentsModule } from './modules/documents/documents.module';
 import { PortalModule } from './modules/portal/portal.module';
 import { BusinessActionLogsModule } from './modules/business-action-logs/business-action-logs.module';
 import { PlatformCatalogModule } from './modules/platform-catalog/platform-catalog.module';
@@ -89,6 +90,7 @@ function prettyDisponible(): boolean {
     AccountingModule,
     AdsModule,
     FilesModule,
+    DocumentsModule,
     PortalModule,
     BusinessActionLogsModule,
     // Espejo de introspección para el catálogo unificado del portal interno de ATLAS. Va al

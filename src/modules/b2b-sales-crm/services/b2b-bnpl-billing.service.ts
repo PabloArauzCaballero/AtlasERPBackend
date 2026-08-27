@@ -29,6 +29,7 @@ import {
 } from '../b2b-sales-crm.mapper';
 import { B2BSalesCrmRepository } from '../repositories/b2b-sales-crm.repository';
 import { B2BSalesCrmUseCaseBase } from './b2b-sales-crm-use-case.base';
+import type { BillingProductModel } from '../models/b2b-sales-crm.models';
 
 @Injectable()
 export class B2BBnplBillingService extends B2BSalesCrmUseCaseBase {
@@ -128,12 +129,14 @@ export class B2BBnplBillingService extends B2BSalesCrmUseCaseBase {
         );
       }
 
+      const mdrProduct = await this.findProductBySourceType(TermType.MDR, transaction);
       const receivable = await this.repository.receivables.create(
         {
           accountId: input.merchantAccountId,
           invoiceId: null,
           sourceType: TermType.MDR,
           sourceId: purchase.id,
+          productId: mdrProduct?.id ?? null,
           amountOriginal: mdr.amount.toFixed(2),
           amountOpen: mdr.amount.toFixed(2),
           currency: 'BOB',
@@ -213,16 +216,32 @@ export class B2BBnplBillingService extends B2BSalesCrmUseCaseBase {
         { transaction },
       );
 
+      /*
+       * La línea de factura nombra un PRODUCTO, no un enum.
+       *
+       * Antes decía «Cargo MDR» porque lo único que había era el tipo de origen del cargo, y eso
+       * es lo que leía el comercio en su factura. El catálogo se resuelve por ese mismo
+       * `sourceType`, así que lo emitido antes de que existiera sigue cuadrando; si un cargo no
+       * tiene producto —origen antiguo o dado de baja— se conserva el texto de siempre en vez de
+       * bloquear la emisión.
+       */
+      const products = await this.findProductsBySourceType(
+        receivables.map((receivable) => receivable.sourceType),
+        transaction,
+      );
+
       for (const receivable of receivables) {
         const lineTax = this.roundMoney(
           (this.toNumber(receivable.amountOpen) * env.DEFAULT_TAX_RATE_PERCENT) / 100,
         );
+        const product = products.get(receivable.sourceType) ?? null;
         await this.repository.invoiceLines.create(
           {
             invoiceId: invoice.id,
             sourceType: receivable.sourceType,
             sourceId: receivable.sourceId,
-            description: `Cargo ${receivable.sourceType}`,
+            productId: receivable.productId ?? product?.id ?? null,
+            description: product ? product.name : `Cargo ${receivable.sourceType}`,
             quantity: '1.0000',
             unitAmount: receivable.amountOpen,
             taxAmount: lineTax.toFixed(2),
@@ -321,6 +340,30 @@ export class B2BBnplBillingService extends B2BSalesCrmUseCaseBase {
         allocations: input.allocations,
       };
     });
+  }
+
+  /** Producto del catálogo que corresponde a un origen de cargo, o `null` si no hay ninguno. */
+  private async findProductBySourceType(
+    sourceType: string,
+    transaction: Transaction,
+  ): Promise<BillingProductModel | null> {
+    return this.repository.billingProducts.findOne({
+      where: { sourceType, status: 'ACTIVE' },
+      transaction,
+    });
+  }
+
+  private async findProductsBySourceType(
+    sourceTypes: string[],
+    transaction: Transaction,
+  ): Promise<Map<string, BillingProductModel>> {
+    const unique = [...new Set(sourceTypes)];
+    if (unique.length === 0) return new Map();
+    const products = await this.repository.billingProducts.findAll({
+      where: { sourceType: { [Op.in]: unique } },
+      transaction,
+    });
+    return new Map(products.map((product) => [product.sourceType, product]));
   }
 
   private async refreshInvoicePaymentStatus(

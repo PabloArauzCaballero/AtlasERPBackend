@@ -13,6 +13,7 @@ import {
   B2BAccountModel,
   B2BContactModel,
   B2BContractModel,
+  BillingProductModel,
   BNPLInstallmentModel,
   BNPLPurchaseModel,
   CommercialProposalModel,
@@ -67,6 +68,7 @@ export class B2BSalesCrmRepository {
     @InjectModel(ConsumerPaymentToMerchantModel)
     readonly consumerPaymentsToMerchant: typeof ConsumerPaymentToMerchantModel,
     @InjectModel(MerchantReceivableModel) readonly receivables: typeof MerchantReceivableModel,
+    @InjectModel(BillingProductModel) readonly billingProducts: typeof BillingProductModel,
     @InjectModel(MerchantInvoiceModel) readonly invoices: typeof MerchantInvoiceModel,
     @InjectModel(MerchantInvoiceLineModel) readonly invoiceLines: typeof MerchantInvoiceLineModel,
     @InjectModel(MerchantPaymentModel) readonly payments: typeof MerchantPaymentModel,

@@ -1,3 +1,4 @@
+import { Op } from 'sequelize';
 import { PortalService, type PortalActor } from './portal.service';
 import type { PortalScope } from './portal.scope.service';
 import type { AuthUser } from '../../common/types/auth-context.types';
@@ -50,6 +51,7 @@ interface Harness {
   auditService: { record: jest.Mock };
   businessActionLogs: { record: jest.Mock };
   planModel: { findAll: jest.Mock; findOne: jest.Mock; findByPk: jest.Mock; create: jest.Mock };
+  billingProductModel: { findAll: jest.Mock };
   subscriptionModel: {
     findOne: jest.Mock;
     findByPk: jest.Mock;
@@ -57,7 +59,7 @@ interface Harness {
     create: jest.Mock;
   };
   branchModel: { findAll: jest.Mock };
-  accountModel: { findByPk: jest.Mock };
+  accountModel: { findByPk: jest.Mock; findAll: jest.Mock };
   invoiceModel: { findAll: jest.Mock };
   receivableModel: { findAll: jest.Mock };
   advertiserModel: { findAll: jest.Mock; findByPk: jest.Mock };
@@ -87,6 +89,7 @@ function buildHarness(queryRows: unknown[] = []): Harness {
     findByPk: jest.fn(),
     create: jest.fn(),
   };
+  const billingProductModel = { findAll: jest.fn().mockResolvedValue([]) };
   const subscriptionModel = {
     findOne: jest.fn().mockResolvedValue(null),
     findByPk: jest.fn(),
@@ -96,7 +99,7 @@ function buildHarness(queryRows: unknown[] = []): Harness {
   const branchModel = { findAll: jest.fn().mockResolvedValue([]) };
   /* El usuario de comercio detras del `sub` del token: es lo que se guarda como actor. */
   const merchantUserModel = { findOne: jest.fn().mockResolvedValue({ id: 'b1000000-0000-4000-8000-000000000001' }) };
-  const accountModel = { findByPk: jest.fn() };
+  const accountModel = { findByPk: jest.fn(), findAll: jest.fn().mockResolvedValue([]) };
   const invoiceModel = { findAll: jest.fn().mockResolvedValue([]) };
   const receivableModel = { findAll: jest.fn().mockResolvedValue([]) };
   const advertiserModel = { findAll: jest.fn().mockResolvedValue([]), findByPk: jest.fn() };
@@ -109,6 +112,7 @@ function buildHarness(queryRows: unknown[] = []): Harness {
     auditService as never,
     businessActionLogs as never,
     planModel as never,
+    billingProductModel as never,
     subscriptionModel as never,
     branchModel as never,
     merchantUserModel as never,
@@ -126,6 +130,7 @@ function buildHarness(queryRows: unknown[] = []): Harness {
     auditService,
     businessActionLogs,
     planModel,
+    billingProductModel,
     subscriptionModel,
     branchModel,
     accountModel,
@@ -558,7 +563,9 @@ describe('PortalService', () => {
             code: 'GROWTH',
             name: 'Growth',
             tier: 'STANDARD',
-            monthlyPrice: 349,
+            monthlyPrice: 0,
+            cpmPrice: 3.2,
+            cpcPrice: 1.9,
             currency: 'BOB',
             features: [],
             sortOrder: 1,
@@ -591,6 +598,8 @@ describe('PortalService', () => {
           name: 'Growth',
           tier: 'STANDARD',
           monthlyPrice: 349,
+          cpmPrice: 3.2,
+          cpcPrice: 1.9,
           currency: 'BOB',
           features: [],
           sortOrder: 1,
@@ -606,6 +615,174 @@ describe('PortalService', () => {
       expect(harness.businessActionLogs.record).toHaveBeenCalledWith(
         expect.objectContaining({ actionCode: 'CREATE_MERCHANT_PLAN', moduleCode: 'PORTAL' }),
       );
+    });
+
+    it('guarda las tarifas en micros, que es como cobra el motor de entrega', async () => {
+      const harness = buildHarness();
+      harness.planModel.create.mockResolvedValue({ id: PLAN_ID, code: 'GROWTH' } as never);
+
+      await harness.service.createPlan(
+        {
+          code: 'GROWTH',
+          name: 'Crecimiento',
+          tier: 'STANDARD',
+          monthlyPrice: 0,
+          /* Bs 2,50 el millar: en decimales, repartido entre mil impresiones, se redondearía a cero. */
+          cpmPrice: 2.5,
+          cpcPrice: 1.5,
+          currency: 'BOB',
+          features: [],
+          sortOrder: 1,
+        },
+        actor,
+      );
+
+      expect(harness.planModel.create).toHaveBeenCalledWith(
+        expect.objectContaining({ cpmMicros: '2500000', cpcMicros: '1500000' }),
+        expect.anything(),
+      );
+    });
+  });
+
+  describe('updatePlan', () => {
+    function planDouble(overrides: Record<string, unknown> = {}) {
+      const plan: Record<string, unknown> = {
+        id: PLAN_ID,
+        code: 'GROWTH',
+        name: 'Crecimiento',
+        description: null,
+        tier: 'STANDARD',
+        monthlyPrice: '0.00',
+        cpmMicros: '4000000',
+        cpcMicros: '2500000',
+        currency: 'BOB',
+        features: [],
+        status: 'ACTIVE',
+        sortOrder: 1,
+        ...overrides,
+      };
+      plan.update = jest.fn(async (values: Record<string, unknown>) => {
+        Object.assign(plan, values);
+        return plan;
+      });
+      return plan;
+    }
+
+    it('cambia solo la tarifa enviada y deja el resto como estaba', async () => {
+      const harness = buildHarness();
+      const plan = planDouble();
+      harness.planModel.findByPk.mockResolvedValue(plan as never);
+
+      const updated = await harness.service.updatePlan(PLAN_ID, { cpmPrice: 3.2 }, actor);
+
+      expect(plan.cpmMicros).toBe('3200000');
+      expect(plan.cpcMicros).toBe('2500000');
+      expect(updated.cpmPrice).toBe('3.20');
+    });
+
+    it('deja el precio anterior en la bitácora: sin él, una factura pasada no se puede explicar', async () => {
+      const harness = buildHarness();
+      harness.planModel.findByPk.mockResolvedValue(planDouble() as never);
+
+      await harness.service.updatePlan(PLAN_ID, { cpmPrice: 3.2, cpcPrice: 1.9 }, actor);
+
+      expect(harness.businessActionLogs.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          actionCode: 'UPDATE_MERCHANT_PLAN_TARIFF',
+          inputSummary: expect.objectContaining({
+            before: expect.objectContaining({ cpmMicros: '4000000', cpcMicros: '2500000' }),
+          }),
+          outputSummary: expect.objectContaining({
+            after: expect.objectContaining({ cpmMicros: '3200000', cpcMicros: '1900000' }),
+          }),
+        }),
+      );
+    });
+
+    it('devuelve 404 de dominio cuando la tarifa no existe', async () => {
+      const harness = buildHarness();
+      harness.planModel.findByPk.mockResolvedValue(null as never);
+
+      await expect(
+        harness.service.updatePlan(PLAN_ID, { cpmPrice: 3.2 }, actor),
+      ).rejects.toMatchObject({ response: { code: 'MERCHANT_PLAN_NOT_FOUND' } });
+    });
+  });
+});
+
+/*
+ * Quién tiene que ELEGIR comercio lo contesta el servidor.
+ *
+ * Es la pieza que faltaba y por la que cuatro pantallas del portal se quedaban sin salida: el
+ * navegador deducía por su cuenta si era comercio, y cuando se equivocaba no pintaba el selector
+ * mientras el backend exigía la cuenta que ese selector habría dado.
+ */
+describe('getScope', () => {
+  const cuentas = [
+    { id: 'a1000000-0000-4000-8000-000000000001', tradeName: 'Alfa Store', legalName: 'Alfa SRL' },
+    { id: 'a1000000-0000-4000-8000-000000000002', tradeName: '', legalName: 'Beta SA' },
+  ];
+
+  it('el staff interno SIEMPRE elige, y ve el catálogo', async () => {
+    const harness = buildHarness();
+    harness.accountModel.findAll.mockResolvedValue(cuentas);
+
+    const result = await harness.service.getScope({
+      isInternalOperator: true,
+      accountIds: [],
+      userId: 'u1',
+      email: null,
+      roles: ['ADMIN'],
+    } as never);
+
+    expect(result.isInternalOperator).toBe(true);
+    expect(result.requiresAccountSelection).toBe(true);
+    // Sin filtro por cuenta: el staff las ve todas.
+    expect(harness.accountModel.findAll.mock.calls[0]?.[0]?.where).toEqual({});
+    // El nombre cae al razón social cuando no hay nombre comercial, en vez de salir vacío.
+    expect(result.accounts).toEqual([
+      { id: cuentas[0]!.id, name: 'Alfa Store' },
+      { id: cuentas[1]!.id, name: 'Beta SA' },
+    ]);
+  });
+
+  it('un comercio con UNA cuenta no elige: la deriva el backend', async () => {
+    const harness = buildHarness();
+    harness.accountModel.findAll.mockResolvedValue([cuentas[0]]);
+
+    const result = await harness.service.getScope({
+      isInternalOperator: false,
+      accountIds: [cuentas[0]!.id],
+      userId: 'u2',
+      email: 'due@comercio.test',
+      roles: ['MERCHANT_ADMIN'],
+    } as never);
+
+    expect(result.isInternalOperator).toBe(false);
+    expect(result.requiresAccountSelection).toBe(false);
+    expect(result.accounts).toHaveLength(1);
+  });
+
+  it('un comercio con VARIAS cuentas sí elige, y sólo entre las suyas', async () => {
+    const harness = buildHarness();
+    harness.accountModel.findAll.mockResolvedValue(cuentas);
+    const mias = [cuentas[0]!.id, cuentas[1]!.id];
+
+    const result = await harness.service.getScope({
+      isInternalOperator: false,
+      accountIds: mias,
+      userId: 'u3',
+      email: 'multi@comercio.test',
+      roles: ['MERCHANT_ADMIN'],
+    } as never);
+
+    expect(result.requiresAccountSelection).toBe(true);
+    /*
+     * El filtro es lo que impide que este endpoint sea una lista de comercios ajenos: un comercio
+     * ve las suyas y nada más, que es lo que lo hace seguro de llamar desde el portal.
+     */
+    expect(harness.accountModel.findAll.mock.calls[0]?.[0]?.where).toEqual({
+      id: { [Op.in]: mias },
     });
   });
 });

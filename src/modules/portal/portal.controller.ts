@@ -8,23 +8,33 @@ import { PORTAL_PLAN_ADMIN_ROLES, PORTAL_ROLES } from './portal.constants';
 import { PortalService, type PortalActor } from './portal.service';
 import {
   AdvertisersQueryDto,
+  BillingProductsQueryDto,
   BranchesQueryDto,
   CampaignsQueryDto,
   CreatePlanDto,
+  CreatePortalBranchDto,
   IdParamsDto,
   PlansQueryDto,
   SetCampaignStatusDto,
+  SetPortalBranchStatusDto,
   SubscribeDto,
   SubscriptionQueryDto,
+  UpdatePlanDto,
+  UpdatePortalBranchDto,
   advertisersQuerySchema,
+  billingProductsQuerySchema,
   branchesQuerySchema,
   campaignsQuerySchema,
   createPlanSchema,
+  createPortalBranchSchema,
   idParamsSchema,
   plansQuerySchema,
   setCampaignStatusSchema,
+  setPortalBranchStatusSchema,
   subscribeSchema,
   subscriptionQuerySchema,
+  updatePlanSchema,
+  updatePortalBranchSchema,
 } from './portal.schemas';
 
 /**
@@ -52,6 +62,30 @@ export class PortalController {
     @RequestId() requestId: string,
   ) {
     return this.service.createPlan(body, await this.buildActor(user, requestId));
+  }
+
+  /*
+   * Edición de la tarifa: es el pricing de la plataforma, así que sólo lo tocan los roles que ya
+   * podían crear planes, y cada cambio queda con su valor anterior en la bitácora de negocio.
+   */
+  @Roles(...PORTAL_PLAN_ADMIN_ROLES)
+  @Patch('plans/:id')
+  async updatePlan(
+    @Param(new ZodValidationPipe(idParamsSchema)) params: IdParamsDto,
+    @Body(new ZodValidationPipe(updatePlanSchema)) body: UpdatePlanDto,
+    @CurrentUser() user: AuthUser,
+    @RequestId() requestId: string,
+  ) {
+    return this.service.updatePlan(params.id, body, await this.buildActor(user, requestId));
+  }
+
+  /** Catálogo de lo que Atlas factura. Sólo lectura: el precio se configura en la tarifa. */
+  @Roles(...PORTAL_ROLES)
+  @Get('billing-products')
+  async listBillingProducts(
+    @Query(new ZodValidationPipe(billingProductsQuerySchema)) query: BillingProductsQueryDto,
+  ) {
+    return this.service.listBillingProducts(query);
   }
 
   @Roles(...PORTAL_ROLES)
@@ -99,6 +133,57 @@ export class PortalController {
   ) {
     const scope = await this.service.resolveScope(user);
     return this.service.listBranches(scope, query);
+  }
+
+  /*
+   * El comercio administra sus propias sucursales.
+   *
+   * Estas tres rutas son la razón de que la pantalla de sucursales dejara de ser de sólo lectura
+   * para él: las de alta y edición vivían únicamente en `/b2b/*`, el canal interno de Atlas. La
+   * cuenta sobre la que se opera la resuelve `PortalScopeService`, nunca el cuerpo de la petición.
+   */
+  @Roles(...PORTAL_ROLES)
+  @Post('branches')
+  async createBranch(
+    @Body(new ZodValidationPipe(createPortalBranchSchema)) body: CreatePortalBranchDto,
+    @CurrentUser() user: AuthUser,
+    @RequestId() requestId: string,
+  ) {
+    return this.service.createBranch(body, await this.buildActor(user, requestId));
+  }
+
+  @Roles(...PORTAL_ROLES)
+  @Patch('branches/:id')
+  async updateBranch(
+    @Param(new ZodValidationPipe(idParamsSchema)) params: IdParamsDto,
+    @Body(new ZodValidationPipe(updatePortalBranchSchema)) body: UpdatePortalBranchDto,
+    @CurrentUser() user: AuthUser,
+    @RequestId() requestId: string,
+  ) {
+    return this.service.updateBranch(params.id, body, await this.buildActor(user, requestId));
+  }
+
+  @Roles(...PORTAL_ROLES)
+  @Patch('branches/:id/status')
+  async setBranchStatus(
+    @Param(new ZodValidationPipe(idParamsSchema)) params: IdParamsDto,
+    @Body(new ZodValidationPipe(setPortalBranchStatusSchema)) body: SetPortalBranchStatusDto,
+    @CurrentUser() user: AuthUser,
+    @RequestId() requestId: string,
+  ) {
+    return this.service.setBranchStatus(params.id, body, await this.buildActor(user, requestId));
+  }
+
+  /**
+   * Quién eres para el portal, y sobre qué comercios puedes operar.
+   *
+   * Lo contesta el servidor porque es el único que lo sabe: el navegador se lo guardaba al entrar
+   * y podía quedarse en desacuerdo con el token, dejando la pantalla sin salida.
+   */
+  @Roles(...PORTAL_ROLES)
+  @Get('scope')
+  async getScope(@CurrentUser() user: AuthUser) {
+    return this.service.getScope(await this.service.resolveScope(user));
   }
 
   @Roles(...PORTAL_ROLES)

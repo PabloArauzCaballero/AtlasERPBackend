@@ -2,6 +2,8 @@ import type { z } from 'zod';
 import type {
   accountIdParamsSchema,
   applyRecoveryPaymentSchema,
+  createAccountTagSchema,
+  updateAccountTagSchema,
   createActivitySchema,
   updateActivitySchema,
   listActivitiesQuerySchema,
@@ -90,3 +92,5 @@ export type ListActivitiesQueryDto = z.infer<typeof listActivitiesQuerySchema>;
 export type PostMerchantInvoiceToGlDto = z.infer<typeof postMerchantInvoiceToGlSchema>;
 export type RatingHistoryQueryDto = z.infer<typeof ratingHistoryQuerySchema>;
 export type RatingSweepDto = z.infer<typeof ratingSweepSchema>;
+export type CreateAccountTagDto = z.infer<typeof createAccountTagSchema>;
+export type UpdateAccountTagDto = z.infer<typeof updateAccountTagSchema>;

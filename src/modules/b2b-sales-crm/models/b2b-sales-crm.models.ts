@@ -986,6 +986,72 @@ export class MerchantInvoiceModel extends Model {
   declare lines?: MerchantInvoiceLineModel[];
 }
 
+/**
+ * Catalogo de lo que Atlas le factura al comercio.
+ *
+ * El producto es la cosa vendida —codigo, unidad de cobro, cuenta de ingreso—; el PRECIO por
+ * unidad no esta aqui, esta en el plan contratado (`MerchantPlanModel.cpmMicros` / `cpcMicros`),
+ * porque es lo que se negocia con cada comercio. `sourceType` es la clave con la que se reconocen
+ * los cargos y las lineas de factura anteriores al catalogo.
+ */
+@Table({ schema: SALES_SCHEMA, tableName: 'billing_products', timestamps: false })
+export class BillingProductModel extends Model {
+  @PrimaryKey
+  @Default(DataType.UUIDV4)
+  @Column(DataType.UUID)
+  declare id: string;
+
+  @Unique
+  @AllowNull(false)
+  @Column(DataType.STRING(40))
+  declare code: string;
+
+  @AllowNull(false)
+  @Column(DataType.STRING(140))
+  declare name: string;
+
+  @Column(DataType.TEXT)
+  declare description: string | null;
+
+  /** CPM | CPC | MDR | FIXED. Decide de que columna del plan sale el precio unitario. */
+  @AllowNull(false)
+  @Column({ type: DataType.STRING(20), field: 'charge_basis' })
+  declare chargeBasis: string;
+
+  @Unique
+  @AllowNull(false)
+  @Column({ type: DataType.STRING(80), field: 'source_type' })
+  declare sourceType: string;
+
+  @AllowNull(false)
+  @Column({ type: DataType.STRING(80), field: 'unit_label' })
+  declare unitLabel: string;
+
+  /** Numero de cuenta contable de ingreso, no su uuid: la cuenta es por entidad legal. */
+  @Column({ type: DataType.STRING(40), field: 'revenue_gl_account_code' })
+  declare revenueGlAccountCode: string | null;
+
+  @Default('BOB')
+  @Column(DataType.CHAR(3))
+  declare currency: string;
+
+  @Default('ACTIVE')
+  @Column(DataType.STRING(20))
+  declare status: string;
+
+  @Default(0)
+  @Column({ type: DataType.INTEGER, field: 'sort_order' })
+  declare sortOrder: number;
+
+  @Default(DataType.NOW)
+  @Column({ type: DataType.DATE, field: 'created_at' })
+  declare createdAt: Date;
+
+  @Default(DataType.NOW)
+  @Column({ type: DataType.DATE, field: 'updated_at' })
+  declare updatedAt: Date;
+}
+
 @Table({ schema: SALES_SCHEMA, tableName: 'merchant_invoice_lines', timestamps: false })
 export class MerchantInvoiceLineModel extends Model {
   @PrimaryKey
@@ -1002,6 +1068,14 @@ export class MerchantInvoiceLineModel extends Model {
 
   @Column({ type: DataType.UUID, field: 'source_id' })
   declare sourceId: string | null;
+
+  /** Producto facturado. `sourceType` sigue siendo la clave de lo emitido antes del catalogo. */
+  @ForeignKey(() => BillingProductModel)
+  @Column({ type: DataType.UUID, field: 'product_id' })
+  declare productId: string | null;
+
+  @BelongsTo(() => BillingProductModel)
+  declare product?: BillingProductModel;
 
   @Column(DataType.STRING(260))
   declare description: string;
@@ -1040,6 +1114,14 @@ export class MerchantReceivableModel extends Model {
 
   @Column({ type: DataType.UUID, field: 'source_id' })
   declare sourceId: string | null;
+
+  /** Producto que origina el cargo; nulo solo en lo cargado antes de existir el catalogo. */
+  @ForeignKey(() => BillingProductModel)
+  @Column({ type: DataType.UUID, field: 'product_id' })
+  declare productId: string | null;
+
+  @BelongsTo(() => BillingProductModel)
+  declare product?: BillingProductModel;
 
   @Column({ type: DataType.DECIMAL(18, 2), field: 'amount_original' })
   declare amountOriginal: string;
@@ -1489,6 +1571,7 @@ export const atlasSalesModels = [
   BNPLPurchaseModel,
   BNPLInstallmentModel,
   ConsumerPaymentToMerchantModel,
+  BillingProductModel,
   MerchantInvoiceModel,
   MerchantInvoiceLineModel,
   MerchantReceivableModel,

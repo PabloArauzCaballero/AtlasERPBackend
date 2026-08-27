@@ -16,6 +16,9 @@ const basePlan = {
   code: 'PREMIUM_1',
   name: 'Plan Premium',
   monthlyPrice: 199.9,
+  /* El precio del plan son las tarifas: sin ellas no hay con qué cobrar la entrega. */
+  cpmPrice: 2.5,
+  cpcPrice: 1.5,
 };
 
 describe('Portal schemas', () => {
@@ -53,6 +56,23 @@ describe('Portal schemas', () => {
       if (accepted.success) expect(accepted.data.currency).toBe('USD');
       expect(createPlanSchema.safeParse({ ...basePlan, currency: 'US1' }).success).toBe(false);
       expect(createPlanSchema.safeParse({ ...basePlan, currency: 'BOBS' }).success).toBe(false);
+    });
+
+    it('exige las dos tarifas: son el precio del plan desde que se cobra por entrega', () => {
+      const { cpmPrice: _cpm, cpcPrice: _cpc, ...withoutTariffs } = basePlan;
+
+      expect(createPlanSchema.safeParse(withoutTariffs).success).toBe(false);
+      expect(createPlanSchema.safeParse({ ...basePlan, cpmPrice: -0.5 }).success).toBe(false);
+      // Un CPC de Bs 0,0125 es un precio real; truncarlo a dos decimales cambiaría lo pactado.
+      expect(createPlanSchema.safeParse({ ...basePlan, cpcPrice: 0.0125 }).success).toBe(true);
+    });
+
+    it('permite un plan sin cuota mensual, que es lo normal desde el cobro por entrega', () => {
+      const { monthlyPrice: _monthly, ...withoutMonthly } = basePlan;
+      const result = createPlanSchema.safeParse(withoutMonthly);
+
+      expect(result.success).toBe(true);
+      if (result.success) expect(result.data.monthlyPrice).toBe(0);
     });
 
     it('acota el número de features', () => {

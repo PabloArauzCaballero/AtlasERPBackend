@@ -9,6 +9,7 @@ import { Op, QueryTypes, Transaction } from 'sequelize';
 import { Sequelize } from 'sequelize-typescript';
 import {
   B2BAccountModel,
+  BillingProductModel,
   MerchantBranchModel,
   MerchantInvoiceModel,
   MerchantPlanModel,
@@ -22,16 +23,18 @@ import { assertCampaignTransition } from '../ads/ads.campaign-transitions';
 import { BusinessActionLogsService } from '../business-action-logs/business-action-logs.service';
 import { PinoLoggerService } from '../../common/logging/pino-logger.service';
 import { computePeriodEnd } from '../../common/time/billing-period.util';
-import { normalizeAmount } from '../../common/money/decimal-amount.util';
+import { normalizeAmount, toMinorUnits } from '../../common/money/decimal-amount.util';
 import type { AuthUser } from '../../common/types/auth-context.types';
 import {
   PORTAL_BILLING_DOCUMENT_LIMIT,
   PORTAL_MODULE_CODE,
   PORTAL_SUBSCRIBABLE_ACCOUNT_STATUSES,
   PORTAL_TOGGLEABLE_CAMPAIGN_STATUSES,
+  PORTAL_SCOPE_ACCOUNT_LIMIT,
 } from './portal.constants';
 import {
   toAdvertiserDto,
+  toBillingProductDto,
   toBranchDto,
   toCampaignDto,
   toInvoiceDto,
@@ -39,6 +42,7 @@ import {
   toReceivableDto,
   toSubscriptionDto,
   type PortalAdvertiserDto,
+  type PortalBillingProductDto,
   type PortalBranchDto,
   type PortalCampaignDto,
   type PortalPlanDto,
@@ -47,12 +51,17 @@ import {
 import { PortalScopeService, type PortalScope } from './portal.scope.service';
 import type {
   AdvertisersQueryDto,
+  BillingProductsQueryDto,
   BranchesQueryDto,
   CampaignsQueryDto,
   CreatePlanDto,
+  CreatePortalBranchDto,
   PlansQueryDto,
   SetCampaignStatusDto,
+  SetPortalBranchStatusDto,
   SubscribeDto,
+  UpdatePlanDto,
+  UpdatePortalBranchDto,
 } from './portal.schemas';
 
 /** Contexto del llamador ya resuelto: identidad + correlador + alcance por tenant. */
@@ -69,6 +78,18 @@ interface BillingTotalsRow {
   open_total: string;
 }
 
+/**
+ * Precio de vitrina -> micros.
+ *
+ * Los micros no son un capricho: un CPM de Bs 2,50 repartido entre mil impresiones es Bs 0,0025
+ * por impresión, y en decimales de dos posiciones eso se redondea a cero mil veces seguidas y la
+ * campaña no gasta nunca. La conversión pasa por `toMinorUnits`, que trabaja sobre el texto del
+ * número, para no arrastrar el error de coma flotante de `precio * 1_000_000`.
+ */
+function toTariffMicros(price: number): string {
+  return toMinorUnits(price.toFixed(6), 6).toString();
+}
+
 @Injectable()
 export class PortalService {
   constructor(
@@ -78,6 +99,8 @@ export class PortalService {
     private readonly adsAuditService: AdsAuditService,
     private readonly businessActionLogs: BusinessActionLogsService,
     @InjectModel(MerchantPlanModel) private readonly planModel: typeof MerchantPlanModel,
+    @InjectModel(BillingProductModel)
+    private readonly billingProductModel: typeof BillingProductModel,
     @InjectModel(MerchantSubscriptionModel)
     private readonly subscriptionModel: typeof MerchantSubscriptionModel,
     @InjectModel(MerchantBranchModel) private readonly branchModel: typeof MerchantBranchModel,
@@ -139,6 +162,8 @@ export class PortalService {
           description: input.description ?? null,
           tier: input.tier,
           monthlyPrice: normalizeAmount(input.monthlyPrice),
+          cpmMicros: toTariffMicros(input.cpmPrice),
+          cpcMicros: toTariffMicros(input.cpcPrice),
           currency: input.currency,
           features: input.features,
           status: 'ACTIVE',
@@ -162,7 +187,8 @@ export class PortalService {
         inputSummary: {
           code: input.code,
           tier: input.tier,
-          monthlyPrice: normalizeAmount(input.monthlyPrice),
+          cpmMicros: toTariffMicros(input.cpmPrice),
+          cpcMicros: toTariffMicros(input.cpcPrice),
           currency: input.currency,
         },
         outputSummary: { planId: plan.id },
@@ -178,6 +204,109 @@ export class PortalService {
 
       return toPlanDto(plan);
     });
+  }
+
+  /**
+   * Cambio de tarifa. Es el pricing de la plataforma, así que el rastro importa tanto como el dato.
+   *
+   * Se registra el ANTES y el DESPUÉS de los dos precios en la bitácora de acciones de negocio: una
+   * tarifa que baja de Bs 4,00 a Bs 2,50 el millar cambia lo que se le factura a cada comercio
+   * suscrito desde el siguiente evento servido, y sin el valor anterior no hay forma de explicar
+   * una factura pasada. Las suscripciones NO se tocan: apuntan al plan, no a una copia del precio,
+   * y por eso el cambio alcanza a quien ya lo tenía contratado.
+   */
+  async updatePlan(planId: string, input: UpdatePlanDto, actor: PortalActor): Promise<PortalPlanDto> {
+    return this.sequelize.transaction(async (transaction) => {
+      const plan = await this.planModel.findByPk(planId, {
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!plan) {
+        throw new NotFoundException({
+          code: 'MERCHANT_PLAN_NOT_FOUND',
+          message: 'La tarifa indicada no existe.',
+        });
+      }
+
+      const before = {
+        cpmMicros: String(plan.cpmMicros ?? '0'),
+        cpcMicros: String(plan.cpcMicros ?? '0'),
+        status: plan.status,
+        tier: plan.tier,
+        currency: plan.currency,
+      };
+
+      const changes: Record<string, unknown> = { updatedAt: new Date() };
+      if (input.name !== undefined) changes.name = input.name;
+      if (input.description !== undefined) changes.description = input.description ?? null;
+      if (input.tier !== undefined) changes.tier = input.tier;
+      if (input.monthlyPrice !== undefined) {
+        changes.monthlyPrice = normalizeAmount(input.monthlyPrice);
+      }
+      if (input.cpmPrice !== undefined) changes.cpmMicros = toTariffMicros(input.cpmPrice);
+      if (input.cpcPrice !== undefined) changes.cpcMicros = toTariffMicros(input.cpcPrice);
+      if (input.currency !== undefined) changes.currency = input.currency;
+      if (input.features !== undefined) changes.features = input.features;
+      if (input.status !== undefined) changes.status = input.status;
+      if (input.sortOrder !== undefined) changes.sortOrder = input.sortOrder;
+
+      await plan.update(changes, { transaction });
+
+      await this.businessActionLogs.record({
+        moduleCode: PORTAL_MODULE_CODE,
+        businessProcess: 'MERCHANT_PLAN_ADMINISTRATION',
+        actionCode: 'UPDATE_MERCHANT_PLAN_TARIFF',
+        actorUserId: actor.user.sub,
+        actorRole: actor.user.role ?? null,
+        aggregateType: 'MERCHANT_PLAN',
+        aggregateId: plan.id,
+        requestId: actor.requestId,
+        affectedTables: ['atlas_sales.merchant_plans'],
+        affectedRecordCount: 1,
+        status: 'SUCCESS',
+        inputSummary: { code: plan.code, before },
+        outputSummary: {
+          planId: plan.id,
+          after: {
+            cpmMicros: String(plan.cpmMicros ?? '0'),
+            cpcMicros: String(plan.cpcMicros ?? '0'),
+            status: plan.status,
+            tier: plan.tier,
+            currency: plan.currency,
+          },
+        },
+        transaction,
+      });
+
+      this.logger.infoContext(PortalService.name, 'Tarifa de plan actualizada', {
+        planId: plan.id,
+        code: plan.code,
+        userId: actor.user.sub,
+        requestId: actor.requestId,
+      });
+
+      return toPlanDto(plan);
+    });
+  }
+
+  // ------------------------------------------------- Productos facturables
+
+  /**
+   * Catálogo de lo que Atlas factura. Es de sólo lectura por diseño.
+   *
+   * Se siembra con la base de datos porque un producto sin cuenta de ingreso ni unidad de cobro
+   * rompería la factura del comercio, y decidir esas dos cosas es del área contable, no de una
+   * pantalla. Lo que sí se configura desde el ERP es el precio, que vive en cada tarifa.
+   */
+  async listBillingProducts(query: BillingProductsQueryDto): Promise<PortalBillingProductDto[]> {
+    const products = await this.billingProductModel.findAll({
+      where: query.includeInactive === 'true' ? {} : { status: 'ACTIVE' },
+      order: [
+        ['sortOrder', 'ASC'],
+        ['code', 'ASC'],
+      ],
+    });
+    return products.map((product) => toBillingProductDto(product));
   }
 
   // ----------------------------------------------------------- Suscripciones
@@ -371,6 +500,150 @@ export class PortalService {
     return branches.map((branch) => toBranchDto(branch));
   }
 
+  /*
+   * Alta, edición y baja de sucursales POR EL PROPIO COMERCIO.
+   *
+   * Antes esto sólo existía en el canal interno `/b2b/*`, así que el comercio veía la pantalla de
+   * sucursales en modo lectura: podía mirar las suyas y nada más. La cuenta nunca se toma del
+   * cuerpo de la petición: la resuelve `PortalScopeService` con las membresías reales del usuario.
+   *
+   * No hay borrado, y no es un olvido: de una sucursal cuelgan sus terminales, sus QR y las ventas
+   * que originó, y esas cuotas siguen venciendo. Lo que se necesita es que deje de operar —estado
+   * INACTIVE—, no que deje de haber existido.
+   */
+  async createBranch(input: CreatePortalBranchDto, actor: PortalActor): Promise<PortalBranchDto> {
+    const accountId = this.scopeService.resolveAccountId(actor.scope, input.merchantAccountId);
+    return this.sequelize.transaction(async (transaction) => {
+      const branch = await this.branchModel.create(
+        {
+          accountId,
+          name: input.name,
+          city: input.city ?? null,
+          address: input.address ?? null,
+          // Nace operativa: el comercio está declarando un local en el que ya atiende. Vender a
+          // crédito ahí es otra cosa y la concede Atlas (`canOriginateBnpl`, canal interno).
+          status: 'ACTIVE',
+          canOriginateBnpl: false,
+          activatedAt: new Date(),
+        },
+        { transaction },
+      );
+
+      await this.businessActionLogs.record({
+        moduleCode: PORTAL_MODULE_CODE,
+        businessProcess: 'MERCHANT_STRUCTURE',
+        actionCode: 'PORTAL_CREATE_BRANCH',
+        actorUserId: actor.user.sub,
+        actorRole: actor.user.role ?? null,
+        aggregateType: 'MERCHANT_BRANCH',
+        aggregateId: branch.id,
+        correlationId: accountId,
+        requestId: actor.requestId,
+        affectedTables: ['merchant_branches'],
+        affectedRecordCount: 1,
+        status: 'SUCCESS',
+        inputSummary: { name: input.name, city: input.city ?? null, delegated: actor.scope.isInternalOperator },
+        outputSummary: { branchId: branch.id },
+        transaction,
+      });
+
+      this.logger.infoContext(PortalService.name, 'Sucursal creada desde el portal del comercio', {
+        branchId: branch.id,
+        accountId,
+      });
+      return toBranchDto(branch);
+    });
+  }
+
+  async updateBranch(
+    branchId: string,
+    input: UpdatePortalBranchDto,
+    actor: PortalActor,
+  ): Promise<PortalBranchDto> {
+    return this.sequelize.transaction(async (transaction) => {
+      const branch = await this.findOwnBranch(branchId, actor, transaction);
+      const before = branch.get({ plain: true }) as Record<string, unknown>;
+      await branch.update(input, { transaction });
+
+      await this.businessActionLogs.record({
+        moduleCode: PORTAL_MODULE_CODE,
+        businessProcess: 'MERCHANT_STRUCTURE',
+        actionCode: 'PORTAL_UPDATE_BRANCH',
+        actorUserId: actor.user.sub,
+        actorRole: actor.user.role ?? null,
+        aggregateType: 'MERCHANT_BRANCH',
+        aggregateId: branch.id,
+        correlationId: branch.accountId,
+        requestId: actor.requestId,
+        affectedTables: ['merchant_branches'],
+        affectedRecordCount: 1,
+        status: 'SUCCESS',
+        inputSummary: { changed: Object.keys(input), before: { name: before.name ?? null, city: before.city ?? null } },
+        outputSummary: { branchId: branch.id },
+        transaction,
+      });
+      return toBranchDto(branch);
+    });
+  }
+
+  async setBranchStatus(
+    branchId: string,
+    input: SetPortalBranchStatusDto,
+    actor: PortalActor,
+  ): Promise<PortalBranchDto> {
+    return this.sequelize.transaction(async (transaction) => {
+      const branch = await this.findOwnBranch(branchId, actor, transaction);
+      if (branch.status === input.status) return toBranchDto(branch);
+
+      const before = branch.status;
+      await branch.update(
+        {
+          status: input.status,
+          // Una sucursal dada de baja no puede seguir originando crédito, diga lo que diga su marca.
+          ...(input.status === 'INACTIVE' ? { canOriginateBnpl: false } : {}),
+          ...(input.status === 'ACTIVE' && !branch.activatedAt ? { activatedAt: new Date() } : {}),
+        },
+        { transaction },
+      );
+
+      await this.businessActionLogs.record({
+        moduleCode: PORTAL_MODULE_CODE,
+        businessProcess: 'MERCHANT_STRUCTURE',
+        actionCode: 'PORTAL_SET_BRANCH_STATUS',
+        actorUserId: actor.user.sub,
+        actorRole: actor.user.role ?? null,
+        aggregateType: 'MERCHANT_BRANCH',
+        aggregateId: branch.id,
+        correlationId: branch.accountId,
+        requestId: actor.requestId,
+        affectedTables: ['merchant_branches'],
+        affectedRecordCount: 1,
+        status: 'SUCCESS',
+        inputSummary: { from: before, to: input.status },
+        outputSummary: { branchId: branch.id },
+        transaction,
+      });
+      return toBranchDto(branch);
+    });
+  }
+
+  /** Carga la sucursal comprobando que pertenece a una cuenta del alcance de quien pregunta. */
+  private async findOwnBranch(
+    branchId: string,
+    actor: PortalActor,
+    transaction: Transaction,
+  ): Promise<MerchantBranchModel> {
+    const branch = await this.branchModel.findByPk(branchId, {
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+    if (!branch) {
+      throw new NotFoundException({ code: 'BRANCH_NOT_FOUND', message: 'Sucursal no encontrada.' });
+    }
+    this.scopeService.assertAccountAccess(actor.scope, branch.accountId);
+    return branch;
+  }
+
   // ------------------------------------------------------- Panel de consumo
 
   /**
@@ -381,6 +654,47 @@ export class PortalService {
    * flotante solo las primeras 100 filas y presentaba ese resultado como "monto acumulado", lo que
    * subdeclaraba el facturado y el saldo abierto de cualquier comercio con historial.
    */
+  /**
+   * Sobre qué comercios puede operar quien está mirando, contestado por el SERVIDOR.
+   *
+   * Existe porque el portal no puede seguir adivinándolo. El navegador decidía si era «comercio»
+   * a partir de un valor que él mismo se guardó al entrar (`sessionKind`), mientras el backend lo
+   * decide por los roles del token. Cuando los dos no coinciden —y con
+   * `AUTH_DISABLED_FOR_LOCAL_TESTING=true` NUNCA coinciden, porque ahí toda petición llega como
+   * ADMIN— la pantalla quedaba en un callejón sin salida: se creía comercio, así que no pintaba
+   * el selector ni mandaba cuenta, y el backend le exigía la cuenta que la pantalla había
+   * decidido no ofrecer. Cuatro pantallas del portal, el mismo muro.
+   *
+   * La lista NO es «todas las cuentas»: para un comercio son sus membresías y nada más, así que
+   * este endpoint es seguro de llamar desde el portal —al contrario que `b2b/accounts`, que es
+   * interno y un comercio ni siquiera puede invocar—.
+   */
+  async getScope(scope: PortalScope) {
+    const where = scope.isInternalOperator ? {} : { id: { [Op.in]: scope.accountIds } };
+    const accounts = await this.accountModel.findAll({
+      where,
+      attributes: ['id', 'tradeName', 'legalName'],
+      order: [['tradeName', 'ASC']],
+      limit: PORTAL_SCOPE_ACCOUNT_LIMIT,
+    });
+
+    return {
+      isInternalOperator: scope.isInternalOperator,
+      /*
+       * Que haya que ELEGIR es un dato del servidor, no una deducción de la pantalla.
+       *
+       * Un comercio con una sola cuenta no elige —el backend la infiere—; con varias, sí. Y el
+       * staff interno siempre elige. Mandarlo resuelto evita que cada pantalla repita esa regla
+       * y se equivoque de forma distinta.
+       */
+      requiresAccountSelection: scope.isInternalOperator || scope.accountIds.length > 1,
+      accounts: accounts.map((account) => ({
+        id: account.id,
+        name: account.tradeName || account.legalName,
+      })),
+    };
+  }
+
   async getBillingPanel(scope: PortalScope, requestedAccountId?: string) {
     const merchantAccountId = this.scopeService.resolveAccountId(scope, requestedAccountId);
 

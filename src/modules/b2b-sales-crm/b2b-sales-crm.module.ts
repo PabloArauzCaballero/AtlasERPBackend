@@ -4,6 +4,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { atlasSalesModels } from './models/b2b-sales-crm.models';
 import { creditRatingModels } from './models/credit-rating.models';
+import { AccountTagsController } from './controllers/account-tags.controller';
 import { ActivitiesController } from './controllers/activities.controller';
 import { CatalogsController } from './controllers/catalogs.controller';
 import { CatalogsService } from './services/catalogs.service';
@@ -19,6 +20,7 @@ import { ProposalsController } from './controllers/proposals.controller';
 import { ReconciliationController } from './controllers/reconciliation.controller';
 import { B2BSalesCrmRepository } from './repositories/b2b-sales-crm.repository';
 import { CreditRatingRepository } from './repositories/credit-rating.repository';
+import { AccountTagsService } from './services/account-tags.service';
 import { ActivitiesService } from './services/activities.service';
 import { B2BAccountsService } from './services/b2b-accounts.service';
 import { B2BBnplBillingService } from './services/b2b-bnpl-billing.service';
@@ -44,6 +46,7 @@ import { PortalModule } from '../portal/portal.module';
     PortalModule,
   ],
   controllers: [
+    AccountTagsController,
     ActivitiesController,
     CatalogsController,
     B2BAccountsController,
@@ -59,6 +62,7 @@ import { PortalModule } from '../portal/portal.module';
   ],
   providers: [
     B2BSalesCrmRepository,
+    AccountTagsService,
     ActivitiesService,
     CatalogsService,
     B2BAccountsService,

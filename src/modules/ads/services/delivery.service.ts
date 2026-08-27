@@ -89,10 +89,42 @@ export class AdsDeliveryService {
 
     const requestId = randomUUID();
     const rank = this.calculateRank(winner);
-    const priceMicros = Math.max(
-      Number(winner.adSet.bidAmountMicros),
-      Number(placement.pricingFloorCpmMicros),
+    /*
+     * El precio de esta entrega sale de la TARIFA que el comercio tiene contratada.
+     *
+     * Antes salía de la puja del conjunto de anuncios contra el precio suelo del espacio, con lo
+     * que la pantalla de tarifas prometía «Bs 2,50 el millar» y el motor cobraba otra cosa: el
+     * precio que el comercio veía al elegir su plan no tocaba ni una sola línea del cobro. Desde
+     * que las tarifas se configuran en el ERP, son ellas las que fijan el precio unitario, y por
+     * eso ganan también sobre el precio suelo: rebajarlo en silencio hasta el suelo dejaría el
+     * pricing sin efecto, que es justo lo que se venía a arreglar. Cuando queda por debajo del
+     * suelo se avisa, para que se corrija donde se decide —en la tarifa— y no aquí.
+     *
+     * Un anunciante sin comercio detrás, o cuyo comercio no tiene plan activo, sigue cobrándose
+     * como siempre: no hay tarifa que aplicarle.
+     */
+    const buyingModel = winner.adSet.buyingModel;
+    const tariff = await this.deliveryRepository.findContractedTariff(
+      winner.adSet.campaign.advertiserId,
     );
+    const contractedMicros =
+      buyingModel === 'CPM' ? (tariff?.cpmMicros ?? 0) : buyingModel === 'CPC' ? (tariff?.cpcMicros ?? 0) : 0;
+    const floorMicros = Number(placement.pricingFloorCpmMicros);
+    if (buyingModel === 'CPM' && contractedMicros > 0 && contractedMicros < floorMicros) {
+      this.logger.warn(
+        {
+          planCode: tariff?.planCode,
+          placementCode: placement.code,
+          contractedMicros,
+          floorMicros,
+        },
+        'Contracted CPM tariff is below the placement floor price',
+      );
+    }
+    const priceMicros =
+      contractedMicros > 0
+        ? contractedMicros
+        : Math.max(Number(winner.adSet.bidAmountMicros), floorMicros);
     const decision = await this.deliveryRepository.createDecision({
       requestId,
       placementId: placement.id,

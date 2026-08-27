@@ -13,6 +13,9 @@ const REFERENCE_SEEDS = [
   'src/database/seeders/001_reference_chart_of_accounts.sql',
   'src/database/seeders/20260708204000-seed-atlas-ads-defaults.sql',
   'src/database/seeders/20260712121000-seed-b2b-account-taxonomy.sql',
+  // Los tres productos que Atlas factura. Es dato maestro, no fixture: sin el, la factura del
+  // partner vuelve a ser texto libre, asi que tambien se siembra en produccion.
+  'src/database/seeders/20260826221000-seed-billing-products.sql',
 ];
 const DEVELOPMENT_SEEDS = [
   'src/database/seeders/20260708191000-seed-atlas-b2b-sales-crm.sql',

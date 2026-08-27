@@ -14,6 +14,11 @@ export const STARTUP_MIGRATION_FILES = [
   'src/database/migrations/20260712120000-robust-b2b-account-profile.sql',
   'src/database/migrations/20260712140000-create-merchant-plans-subscriptions.sql',
   'src/database/migrations/20260712160000-merchant-accounting-bridge.sql',
+  // Tarifas por alcance y por clics: las columnas que la pantalla de precios ya lee.
+  'src/database/migrations/20260825020000-merchant-plans-por-alcance-y-clics.sql',
+  // Catalogo de productos facturables: va DESPUES de las tarifas porque el producto describe
+  // lo que se vende y el plan pone el precio.
+  'src/database/migrations/20260826220000-catalogo-productos-facturables.sql',
 ] as const;
 
 export interface LegacySqlProbe {

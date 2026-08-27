@@ -1,4 +1,5 @@
 import type {
+  BillingProductModel,
   MerchantBranchModel,
   MerchantInvoiceModel,
   MerchantPlanModel,
@@ -30,6 +31,26 @@ export interface PortalPlanDto {
   cpcPrice: string;
   currency: string;
   features: string[];
+  status: string;
+  sortOrder: number;
+}
+
+/**
+ * Producto facturable del catálogo: lo que Atlas vende, sin el precio.
+ *
+ * El precio unitario no viaja aquí porque no es del producto sino del plan contratado por cada
+ * comercio; juntarlos en una misma proyección haría creer que hay una tarifa única de plataforma.
+ */
+export interface PortalBillingProductDto {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  chargeBasis: string;
+  sourceType: string;
+  unitLabel: string;
+  revenueGlAccountCode: string | null;
+  currency: string;
   status: string;
   sortOrder: number;
 }
@@ -149,6 +170,22 @@ export function toPlanDto(plan: MerchantPlanModel): PortalPlanDto {
     features: toFeatureList(plan.features),
     status: plan.status,
     sortOrder: Number(plan.sortOrder ?? 0),
+  };
+}
+
+export function toBillingProductDto(product: BillingProductModel): PortalBillingProductDto {
+  return {
+    id: product.id,
+    code: product.code,
+    name: product.name,
+    description: product.description ?? null,
+    chargeBasis: product.chargeBasis,
+    sourceType: product.sourceType,
+    unitLabel: product.unitLabel,
+    revenueGlAccountCode: product.revenueGlAccountCode ?? null,
+    currency: product.currency,
+    status: product.status,
+    sortOrder: Number(product.sortOrder ?? 0),
   };
 }
 

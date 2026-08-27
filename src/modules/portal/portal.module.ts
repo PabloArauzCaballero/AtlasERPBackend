@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { SequelizeModule } from '@nestjs/sequelize';
 import {
   B2BAccountModel,
+  BillingProductModel,
   MerchantBranchModel,
   MerchantInvoiceModel,
   MerchantPlanModel,
@@ -20,6 +21,7 @@ import { PortalService } from './portal.service';
   imports: [
     SequelizeModule.forFeature([
       MerchantPlanModel,
+      BillingProductModel,
       MerchantSubscriptionModel,
       MerchantBranchModel,
       MerchantUserModel,

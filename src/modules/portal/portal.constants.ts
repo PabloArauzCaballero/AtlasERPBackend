@@ -30,6 +30,16 @@ export const PORTAL_ROLES = [...PORTAL_INTERNAL_ROLES, ...PORTAL_MERCHANT_ROLES]
 export const PORTAL_PLAN_ADMIN_ROLES = ['ADMIN', 'COMMERCIAL_MANAGER'] as const;
 
 /** Estados de `merchant_users` que habilitan el acceso al portal. */
+/**
+ * Tope de cuentas que devuelve el alcance del portal.
+ *
+ * Para un comercio la lista es su puñado de membresías. Para el staff interno es el catálogo
+ * entero, y ahí el tope no es una paginación disfrazada: un selector con miles de opciones no se
+ * usa, se busca. Cuando el catálogo pase de aquí, lo que hace falta es un buscador y no un número
+ * más grande.
+ */
+export const PORTAL_SCOPE_ACCOUNT_LIMIT = 200;
+
 export const PORTAL_ACTIVE_MEMBERSHIP_STATUSES = ['ACTIVE'] as const;
 
 /** Estados de `b2b_accounts.lifecycle_status` que permiten contratar o cambiar de plan. */

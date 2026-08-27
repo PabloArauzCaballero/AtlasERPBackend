@@ -1,4 +1,4 @@
-import { Column, DataType, Model, Table } from 'sequelize-typescript';
+import { Column, DataType, Default, Model, Table } from 'sequelize-typescript';
 
 @Table({
   tableName: 'contract_header',
@@ -37,6 +37,16 @@ export class ContractHeaderModel extends Model {
   @Column({ type: DataType.CHAR(3), field: 'currency_code', allowNull: false, defaultValue: 'BOB' })
   declare currencyCode: string;
 
+  /*
+   * El estado inicial se declara aquí porque la tabla ya lo trae (`DEFAULT 'DRAFT'`) y el modelo
+   * no lo copiaba.
+   *
+   * Sequelize valida `allowNull: false` en memoria ANTES de mandar el INSERT, así que el valor por
+   * defecto de la base no llegaba a aplicarse nunca: crear un contrato contable fallaba siempre con
+   * «ContractHeaderModel.status cannot be null». Por eso la tabla de contratos de Contabilidad
+   * estaba vacía —no es que no se hubieran cargado: es que no se podía crear ninguno—.
+   */
+  @Default('DRAFT')
   @Column({ type: DataType.STRING(20), field: 'status', allowNull: false })
   declare status: string;
 

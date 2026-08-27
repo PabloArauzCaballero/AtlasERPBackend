@@ -3,11 +3,28 @@ import { InjectConnection } from '@nestjs/sequelize';
 import { Sequelize } from 'sequelize-typescript';
 import { PinoLogger } from 'nestjs-pino';
 import { env } from '../../../config/env';
-import { BillingRepository, type LedgerGroupRow } from '../repositories/billing.repository';
+import {
+  BillingRepository,
+  type BillingProductRow,
+  type LedgerGroupRow,
+} from '../repositories/billing.repository';
 import { AdsAuditService } from './audit.service';
 import { serializeModel } from '../ads.mappers';
 import type { ActorContext } from '../ads.types';
 import type { PeriodCloseDto, RegisterPaymentDto } from '../ads.dtos';
+
+/**
+ * Plazo del cargo de consumo publicitario en la cuenta corriente del comercio, en días desde el
+ * cierre del periodo. Es el mismo plazo con el que el área comercial venía emitiendo las facturas
+ * del módulo de anuncios; se declara aquí porque hasta ahora no existía en ninguna parte.
+ */
+const ADS_RECEIVABLE_DUE_DAYS = 15;
+
+function addDays(isoDate: string, days: number): string {
+  const date = new Date(`${isoDate}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
 
 interface LedgerInvoiceGroup {
   advertiserId: string;
@@ -57,6 +74,8 @@ export class AdsBillingService {
         totalMicros: number;
         auditId: string;
       }> = [];
+      /* El catálogo es el mismo para todos los anunciantes del cierre: se lee una vez. */
+      const products = await this.billingRepository.findBillingProductsByChargeBasis(transaction);
       for (const group of invoiceGroups) {
         const subtotalMicros = group.lines.reduce(
           (sum, line) => sum + Number(line.amountMicros),
@@ -90,20 +109,74 @@ export class AdsBillingService {
           transaction,
         );
 
+        /** Lo consumido en el periodo, sumado por producto: es lo que se le carga al comercio. */
+        const consumedByProduct = new Map<string, { product: BillingProductRow; amountMicros: number }>();
+
+        /*
+         * Cada línea nombra el producto que se está cobrando y a qué precio unitario.
+         *
+         * Antes todas decían lo mismo —«Consumo publicitario <periodo>», `ADJUSTMENT`, y el importe
+         * entero metido como precio unitario—, así que la factura no distinguía alcance de clics ni
+         * permitía comprobar el precio pagado por unidad. El producto sale del catálogo por la forma
+         * de cobro; si falta, la línea conserva la descripción de antes en vez de impedir el cierre
+         * del periodo.
+         */
         for (const line of group.lines) {
           const amountMicros = Number(line.amountMicros);
+          const billableEvents = Number(line.billableEvents) || 1;
+          const product = products.get(line.chargeBasis) ?? null;
           await this.billingRepository.createInvoiceLine(
             {
               invoiceId: invoice.id,
               campaignId: line.campaignId,
-              description: `Consumo publicitario ${input.periodStart} a ${input.periodEnd}`,
-              pricingModel: 'ADJUSTMENT',
+              description: product
+                ? `${product.name} (${input.periodStart} a ${input.periodEnd})`
+                : `Consumo publicitario ${input.periodStart} a ${input.periodEnd}`,
+              pricingModel: line.chargeBasis,
               quantity: line.billableEvents,
-              unitPriceMicros: amountMicros,
+              unitPriceMicros: Math.round(amountMicros / billableEvents),
               amountMicros,
             },
             transaction,
           );
+
+          if (product && amountMicros > 0) {
+            const accumulated = consumedByProduct.get(product.id);
+            if (accumulated) {
+              accumulated.amountMicros += amountMicros;
+            } else {
+              consumedByProduct.set(product.id, { product, amountMicros });
+            }
+          }
+        }
+
+        /*
+         * Y el consumo pasa a la cuenta corriente del comercio.
+         *
+         * La factura de arriba es el documento del módulo de anuncios, que el comercio no ve: su
+         * pantalla de facturación lee `atlas_sales.merchant_receivables`, donde hasta ahora solo
+         * llegaban las comisiones de venta. Un anunciante sin comercio detrás —una agencia, una
+         * marca contratada directamente— no genera cargo aquí; el suyo es la factura publicitaria.
+         */
+        const merchantAccountId = await this.billingRepository.findMerchantAccountId(
+          group.advertiserId,
+          transaction,
+        );
+        if (merchantAccountId) {
+          for (const { product, amountMicros } of consumedByProduct.values()) {
+            await this.billingRepository.createMerchantReceivableFromAdsInvoice(
+              {
+                merchantAccountId,
+                productId: product.id,
+                sourceType: product.sourceType,
+                adsInvoiceId: invoice.id,
+                amountMicros,
+                currency: group.currency,
+                dueDate: addDays(input.periodEnd, ADS_RECEIVABLE_DUE_DAYS),
+              },
+              transaction,
+            );
+          }
         }
 
         const audit = await this.auditService.record({

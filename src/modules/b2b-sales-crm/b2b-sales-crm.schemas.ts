@@ -613,3 +613,33 @@ export const ratingHistoryQuerySchema = z.object({
 export const ratingSweepSchema = z.object({
   limit: z.number().int().min(1).max(5000).default(500),
 });
+
+/*
+ * Tags de clasificación de cuentas.
+ *
+ * Existían sólo como efecto secundario del alta de una cuenta: se escribían como texto libre y el
+ * backend hacía `findOrCreate`. Eso deja un catálogo que nadie puede ver ni corregir —un «mayorista»
+ * y un «mayoristas» conviven para siempre y parten en dos el filtro—. Estos esquemas son los que
+ * permiten administrarlo de verdad.
+ */
+export const createAccountTagSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1)
+    .max(80)
+    // Se normaliza a minúsculas igual que en el alta de cuentas, para no duplicar por mayúsculas.
+    .transform((value) => value.toLowerCase()),
+  description: z.string().trim().max(200).optional(),
+  isActive: z.coerce.boolean().optional(),
+});
+
+export const updateAccountTagSchema = z
+  .object({
+    name: z.string().trim().min(1).max(80).transform((value) => value.toLowerCase()).optional(),
+    description: z.string().trim().max(200).nullable().optional(),
+    isActive: z.coerce.boolean().optional(),
+  })
+  .refine((value) => Object.keys(value).length > 0, {
+    message: 'Indique al menos un campo a modificar.',
+  });

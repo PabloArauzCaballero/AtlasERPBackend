@@ -17,6 +17,23 @@ interface EligibleAdIdRow {
   id: string;
 }
 
+interface ContractedTariffRow {
+  planId: string;
+  planCode: string;
+  cpmMicros: string;
+  cpcMicros: string;
+  currency: string;
+}
+
+/** Tarifa vigente del comercio dueño del anunciante, en micros. */
+export interface ContractedTariff {
+  planId: string;
+  planCode: string;
+  cpmMicros: number;
+  cpcMicros: number;
+  currency: string;
+}
+
 @Injectable()
 export class DeliveryRepository {
   constructor(
@@ -112,6 +129,47 @@ export class DeliveryRepository {
         },
       ],
     });
+  }
+
+  /**
+   * Tarifa que el comercio tiene contratada, si es que la tiene.
+   *
+   * Va en SQL y no por modelos porque cruza dos mundos —`ad_advertiser_accounts` vive en el
+   * esquema público y los planes en `atlas_sales`—, y arrastrar los modelos de ventas al módulo
+   * de publicidad para leer dos columnas acoplaría los dos módulos por el arranque.
+   *
+   * Devuelve `null` cuando el anunciante no cuelga de un comercio o cuando ese comercio no tiene
+   * suscripción activa: en ese caso el cobro sigue siendo el de siempre (puja contra precio suelo),
+   * porque un anunciante sin plan no tiene tarifa que aplicar.
+   */
+  async findContractedTariff(advertiserId: string): Promise<ContractedTariff | null> {
+    const [row] = await this.deliveryDecisionModel.sequelize!.query<ContractedTariffRow>(
+      `SELECT plan.id AS "planId",
+              plan.code AS "planCode",
+              plan.cpm_micros::text AS "cpmMicros",
+              plan.cpc_micros::text AS "cpcMicros",
+              plan.currency AS "currency"
+       FROM ad_advertiser_accounts advertiser
+       INNER JOIN atlas_sales.merchant_subscriptions subscription
+         ON subscription.merchant_account_id = advertiser.merchant_account_id
+        AND subscription.status = 'ACTIVE'
+       INNER JOIN atlas_sales.merchant_plans plan
+         ON plan.id = subscription.plan_id
+        AND plan.status = 'ACTIVE'
+       WHERE advertiser.id = :advertiserId
+         AND advertiser.merchant_account_id IS NOT NULL
+       LIMIT 1`,
+      { type: QueryTypes.SELECT, replacements: { advertiserId } },
+    );
+
+    if (!row) return null;
+    return {
+      planId: row.planId,
+      planCode: row.planCode,
+      cpmMicros: Number(row.cpmMicros),
+      cpcMicros: Number(row.cpcMicros),
+      currency: row.currency,
+    };
   }
 
   createDecision(
