@@ -67,6 +67,48 @@ export class PartnerOnboardingGatewayController {
     });
   }
 
+  /*
+   * Los tres requisitos que el comercio no tenia por donde entregar.
+   *
+   * `mine` los enseñaba como pendientes —matricula de comercio, representante legal y su poder—
+   * pero la pasarela no reenviaba las rutas que los reciben, asi que el expediente se quedaba
+   * atascado en «falta» sin ninguna pantalla que lo pudiera resolver. Existian en AtlasBackend
+   * desde el principio; lo que faltaba era el tramo del medio.
+   */
+  @Post(':partnerId/commercial-registry')
+  @Roles('merchant', 'MERCHANT_ADMIN', 'MERCHANT_OPERATIONS', 'ADMIN')
+  setCommercialRegistry(@Req() req: Request, @Param('partnerId') partnerId: string, @Body() body: unknown) {
+    return this.client.forward({
+      method: 'POST',
+      path: `partner-onboarding/${encodeURIComponent(partnerId)}/commercial-registry`,
+      accessToken: this.token(req),
+      body,
+    });
+  }
+
+  @Post(':partnerId/legal-representative')
+  @Roles('merchant', 'MERCHANT_ADMIN', 'MERCHANT_OPERATIONS', 'ADMIN')
+  addLegalRepresentative(@Req() req: Request, @Param('partnerId') partnerId: string, @Body() body: unknown) {
+    return this.client.forward({
+      method: 'POST',
+      path: `partner-onboarding/${encodeURIComponent(partnerId)}/legal-representative`,
+      accessToken: this.token(req),
+      body,
+    });
+  }
+
+  /** Permiso de subida del poder notarial. La ruta del objeto la impone AtlasBackend. */
+  @Post(':partnerId/documents/upload-url')
+  @Roles('merchant', 'MERCHANT_ADMIN', 'MERCHANT_OPERATIONS', 'ADMIN')
+  documentUploadUrl(@Req() req: Request, @Param('partnerId') partnerId: string, @Body() body: unknown) {
+    return this.client.forward({
+      method: 'POST',
+      path: `partner-onboarding/${encodeURIComponent(partnerId)}/documents/upload-url`,
+      accessToken: this.token(req),
+      body,
+    });
+  }
+
   @Post(':partnerId/submit')
   @Roles('merchant', 'MERCHANT_ADMIN', 'MERCHANT_OPERATIONS', 'ADMIN')
   submit(@Req() req: Request, @Param('partnerId') partnerId: string) {
