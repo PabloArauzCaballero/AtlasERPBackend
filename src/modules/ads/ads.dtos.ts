@@ -68,6 +68,7 @@ import type {
   createCampaignSchema,
   createCreativeSchema,
   segmentIdParamSchema,
+  submitCampaignForReviewSchema,
 } from './ads.authoring.schemas';
 import type {
   audienceContextSchema,
@@ -85,3 +86,4 @@ export type CampaignPerformanceQueryDto = z.infer<typeof campaignPerformanceQuer
 export type CreateTargetSegmentDto = z.infer<typeof createTargetSegmentSchema>;
 export type ListTargetSegmentsQueryDto = z.infer<typeof listTargetSegmentsQuerySchema>;
 export type AudienceContextDto = z.infer<typeof audienceContextSchema>;
+export type SubmitCampaignForReviewDto = z.infer<typeof submitCampaignForReviewSchema>;

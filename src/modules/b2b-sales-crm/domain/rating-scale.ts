@@ -94,15 +94,12 @@ export function normalizeScale(bands: readonly RatingBand[]): RatingBand[] {
   return ordered;
 }
 
-/** La peor banda de la escala: la de mayor severidad. La escala ya se validó, así que existe. */
-export function worstBand(bands: readonly RatingBand[]): RatingBand {
-  const ordered = normalizeScale(bands);
-  const last = ordered.at(-1);
-  if (!last) {
-    throw new Error('La política de calificación no tiene bandas definidas.');
-  }
-  return last;
-}
+/*
+ * Aquí estaba `worstBand` —la peor banda de la ESCALA— y no la llamaba nadie: lo que el motor
+ * necesita es la peor DEUDA del cliente (`worstReceivable`, en `account-rating.ts`), que es otra
+ * cosa. Tenerlas las dos, con nombres casi iguales y una sin usar, es una invitación a coger la
+ * equivocada el día que haga falta arrastrar una categoría.
+ */
 
 /** La banda que corresponde a unos días de mora. La escala ya se validó: siempre hay una. */
 export function bandForDaysPastDue(bands: readonly RatingBand[], daysPastDue: number): RatingBand {

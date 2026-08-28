@@ -130,6 +130,29 @@ export class PartnerOnboardingGatewayController {
     });
   }
 
+  /**
+   * Enlaza una sucursal YA declarada con la del ERP que le corresponde.
+   *
+   * Sin este tramo, una sucursal declarada antes de que el puente `erpBranchId` se rellenara sólo
+   * podía enlazarse declarándola otra vez: dos filas para el mismo mostrador, con las cajas
+   * colgando de una y el ERP mirando la otra.
+   */
+  @Patch(':partnerId/branches/:branchId')
+  @Roles('merchant', 'MERCHANT_ADMIN', 'MERCHANT_OPERATIONS', 'ADMIN')
+  linkBranch(
+    @Req() req: Request,
+    @Param('partnerId') partnerId: string,
+    @Param('branchId') branchId: string,
+    @Body() body: unknown,
+  ) {
+    return this.client.forward({
+      method: 'PATCH',
+      path: `partner-onboarding/${encodeURIComponent(partnerId)}/branches/${encodeURIComponent(branchId)}`,
+      accessToken: this.token(req),
+      body,
+    });
+  }
+
   @Get(':partnerId/branches')
   @Roles('merchant', 'MERCHANT_ADMIN', 'MERCHANT_OPERATIONS', 'ADMIN')
   listBranches(@Req() req: Request, @Param('partnerId') partnerId: string) {

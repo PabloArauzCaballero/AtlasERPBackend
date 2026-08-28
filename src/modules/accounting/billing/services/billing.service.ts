@@ -11,8 +11,10 @@ import {
   ArInvoiceLineModel,
   ArInvoiceModel,
   BillingEventModel,
+  BusinessPartnerModel,
   ContractHeaderModel,
   ElectronicTaxDocumentModel,
+  LegalEntityModel,
 } from '../../../../database/models';
 import { AuthUser } from '../../../../common/types/auth-context.types';
 import {
@@ -24,6 +26,7 @@ import { AccountingDocumentsService } from '../../documents/services/accounting-
 import { LegalEntityAccessService } from '../../../../common/services/legal-entity-access.service';
 import { BusinessPartnerRoleValidationService } from '../../business-partners/services/business-partner-role-validation.service';
 import { PinoLoggerService } from '../../../../common/logger/pino-logger.service';
+import { nextDocumentNumber } from '../../../../common/numbering/document-numbering';
 
 /**
  * Gestiona eventos facturables y emisión AR manteniendo separadas factura comercial,
@@ -44,6 +47,9 @@ export class BillingService {
     private readonly contractHeaderModel: typeof ContractHeaderModel,
     @InjectModel(ElectronicTaxDocumentModel)
     private readonly electronicTaxDocumentModel: typeof ElectronicTaxDocumentModel,
+    @InjectModel(BusinessPartnerModel)
+    private readonly businessPartnerModel: typeof BusinessPartnerModel,
+    @InjectModel(LegalEntityModel) private readonly legalEntityModel: typeof LegalEntityModel,
   ) {}
 
   /** Listado de eventos de facturación (para poblar el select del frontend). */
@@ -64,6 +70,58 @@ export class BillingService {
     return { items, total: items.length };
   }
 
+  /**
+   * Una factura AR con lo que hace falta para imprimirla.
+   *
+   * El listado devuelve la cabecera y nada más; el documento necesita las líneas, el cliente, la
+   * entidad que emite y —si lo hay— el documento fiscal electrónico. Sin esto, «descargar la
+   * factura» sólo podía imprimir la fila de la tabla.
+   */
+  async getInvoice(id: string, user: AuthUser) {
+    const invoice = await this.arInvoiceModel.findByPk(id);
+    if (!invoice)
+      throw new NotFoundException({
+        code: 'AR_INVOICE_NOT_FOUND',
+        message: 'La factura no existe.',
+      });
+    this.legalEntityAccessService.assertCanAccessLegalEntity(user, invoice.legalEntityId);
+
+    const [lines, customer, legalEntity, taxDocument] = await Promise.all([
+      this.arInvoiceLineModel.findAll({
+        where: { arInvoiceId: invoice.id },
+        order: [['lineNo', 'ASC']],
+      }),
+      this.businessPartnerModel.findByPk(invoice.customerBpId),
+      this.legalEntityModel.findByPk(invoice.legalEntityId),
+      this.electronicTaxDocumentModel.findOne({ where: { arInvoiceId: invoice.id } }),
+    ]);
+
+    return {
+      invoice,
+      lines,
+      customer: customer
+        ? {
+            id: customer.id,
+            partnerNo: customer.partnerNo,
+            legalName: customer.legalName,
+            tradeName: customer.tradeName,
+            taxId: customer.taxId,
+            countryCode: customer.countryCode,
+          }
+        : null,
+      legalEntity: legalEntity
+        ? {
+            id: legalEntity.id,
+            code: legalEntity.code,
+            legalName: legalEntity.legalName,
+            taxId: legalEntity.taxId,
+            countryCode: legalEntity.countryCode,
+          }
+        : null,
+      electronicTaxDocument: taxDocument,
+    };
+  }
+
   async updateInvoice(id: string, input: Record<string, unknown>, user: AuthUser) {
     const row = await this.arInvoiceModel.findByPk(id);
     if (!row)
@@ -72,7 +130,11 @@ export class BillingService {
         message: 'La factura no existe.',
       });
     this.legalEntityAccessService.assertCanAccessLegalEntity(user, row.legalEntityId);
-    const allowed = ['invoiceNo', 'invoiceDate', 'dueDate', 'status'];
+    /*
+     * `invoiceNo` NO está: el correlativo lo asigna el sistema al emitir y renumerar una factura
+     * ya emitida rompe la serie —deja un hueco donde estaba y un duplicado donde va—.
+     */
+    const allowed = ['invoiceDate', 'dueDate', 'status'];
     await row.update(
       Object.fromEntries(Object.entries(input).filter(([key]) => allowed.includes(key))),
     );
@@ -130,7 +192,6 @@ export class BillingService {
       layer: 'service',
       module: 'billing',
       action: 'issueInvoice',
-      invoiceNo: input.invoiceNo,
       legalEntityId: input.legalEntityId,
       customerBpId: input.customerBpId,
       userId: user.sub,
@@ -140,12 +201,25 @@ export class BillingService {
       await this.assertInvoiceInputsAreSapSafe(input, transaction);
       const grossAmount = Number(input.netAmount) + Number(input.taxAmount);
 
+      // La serie es por entidad legal, que es como la tiene declarada única la propia tabla.
+      const invoiceNo = await nextDocumentNumber(
+        this.sequelize,
+        {
+          prefix: 'FAC-AR',
+          table: 'atlas_accounting.ar_invoice',
+          column: 'invoice_no',
+          date: input.invoiceDate,
+          scope: { column: 'legal_entity_id', value: input.legalEntityId },
+        },
+        transaction,
+      );
+
       const invoice = await this.arInvoiceModel.create(
         {
           legalEntityId: input.legalEntityId,
           customerBpId: input.customerBpId,
           contractId: input.contractId,
-          invoiceNo: input.invoiceNo,
+          invoiceNo,
           invoiceDate: input.invoiceDate,
           dueDate: input.dueDate,
           currencyCode: input.currencyCode,
@@ -188,7 +262,7 @@ export class BillingService {
         );
       }
 
-      const journalLines = this.buildInvoiceJournalLines(input, grossAmount, invoice.id);
+      const journalLines = this.buildInvoiceJournalLines(input, grossAmount, invoice.id, invoiceNo);
       const accounting = await this.accountingDocumentsService.createDraftInTransaction(
         {
           legalEntityId: input.legalEntityId,
@@ -196,7 +270,7 @@ export class BillingService {
           sourceType: 'AR_INVOICE',
           sourceId: invoice.id,
           documentType: 'AR_INVOICE',
-          documentNo: `AR-${input.invoiceNo}`,
+          documentNo: `AR-${invoiceNo}`,
           documentDate: input.invoiceDate,
           postingDate: input.invoiceDate,
           accountingPeriodId: input.accountingPeriodId,
@@ -236,7 +310,6 @@ export class BillingService {
       layer: 'service',
       module: 'billing',
       action: 'assertInvoiceInputsAreSapSafe',
-      invoiceNo: input.invoiceNo,
       legalEntityId: input.legalEntityId,
     });
     await this.businessPartnerRoleValidationService.assertHasAnyActiveRole(
@@ -303,12 +376,13 @@ export class BillingService {
     input: IssueArInvoiceDto,
     grossAmount: number,
     invoiceId: string,
+    invoiceNo: string,
   ): CreateAccountingDocumentDto['lines'] {
     this.logger.debug('Construyendo líneas contables de factura AR.', {
       layer: 'service',
       module: 'billing',
       action: 'buildInvoiceJournalLines',
-      invoiceNo: input.invoiceNo,
+      invoiceNo,
       grossAmount,
     });
     const journalLines: CreateAccountingDocumentDto['lines'] = [
@@ -321,7 +395,7 @@ export class BillingService {
         partnerId: input.customerBpId,
         referenceType: 'AR_INVOICE',
         referenceId: invoiceId,
-        description: `CxC factura ${input.invoiceNo}`,
+        description: `CxC factura ${invoiceNo}`,
       },
       {
         glAccountId: input.revenueAccountId,
@@ -348,7 +422,7 @@ export class BillingService {
         taxCodeId: input.taxCodeId,
         referenceType: 'AR_INVOICE',
         referenceId: invoiceId,
-        description: `IVA débito factura ${input.invoiceNo}`,
+        description: `IVA débito factura ${invoiceNo}`,
       });
     }
 

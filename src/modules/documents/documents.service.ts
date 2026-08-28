@@ -55,6 +55,9 @@ export class DocumentsService {
         },
         body: JSON.stringify({
           templateId: TEMPLATE_ID,
+          // Quién firma el documento. Sin esto el worker pone su membrete por defecto, que es
+          // el del motor de decisión, sobre facturas y listados que nunca pasaron por él.
+          brandId: env.PDF_WORKER_BRAND_ID,
           payload: input.payload,
           options: { filename, returnContent: true },
         }),

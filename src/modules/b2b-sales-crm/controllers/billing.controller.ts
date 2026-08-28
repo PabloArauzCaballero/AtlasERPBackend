@@ -32,6 +32,15 @@ export class BillingController {
     return this.service.listMerchantInvoices();
   }
 
+  /** Detalle con líneas: es lo que se imprime cuando el usuario descarga la factura. */
+  @Roles('FINANCE', 'OPERATIONS', 'ADMIN')
+  @Get('invoices/:id')
+  getInvoice(
+    @Param(new ZodValidationPipe(idParamsSchema)) params: IdParamsDto,
+  ): Promise<Record<string, unknown>> {
+    return this.service.getMerchantInvoice(params.id);
+  }
+
   @Roles('FINANCE', 'ADMIN')
   @Post('invoices')
   issueInvoice(

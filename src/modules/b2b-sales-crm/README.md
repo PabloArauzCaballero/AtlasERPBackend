@@ -11,6 +11,8 @@ Implementa el CRM/Ventas B2B de ATLAS: cuentas, oportunidades, propuestas, contr
 - `b2b-sales-crm.schemas.ts`: validaciones Zod para body, params y query.
 - `b2b-sales-crm.dtos.ts`: tipos inferidos desde Zod.
 - `b2b-sales-crm.mapper.ts`: transforma modelos internos en respuestas seguras.
+- `domain/`: reglas puras del módulo, sin Nest ni Sequelize (calificación de riesgo y el
+  vocabulario de segmentación comercial: qué puede mirar un segmento de cada sujeto).
 - `models/`: modelos Sequelize.
 - `repositories/`: acceso a datos mediante Sequelize.
 - `services/`: reglas de negocio y transacciones.

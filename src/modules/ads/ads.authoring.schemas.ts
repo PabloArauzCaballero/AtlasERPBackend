@@ -151,3 +151,22 @@ export const campaignPerformanceQuerySchema = z
     message: 'La fecha fin no puede ser anterior a la fecha inicio.',
     path: ['to'],
   });
+
+/**
+ * Envío de una campaña al circuito de moderación.
+ *
+ * Faltaba la pieza que conecta el alta con la revisión. Nada en el módulo insertaba jamás una fila
+ * en `ad_moderation_reviews`: el alta dejaba todo en `NOT_SUBMITTED`, la cola de moderación sólo
+ * sabía LISTAR y DECIDIR sobre revisiones que ya existieran, y `assertCampaignTransition` prohíbe
+ * pasar a `ACTIVE` sin `approval_status = APPROVED`, que sólo la decisión de moderación otorga.
+ * El resultado era un circuito cerrado sobre sí mismo: ninguna campaña podía llegar a entregarse,
+ * y por tanto no había entregas, ni eventos, ni gasto, ni facturas — todo el tablero publicitario
+ * quedaba estructuralmente en cero, no por falta de siembra.
+ */
+export const submitCampaignForReviewSchema = z.object({
+  notes: z.string().trim().min(3).max(1000).optional(),
+  // Someter la campaña sin sus anuncios deja la entrega igual de bloqueada: la consulta de
+  // elegibilidad exige anuncio aprobado. Se puede desactivar para revisar sólo la campaña, pero el
+  // caso normal es enviar la pieza entera.
+  includeAds: z.boolean().default(true),
+});

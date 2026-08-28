@@ -147,7 +147,6 @@ describe('B2B Sales CRM schemas', () => {
   it('rechaza factura con CxC duplicadas o vencimiento anterior a emisión', () => {
     const result = issueInvoiceSchema.safeParse({
       accountId: uuid,
-      invoiceNumber: 'FAC-1',
       invoiceDate: '2026-09-10',
       dueDate: '2026-09-01',
       receivableIds: [uuid, uuid],

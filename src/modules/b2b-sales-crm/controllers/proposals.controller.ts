@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
@@ -9,6 +9,7 @@ import type {
   IdParamsDto,
   ProposalIdParamsDto,
   RejectProposalDto,
+  UpdateProposalDto,
 } from '../b2b-sales-crm.dtos';
 import {
   createProposalSchema,
@@ -16,6 +17,7 @@ import {
   idParamsSchema,
   proposalIdParamsSchema,
   rejectProposalSchema,
+  updateProposalSchema,
 } from '../b2b-sales-crm.schemas';
 import { B2BSalesCrmService } from '../services/b2b-sales-crm.service';
 
@@ -82,5 +84,28 @@ export class ProposalsController {
     @CurrentUser() user: AuthUser,
   ): Promise<Record<string, unknown>> {
     return this.service.decideApproval(params.id, body, user);
+  }
+
+  /*
+   * Editar y retirar. Sin estas dos, el listado de propuestas solo sabia crecer: una propuesta con
+   * el numero mal escrito no se podia corregir ni quitar, y la pantalla no podia ofrecer el lapiz
+   * ni la papelera que si tiene el resto del ERP. Van DESPUES de las rutas con segmento fijo
+   * (`approvals/...`): Nest resuelve por orden de declaracion y `:proposalId` se las tragaria.
+   */
+  @Roles('COMMERCIAL_EXECUTIVE', 'COMMERCIAL_MANAGER', 'ADMIN')
+  @Patch(':proposalId')
+  updateProposal(
+    @Param(new ZodValidationPipe(proposalIdParamsSchema)) params: ProposalIdParamsDto,
+    @Body(new ZodValidationPipe(updateProposalSchema)) body: UpdateProposalDto,
+  ): Promise<Record<string, unknown>> {
+    return this.service.updateProposal(params.proposalId, body);
+  }
+
+  @Roles('COMMERCIAL_MANAGER', 'ADMIN')
+  @Delete(':proposalId')
+  deleteProposal(
+    @Param(new ZodValidationPipe(proposalIdParamsSchema)) params: ProposalIdParamsDto,
+  ): Promise<{ id: string; proposalNumber: string }> {
+    return this.service.deleteProposal(params.proposalId);
   }
 }

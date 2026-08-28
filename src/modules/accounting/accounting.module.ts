@@ -26,6 +26,9 @@ import { PostingRuleSnapshotService } from './posting/services/posting-rule-snap
 import { LegalEntityAccessService } from '../../common/services/legal-entity-access.service';
 import { BusinessActionLogsModule } from '../business-action-logs/business-action-logs.module';
 
+import { SupplierPaymentTermsController } from './supplier-payment-terms/supplier-payment-terms.controller';
+import { SupplierPaymentTermsService } from './supplier-payment-terms/supplier-payment-terms.service';
+
 @Module({
   imports: [SequelizeModule.forFeature(accountingModels), BusinessActionLogsModule],
   controllers: [
@@ -37,6 +40,7 @@ import { BusinessActionLogsModule } from '../business-action-logs/business-actio
     ContractsController,
     FinancialStructureController,
     ReceiptsController,
+    SupplierPaymentTermsController,
   ],
   providers: [
     AccountGroupsService,
@@ -51,6 +55,7 @@ import { BusinessActionLogsModule } from '../business-action-logs/business-actio
     FinancialStructureService,
     PeriodGuardService,
     SapPostingValidationService,
+    SupplierPaymentTermsService,
     ReceiptsService,
     PostingRuleSnapshotService,
     LegalEntityAccessService,

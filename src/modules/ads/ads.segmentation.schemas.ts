@@ -1,12 +1,14 @@
 import { z } from 'zod';
 import {
+  checkAttributesAllowed,
+  definitionSchemaFor,
+} from '../../common/segmentation/rule-schema';
+import {
   ATTRIBUTES_BY_SEGMENT_TYPE,
   AUDIENCE_ATTRIBUTES,
-  SEGMENT_OPERATORS,
   SEGMENT_PRIVACY_LEVELS,
   SEGMENT_TYPES,
   requiredPrivacyLevel,
-  type AudienceAttribute,
   type SegmentDefinition,
   type SegmentType,
 } from './ads.segmentation';
@@ -15,91 +17,12 @@ import {
  * Validación del alta de segmentos y del contexto de audiencia que viaja en cada petición de
  * anuncio.
  *
- * Aquí es donde una definición mal formada se rechaza en el borde, con un mensaje que dice qué
- * atributo sobra, en vez de guardarse en JSONB y descubrirse meses después como una campaña que
- * "no entrega y no se sabe por qué".
+ * La forma que exige cada operador se comprueba en `common/segmentation`, que es la misma para
+ * toda segmentación del ERP; aquí queda lo que sólo vale para publicidad: el vocabulario, qué
+ * atributos admite cada tipo de segmento y la derivación del nivel de privacidad.
  */
 
-const attributeNames = Object.keys(AUDIENCE_ATTRIBUTES) as [
-  AudienceAttribute,
-  ...AudienceAttribute[],
-];
-
-const scalarValueSchema = z.union([z.string().trim().min(1).max(160), z.number()]);
-
-const segmentRuleSchema = z.object({
-  attribute: z.enum(attributeNames),
-  operator: z.enum(SEGMENT_OPERATORS),
-  value: z.union([scalarValueSchema, z.array(scalarValueSchema).min(1).max(200)]).optional(),
-});
-
-/**
- * Cada operador exige una forma de `value` distinta, y comprobarlo aquí evita reglas que existen
- * pero no pueden cumplirse nunca: un `IN` sin lista no rechaza a nadie —parece un filtro y no
- * filtra— y un `BETWEEN` con un solo extremo tampoco.
- */
-const definitionSchema = z
-  .object({
-    match: z.enum(['ALL', 'ANY']).default('ALL'),
-    rules: z.array(segmentRuleSchema).min(1).max(20),
-  })
-  .superRefine((definition, context) => {
-    definition.rules.forEach((rule, index) => {
-      const path = ['rules', index, 'value'];
-      const isList = Array.isArray(rule.value);
-
-      if (rule.operator === 'EXISTS') {
-        if (rule.value !== undefined) {
-          context.addIssue({
-            code: z.ZodIssueCode.custom,
-            path,
-            message: 'El operador EXISTS no lleva valor.',
-          });
-        }
-        return;
-      }
-      if (rule.value === undefined) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          path,
-          message: `El operador ${rule.operator} exige un valor.`,
-        });
-        return;
-      }
-      if ((rule.operator === 'IN' || rule.operator === 'NOT_IN') && !isList) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          path,
-          message: `El operador ${rule.operator} exige una lista de valores.`,
-        });
-      }
-      if (rule.operator === 'BETWEEN') {
-        const bounds = Array.isArray(rule.value) ? rule.value : [];
-        const numeric = bounds.every((bound) => Number.isFinite(Number(bound)));
-        if (bounds.length !== 2 || !numeric) {
-          context.addIssue({
-            code: z.ZodIssueCode.custom,
-            path,
-            message: 'BETWEEN exige exactamente dos límites numéricos.',
-          });
-        }
-        if (AUDIENCE_ATTRIBUTES[rule.attribute] !== 'NUMBER') {
-          context.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: ['rules', index, 'operator'],
-            message: `BETWEEN sólo aplica a atributos numéricos; ${rule.attribute} no lo es.`,
-          });
-        }
-      }
-      if ((rule.operator === 'EQUALS' || rule.operator === 'NOT_EQUALS') && isList) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          path,
-          message: `El operador ${rule.operator} lleva un único valor; usa IN para una lista.`,
-        });
-      }
-    });
-  });
+const definitionSchema = definitionSchemaFor(AUDIENCE_ATTRIBUTES);
 
 export const createTargetSegmentSchema = z
   .object({
@@ -110,16 +33,12 @@ export const createTargetSegmentSchema = z
     definition: definitionSchema,
   })
   .superRefine((input, context) => {
-    const allowed = ATTRIBUTES_BY_SEGMENT_TYPE[input.segmentType as SegmentType];
-    input.definition.rules.forEach((rule, index) => {
-      if (!allowed.includes(rule.attribute)) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['definition', 'rules', index, 'attribute'],
-          message: `Un segmento ${input.segmentType} no puede mirar "${rule.attribute}". Admite: ${allowed.join(', ')}.`,
-        });
-      }
-    });
+    checkAttributesAllowed(
+      input.definition as SegmentDefinition,
+      ATTRIBUTES_BY_SEGMENT_TYPE[input.segmentType as SegmentType],
+      context,
+      { label: input.segmentType, path: ['definition'] },
+    );
 
     // El nivel de privacidad se DERIVA de lo que la definición mira. Si quien da de alta declara
     // uno más laxo que el que la regla exige, es un error y no una preferencia: sería etiquetar

@@ -82,27 +82,18 @@ export function fromMinorUnits(minor: bigint, scale: number = DEFAULT_AMOUNT_SCA
 }
 
 /** Suma exacta de importes decimales heterogéneos (string de Postgres, number, null). */
-export function sumMinorUnits(
-  values: readonly unknown[],
-  scale: number = DEFAULT_AMOUNT_SCALE,
-): bigint {
-  return values.reduce<bigint>((total, value) => total + toMinorUnits(value, scale), 0n);
-}
-
-/** Suma exacta devuelta ya formateada como cadena decimal. */
-export function sumAmounts(
-  values: readonly unknown[],
-  scale: number = DEFAULT_AMOUNT_SCALE,
-): string {
-  return fromMinorUnits(sumMinorUnits(values, scale), scale);
-}
+/*
+ * Aquí vivían `sumMinorUnits`, `sumAmounts` e `isPositiveAmount`, y no los llamaba nadie.
+ *
+ * No se retiran por higiene sino porque MENTÍAN sobre cómo se suma dinero en este backend: quien
+ * abriera este archivo leería que la forma sancionada de sumar importes es ésta, cuando el módulo
+ * de CRM suma con `domain/money.util` —céntimos en `number`— y es el que de verdad se ejecuta.
+ * Dos maneras de sumar dinero, una sin usar, es la clase de duplicidad que acaba en un descuadre
+ * que nadie sabe atribuir. Si vuelve a hacer falta sumar aquí, se escribe entonces y con un
+ * llamador delante.
+ */
 
 /** Normaliza un importe a su representación canónica con la escala indicada. */
 export function normalizeAmount(value: unknown, scale: number = DEFAULT_AMOUNT_SCALE): string {
   return fromMinorUnits(toMinorUnits(value, scale), scale);
-}
-
-/** `true` si el importe es estrictamente mayor que cero. */
-export function isPositiveAmount(value: unknown, scale: number = DEFAULT_AMOUNT_SCALE): boolean {
-  return toMinorUnits(value, scale) > 0n;
 }

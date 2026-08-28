@@ -63,6 +63,8 @@ x-erp-env: &erp-env
   # Sin clave, `/documents/generate` responde 503 explicándolo. No degrada a «sin autenticar»:
   # el worker imprime con la identidad institucional de Atlas.
   PDF_WORKER_SERVICE_KEY: ${PDF_WORKER_SERVICE_KEY:-}
+  # Membrete de los documentos de este producto: «ATLAS ERP · Enterprise Hub», no el del motor.
+  PDF_WORKER_BRAND_ID: ${PDF_WORKER_BRAND_ID:-atlas-erp}
   LOG_LEVEL: info
   EMAIL_PROVIDER_MODE: mock
   EMAIL_FROM: no-reply@atlas.local

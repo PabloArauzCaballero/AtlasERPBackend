@@ -4,6 +4,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { atlasSalesModels } from './models/b2b-sales-crm.models';
 import { creditRatingModels } from './models/credit-rating.models';
+import { crmSegmentModels } from './models/crm-segment.model';
 import { AccountTagsController } from './controllers/account-tags.controller';
 import { ActivitiesController } from './controllers/activities.controller';
 import { CatalogsController } from './controllers/catalogs.controller';
@@ -13,14 +14,17 @@ import { BillingController } from './controllers/billing.controller';
 import { BnplController } from './controllers/bnpl.controller';
 import { ContractsController } from './controllers/contracts.controller';
 import { CreditRatingController } from './controllers/credit-rating.controller';
+import { CrmSegmentsController } from './controllers/crm-segments.controller';
 import { CoverageController } from './controllers/coverage.controller';
 import { OnboardingController } from './controllers/onboarding.controller';
 import { OpportunitiesController } from './controllers/opportunities.controller';
 import { ProposalsController } from './controllers/proposals.controller';
 import { ReconciliationController } from './controllers/reconciliation.controller';
 import { B2BSalesCrmRepository } from './repositories/b2b-sales-crm.repository';
+import { CrmSegmentsRepository } from './repositories/crm-segments.repository';
 import { CreditRatingRepository } from './repositories/credit-rating.repository';
 import { AccountTagsService } from './services/account-tags.service';
+import { CrmSegmentsService } from './services/crm-segments.service';
 import { ActivitiesService } from './services/activities.service';
 import { B2BAccountsService } from './services/b2b-accounts.service';
 import { B2BBnplBillingService } from './services/b2b-bnpl-billing.service';
@@ -39,7 +43,7 @@ import { PortalModule } from '../portal/portal.module';
 
 @Module({
   imports: [
-    SequelizeModule.forFeature([...atlasSalesModels, ...creditRatingModels]),
+    SequelizeModule.forFeature([...atlasSalesModels, ...creditRatingModels, ...crmSegmentModels]),
     BusinessActionLogsModule,
     AccountingModule,
     /* Para que el canal del comercio no pueda registrar compras de otra cuenta. */
@@ -59,10 +63,13 @@ import { PortalModule } from '../portal/portal.module';
     CoverageController,
     ReconciliationController,
     CreditRatingController,
+    CrmSegmentsController,
   ],
   providers: [
     B2BSalesCrmRepository,
+    CrmSegmentsRepository,
     AccountTagsService,
+    CrmSegmentsService,
     ActivitiesService,
     CatalogsService,
     B2BAccountsService,

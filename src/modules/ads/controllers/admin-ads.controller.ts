@@ -53,6 +53,7 @@ import {
   updateBillableStatusSchema,
   updateCampaignStatusSchema,
 } from '../ads.schemas';
+import { submitCampaignForReviewSchema } from '../ads.authoring.schemas';
 import type {
   AdvertiserIdParamDto,
   BulkCreateAdvertisersDto,
@@ -79,6 +80,7 @@ import type {
   UpdateBillableStatusDto,
   UpdateCampaignStatusDto,
 } from '../ads.dtos';
+import type { SubmitCampaignForReviewDto } from '../ads.dtos';
 
 @Controller('admin/ads')
 export class AdminAdsController {
@@ -240,6 +242,23 @@ export class AdminAdsController {
     @RequestId() requestId: string,
   ) {
     return this.adminAdsService.updateCampaignStatus(params.campaignId, body, { user, requestId });
+  }
+
+  /**
+   * Envía la campaña a moderación. Es la entrada que faltaba a la cola: sin ella nada creaba
+   * revisiones y ninguna campaña podía aprobarse, luego ninguna podía activarse ni entregarse.
+   * Lo firma quien gestiona la campaña, no quien la modera: aprobar lo propio vaciaría de sentido
+   * la separación que sostiene el circuito.
+   */
+  @Post('campaigns/:campaignId/submit')
+  @Roles('ADS_ADMIN_MANAGER', 'ADS_ADMIN_OPERATOR')
+  submitCampaignForReview(
+    @Param(new ZodValidationPipe(campaignIdParamSchema)) params: CampaignIdParamDto,
+    @Body(new ZodValidationPipe(submitCampaignForReviewSchema)) body: SubmitCampaignForReviewDto,
+    @CurrentUser() user: AuthUser,
+    @RequestId() requestId: string,
+  ) {
+    return this.moderationService.submitCampaign(params.campaignId, body, { user, requestId });
   }
 
   @Get('moderation/queue')

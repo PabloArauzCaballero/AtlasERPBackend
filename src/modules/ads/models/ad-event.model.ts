@@ -15,10 +15,26 @@ import { AdModel } from './ad.model';
 import { InventoryPlacementModel } from './inventory-placement.model';
 import { SpendLedgerModel } from './spend-ledger.model';
 
-@Table({ tableName: 'ad_events', timestamps: true, createdAt: 'event_time', updatedAt: false })
+/**
+ * `event_time` es DATO DE NEGOCIO, no la marca de creación de la fila.
+ *
+ * Estaba declarado como `createdAt` de Sequelize, y de ahí venía que el momento declarado por quien
+ * sirvió el anuncio no se pudiera escribir: Sequelize gestiona esa columna por su cuenta. Con
+ * envíos de uno en uno la diferencia era de milisegundos; con `POST /ads/events/bulk` —que existe
+ * para mandar la jornada en lote— toda la jornada quedaba fechada en el instante de la ingesta, y
+ * `ad_daily_metrics`, que agrega por `event_time::date`, resumía el mes entero en un solo día.
+ */
+@Table({ tableName: 'ad_events', timestamps: false })
 export class AdEventModel extends Model {
   @Column({ type: DataType.UUID, primaryKey: true, defaultValue: DataType.UUIDV4 })
   declare id: string;
+  @Column({
+    field: 'event_time',
+    type: DataType.DATE,
+    allowNull: false,
+    defaultValue: DataType.NOW,
+  })
+  declare eventTime: Date;
   @Column({ field: 'event_type', type: DataType.STRING(30), allowNull: false })
   declare eventType: string;
   @Column({ field: 'request_id', type: DataType.UUID, allowNull: true }) declare requestId:

@@ -7,7 +7,16 @@ import { Column, DataType, Model, Table } from 'sequelize-typescript';
   underscored: true,
 })
 export class DocumentAuditLogModel extends Model {
-  @Column({ type: DataType.BIGINT, field: 'id', allowNull: false, primaryKey: true })
+  // `autoIncrement` faltaba, y sin él Sequelize incluye `id` en el INSERT y su propia
+  // validación lo rechaza con «id cannot be null» antes de llegar a la base — donde la
+  // columna SÍ tiene su secuencia (`document_audit_log_id_seq`) y habría funcionado sola.
+  @Column({
+    type: DataType.BIGINT,
+    field: 'id',
+    allowNull: false,
+    primaryKey: true,
+    autoIncrement: true,
+  })
   declare id: number;
 
   @Column({ type: DataType.UUID, field: 'accounting_document_id', allowNull: true })

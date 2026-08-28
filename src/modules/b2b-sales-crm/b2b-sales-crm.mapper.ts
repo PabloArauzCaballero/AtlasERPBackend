@@ -34,6 +34,13 @@ export function toAccountResponse(account: B2BAccountModel): Record<string, unkn
     ownerUserId: account.ownerUserId,
     territoryId: account.territoryId,
     riskTier: account.riskTier,
+    /*
+     * La calificación vigente del motor de riesgo, que el modelo ya proyectaba sobre la cuenta
+     * «para que listar el CRM no exija un join por cuenta» y que este mapper no devolvía: la
+     * proyección existía, se mantenía al calificar, y no llegaba a ninguna pantalla.
+     */
+    riskRatingGrade: account.riskRatingGrade,
+    riskRatingUpdatedAt: account.riskRatingUpdatedAt,
     expectedMonthlyVolume: account.expectedMonthlyVolume,
     archivedAt: account.archivedAt ?? null,
     createdAt: account.createdAt,

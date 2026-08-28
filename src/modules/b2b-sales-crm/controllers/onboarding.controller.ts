@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
@@ -12,9 +12,11 @@ import type {
   SetBranchStatusDto,
   UpdateBranchDto,
   BranchIdParamsDto,
+  ListBranchesQueryDto,
 } from '../b2b-sales-crm.dtos';
 import {
   branchIdParamsSchema,
+  listBranchesQuerySchema,
   completeChecklistItemSchema,
   createBranchSchema,
   createMerchantUserSchema,
@@ -55,8 +57,13 @@ export class OnboardingController {
     return this.service.createOnboardingCase(body);
   }
 
-  @Roles('OPERATIONS', 'ADMIN')
-  /* Editar y dar de baja una sucursal. Faltaban: solo se podian crear, nunca corregir ni cerrar. */
+  /*
+   * Editar y dar de baja una sucursal. Faltaban: solo se podian crear, nunca corregir ni cerrar.
+   *
+   * Habia DOS `@Roles` seguidos aqui y el de arriba ganaba, asi que `MERCHANT_ADMIN` —que el de
+   * abajo si concedia— quedaba fuera sin que nada lo dijera: el comercio recibia 403 al corregir su
+   * propia sucursal y el codigo leia como que si podia.
+   */
   @Roles('OPERATIONS', 'ADMIN', 'MERCHANT_ADMIN')
   @Patch('branches/:branchId')
   updateBranch(
@@ -73,6 +80,15 @@ export class OnboardingController {
     @Body(new ZodValidationPipe(setBranchStatusSchema)) body: SetBranchStatusDto,
   ): Promise<Record<string, unknown>> {
     return this.service.setBranchStatus(params.branchId, body);
+  }
+
+  /** Las sucursales, para poder elegir dónde se origina una venta a plazos. */
+  @Roles('OPERATIONS', 'ADMIN', 'COMMERCIAL_EXECUTIVE', 'COMMERCIAL_MANAGER', 'FINANCE')
+  @Get('branches')
+  listBranches(
+    @Query(new ZodValidationPipe(listBranchesQuerySchema)) query: ListBranchesQueryDto,
+  ): Promise<Record<string, unknown>[]> {
+    return this.service.listBranches(query);
   }
 
   @Post('branches')

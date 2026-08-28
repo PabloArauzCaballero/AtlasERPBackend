@@ -196,6 +196,18 @@ export class PortalController {
     return this.service.getBillingPanel(scope, query.merchantAccountId);
   }
 
+  /** Una factura concreta con sus líneas: es lo que se imprime al descargarla. */
+  @Roles(...PORTAL_ROLES)
+  @Get('billing/invoices/:id')
+  async getInvoiceDocument(
+    @Param('id') id: string,
+    @Query(new ZodValidationPipe(subscriptionQuerySchema)) query: SubscriptionQueryDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    const scope = await this.service.resolveScope(user);
+    return this.service.getInvoiceDocument(scope, id, query.merchantAccountId);
+  }
+
   @Roles(...PORTAL_ROLES)
   @Get('advertisers')
   async listAdvertisers(

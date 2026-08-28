@@ -210,6 +210,31 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
     };
   }
 
+  /**
+   * Las sucursales de un comercio.
+   *
+   * Sin esto, `POST /b2b/onboarding/branches` era escritura sin lectura: la sucursal quedaba en la
+   * tabla y ninguna respuesta del ERP volvía a nombrarla. `canOriginateBnpl` es lo que decide si en
+   * esa sucursal se puede vender a plazos, así que es lo primero que hay que poder mirar.
+   */
+  async listBranches(filtro: {
+    accountId?: string | undefined;
+    status?: string | undefined;
+  }): Promise<Record<string, unknown>[]> {
+    const where: Record<string, unknown> = {};
+    if (filtro.accountId) where.accountId = filtro.accountId;
+    if (filtro.status) where.status = filtro.status;
+
+    const branches = await this.repository.branches.findAll({
+      where,
+      order: [
+        ['account_id', 'ASC'],
+        ['name', 'ASC'],
+      ],
+    });
+    return branches.map((branch) => this.describeBranch(branch));
+  }
+
   async createBranch(input: CreateBranchDto): Promise<Record<string, unknown>> {
     this.logger.infoContext(B2BOnboardingService.name, 'B2B CRM use case started', {
       useCase: 'createBranch',

@@ -8,6 +8,17 @@ import {
   OpportunityType,
   TermType,
 } from './b2b-sales-crm.enums';
+import {
+  checkAttributesAllowed,
+  definitionSchemaFor,
+} from '../../common/segmentation/rule-schema';
+import type { SegmentDefinition } from '../../common/segmentation/rule-engine';
+import {
+  ATTRIBUTES_BY_SUBJECT,
+  CRM_SEGMENT_ATTRIBUTES,
+  SEGMENT_SUBJECTS,
+  SUBJECT_LABELS,
+} from './domain/crm-segments';
 
 const uuid = z.string().uuid();
 const money = z.coerce.number().finite().min(0);
@@ -231,6 +242,24 @@ export const createProposalSchema = z.object({
   lines: z.array(proposalLineSchema).min(1),
 });
 
+/*
+ * Edicion de la cabecera de una propuesta.
+ *
+ * Las lineas NO se tocan aqui: cambiar un termino comercial despues de enviar la propuesta es
+ * pactar otra cosa distinta con el mismo numero, y eso se hace creando una propuesta nueva. Lo que
+ * se corrige es lo que se teclea mal —el numero, la vigencia, el ingreso estimado— mientras la
+ * propuesta sigue siendo un borrador.
+ */
+export const updateProposalSchema = z
+  .object({
+    proposalNumber: z.string().trim().min(3).max(80).optional(),
+    validUntil: dateOnly.nullable().optional(),
+    totalEstimatedMonthlyRevenue: money.nullable().optional(),
+  })
+  .refine((input) => Object.values(input).some((value) => value !== undefined), {
+    message: 'Debe enviar al menos un campo a modificar.',
+  });
+
 export const decideApprovalSchema = z.object({
   status: z.enum(['APPROVED', 'REJECTED']),
   reason: z.string().trim().min(3).max(1000),
@@ -450,7 +479,11 @@ export const issueInvoiceSchema = z
   .object({
     accountId: uuid,
     contractId: uuid.optional(),
-    invoiceNumber: z.string().trim().min(3).max(80),
+    /*
+     * El número de factura no viaja aquí: lo asigna el backend con su propio correlativo. Escribirlo
+     * a mano repetía series y chocaba contra el índice único con un error de base de datos que en
+     * pantalla se leía como «no se pudo emitir», sin decir por qué.
+     */
     invoiceDate: dateOnly,
     dueDate: dateOnly,
     receivableIds: z.array(uuid).min(1),
@@ -643,3 +676,58 @@ export const updateAccountTagSchema = z
   .refine((value) => Object.keys(value).length > 0, {
     message: 'Indique al menos un campo a modificar.',
   });
+
+/**
+ * Segmentos comerciales: a quién agrupa cada uno y con qué reglas.
+ *
+ * El sujeto es obligatorio y no se puede cambiar después: es lo que decide qué atributos admite la
+ * definición, y el mismo JSON contaría dos poblaciones distintas según a quién se le aplique.
+ */
+const crmSegmentDefinitionSchema = definitionSchemaFor(CRM_SEGMENT_ATTRIBUTES);
+
+/**
+ * Listado de sucursales de un comercio.
+ *
+ * Faltaba: se podían crear, corregir y dar de baja, y no LEER. Una sucursal creada desde el ERP no
+ * volvía a aparecer en ninguna respuesta —era escritura sin lectura—, y sin listado tampoco se
+ * podía elegir la sucursal donde se origina una compra a plazos.
+ */
+export const listBranchesQuerySchema = z.object({
+  accountId: uuid.optional(),
+  status: z.string().trim().min(2).max(30).optional(),
+});
+
+export const createCrmSegmentSchema = z
+  .object({
+    subject: z.enum(SEGMENT_SUBJECTS),
+    name: z.string().trim().min(3).max(140),
+    description: z.string().trim().max(500).optional(),
+    status: z.enum(['ACTIVE', 'INACTIVE']).optional(),
+    ownerUserId: uuid.optional(),
+    definition: crmSegmentDefinitionSchema,
+  })
+  .superRefine((input, context) => {
+    checkAttributesAllowed(
+      input.definition as SegmentDefinition,
+      ATTRIBUTES_BY_SUBJECT[input.subject],
+      context,
+      { label: SUBJECT_LABELS[input.subject], path: ['definition'] },
+    );
+  });
+
+export const updateCrmSegmentSchema = z
+  .object({
+    name: z.string().trim().min(3).max(140).optional(),
+    description: z.string().trim().max(500).nullable().optional(),
+    status: z.enum(['ACTIVE', 'INACTIVE']).optional(),
+    ownerUserId: uuid.nullable().optional(),
+    definition: crmSegmentDefinitionSchema.optional(),
+  })
+  .refine((value) => Object.keys(value).length > 0, {
+    message: 'Indique al menos un campo a modificar.',
+  });
+
+export const listCrmSegmentsQuerySchema = z.object({
+  subject: z.enum(SEGMENT_SUBJECTS).optional(),
+  status: z.enum(['ACTIVE', 'INACTIVE']).optional(),
+});

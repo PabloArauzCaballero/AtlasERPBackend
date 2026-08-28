@@ -22,6 +22,7 @@ import type {
   ListOpportunitiesQueryDto,
   MoveOpportunityStageDto,
   RejectProposalDto,
+  UpdateProposalDto,
 } from '../b2b-sales-crm.dtos';
 import { toOpportunityResponse, toProposalResponse } from '../b2b-sales-crm.mapper';
 import { B2BSalesCrmRepository } from '../repositories/b2b-sales-crm.repository';
@@ -342,6 +343,102 @@ export class B2BPipelineService extends B2BSalesCrmUseCaseBase {
 
     await proposal.update({ status: ProposalStatus.REJECTED, rejectedAt: new Date() });
     return toProposalResponse(proposal);
+  }
+
+  /**
+   * Correccion de la cabecera de una propuesta que todavia es un borrador.
+   *
+   * Faltaba entera: una propuesta con el numero mal tecleado o con la vigencia equivocada solo se
+   * podia arreglar creando otra, y la equivocada se quedaba en el listado para siempre porque
+   * tampoco habia forma de retirarla. Se corrige lo que se escribe, no lo que se pacta: las lineas
+   * comerciales son el acuerdo y cambiarlas bajo el mismo numero es pactar otra cosa a escondidas.
+   */
+  async updateProposal(
+    proposalId: string,
+    input: UpdateProposalDto,
+  ): Promise<Record<string, unknown>> {
+    this.logger.infoContext(B2BPipelineService.name, 'B2B CRM use case started', {
+      useCase: 'updateProposal',
+    });
+    const proposal = await this.repository.findProposalWithLines(proposalId);
+
+    if (!proposal) {
+      throw new NotFoundException('Propuesta no encontrada.');
+    }
+
+    if (
+      proposal.status !== ProposalStatus.DRAFT &&
+      proposal.status !== ProposalStatus.PENDING_APPROVAL
+    ) {
+      throw new ConflictException(
+        'Solo una propuesta en borrador o pendiente de aprobacion puede modificarse.',
+      );
+    }
+
+    if (input.proposalNumber && input.proposalNumber !== proposal.proposalNumber) {
+      const repeated = await this.repository.proposals.findOne({
+        where: { proposalNumber: input.proposalNumber, id: { [Op.ne]: proposal.id } },
+      });
+
+      if (repeated) {
+        throw new ConflictException('Ya existe otra propuesta con ese numero.');
+      }
+    }
+
+    await proposal.update({
+      ...(input.proposalNumber !== undefined ? { proposalNumber: input.proposalNumber } : {}),
+      ...(input.validUntil !== undefined ? { validUntil: input.validUntil } : {}),
+      ...(input.totalEstimatedMonthlyRevenue !== undefined
+        ? {
+            totalEstimatedMonthlyRevenue:
+              input.totalEstimatedMonthlyRevenue === null
+                ? null
+                : input.totalEstimatedMonthlyRevenue.toFixed(2),
+          }
+        : {}),
+    });
+
+    return toProposalResponse(proposal);
+  }
+
+  /**
+   * Retirada de una propuesta que nunca llego al cliente, o que ya fue rechazada.
+   *
+   * Una propuesta enviada o aceptada NO se borra: es la prueba de lo que se ofrecio y de lo que se
+   * acordo, y de la aceptada cuelga ademas el contrato. Para dejar de aplicar una propuesta viva
+   * se la rechaza, que deja rastro; borrarla lo unico que consigue es que nadie pueda reconstruir
+   * despues por que se firmo lo que se firmo.
+   */
+  async deleteProposal(proposalId: string): Promise<{ id: string; proposalNumber: string }> {
+    this.logger.infoContext(B2BPipelineService.name, 'B2B CRM use case started', {
+      useCase: 'deleteProposal',
+    });
+    return this.repository.transaction(async (transaction) => {
+      const proposal = await this.repository.proposals.findByPk(proposalId, { transaction });
+
+      if (!proposal) {
+        throw new NotFoundException('Propuesta no encontrada.');
+      }
+
+      if (
+        proposal.status !== ProposalStatus.DRAFT &&
+        proposal.status !== ProposalStatus.PENDING_APPROVAL &&
+        proposal.status !== ProposalStatus.REJECTED
+      ) {
+        throw new ConflictException(
+          'Una propuesta enviada o aceptada no se elimina: recházala para dejar constancia.',
+        );
+      }
+
+      /* Las lineas y las aprobaciones cuelgan de la propuesta por clave ajena: sin quitarlas
+         primero, el borrado lo rechaza la base con un error que no explica nada. */
+      await this.repository.approvalRequests.destroy({ where: { proposalId }, transaction });
+      await this.repository.proposalLines.destroy({ where: { proposalId }, transaction });
+      const { id, proposalNumber } = proposal;
+      await proposal.destroy({ transaction });
+
+      return { id, proposalNumber };
+    });
   }
 
   async decideApproval(

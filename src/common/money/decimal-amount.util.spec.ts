@@ -1,10 +1,7 @@
 import {
   InvalidDecimalAmountError,
   fromMinorUnits,
-  isPositiveAmount,
   normalizeAmount,
-  sumAmounts,
-  sumMinorUnits,
   toMinorUnits,
 } from './decimal-amount.util';
 
@@ -58,35 +55,11 @@ describe('decimal-amount.util', () => {
     });
   });
 
-  describe('sumAmounts', () => {
-    it('suma sin el error de coma flotante que tenía el panel de facturación', () => {
-      // 0.1 + 0.2 en `number` da 0.30000000000000004.
-      expect(sumAmounts(['0.10', '0.20'])).toBe('0.30');
-    });
-
-    it('acumula exactamente listas largas de importes', () => {
-      const rows = Array.from({ length: 1000 }, () => '0.07');
-      expect(sumAmounts(rows)).toBe('70.00');
-      expect(sumMinorUnits(rows)).toBe(7000n);
-    });
-
-    it('mezcla nulos, números y cadenas', () => {
-      expect(sumAmounts(['100.55', null, 20.4, undefined, '-0.55'])).toBe('120.40');
-    });
-  });
-
-  describe('normalizeAmount / isPositiveAmount', () => {
+  describe('normalizeAmount', () => {
     it('canoniza la representación del importe', () => {
       expect(normalizeAmount('7')).toBe('7.00');
       expect(normalizeAmount(null)).toBe('0.00');
       expect(normalizeAmount('0000.5')).toBe('0.50');
-    });
-
-    it('detecta importes estrictamente positivos', () => {
-      expect(isPositiveAmount('0.01')).toBe(true);
-      expect(isPositiveAmount('0.00')).toBe(false);
-      expect(isPositiveAmount('-1.00')).toBe(false);
-      expect(isPositiveAmount(null)).toBe(false);
     });
   });
 });

@@ -5,7 +5,6 @@ import {
   normalizeScale,
   provisionCentsFor,
   rateReceivable,
-  worstBand,
   type RatingBand,
 } from './rating-scale';
 
@@ -168,13 +167,6 @@ describe('rateReceivable', () => {
     expect(rating.reason).toBe('DISPUTED');
     expect(rating.exposureCents).toBe(300_000);
     expect(rating.band.grade).toBe('C');
-  });
-});
-
-describe('worstBand', () => {
-  it('es la de mayor severidad, no la última del array', () => {
-    const shuffled = [ASFI[3], ASFI[0], ASFI[5], ASFI[1], ASFI[4], ASFI[2]] as RatingBand[];
-    expect(worstBand(shuffled).grade).toBe('F');
   });
 });
 

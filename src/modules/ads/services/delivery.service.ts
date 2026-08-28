@@ -17,6 +17,7 @@ import { AdsAuditService } from './audit.service';
 import { BusinessActionLogsService } from '../../business-action-logs/business-action-logs.service';
 import { serializeModel, serializePaginated } from '../ads.mappers';
 import { audienceMatchesSegment, type EvaluableSegment } from '../ads.segmentation';
+import { projectMerchantAudience } from '../ads.audience-projection';
 import type { ActorContext } from '../ads.types';
 import type {
   DeliveryMonitorQueryDto,
@@ -61,6 +62,20 @@ export class AdsDeliveryService {
       return { adAvailable: false, reason: 'NO_ELIGIBLE_AD' };
     }
 
+    /*
+     * Contra QUÉ se evalúan los segmentos.
+     *
+     * Lo que la plataforma sabe del comercio pisa lo que el llamante declara. La proyección existía
+     * escrita y probada desde el principio y no la llamaba nadie: la segmentación se resolvía
+     * enteramente contra `input.audience`, es decir contra una afirmación del integrador, que podía
+     * declarar el rubro que le conviniera y entrar en los segmentos de ese rubro.
+     *
+     * Sólo se puede derivar si la petición dice de qué comercio habla. Cuando no lo dice —o dice
+     * uno que no existe o está archivado— se sigue evaluando lo declarado, que es exactamente el
+     * comportamiento anterior: esto añade una garantía, no un requisito nuevo.
+     */
+    const audience = await this.resolveAudience(input);
+
     // La segmentación se aplica DESPUÉS de los filtros duros (estado, fechas, presupuesto, tope de
     // frecuencia) y sobre los candidatos que ya trajo la consulta. Se evalúa aquí y no en SQL
     // porque la gramática de reglas —operadores, listas, rangos— traducida a SQL sería un
@@ -68,7 +83,7 @@ export class AdsDeliveryService {
     const targeted = eligibleAds.filter((ad) =>
       audienceMatchesSegment(
         (ad.adSet?.targetSegment as EvaluableSegment | undefined) ?? null,
-        input.audience,
+        audience,
       ),
     );
     // Se distingue de `NO_ELIGIBLE_AD` a propósito: «no había anuncios» y «los había y ninguno
@@ -108,7 +123,11 @@ export class AdsDeliveryService {
       winner.adSet.campaign.advertiserId,
     );
     const contractedMicros =
-      buyingModel === 'CPM' ? (tariff?.cpmMicros ?? 0) : buyingModel === 'CPC' ? (tariff?.cpcMicros ?? 0) : 0;
+      buyingModel === 'CPM'
+        ? (tariff?.cpmMicros ?? 0)
+        : buyingModel === 'CPC'
+          ? (tariff?.cpcMicros ?? 0)
+          : 0;
     const floorMicros = Number(placement.pricingFloorCpmMicros);
     if (buyingModel === 'CPM' && contractedMicros > 0 && contractedMicros < floorMicros) {
       this.logger.warn(
@@ -261,9 +280,32 @@ export class AdsDeliveryService {
       ? { ...input.metadata, billingSkippedReason }
       : input.metadata;
 
+    // El momento del evento es el que declara quien lo sirvió, no el de su llegada.
+    //
+    // El contrato acepta `eventTime` desde siempre y hasta ahora lo descartaba en silencio: la fila
+    // se escribía con el `now()` por defecto de la base. Con eventos de uno en uno la diferencia es
+    // de milisegundos, pero `POST /ads/events/bulk` existe justamente para enviar tráfico en lote:
+    // un envío nocturno con la jornada entera aterrizaba TODO en la fecha de ingesta, y como
+    // `ad_daily_metrics` se agrega por `event_time::date`, el informe por día del anunciante
+    // mostraba una sola barra con todo el mes dentro. El detalle y el agregado coincidían entre sí
+    // y los dos estaban mal.
+    //
+    // Un evento futuro sí se rechaza: adelantarlo mueve el gasto a un periodo que todavía no se ha
+    // cerrado y es la forma barata de alterar una factura. Cinco minutos de margen para el desfase
+    // de reloj de quien integra.
+    const ahora = new Date();
+    const eventTime = input.eventTime ? new Date(input.eventTime) : ahora;
+    if (eventTime.getTime() > ahora.getTime() + 5 * 60 * 1000) {
+      throw new ConflictException({
+        code: 'EVENT_TIME_IN_FUTURE',
+        message: 'El momento del evento no puede estar en el futuro.',
+      });
+    }
+
     const event = await this.eventsRepository.createEvent(
       {
         eventType: input.eventType,
+        eventTime,
         requestId: idempotencyRequestId,
         deliveryDecisionId: decision.id,
         advertiserId: decision.advertiserId,
@@ -310,8 +352,7 @@ export class AdsDeliveryService {
         placementId: decision.placementId,
         costMicros,
         isBillable,
-        eventTime:
-          event.get('eventTime') instanceof Date ? (event.get('eventTime') as Date) : new Date(),
+        eventTime,
       },
       transaction,
     );
@@ -420,6 +461,21 @@ export class AdsDeliveryService {
       },
       transaction,
     );
+  }
+
+  /** Los atributos de segmentación: los derivados de la cuenta encima de los declarados. */
+  private async resolveAudience(input: DeliveryRequestDto) {
+    if (!input.merchantAccountId) return input.audience;
+
+    const facts = await this.deliveryRepository.findMerchantFacts(input.merchantAccountId);
+    if (!facts) {
+      this.logger.warn(
+        { merchantAccountId: input.merchantAccountId },
+        'Delivery request names a merchant account that does not exist or is archived; falling back to declared audience',
+      );
+      return input.audience;
+    }
+    return projectMerchantAudience({ facts, ...(input.audience ? { declared: input.audience } : {}) });
   }
 
   private pickWinner(ads: AdModel[]): AdModel | null {

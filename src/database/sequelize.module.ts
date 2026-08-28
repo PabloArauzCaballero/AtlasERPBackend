@@ -5,12 +5,22 @@ import { resolveSequelizeSslOptions } from '../config/db-ssl';
 import { createContextLogger } from '../common/logging/root-pino-logger';
 import { accountingModels, businessAuditModels, filesModels } from './models';
 import { atlasSalesModels } from '../modules/b2b-sales-crm/models/b2b-sales-crm.models';
+import { crmSegmentModels } from '../modules/b2b-sales-crm/models/crm-segment.model';
+import { creditRatingModels } from '../modules/b2b-sales-crm/models/credit-rating.models';
 import { adsModels } from '../modules/ads/models';
 import { DatabaseSeederService } from './database-seeder.service';
 
 const sequelizeLogger = createContextLogger('Sequelize');
 const integratedModels = [
   ...atlasSalesModels,
+  /* Registrar el modelo en su módulo NO basta: `forFeature` inyecta, pero un modelo que no está
+   * en esta lista nunca se ata a la conexión y falla en la primera consulta con «Model not
+   * initialized», que se lee como un problema de la tabla y no del arranque. Es lo que tenía
+   * apagado el motor de calificación de riesgo: sus cuatro modelos estaban en el módulo y no
+   * aquí, así que los cinco endpoints de `/b2b/credit-rating` respondían 500 en la primera
+   * consulta —no 404—, y el fallo parecía de la tabla. */
+  ...crmSegmentModels,
+  ...creditRatingModels,
   ...accountingModels,
   ...businessAuditModels,
   ...adsModels,

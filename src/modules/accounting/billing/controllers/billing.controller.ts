@@ -30,6 +30,12 @@ export class BillingController {
     return this.service.listInvoices(user);
   }
 
+  /** Detalle con líneas y partes: lo que se imprime al descargar la factura. */
+  @Get('ar-invoices/:id')
+  getInvoice(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    return this.service.getInvoice(id, user);
+  }
+
   @Patch('ar-invoices/:id')
   updateInvoice(
     @Param('id') id: string,
@@ -69,7 +75,6 @@ export class BillingController {
       layer: 'controller',
       module: 'billing',
       action: 'issueInvoice',
-      invoiceNo: body.invoiceNo,
       legalEntityId: body.legalEntityId,
       userId: user.sub,
     });

@@ -349,7 +349,14 @@ export const issueArInvoiceSchema = z.object({
   legalEntityId: uuid,
   customerBpId: uuid,
   contractId: uuid.optional(),
-  invoiceNo: z.string().min(1).max(40),
+  /*
+   * El número NO viaja en la petición: lo asigna el backend al emitir.
+   *
+   * Un correlativo fiscal que teclea quien factura se repite, se salta números o se inventa una
+   * serie nueva sin que nadie lo note hasta la revisión. La pantalla ya no lo pide y aquí se
+   * rechaza si alguien lo manda de todos modos, para que no queden dos verdades sobre quién
+   * numera.
+   */
   invoiceDate: dateLike,
   dueDate: dateLike,
   currencyCode: currency,

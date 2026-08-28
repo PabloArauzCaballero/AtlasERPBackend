@@ -1,3 +1,13 @@
+import {
+  matchesDefinition,
+  type AttributeVocabulary,
+  type FactContext,
+  type SegmentDefinition as GenericSegmentDefinition,
+  type SegmentRule as GenericSegmentRule,
+} from '../../common/segmentation/rule-engine';
+
+export { SEGMENT_OPERATORS, type SegmentOperator } from '../../common/segmentation/rule-engine';
+
 /**
  * Gramática de segmentación publicitaria: qué puede mirar un segmento y cómo se evalúa.
  *
@@ -9,6 +19,9 @@
  * segmentación no estuviera aplicándose.
  *
  * Este archivo cierra las dos mitades del agujero: define el vocabulario admisible y lo evalúa.
+ * La evaluación en sí —los operadores y cómo se comparan los valores— vive en
+ * `common/segmentation`, compartida con la segmentación comercial de CRM: son dos catálogos
+ * distintos sobre el MISMO motor, y no dos motores que se parecen.
  *
  * ## Por qué una lista CERRADA de atributos
  *
@@ -36,20 +49,11 @@ export const AUDIENCE_ATTRIBUTES = {
   surface: 'TEXT',
   tenureMonths: 'NUMBER',
   corporateClientHash: 'HASH',
-} as const;
+} as const satisfies AttributeVocabulary;
 
 export type AudienceAttribute = keyof typeof AUDIENCE_ATTRIBUTES;
-export type AudienceContext = Partial<Record<AudienceAttribute, string | number>>;
-
-export const SEGMENT_OPERATORS = [
-  'EQUALS',
-  'NOT_EQUALS',
-  'IN',
-  'NOT_IN',
-  'BETWEEN',
-  'EXISTS',
-] as const;
-export type SegmentOperator = (typeof SEGMENT_OPERATORS)[number];
+export type AudienceContext = FactContext<AudienceAttribute> &
+  Partial<Record<AudienceAttribute, string | number>>;
 
 export const SEGMENT_TYPES = [
   'CORPORATE_CONTEXTUAL',
@@ -89,16 +93,8 @@ export const ATTRIBUTES_BY_SEGMENT_TYPE: Record<SegmentType, readonly AudienceAt
   LOOKUP_STATIC: ['merchantCategory', 'city', 'region', 'country', 'surface'],
 };
 
-export interface SegmentRule {
-  attribute: AudienceAttribute;
-  operator: SegmentOperator;
-  value?: string | number | Array<string | number> | undefined;
-}
-
-export interface SegmentDefinition {
-  match: 'ALL' | 'ANY';
-  rules: SegmentRule[];
-}
+export type SegmentRule = GenericSegmentRule<AudienceAttribute>;
+export type SegmentDefinition = GenericSegmentDefinition<AudienceAttribute>;
 
 export interface EvaluableSegment {
   segmentType: SegmentType;
@@ -125,7 +121,7 @@ export function requiredPrivacyLevel(definition: SegmentDefinition): SegmentPriv
  * restricción, no una restricción vacía.
  *
  * Las reglas se evalúan a la defensiva: **un atributo que la petición no manda NO cumple la
- * regla**. Es la decisión que más consecuencias tiene de todo el archivo. Al revés —dar por
+ * regla**. Es la decisión que más consecuencias tiene de toda la segmentación. Al revés —dar por
  * cumplida la regla que no se puede comprobar— un ad server que dejara de enviar el contexto
  * seguiría entregando, y una campaña restringida a farmacias de Santa Cruz pasaría a servirse a
  * todo el país sin que nada fallara ni apareciera en ningún tablero. Fallando cerrado, el síntoma
@@ -135,64 +131,5 @@ export function audienceMatchesSegment(
   segment: EvaluableSegment | null | undefined,
   audience: AudienceContext | undefined,
 ): boolean {
-  if (!segment) return true;
-  const { match, rules } = segment.definitionJson;
-  if (rules.length === 0) return true;
-
-  const context = audience ?? {};
-  const results = rules.map((rule) => evaluateRule(rule, context));
-  return match === 'ANY' ? results.some(Boolean) : results.every(Boolean);
-}
-
-function evaluateRule(rule: SegmentRule, audience: AudienceContext): boolean {
-  const actual = audience[rule.attribute];
-  if (rule.operator === 'EXISTS') return actual !== undefined && actual !== null && actual !== '';
-  if (actual === undefined || actual === null || actual === '') return false;
-
-  switch (rule.operator) {
-    case 'EQUALS':
-      return sameValue(actual, rule.value);
-    case 'NOT_EQUALS':
-      return !sameValue(actual, rule.value);
-    case 'IN':
-      return toList(rule.value).some((candidate) => sameValue(actual, candidate));
-    case 'NOT_IN':
-      return !toList(rule.value).some((candidate) => sameValue(actual, candidate));
-    case 'BETWEEN':
-      return isBetween(actual, rule.value);
-    default:
-      return false;
-  }
-}
-
-/**
- * Comparación de texto insensible a mayúsculas y a espacios de los extremos.
- *
- * «FARMACIA», «Farmacia» y « farmacia » son el mismo rubro para cualquiera que lea la pantalla, y
- * una comparación exacta convierte una diferencia de tecleo en una campaña que no entrega y que
- * nadie sabe por qué. Los números se comparan como números: `'10'` y `10` son el mismo valor.
- */
-function sameValue(actual: string | number, expected: unknown): boolean {
-  if (typeof actual === 'number' || typeof expected === 'number') {
-    return Number(actual) === Number(expected);
-  }
-  return normalize(String(actual)) === normalize(String(expected));
-}
-
-function normalize(value: string): string {
-  return value.trim().toLowerCase();
-}
-
-function toList(value: unknown): Array<string | number> {
-  return Array.isArray(value) ? (value as Array<string | number>) : [];
-}
-
-function isBetween(actual: string | number, value: unknown): boolean {
-  const bounds = toList(value);
-  if (bounds.length !== 2) return false;
-  const min = Number(bounds[0]);
-  const max = Number(bounds[1]);
-  const numeric = Number(actual);
-  if (!Number.isFinite(numeric) || !Number.isFinite(min) || !Number.isFinite(max)) return false;
-  return numeric >= min && numeric <= max;
+  return matchesDefinition(segment?.definitionJson, audience);
 }

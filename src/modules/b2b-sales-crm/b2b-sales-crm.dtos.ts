@@ -4,6 +4,10 @@ import type {
   applyRecoveryPaymentSchema,
   createAccountTagSchema,
   updateAccountTagSchema,
+  createCrmSegmentSchema,
+  updateCrmSegmentSchema,
+  listCrmSegmentsQuerySchema,
+  listBranchesQuerySchema,
   createActivitySchema,
   updateActivitySchema,
   listActivitiesQuerySchema,
@@ -46,6 +50,7 @@ import type {
   runReconciliationSchema,
   scheduleCoverageSchema,
   signContractSchema,
+  updateProposalSchema,
 } from './b2b-sales-crm.schemas';
 
 export type IdParamsDto = z.infer<typeof idParamsSchema>;
@@ -64,6 +69,7 @@ export type CreateOpportunityDto = z.infer<typeof createOpportunitySchema>;
 export type ListOpportunitiesQueryDto = z.infer<typeof listOpportunitiesQuerySchema>;
 export type MoveOpportunityStageDto = z.infer<typeof moveOpportunityStageSchema>;
 export type CreateProposalDto = z.infer<typeof createProposalSchema>;
+export type UpdateProposalDto = z.infer<typeof updateProposalSchema>;
 export type DecideApprovalDto = z.infer<typeof decideApprovalSchema>;
 export type RejectProposalDto = z.infer<typeof rejectProposalSchema>;
 export type CreateContractFromProposalDto = z.infer<typeof createContractFromProposalSchema>;
@@ -94,3 +100,7 @@ export type RatingHistoryQueryDto = z.infer<typeof ratingHistoryQuerySchema>;
 export type RatingSweepDto = z.infer<typeof ratingSweepSchema>;
 export type CreateAccountTagDto = z.infer<typeof createAccountTagSchema>;
 export type UpdateAccountTagDto = z.infer<typeof updateAccountTagSchema>;
+export type CreateCrmSegmentDto = z.infer<typeof createCrmSegmentSchema>;
+export type UpdateCrmSegmentDto = z.infer<typeof updateCrmSegmentSchema>;
+export type ListCrmSegmentsQueryDto = z.infer<typeof listCrmSegmentsQuerySchema>;
+export type ListBranchesQueryDto = z.infer<typeof listBranchesQuerySchema>;

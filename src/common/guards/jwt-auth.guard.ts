@@ -17,6 +17,12 @@ interface JwtPayload {
   tokenType?: string;
 }
 
+/** Si la peticion trae credencial, se la respeta: el bypass local es para las que no la traen. */
+function hasAuthorizationHeader(header: string | string[] | undefined): boolean {
+  const value = Array.isArray(header) ? header[0] : header;
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
   private readonly accessJwtService = new JwtService({ secret: env.JWT_ACCESS_SECRET });
@@ -43,7 +49,25 @@ export class JwtAuthGuard implements CanActivate {
       return true;
     }
 
-    if (env.AUTH_DISABLED_FOR_LOCAL_TESTING) {
+    /*
+     * El bypass local cubre las peticiones SIN token, nunca las que traen uno.
+     *
+     * Es lo que siempre dijo `docker-compose.authoff.yml` —«esto solo cubre las peticiones sin
+     * token; el login real sigue funcionando»— pero no lo que hacia el codigo: se fabricaba un
+     * ADMIN antes de mirar la cabecera, asi que la sesion que el navegador acababa de abrir se
+     * descartaba en cada peticion.
+     *
+     * El sintoma vivia en el portal del comercio. Un comercio entraba con su usuario, el backend
+     * lo veia como staff interno —ADMIN esta en `PORTAL_INTERNAL_ROLES`— y `GET /portal/scope`
+     * respondia «hay que elegir sobre que comercio operar», asi que Planes, Facturacion, Campanas
+     * y Sucursales le pintaban un desplegable con TODOS los comercios de la plataforma. El
+     * comercio no elige comercio: es el que esta logueado.
+     *
+     * Un token presente pero invalido o caducado se rechaza como en cualquier otro entorno: en
+     * dev eso devuelve al login, que es exactamente lo que hay que hacer, y no volver a
+     * convertir en ADMIN a quien traia una sesion.
+     */
+    if (env.AUTH_DISABLED_FOR_LOCAL_TESTING && !hasAuthorizationHeader(request.headers.authorization)) {
       request.user = this.buildLocalTestingUser();
       this.logger.warnContext(JwtAuthGuard.name, 'JWT guard bypassed by local testing env flag', {
         path: request.url,

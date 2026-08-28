@@ -16,6 +16,13 @@ const REFERENCE_SEEDS = [
   // Los tres productos que Atlas factura. Es dato maestro, no fixture: sin el, la factura del
   // partner vuelve a ser texto libre, asi que tambien se siembra en produccion.
   'src/database/seeders/20260826221000-seed-billing-products.sql',
+  // Matriz de calificacion de cartera A-F. Existia en disco desde agosto y no la ejecutaba nadie:
+  // no estaba en esta lista ni tenia guion de npm, asi que `rating_policy_versions` y
+  // `rating_policy_bands` estaban vacias en toda base creada desde entonces. La consecuencia no es
+  // cosmetica: sin politica activa el calificador devuelve `RATING_POLICY_NOT_ACTIVE` y ninguna
+  // cuenta llega a calificarse, de modo que la pantalla de riesgo no tenia nada que mostrar. Va en
+  // las de referencia y no en las de desarrollo porque en produccion hace la misma falta.
+  'src/database/seeders/20260816091000-seed-asfi-rating-policy.sql',
 ];
 const DEVELOPMENT_SEEDS = [
   'src/database/seeders/20260708191000-seed-atlas-b2b-sales-crm.sql',

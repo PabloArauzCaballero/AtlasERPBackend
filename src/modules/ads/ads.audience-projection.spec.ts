@@ -4,6 +4,7 @@ import {
   projectMerchantAudience,
   tenureMonths,
 } from './ads.audience-projection';
+import { deliveryRequestSchema } from './ads.schemas';
 
 /**
  * De dónde salen los atributos de un segmento.
@@ -129,6 +130,27 @@ describe('proyección de audiencia del comercio', () => {
     it('sin fecha de alta no hay antigüedad', () => {
       expect(tenureMonths(null, NOW)).toBeUndefined();
     });
+  });
+
+  it('la petición de entrega admite el comercio del que derivar', () => {
+    /*
+     * La proyección estuvo escrita y probada desde el principio sin que nadie la llamara: la
+     * entrega segmentaba contra lo que el integrador declaraba. Este campo es el que permite
+     * derivar, y por eso su presencia se fija aquí y no sólo en el esquema.
+     */
+    const conComercio = deliveryRequestSchema.safeParse({
+      placementCode: 'MERCHANT_DASHBOARD_TOP_BANNER',
+      merchantAccountId: '11111111-1111-4111-8111-111111111111',
+      audience: { merchantCategory: 'FARMACIA' },
+    });
+    expect(conComercio.success).toBe(true);
+
+    // Sigue siendo opcional: quien ya integraba no se rompe, sólo no obtiene la garantía.
+    const sinComercio = deliveryRequestSchema.safeParse({
+      placementCode: 'MERCHANT_DASHBOARD_TOP_BANNER',
+      audience: { merchantCategory: 'FARMACIA' },
+    });
+    expect(sinComercio.success).toBe(true);
   });
 
   it('declara qué atributos deja de decidir el llamante', () => {

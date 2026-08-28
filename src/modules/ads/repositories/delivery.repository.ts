@@ -12,6 +12,7 @@ import {
   DeliveryDecisionModel,
   InventoryPlacementModel,
 } from '../models';
+import type { StoredMerchantFacts } from '../ads.audience-projection';
 
 interface EligibleAdIdRow {
   id: string;
@@ -23,6 +24,16 @@ interface ContractedTariffRow {
   cpmMicros: string;
   cpcMicros: string;
   currency: string;
+}
+
+interface MerchantFactsRow {
+  category: string | null;
+  businessLine: string | null;
+  city: string | null;
+  countryCode: string | null;
+  employeeCount: number | null;
+  foundedYear: number | null;
+  createdAt: Date | null;
 }
 
 /** Tarifa vigente del comercio dueño del anunciante, en micros. */
@@ -142,6 +153,40 @@ export class DeliveryRepository {
    * suscripción activa: en ese caso el cobro sigue siendo el de siempre (puja contra precio suelo),
    * porque un anunciante sin plan no tiene tarifa que aplicar.
    */
+  /**
+   * Lo que la plataforma ya sabe del comercio y sirve para segmentar.
+   *
+   * Nada de esto es dato personal: es el negocio de la cuenta B2B —rubro, ciudad, país, tamaño y
+   * alta—, que es de donde deben salir los atributos del segmento en vez de la declaración del
+   * llamante. La cuenta archivada no cuenta: no se le entregan anuncios a quien ya no opera.
+   */
+  async findMerchantFacts(merchantAccountId: string): Promise<StoredMerchantFacts | null> {
+    const [row] = await this.deliveryDecisionModel.sequelize!.query<MerchantFactsRow>(
+      `SELECT account.category AS "category",
+              account.business_line AS "businessLine",
+              account.city AS "city",
+              account.country_code AS "countryCode",
+              account.employee_count AS "employeeCount",
+              account.founded_year AS "foundedYear",
+              account.created_at AS "createdAt"
+       FROM atlas_sales.b2b_accounts account
+       WHERE account.id = :merchantAccountId
+         AND account.archived_at IS NULL
+       LIMIT 1`,
+      { type: QueryTypes.SELECT, replacements: { merchantAccountId } },
+    );
+    if (!row) return null;
+    return {
+      category: row.category,
+      businessLine: row.businessLine,
+      city: row.city,
+      countryCode: row.countryCode,
+      employeeCount: row.employeeCount === null ? null : Number(row.employeeCount),
+      foundedYear: row.foundedYear === null ? null : Number(row.foundedYear),
+      createdAt: row.createdAt ? new Date(row.createdAt) : null,
+    };
+  }
+
   async findContractedTariff(advertiserId: string): Promise<ContractedTariff | null> {
     const [row] = await this.deliveryDecisionModel.sequelize!.query<ContractedTariffRow>(
       `SELECT plan.id AS "planId",

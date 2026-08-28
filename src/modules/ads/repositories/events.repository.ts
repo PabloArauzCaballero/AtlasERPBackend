@@ -237,7 +237,9 @@ export class EventsRepository {
          COUNT(*) FILTER (WHERE event_type = 'IMPRESSION')::text AS impressions,
          COUNT(*) FILTER (WHERE event_type = 'CLICK')::text AS clicks,
          COUNT(*) FILTER (WHERE event_type = 'CONVERSION')::text AS conversions,
-         COUNT(*) FILTER (WHERE is_billable = false OR fraud_score >= 0.8)::text AS "invalidEvents"
+         -- Igual que en el tablero: inválido es sospechoso, no «no facturable». Un clic bajo un
+         -- conjunto CPM no se cobra, y no por eso es fraude.
+         COUNT(*) FILTER (WHERE fraud_score >= 0.8)::text AS "invalidEvents"
        FROM ad_events
        WHERE (:placementId IS NULL OR placement_id = :placementId)
          AND (:fromDate IS NULL OR event_time >= :fromDate)

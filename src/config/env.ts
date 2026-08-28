@@ -133,6 +133,19 @@ const envSchema = z
       .regex(/^[a-z][a-z0-9-]{2,40}$/)
       .default('x-pdf-service-key'),
     PDF_WORKER_TIMEOUT_MS: z.coerce.number().int().positive().default(60000),
+    /**
+     * Identidad visual con la que el worker firma los documentos de ESTE producto.
+     *
+     * Sin ella el generador usa su marca por defecto, que es la del motor de decisión: las
+     * facturas salían encabezadas «ATLAS Decision Engine». La marca `atlas-erp` la trae
+     * registrada todo despliegue del worker (`brand-catalog.ts`); si se apunta a una que no
+     * existe, el worker responde con un error de marca inválida en vez de imprimir otra.
+     */
+    PDF_WORKER_BRAND_ID: z
+      .string()
+      .trim()
+      .regex(/^[a-z][a-z0-9-]{1,40}$/)
+      .default('atlas-erp'),
 
     AUTH_DISABLED_FOR_LOCAL_TESTING: z
       .enum(['true', 'false'])

@@ -8,6 +8,7 @@ import {
 import { Op, Transaction } from 'sequelize';
 import { env } from '../../../config/env';
 import { PinoLoggerService } from '../../../common/logging/pino-logger.service';
+import { nextDocumentNumber } from '../../../common/numbering/document-numbering';
 import {
   AccountLifecycleStatus,
   BranchStatus,
@@ -200,11 +201,26 @@ export class B2BBnplBillingService extends B2BSalesCrmUseCaseBase {
       const tax = this.roundMoney((subtotal * env.DEFAULT_TAX_RATE_PERCENT) / 100);
       const total = this.roundMoney(subtotal + tax);
 
+      /*
+       * La serie de facturas de comercio es única en toda la instalación —así la declara el índice
+       * de `merchant_invoices`—, así que no lleva ámbito: un solo correlativo por año.
+       */
+      const invoiceNumber = await nextDocumentNumber(
+        this.repository.sequelize,
+        {
+          prefix: 'FAC-CM',
+          table: 'atlas_sales.merchant_invoices',
+          column: 'invoice_number',
+          date: input.invoiceDate,
+        },
+        transaction,
+      );
+
       const invoice = await this.repository.invoices.create(
         {
           accountId: input.accountId,
           contractId: input.contractId ?? null,
-          invoiceNumber: input.invoiceNumber,
+          invoiceNumber,
           invoiceDate: input.invoiceDate,
           dueDate: input.dueDate,
           subtotalAmount: subtotal.toFixed(2),

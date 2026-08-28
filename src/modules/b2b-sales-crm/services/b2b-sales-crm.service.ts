@@ -29,6 +29,7 @@ import type {
   RunReconciliationDto,
   ScheduleCoverageDto,
   SignContractDto,
+  UpdateProposalDto,
 } from '../b2b-sales-crm.dtos';
 import { B2BAccountsService } from './b2b-accounts.service';
 import { B2BBnplBillingService } from './b2b-bnpl-billing.service';
@@ -108,6 +109,14 @@ export class B2BSalesCrmService {
     return this.pipelineService.createProposal(input, user);
   }
 
+  updateProposal(proposalId: string, input: UpdateProposalDto): Promise<Record<string, unknown>> {
+    return this.pipelineService.updateProposal(proposalId, input);
+  }
+
+  deleteProposal(proposalId: string): Promise<{ id: string; proposalNumber: string }> {
+    return this.pipelineService.deleteProposal(proposalId);
+  }
+
   sendProposal(proposalId: string): Promise<Record<string, unknown>> {
     return this.pipelineService.sendProposal(proposalId);
   }
@@ -153,6 +162,10 @@ export class B2BSalesCrmService {
     return this.reconciliationService.listMerchantInvoices();
   }
 
+  getMerchantInvoice(id: string): Promise<Record<string, unknown>> {
+    return this.reconciliationService.getMerchantInvoice(id);
+  }
+
   listPayables(): Promise<Record<string, unknown>[]> {
     return this.reconciliationService.listPayables();
   }
@@ -195,6 +208,10 @@ export class B2BSalesCrmService {
 
   createOnboardingCase(input: CreateOnboardingCaseDto): Promise<Record<string, unknown>> {
     return this.onboardingService.createOnboardingCase(input);
+  }
+
+  listBranches(filtro: { accountId?: string | undefined; status?: string | undefined }): Promise<Record<string, unknown>[]> {
+    return this.onboardingService.listBranches(filtro);
   }
 
   createBranch(input: CreateBranchDto): Promise<Record<string, unknown>> {

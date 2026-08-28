@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { Op, Transaction, WhereOptions } from 'sequelize';
 import { PinoLoggerService } from '../../../common/logging/pino-logger.service';
 import type { AuthUser } from '../../../common/types/auth-context.types';
@@ -10,7 +10,8 @@ import {
   TermType,
 } from '../b2b-sales-crm.enums';
 import type { RunReconciliationDto } from '../b2b-sales-crm.dtos';
-import { toReconciliationRunResponse } from '../b2b-sales-crm.mapper';
+import { toInvoiceResponse, toReconciliationRunResponse } from '../b2b-sales-crm.mapper';
+import { MerchantInvoiceLineModel } from '../models/b2b-sales-crm.models';
 import { B2BSalesCrmRepository } from '../repositories/b2b-sales-crm.repository';
 import { B2BSalesCrmUseCaseBase } from './b2b-sales-crm-use-case.base';
 
@@ -97,19 +98,54 @@ export class B2BReconciliationService extends B2BSalesCrmUseCaseBase {
       invoiceNumber: row.invoiceNumber,
       accountId: row.accountId,
       invoiceDate: row.invoiceDate,
+      dueDate: row.dueDate,
       totalAmount: row.totalAmount,
       status: row.status,
+      // La pantalla lo usa para no ofrecer «postear al mayor» sobre una factura ya contabilizada.
+      accountingDocumentId: row.accountingDocumentId,
     }));
+  }
+
+  /**
+   * Una factura de comercio con todo lo que hay que imprimir en ella.
+   *
+   * El listado devuelve cinco campos —lo que cabe en una tabla—, y con eso no se puede emitir el
+   * documento: la factura necesita sus líneas, su vencimiento, sus impuestos y a quién se le emite.
+   * Antes eso no existía en ninguna parte, y por eso la factura no se podía descargar.
+   */
+  async getMerchantInvoice(id: string): Promise<Record<string, unknown>> {
+    const invoice = await this.repository.invoices.findByPk(id, {
+      include: [{ model: MerchantInvoiceLineModel }],
+    });
+    if (!invoice) throw new NotFoundException('La factura no existe.');
+    const account = await this.repository.accounts.findByPk(invoice.accountId);
+    return {
+      ...toInvoiceResponse(invoice),
+      account: account
+        ? {
+            id: account.id,
+            legalName: account.legalName,
+            tradeName: account.tradeName,
+            taxId: account.taxId,
+            city: account.city,
+            address: account.address,
+          }
+        : null,
+    };
   }
 
   async listPayables(): Promise<Record<string, unknown>[]> {
     const rows = await this.repository.payables.findAll({ order: [['id', 'DESC']], limit: 200 });
+    /* `reason` y `paidAt` faltaban y la tabla los pintaba vacíos: son dos de sus cinco columnas. */
     return rows.map((row) => ({
       id: row.id,
       accountId: row.accountId,
+      installmentId: row.installmentId,
       amount: row.amount,
       status: row.status,
+      reason: row.reason,
       scheduledPaymentDate: row.scheduledPaymentDate,
+      paidAt: row.paidAt,
     }));
   }
 

@@ -1,4 +1,4 @@
-import { Column, DataType, Model, Table } from 'sequelize-typescript';
+import { Column, DataType, Default, Model, Table } from 'sequelize-typescript';
 
 /**
  * Cómo se le paga a un proveedor, como dato y no como nota.
@@ -89,9 +89,17 @@ export class SupplierPaymentTermsModel extends Model {
   @Column({ type: DataType.UUID, field: 'created_by', allowNull: true })
   declare createdBy: string | null;
 
+  /*
+   * Con `@Default`: un `allowNull: false` sin valor por defecto EN EL MODELO anula el `DEFAULT
+   * now()` de la tabla, y el alta falla siempre con «createdAtValue cannot be null». No se había
+   * visto porque hasta ahora nada escribía en esta tabla: el modelo existía sin servicio que lo
+   * usara, y el fallo esperaba al primer alta real.
+   */
+  @Default(DataType.NOW)
   @Column({ type: DataType.DATE, field: 'created_at', allowNull: false })
   declare createdAtValue: Date;
 
+  @Default(DataType.NOW)
   @Column({ type: DataType.DATE, field: 'updated_at', allowNull: false })
   declare updatedAtValue: Date;
 }

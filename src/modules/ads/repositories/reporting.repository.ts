@@ -57,6 +57,17 @@ export class ReportingRepository {
     this.logger.setContext(ReportingRepository.name);
   }
 
+  /**
+   * Los seis indicadores del tablero publicitario.
+   *
+   * `invalidEvents` contaba también `is_billable = false`, y bajo un modelo CPM ningún clic ni
+   * ninguna conversión es facturable: son eventos legítimos que no se cobran porque lo que se cobra
+   * es la impresión. Con tráfico corriente el tablero declaraba un 32 % de eventos «inválidos o
+   * sospechosos» cuando la sospecha real era del 3 %, y encendía la alerta de tráfico inválido
+   * sobre una operación sana — que es la manera más rápida de enseñar a ignorar una alerta. El
+   * propio módulo ya distingue las dos cosas: el filtro del monitor de entrega llama SUSPICIOUS a
+   * `fraud_score >= 0.8` y NON_BILLABLE a lo demás.
+   */
   async getDashboard(query: DashboardQueryDto): Promise<DashboardRow> {
     this.logger.debug({ query }, 'Loading admin ads dashboard');
     const rows = await this.campaignModel.sequelize!.query<DashboardRow>(
@@ -66,7 +77,8 @@ export class ReportingRepository {
         (SELECT COUNT(*) FROM ad_campaigns WHERE status = 'ACTIVE')::text AS "activeCampaigns",
         (SELECT COUNT(*) FROM ad_moderation_reviews WHERE decision = 'PENDING_REVIEW')::text AS "pendingReviews",
         (SELECT COUNT(*) FROM ad_invoices WHERE status = 'OVERDUE')::text AS "overdueInvoices",
-        (SELECT COUNT(*) FROM ad_events WHERE is_billable = false OR fraud_score >= 0.8)::text AS "invalidEvents",
+        -- Inválido es SOSPECHOSO, no «no facturable». Ver el comentario del método.
+        (SELECT COUNT(*) FROM ad_events WHERE fraud_score >= 0.8)::text AS "invalidEvents",
         (SELECT COUNT(*) FROM ad_events)::text AS "totalEvents"`,
       { type: QueryTypes.SELECT },
     );

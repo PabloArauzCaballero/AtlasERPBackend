@@ -224,6 +224,16 @@ export const deliveryRequestSchema = z.object({
    * comprobar no se da por cumplida (ver `ads.segmentation.ts`).
    */
   audience: audienceContextSchema.optional(),
+  /**
+   * El comercio para el que se pide el anuncio.
+   *
+   * Cuando viene, la plataforma DERIVA de su cuenta B2B el rubro, la ciudad, el país, la banda de
+   * tamaño y la antigüedad, y lo derivado pisa lo declarado en `audience` (ver
+   * `ads.audience-projection.ts`). Sin él, la segmentación se evalúa contra lo que el llamante
+   * afirme: un integrador podía declarar `merchantCategory: "farmacia"` y entrar en los segmentos
+   * de farmacia aunque su cuenta dijera «ferretería».
+   */
+  merchantAccountId: uuidSchema.optional(),
 });
 
 export const trackEventSchema = z.object({

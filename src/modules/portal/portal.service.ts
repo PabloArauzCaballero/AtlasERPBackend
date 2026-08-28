@@ -11,6 +11,7 @@ import {
   B2BAccountModel,
   BillingProductModel,
   MerchantBranchModel,
+  MerchantInvoiceLineModel,
   MerchantInvoiceModel,
   MerchantPlanModel,
   MerchantReceivableModel,
@@ -107,6 +108,8 @@ export class PortalService {
     @InjectModel(MerchantUserModel) private readonly merchantUserModel: typeof MerchantUserModel,
     @InjectModel(B2BAccountModel) private readonly accountModel: typeof B2BAccountModel,
     @InjectModel(MerchantInvoiceModel) private readonly invoiceModel: typeof MerchantInvoiceModel,
+    @InjectModel(MerchantInvoiceLineModel)
+    private readonly invoiceLineModel: typeof MerchantInvoiceLineModel,
     @InjectModel(MerchantReceivableModel)
     private readonly receivableModel: typeof MerchantReceivableModel,
     @InjectModel(AdvertiserAccountModel)
@@ -736,6 +739,47 @@ export class PortalService {
         planName: subscriptionDto?.plan?.name ?? null,
         currency: subscriptionDto?.plan?.currency ?? null,
       },
+    };
+  }
+
+  /**
+   * Una factura del comercio, con sus líneas, para poder descargarla.
+   *
+   * Se busca DENTRO de la cuenta que el llamador puede ver, no por identificador suelto: si no
+   * fuera así, cualquier comercio podría pedir la factura de otro sabiendo su uuid.
+   */
+  async getInvoiceDocument(scope: PortalScope, invoiceId: string, requestedAccountId?: string) {
+    const merchantAccountId = this.scopeService.resolveAccountId(scope, requestedAccountId);
+    const invoice = await this.invoiceModel.findOne({
+      where: { id: invoiceId, accountId: merchantAccountId },
+    });
+    if (!invoice) throw new NotFoundException('La factura no existe o no pertenece a este comercio.');
+
+    const [lines, account] = await Promise.all([
+      this.invoiceLineModel.findAll({ where: { invoiceId: invoice.id } }),
+      this.accountModel.findByPk(merchantAccountId),
+    ]);
+
+    return {
+      invoice: toInvoiceDto(invoice),
+      lines: lines.map((line) => ({
+        id: line.id,
+        description: line.description,
+        quantity: normalizeAmount(line.quantity),
+        unitAmount: normalizeAmount(line.unitAmount),
+        taxAmount: normalizeAmount(line.taxAmount),
+        totalAmount: normalizeAmount(line.totalAmount),
+      })),
+      account: account
+        ? {
+            id: account.id,
+            legalName: account.legalName,
+            tradeName: account.tradeName,
+            taxId: account.taxId,
+            city: account.city,
+            address: account.address,
+          }
+        : null,
     };
   }
 
