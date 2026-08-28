@@ -246,7 +246,22 @@ export class AccountingDocumentsService {
   }
 
   async postDocumentInTransaction(id: string, user: AuthUser, transaction: Transaction) {
-    const document = await this.accountingDocumentModel.findByPk(id, { transaction });
+    /*
+     * `lock: UPDATE` no es una precaución: es lo que hace cierta la comprobación de abajo.
+     *
+     * Leyendo sin bloquear, bajo el aislamiento por defecto de PostgreSQL (`READ COMMITTED`), dos
+     * publicaciones simultáneas del mismo documento leen ambas `DRAFT`, ambas pasan el `!== 'DRAFT'`
+     * y ambas escriben `POSTED`: el asiento se contabiliza dos veces y se emiten dos eventos. Un
+     * doble clic en la pantalla basta para provocarlo.
+     *
+     * `reverseDocument`, en este mismo fichero, ya bloqueaba la fila por esta razón; publicar se
+     * había quedado fuera. Con el bloqueo, la segunda transacción espera y encuentra `POSTED`, que
+     * es exactamente el 409 que el contrato promete.
+     */
+    const document = await this.accountingDocumentModel.findByPk(id, {
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
 
     if (!document) {
       throw new NotFoundException({

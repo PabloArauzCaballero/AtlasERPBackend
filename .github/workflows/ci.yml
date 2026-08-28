@@ -1,0 +1,43 @@
+# Integración continua del ERP (ATL-009).
+#
+# Este backend mueve la contabilidad, la facturación y el portal del comercio —249 endpoints— y
+# era, junto al frontend del ERP y la app móvil, el único sin ninguna comprobación automática al
+# fusionar. No es que las pruebas fallaran: es que nadie las corría. Esto arranca por lo barato y
+# verificable (tipos, lint, unidad); ampliar la cobertura es trabajo aparte y está en el backlog.
+name: CI
+
+on:
+  pull_request:
+    branches: [main, dev]
+  push:
+    branches: [main, dev]
+
+permissions:
+  contents: read
+
+jobs:
+  static:
+    name: Tipos, lint y pruebas
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+
+      - name: Instalar dependencias
+        run: yarn install --frozen-lockfile
+
+      - name: Tipos
+        run: yarn type-check
+
+      - name: Lint
+        run: yarn lint
+
+      # `--passWithNoTests` NO se usa a propósito: hoy hay 30 ficheros de prueba y el día que
+      # alguien los borre o rompa el patrón de nombres, esto tiene que ponerse rojo y no verde.
+      - name: Pruebas unitarias
+        run: yarn test
