@@ -3,6 +3,7 @@ import { HttpModule } from '@nestjs/axios';
 import { AtlasPartnerClient } from './atlas-partner.client';
 import { MerchantCreditGatewayController } from './merchant-credit-gateway.controller';
 import { PartnerOnboardingGatewayController } from './partner-onboarding-gateway.controller';
+import { SupportGatewayController } from './support-gateway.controller';
 
 /**
  * Pasarela del expediente del partner hacia AtlasBackend.
@@ -14,7 +15,7 @@ import { PartnerOnboardingGatewayController } from './partner-onboarding-gateway
  */
 @Module({
   imports: [HttpModule],
-  controllers: [PartnerOnboardingGatewayController, MerchantCreditGatewayController],
+  controllers: [PartnerOnboardingGatewayController, MerchantCreditGatewayController, SupportGatewayController],
   providers: [AtlasPartnerClient],
 })
 export class PartnerOnboardingGatewayModule {}
