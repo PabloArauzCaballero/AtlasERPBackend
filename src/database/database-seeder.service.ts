@@ -5,32 +5,25 @@ import { readFile } from 'node:fs/promises';
 import { relative, resolve } from 'node:path';
 import { QueryTypes, Transaction } from 'sequelize';
 import { Sequelize } from 'sequelize-typescript';
+import { Client } from 'pg';
 import { env } from '../config/env';
+import { resolveDbSslOptions } from '../config/db-ssl';
 import { PinoLoggerService } from '../common/logging/pino-logger.service';
+import { resolveSeedSource } from './seed-source';
+import { listSeededTables, syncSeedData } from './seed-sync';
 import { LEGACY_SQL_PROBES, STARTUP_MIGRATION_FILES } from './startup-migrations';
 
-const REFERENCE_SEEDS = [
-  'src/database/seeders/001_reference_chart_of_accounts.sql',
-  'src/database/seeders/20260708204000-seed-atlas-ads-defaults.sql',
-  'src/database/seeders/20260712121000-seed-b2b-account-taxonomy.sql',
-  // Los tres productos que Atlas factura. Es dato maestro, no fixture: sin el, la factura del
-  // partner vuelve a ser texto libre, asi que tambien se siembra en produccion.
-  'src/database/seeders/20260826221000-seed-billing-products.sql',
-  // Matriz de calificacion de cartera A-F. Existia en disco desde agosto y no la ejecutaba nadie:
-  // no estaba en esta lista ni tenia guion de npm, asi que `rating_policy_versions` y
-  // `rating_policy_bands` estaban vacias en toda base creada desde entonces. La consecuencia no es
-  // cosmetica: sin politica activa el calificador devuelve `RATING_POLICY_NOT_ACTIVE` y ninguna
-  // cuenta llega a calificarse, de modo que la pantalla de riesgo no tenia nada que mostrar. Va en
-  // las de referencia y no en las de desarrollo porque en produccion hace la misma falta.
-  'src/database/seeders/20260816091000-seed-asfi-rating-policy.sql',
-];
-const DEVELOPMENT_SEEDS = [
-  'src/database/seeders/20260708191000-seed-atlas-b2b-sales-crm.sql',
-  // Membresía de los dos partners de desarrollo. Va DESPUÉS del seed base porque necesita los
-  // tipos y enums que aquél deja en su sitio, y su contraparte —la identidad con contraseña— la
-  // siembra AtlasBackend en su perfil `development`.
-  'src/database/seeders/20260821140000-seed-partners-desarrollo.sql',
-];
+/**
+ * Las semillas ya no son archivos de este repositorio.
+ *
+ * `REFERENCE_SEEDS`/`DEVELOPMENT_SEEDS` enumeraban rutas `.sql` que este servicio leía del disco y
+ * ejecutaba en cada arranque. Ahora el conjunto sembrado lo publica una RAMA de PostgreSQL
+ * gestionado y el perfil es la rama a la que se apunta (`SEED_SOURCE_*`), de modo que ya no hay una
+ * lista que mantener ni un `NODE_ENV` que decida qué fixtures entran: a la rama de producción no se
+ * le puede pedir lo que no tiene.
+ *
+ * Las MIGRACIONES siguen siendo archivos versionados: el esquema es contrato del código.
+ */
 
 @Injectable()
 export class DatabaseSeederService implements OnApplicationBootstrap {
@@ -41,31 +34,20 @@ export class DatabaseSeederService implements OnApplicationBootstrap {
 
   async onApplicationBootstrap(): Promise<void> {
     if (!env.STARTUP_MIGRATIONS_ENABLED && !env.STARTUP_SEEDS_ENABLED) return;
-    const seeds = !env.STARTUP_SEEDS_ENABLED
-      ? []
-      : env.NODE_ENV === 'production'
-        ? REFERENCE_SEEDS
-        : [...REFERENCE_SEEDS, ...DEVELOPMENT_SEEDS];
+
     let appliedMigrations = 0;
-    await this.sequelize.transaction(async (transaction) => {
-      await this.sequelize.query(
-        "SELECT pg_advisory_xact_lock(hashtext('atlas:startup-seeds:v1'))",
-        { transaction },
-      );
-      if (env.STARTUP_MIGRATIONS_ENABLED) {
+    if (env.STARTUP_MIGRATIONS_ENABLED) {
+      await this.sequelize.transaction(async (transaction) => {
+        await this.sequelize.query(
+          "SELECT pg_advisory_xact_lock(hashtext('atlas:startup-seeds:v1'))",
+          { transaction },
+        );
         appliedMigrations = await this.applyPendingMigrations(transaction);
-      }
-      for (const file of seeds) {
-        const sql = await readFile(resolve(file), 'utf8');
-        // Los seeds comparten conexión: un `SET search_path` dentro de un archivo
-        // (p. ej. atlas_accounting) se filtraría al siguiente, que resuelve sus
-        // tablas por el search_path por defecto.
-        await this.sequelize.query('RESET search_path', { transaction });
-        await this.sequelize.query(sql, { transaction });
-      }
-      // La conexión vuelve al pool sin arrastrar el search_path del último seed.
-      await this.sequelize.query('RESET search_path', { transaction });
-    });
+      });
+    }
+
+    const seeded = env.STARTUP_SEEDS_ENABLED ? await this.pullSeedsIfEmpty() : null;
+
     this.logger.infoContext(
       DatabaseSeederService.name,
       'Idempotent startup migrations and seeds verified',
@@ -74,10 +56,52 @@ export class DatabaseSeederService implements OnApplicationBootstrap {
         pendingMigrationsChecked: env.STARTUP_MIGRATIONS_ENABLED
           ? STARTUP_MIGRATION_FILES.length
           : 0,
-        seedCount: seeds.length,
-        includesDevelopmentFixtures: env.STARTUP_SEEDS_ENABLED && env.NODE_ENV !== 'production',
+        seededRows: seeded?.rows ?? 0,
+        seededTables: seeded?.tables ?? 0,
       },
     );
+  }
+
+  /**
+   * Trae el conjunto sembrado SÓLO si la base está vacía.
+   *
+   * La condición no es un detalle: la carga vacía las tablas del manifiesto antes de escribirlas,
+   * así que hacerlo en cada arranque borraría el trabajo de la sesión anterior. Antes la salvaguarda
+   * la daba gratis el propio mecanismo —cada `.sql` era un upsert idempotente—; ahora que la carga
+   * es un reemplazo, la salvaguarda tiene que ser explícita. Para resembrar a propósito está
+   * `npm run db:seed:pull`, que es un acto deliberado y no un efecto de reiniciar un proceso.
+   */
+  private async pullSeedsIfEmpty(): Promise<{ rows: number; tables: number } | null> {
+    const source = resolveSeedSource();
+    if (!source) {
+      this.logger.infoContext(DatabaseSeederService.name, 'Startup seeding skipped: no SEED_SOURCE_* configured');
+      return null;
+    }
+
+    const sourceClient = new Client({ connectionString: source.connectionString, ssl: source.ssl });
+    const target = new Client({ connectionString: env.DATABASE_URL, ssl: resolveDbSslOptions(env) });
+    await sourceClient.connect();
+    await target.connect();
+    try {
+      const existing = await listSeededTables(target);
+      if (existing.length > 0) {
+        this.logger.infoContext(
+          DatabaseSeederService.name,
+          'Startup seeding skipped: database already has data',
+          { populatedTables: existing.length },
+        );
+        return null;
+      }
+      return await syncSeedData({
+        source: sourceClient,
+        target,
+        log: (message) =>
+          this.logger.infoContext(DatabaseSeederService.name, message, { source: source.describe }),
+      });
+    } finally {
+      await sourceClient.end();
+      await target.end();
+    }
   }
 
   // Misma tabla de control y claves que scripts/db/run-sql.ts: cada archivo se aplica

@@ -32,6 +32,17 @@ x-erp-env: &erp-env
   DB_SSL: 'false'
   DB_LOGGING: 'false'
   STARTUP_SEEDS_ENABLED: 'true'
+
+  # Origen de las SEMILLAS. Ya no viven en el repositorio: se traen de una rama de PostgreSQL
+  # gestionado. Se toman del `.env` de la máquina para que el compose no lleve credenciales, y
+  # apuntar el stack a otra rama sea cambiar una línea de ese archivo.
+  SEED_SOURCE_DATABASE_URL: ${SEED_SOURCE_DATABASE_URL:-}
+  SEED_SOURCE_HOST: ${SEED_SOURCE_HOST:-}
+  SEED_SOURCE_PORT: ${SEED_SOURCE_PORT:-5432}
+  SEED_SOURCE_DB: ${SEED_SOURCE_DB:-atlas_erp}
+  SEED_SOURCE_USER: ${SEED_SOURCE_USER:-}
+  SEED_SOURCE_PASSWORD: ${SEED_SOURCE_PASSWORD:-}
+  SEED_SOURCE_SSL: ${SEED_SOURCE_SSL:-true}
   JWT_ACCESS_SECRET: ${ERP_JWT_ACCESS_SECRET:-local-development-access-secret-32-chars}
   JWT_INTERNAL_SECRET: ${ERP_JWT_INTERNAL_SECRET:-local-development-internal-secret-32ch}
   # Credencial de UN SOLO propósito con la que Atlas Backend lee el manifiesto de catálogo de este
