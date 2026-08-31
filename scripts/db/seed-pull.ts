@@ -16,7 +16,7 @@ import { Client } from 'pg';
 import { env } from '../../src/config/env';
 import { resolveDbSslOptions } from '../../src/config/db-ssl';
 import { requireSeedSource } from '../../src/database/seed-source';
-import { listSeededTables, syncSeedData } from '../../src/database/seed-sync';
+import { hasSeedLoad, listSeededTables, syncSeedData } from '../../src/database/seed-sync';
 import { PinoLoggerService } from '../../src/common/logging/pino-logger.service';
 
 const logger = new PinoLoggerService();
@@ -67,16 +67,15 @@ async function main(): Promise<void> {
       throw new Error(`Comando no soportado: ${command}. Usa pull | status.`);
     }
 
-    if (process.argv.includes('--if-empty')) {
-      const existing = await listSeededTables(target);
-      if (existing.length > 0) {
-        logger.info('Siembra omitida: la base ya tiene datos.', {
-          layer: 'script',
-          script: 'seed-pull',
-          populatedTables: existing.length,
-        });
-        return;
-      }
+    // La guarda mira la MARCA de carga, no el número de filas: una base recién migrada ya puede
+    // tener datos, y contarlos hacía que el arranque automatizado se saltara la siembra en una base
+    // virgen. Ver `hasSeedLoad`.
+    if (process.argv.includes('--if-empty') && (await hasSeedLoad(target))) {
+      logger.info('Siembra omitida: esta base ya trajo el conjunto sembrado.', {
+        layer: 'script',
+        script: 'seed-pull',
+      });
+      return;
     }
 
     logger.info('Trayendo el conjunto sembrado desde la rama de semillas.', {
@@ -84,7 +83,11 @@ async function main(): Promise<void> {
       script: 'seed-pull',
       source: source.describe,
     });
-    const result = await syncSeedData({ source: sourceClient, target });
+    const result = await syncSeedData({
+      source: sourceClient,
+      target,
+      sourceLabel: source.describe,
+    });
     logger.info('Semillas aplicadas.', {
       layer: 'script',
       script: 'seed-pull',

@@ -10,7 +10,7 @@ import { env } from '../config/env';
 import { resolveDbSslOptions } from '../config/db-ssl';
 import { PinoLoggerService } from '../common/logging/pino-logger.service';
 import { resolveSeedSource } from './seed-source';
-import { listSeededTables, syncSeedData } from './seed-sync';
+import { hasSeedLoad, syncSeedData } from './seed-sync';
 import { LEGACY_SQL_PROBES, STARTUP_MIGRATION_FILES } from './startup-migrations';
 
 /**
@@ -74,27 +74,32 @@ export class DatabaseSeederService implements OnApplicationBootstrap {
   private async pullSeedsIfEmpty(): Promise<{ rows: number; tables: number } | null> {
     const source = resolveSeedSource();
     if (!source) {
-      this.logger.infoContext(DatabaseSeederService.name, 'Startup seeding skipped: no SEED_SOURCE_* configured');
+      this.logger.infoContext(
+        DatabaseSeederService.name,
+        'Startup seeding skipped: no SEED_SOURCE_* configured',
+      );
       return null;
     }
 
     const sourceClient = new Client({ connectionString: source.connectionString, ssl: source.ssl });
-    const target = new Client({ connectionString: env.DATABASE_URL, ssl: resolveDbSslOptions(env) });
+    const target = new Client({
+      connectionString: env.DATABASE_URL,
+      ssl: resolveDbSslOptions(env),
+    });
     await sourceClient.connect();
     await target.connect();
     try {
-      const existing = await listSeededTables(target);
-      if (existing.length > 0) {
+      if (await hasSeedLoad(target)) {
         this.logger.infoContext(
           DatabaseSeederService.name,
-          'Startup seeding skipped: database already has data',
-          { populatedTables: existing.length },
+          'Startup seeding skipped: this database already pulled the published seed set',
         );
         return null;
       }
       return await syncSeedData({
         source: sourceClient,
         target,
+        sourceLabel: source.describe,
         log: (message) =>
           this.logger.infoContext(DatabaseSeederService.name, message, { source: source.describe }),
       });
