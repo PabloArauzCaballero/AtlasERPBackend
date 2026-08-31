@@ -37,6 +37,13 @@ jobs:
       - name: Lint
         run: yarn lint
 
+      # Las tres listas de migraciones (db:migrate:prod, los guiones por dominio y
+      # STARTUP_MIGRATION_FILES) describen el mismo conjunto y nada obligaba a que coincidieran.
+      # No coincidian: produccion se saltaba una migracion y el arranque cubria 14 de 22. Es una
+      # deriva que ningun entorno ve por si solo, porque cada uno es coherente con SU lista.
+      - name: Listas de migraciones coherentes
+        run: yarn check:migration-lists
+
       # `--passWithNoTests` NO se usa a propósito: hoy hay 30 ficheros de prueba y el día que
       # alguien los borre o rompa el patrón de nombres, esto tiene que ponerse rojo y no verde.
       - name: Pruebas unitarias

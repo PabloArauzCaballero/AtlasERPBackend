@@ -46,6 +46,7 @@ async function main(): Promise<void> {
       // revertida pero el ledger diciendo "aplicada", y el siguiente `up` se omitía en silencio.
       if (isDownMigration(migrationKey)) {
         await runInTransaction(client, async () => {
+          await client.query(`SET LOCAL search_path TO ${MIGRATION_SEARCH_PATH}`);
           await client.query(sql);
           await unmarkSqlFileApplied(client, upMigrationKeyOf(migrationKey));
         });
@@ -87,6 +88,7 @@ async function main(): Promise<void> {
       // archivo se volvería a ejecutar; los scripts son idempotentes, pero depender de eso para
       // la consistencia del ledger es depender de una convención, no de una garantía.
       await runInTransaction(client, async () => {
+        await client.query(`SET LOCAL search_path TO ${MIGRATION_SEARCH_PATH}`);
         await client.query(sql);
         await markSqlFileApplied(client, migrationKey, checksum);
       });
@@ -104,6 +106,23 @@ async function main(): Promise<void> {
     });
   }
 }
+
+/**
+ * `search_path` con el que se ejecuta CADA archivo, en vez de heredar el que dejó el anterior.
+ *
+ * Todos los archivos comparten conexión, así que un `SET search_path TO atlas_accounting` dentro de
+ * uno —los de contabilidad lo hacen— se filtraba a los siguientes y decidía dónde acababan las
+ * tablas de quien no cualifica su schema. El mismo repositorio producía dos bases distintas según
+ * cómo se agruparan las migraciones en procesos: en un solo proceso las tablas de ATLAS Ads caían
+ * en `atlas_accounting`; con un proceso por dominio, en `public`.
+ *
+ * Fijarlo aquí lo vuelve una propiedad del EJECUTOR y no un accidente del orden. Se declara con
+ * `atlas_accounting` delante porque es donde viven de verdad esas tablas en toda instalación
+ * desplegada (ver `20260901000000-ads-en-atlas-accounting.sql`), y `public` al final para que el
+ * ledger y las extensiones sigan resolviéndose. Es `SET LOCAL`: dura lo que la transacción del
+ * archivo, así que ninguno puede contaminar al siguiente ni a la conexión.
+ */
+const MIGRATION_SEARCH_PATH = 'atlas_accounting, atlas_sales, atlas_audit, public';
 
 async function ensureSqlMigrationTable(client: Client): Promise<void> {
   await client.query(`

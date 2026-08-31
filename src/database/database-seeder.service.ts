@@ -11,7 +11,11 @@ import { resolveDbSslOptions } from '../config/db-ssl';
 import { PinoLoggerService } from '../common/logging/pino-logger.service';
 import { resolveSeedSource } from './seed-source';
 import { hasSeedLoad, syncSeedData } from './seed-sync';
-import { LEGACY_SQL_PROBES, STARTUP_MIGRATION_FILES } from './startup-migrations';
+import {
+  LEGACY_SQL_PROBES,
+  MIGRATION_SEARCH_PATH,
+  STARTUP_MIGRATION_FILES,
+} from './startup-migrations';
 
 /**
  * Las semillas ya no son archivos de este repositorio.
@@ -138,7 +142,12 @@ export class DatabaseSeederService implements OnApplicationBootstrap {
         continue;
       }
 
-      await this.sequelize.query('RESET search_path', { transaction });
+      // El MISMO `search_path` que fija `scripts/db/run-sql.ts`, y por la misma razón: todos los
+      // archivos comparten conexión, así que un `SET search_path` dentro de uno decidía dónde
+      // acababan las tablas del siguiente que no cualifica su schema. Un `RESET` no bastaba —dejaba
+      // `public`, que NO es donde viven las tablas de ATLAS Ads en una instalación desplegada—, así
+      // que el arranque podía colocarlas en un sitio distinto que `db:migrate:prod`.
+      await this.sequelize.query(`SET search_path TO ${MIGRATION_SEARCH_PATH}`, { transaction });
       if (!(await this.wasLegacySqlAlreadyApplied(migrationKey, transaction))) {
         await this.sequelize.query(sql, { transaction });
         applied += 1;
