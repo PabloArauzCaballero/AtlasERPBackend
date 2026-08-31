@@ -1,0 +1,15 @@
+# Copiar a: AtlasERPBackend/docker-compose.linux.yml
+#
+# El ERP llama al anfitrion en ATLAS_IDENTITY_BASE_URL -> AtlasBackend:3105/api/v1: su
+# pasarela de autenticacion INTERCAMBIA el token de Atlas por uno propio. Sin resolver
+# `host.docker.internal`, el login del portal del comercio muere en «el servicio de
+# identidad no esta disponible» —el mismo texto que emite el portal de riesgo cuando falla
+# el motor, asi que son dos origenes distintos con el mismo mensaje.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.linux.yml \
+#     --profile app up -d --build postgres migrate api
+
+services:
+  api:
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
