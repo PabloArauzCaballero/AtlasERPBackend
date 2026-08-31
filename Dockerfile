@@ -18,7 +18,6 @@ RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
 
 COPY --from=build --chown=node:node /app/dist ./dist
 COPY --chown=node:node src/database/migrations ./src/database/migrations
-COPY --chown=node:node src/database/seeders ./src/database/seeders
 # `src/database/sql` guarda el esquema de contabilidad, y `db:migrate:prod` lo nombra por ruta
 # igual que a las otras migraciones. Sin copiarlo, la imagen arranca y la primera migración
 # muere con «no such file», que es un fallo de EMPAQUETADO disfrazado de fallo de base de datos.

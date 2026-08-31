@@ -67,8 +67,10 @@ export interface SeedSyncResult {
 }
 
 const quoteIdentifier = (identifier: string): string => `"${identifier.replace(/"/g, '""')}"`;
-const quoteTable = (table: { schema: string; name: string }): string => `${quoteIdentifier(table.schema)}.${quoteIdentifier(table.name)}`;
-const tableKey = (table: { schema: string; name: string }): string => `${table.schema}.${table.name}`;
+const quoteTable = (table: { schema: string; name: string }): string =>
+  `${quoteIdentifier(table.schema)}.${quoteIdentifier(table.name)}`;
+const tableKey = (table: { schema: string; name: string }): string =>
+  `${table.schema}.${table.name}`;
 
 /** Tablas con al menos una fila en el origen. Es el manifiesto: lo que el origen considera semilla. */
 export async function listSeededTables(client: Client): Promise<TableRef[]> {
@@ -85,7 +87,10 @@ export async function listSeededTables(client: Client): Promise<TableRef[]> {
     .map((row) => ({ schema: row.schema, name: row.name, rows: Number(row.rows) }));
 }
 
-async function readColumns(client: Client, tables: readonly TableRef[]): Promise<Map<string, ColumnRef[]>> {
+async function readColumns(
+  client: Client,
+  tables: readonly TableRef[],
+): Promise<Map<string, ColumnRef[]>> {
   const { rows } = await client.query<{
     schema: string;
     table: string;
@@ -118,16 +123,34 @@ async function readColumns(client: Client, tables: readonly TableRef[]): Promise
   return byTable;
 }
 
-/** Claves foráneas declaradas EN las tablas del manifiesto, con su definición para recrearlas. */
-async function readForeignKeys(client: Client, tables: readonly TableRef[]): Promise<ForeignKeyRef[]> {
+/**
+ * Claves foráneas que TOCAN el manifiesto, en cualquiera de los dos sentidos.
+ *
+ * Las que salen de una tabla del manifiesto hay que retirarlas para poder cargar en cualquier orden.
+ * Las que ENTRAN —una tabla de runtime que apunta a una sembrada— hay que retirarlas por una razón
+ * distinta y menos evidente: sin ellas, vaciar exigiría `TRUNCATE ... CASCADE`, y CASCADE alcanza a
+ * esas tablas de runtime y las vacía también. Es un fallo caro y silencioso: al traer 8 840 filas de
+ * catálogo se llevó por delante 390 000 de bitácora de auditoría, que no son semilla de nadie.
+ *
+ * Retirándolas se puede truncar SIN cascade, y al recrearlas se valida que las filas de runtime
+ * siguen apuntando a algo que existe. Si la rama trae un catálogo incompatible con lo que ya hay
+ * escrito, el `ALTER` falla y la carga entera se revierte — que es exactamente lo que debe pasar.
+ */
+async function readForeignKeys(
+  client: Client,
+  tables: readonly TableRef[],
+): Promise<ForeignKeyRef[]> {
   const { rows } = await client.query<ForeignKeyRef>(
     `SELECT n.nspname AS schema, c.relname AS "table", co.conname AS name,
             pg_get_constraintdef(co.oid) AS definition
        FROM pg_constraint co
        JOIN pg_class c ON c.oid = co.conrelid
        JOIN pg_namespace n ON n.oid = c.relnamespace
+       JOIN pg_class pc ON pc.oid = co.confrelid
+       JOIN pg_namespace pn ON pn.oid = pc.relnamespace
       WHERE co.contype = 'f'
-        AND n.nspname || '.' || c.relname = ANY($1::text[])
+        AND (n.nspname || '.' || c.relname = ANY($1::text[])
+             OR pn.nspname || '.' || pc.relname = ANY($1::text[]))
       ORDER BY 1, 2, 3`,
     [tables.map(tableKey)],
   );
@@ -143,13 +166,19 @@ async function copyTable(
 ): Promise<number> {
   if (columns.length === 0) return 0;
 
-  const selectList = columns.map((column) => `${quoteIdentifier(column.name)}::text AS ${quoteIdentifier(column.name)}`).join(', ');
-  const { rows } = await source.query<Record<string, string | null>>(`SELECT ${selectList} FROM ${quoteTable(table)}`);
+  const selectList = columns
+    .map((column) => `${quoteIdentifier(column.name)}::text AS ${quoteIdentifier(column.name)}`)
+    .join(', ');
+  const { rows } = await source.query<Record<string, string | null>>(
+    `SELECT ${selectList} FROM ${quoteTable(table)}`,
+  );
   if (rows.length === 0) return 0;
 
   // Una identidad GENERATED ALWAYS rechaza el valor explícito salvo con OVERRIDING SYSTEM VALUE, y
   // conservar el identificador de origen es justo lo que mantiene válidas las claves foráneas.
-  const overriding = columns.some((column) => column.alwaysIdentity) ? ' OVERRIDING SYSTEM VALUE' : '';
+  const overriding = columns.some((column) => column.alwaysIdentity)
+    ? ' OVERRIDING SYSTEM VALUE'
+    : '';
   const columnList = columns.map((column) => quoteIdentifier(column.name)).join(', ');
   const chunkSize = Math.max(1, Math.floor(MAX_PARAMS / columns.length));
 
@@ -164,7 +193,10 @@ async function copyTable(
       });
       return `(${placeholders.join(', ')})`;
     });
-    await target.query(`INSERT INTO ${quoteTable(table)} (${columnList})${overriding} VALUES ${tuples.join(', ')}`, parameters);
+    await target.query(
+      `INSERT INTO ${quoteTable(table)} (${columnList})${overriding} VALUES ${tuples.join(', ')}`,
+      parameters,
+    );
     inserted += chunk.length;
   }
 
@@ -173,16 +205,37 @@ async function copyTable(
 }
 
 /** Deja cada secuencia por encima del máximo copiado: sin esto el primer INSERT del runtime choca. */
-async function resyncSequences(target: Client, tables: readonly TableRef[], log: (message: string) => void): Promise<void> {
-  const { rows } = await target.query<{ schema: string; table: string; column: string; seq: string }>(
-    `SELECT n.nspname AS schema, c.relname AS "table", a.attname AS column,
-            pg_get_serial_sequence(format('%I.%I', n.nspname, c.relname), a.attname) AS seq
-       FROM pg_attribute a
-       JOIN pg_class c ON c.oid = a.attrelid
-       JOIN pg_namespace n ON n.oid = c.relnamespace
-      WHERE a.attnum > 0 AND NOT a.attisdropped
-        AND n.nspname || '.' || c.relname = ANY($1::text[])
-        AND pg_get_serial_sequence(format('%I.%I', n.nspname, c.relname), a.attname) IS NOT NULL`,
+async function resyncSequences(
+  target: Client,
+  tables: readonly TableRef[],
+  log: (message: string) => void,
+): Promise<void> {
+  const { rows } = await target.query<{
+    schema: string;
+    table: string;
+    column: string;
+    seq: string;
+  }>(
+    // El CTE es MATERIALIZED a propósito. Sin él, el planificador puede evaluar
+    // `pg_get_serial_sequence` ANTES de aplicar el filtro de nombres, y entonces la llama sobre
+    // relaciones que no son del manifiesto —incluidas las de `pg_toast`—, que un rol no
+    // superusuario no puede leer: la carga entera moría con «permission denied for schema
+    // pg_toast». Con un superusuario no se nota, que es exactamente por lo que conviene fijarlo.
+    `WITH columnas AS MATERIALIZED (
+       SELECT n.nspname AS schema, c.relname AS "table", a.attname AS col
+         FROM pg_attribute a
+         JOIN pg_class c ON c.oid = a.attrelid
+         JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE c.relkind = 'r' AND a.attnum > 0 AND NOT a.attisdropped
+          AND n.nspname || '.' || c.relname = ANY($1::text[])
+     )
+     SELECT schema, "table", col AS "column", seq
+       FROM (
+         SELECT schema, "table", col,
+                pg_get_serial_sequence(format('%I.%I', schema, "table"), col) AS seq
+           FROM columnas
+       ) resueltas
+      WHERE seq IS NOT NULL`,
     [tables.map(tableKey)],
   );
 
@@ -200,7 +253,11 @@ async function resyncSequences(target: Client, tables: readonly TableRef[], log:
  * manifiesto: las vacía antes de cargarlas, para que el resultado sea el conjunto publicado y no
  * una mezcla con lo que hubiera antes.
  */
-export async function syncSeedData(options: { source: Client; target: Client; log?: (message: string) => void }): Promise<SeedSyncResult> {
+export async function syncSeedData(options: {
+  source: Client;
+  target: Client;
+  log?: (message: string) => void;
+}): Promise<SeedSyncResult> {
   const { source, target } = options;
   // Progreso por stdout directo: es un flujo de avance de una tarea de línea de comandos, no un
   // evento de la aplicación, y `console` está restringido a error/warn en este repositorio.
@@ -208,12 +265,16 @@ export async function syncSeedData(options: { source: Client; target: Client; lo
 
   const tables = await listSeededTables(source);
   if (tables.length === 0) {
-    throw new Error('La rama de semillas no tiene ninguna tabla con datos: no hay nada que copiar.');
+    throw new Error(
+      'La rama de semillas no tiene ninguna tabla con datos: no hay nada que copiar.',
+    );
   }
 
   const columnsByTable = await readColumns(source, tables);
   const foreignKeys = await readForeignKeys(target, tables);
-  log(`Origen: ${tables.length} tablas con datos, ${tables.reduce((total, table) => total + table.rows, 0)} filas.`);
+  log(
+    `Origen: ${tables.length} tablas con datos, ${tables.reduce((total, table) => total + table.rows, 0)} filas.`,
+  );
 
   await target.query('BEGIN');
   try {
@@ -227,17 +288,27 @@ export async function syncSeedData(options: { source: Client; target: Client; lo
     // Los disparadores de usuario se apagan por dos razones distintas: hay tablas protegidas como
     // append-only —la cadena de auditoría rechaza TRUNCATE— y un BEFORE INSERT que recalcule
     // marcas de tiempo o hashes reescribiría filas que ya vienen calculadas del origen.
-    for (const table of tables) await target.query(`ALTER TABLE ${quoteTable(table)} DISABLE TRIGGER USER`);
+    for (const table of tables)
+      await target.query(`ALTER TABLE ${quoteTable(table)} DISABLE TRIGGER USER`);
 
-    await target.query(`TRUNCATE TABLE ${tables.map(quoteTable).join(', ')} RESTART IDENTITY CASCADE`);
+    // Sin CASCADE, y eso es el punto: CASCADE vaciaría también las tablas de runtime que
+    // apuntan al catálogo. Se puede prescindir de él porque las claves que entran ya se retiraron.
+    await target.query(`TRUNCATE TABLE ${tables.map(quoteTable).join(', ')} RESTART IDENTITY`);
 
     let copied = 0;
     for (const table of tables) {
-      copied += await copyTable(source, target, table, columnsByTable.get(tableKey(table)) ?? [], log);
+      copied += await copyTable(
+        source,
+        target,
+        table,
+        columnsByTable.get(tableKey(table)) ?? [],
+        log,
+      );
     }
 
     await resyncSequences(target, tables, log);
-    for (const table of tables) await target.query(`ALTER TABLE ${quoteTable(table)} ENABLE TRIGGER USER`);
+    for (const table of tables)
+      await target.query(`ALTER TABLE ${quoteTable(table)} ENABLE TRIGGER USER`);
 
     for (const foreignKey of foreignKeys) {
       await target.query(

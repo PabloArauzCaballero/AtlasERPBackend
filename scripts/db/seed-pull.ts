@@ -5,8 +5,12 @@
  * viven en `src/database/seeders/` sino en una RAMA de PostgreSQL gestionado, y el perfil es la
  * rama a la que se apunta. Ver docs/base-de-datos/semillas.md.
  *
- *   tsx scripts/db/seed-pull.ts          copia el conjunto publicado (DESTRUCTIVO sobre esas tablas)
- *   tsx scripts/db/seed-pull.ts status   compara sin escribir nada
+ *   tsx scripts/db/seed-pull.ts              copia el conjunto publicado (DESTRUCTIVO)
+ *   tsx scripts/db/seed-pull.ts --if-empty   igual, pero no hace nada si la base ya tiene datos
+ *   tsx scripts/db/seed-pull.ts status       compara sin escribir nada
+ *
+ * `--if-empty` existe para el arranque automatizado: traer semillas VACÍA las tablas del
+ * manifiesto, así que un pull incondicional en cada arranque reemplazaría lo que hubiera.
  */
 import { Client } from 'pg';
 import { env } from '../../src/config/env';
@@ -33,7 +37,10 @@ async function main(): Promise<void> {
     if (command === 'status') {
       const published = await listSeededTables(sourceClient);
       const local = new Map(
-        (await listSeededTables(target)).map((table) => [`${table.schema}.${table.name}`, table.rows]),
+        (await listSeededTables(target)).map((table) => [
+          `${table.schema}.${table.name}`,
+          table.rows,
+        ]),
       );
       const differences = published
         .map((table) => ({
@@ -58,6 +65,18 @@ async function main(): Promise<void> {
 
     if (command !== 'pull') {
       throw new Error(`Comando no soportado: ${command}. Usa pull | status.`);
+    }
+
+    if (process.argv.includes('--if-empty')) {
+      const existing = await listSeededTables(target);
+      if (existing.length > 0) {
+        logger.info('Siembra omitida: la base ya tiene datos.', {
+          layer: 'script',
+          script: 'seed-pull',
+          populatedTables: existing.length,
+        });
+        return;
+      }
     }
 
     logger.info('Trayendo el conjunto sembrado desde la rama de semillas.', {
