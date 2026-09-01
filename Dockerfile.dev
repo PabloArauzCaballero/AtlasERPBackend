@@ -1,17 +1,23 @@
 # syntax=docker/dockerfile:1.7
 # Imagen de PRUEBAS del ERP, pensada para el VPS de testing (Ubuntu, Contabo).
 #
-# No sustituye a `Dockerfile`, que es la imagen de producción: allí se instala con `--omit=dev` y se
-# copian sólo `dist/` y los `.sql`. Aquí viaja el árbol completo de dependencias, y es deliberado —
-# en el VPS no hay una máquina de operador con Node 22 y `psql` a mano, así que todo lo que haya que
-# ejecutar contra la base tiene que poder ejecutarse DENTRO del contenedor:
+# No sustituye a `Dockerfile`, que es la imagen de producción. Las diferencias son dos:
+# `NODE_ENV=development` —para que Swagger y los logs sirvan de algo en un entorno de pruebas— y
+# que aquí viajan `dist/scripts` y un cliente de PostgreSQL, porque en el VPS no hay una máquina de
+# operador con Node 22 y `psql` a mano: migrar, sembrar y diagnosticar la base tiene que poder
+# hacerse DENTRO del contenedor.
 #
-#   npm run db:migrate:prod   migrar (la ruta compilada, la misma que usa el despliegue)
-#   npm run db:seed:pull      traer el conjunto sembrado desde la rama Neon   ← necesita `tsx`
-#   npm run db:seed:status    ver qué publica la rama sin tocar nada          ← necesita `tsx`
-#   npm run db:seed:demo      lo transaccional de demostración                ← necesita `tsx`
+#   node dist/src/main.js                          la API
+#   npm run db:migrate:prod                        migrar (la MISMA ruta que usa el despliegue)
+#   node dist/scripts/db/seed-pull.js pull|status  traer o inspeccionar el conjunto sembrado
 #
-# Con `--omit=dev` los tres últimos fallan con «tsx: not found», que no se parece en nada a su causa.
+# ## Lo que NO trae, y por qué importa en un VPS
+#
+# **Las dependencias de desarrollo.** Se intentó al revés primero —el árbol completo, para poder
+# invocar `tsx scripts/db/seed-pull.ts`— y costaba casi 400 MB para nada: `tsconfig.build.json`
+# incluye `src/**` Y `scripts/**`, así que ese guion ya existe compilado en
+# `dist/scripts/db/seed-pull.js` y corre con `node` a secas. La regla para no volver a equivocarse:
+# si un guion se puede invocar como `node dist/scripts/X.js`, `tsx` no pinta nada en esta imagen.
 #
 # Construcción:
 #   docker build -f Dockerfile.dev -t atlas-erp-backend:dev .
@@ -19,10 +25,18 @@
 FROM node:22-bookworm-slim AS dependencies
 WORKDIR /app
 COPY package*.json ./
-# `--ignore-scripts`: ninguna dependencia de este proyecto necesita compilar nada nativo, y saltarse
-# los postinstall es una superficie menos en una imagen que se reconstruye a menudo.
+# `--ignore-scripts`: ninguna dependencia de este proyecto compila nada nativo, y saltarse los
+# postinstall es una superficie menos en una imagen que se reconstruye a menudo.
 RUN --mount=type=cache,target=/root/.npm \
     npm ci --ignore-scripts
+
+FROM node:22-bookworm-slim AS build
+WORKDIR /app
+COPY --from=dependencies /app/node_modules ./node_modules
+COPY . .
+# `type-check` antes de compilar, igual que la imagen de producción: en un VPS de pruebas una imagen
+# que compila pero no tipa es exactamente la que hace perder una tarde.
+RUN npm run type-check && npm run build
 
 FROM node:22-bookworm-slim AS runtime
 WORKDIR /app
@@ -33,14 +47,19 @@ RUN apt-get update \
   && apt-get install --no-install-recommends -y tini postgresql-client ca-certificates \
   && rm -rf /var/lib/apt/lists/*
 
-COPY --from=dependencies /app/node_modules ./node_modules
-COPY . .
+COPY package*.json ./
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --omit=dev --ignore-scripts && npm cache clean --force
 
-# `type-check` antes de compilar, igual que la imagen de producción: en un VPS de pruebas una imagen
-# que compila pero no tipa es exactamente la que hace perder una tarde.
-RUN npm run type-check && npm run build
+# `dist/` ENTERO, no sólo `dist/src`: `dist/scripts` es lo que hace innecesarias las dependencias de
+# desarrollo. Y `package.json` conserva los scripts npm, así que `npm run db:migrate:prod` sigue
+# funcionando tal cual.
+COPY --from=build --chown=node:node /app/dist ./dist
+# Los `.sql` los nombra `db:migrate:prod` POR RUTA. Sin copiarlos, la imagen arranca y la primera
+# migración muere con «no such file», que es un fallo de EMPAQUETADO disfrazado de fallo de base.
+COPY --chown=node:node src/database/migrations ./src/database/migrations
+COPY --chown=node:node src/database/sql ./src/database/sql
 
-RUN chown -R node:node /app/dist
 USER node
 
 ENV NODE_ENV=development \

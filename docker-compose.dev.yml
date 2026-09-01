@@ -48,7 +48,9 @@ services:
   #                          producción las deja en `atlas_accounting`, que es donde la rama de
   #                          semillas las publica. Usar el otro aquí produce un ERP que arranca y no
   #                          encuentra sus propias tablas.
-  #   `db:seed:pull --if-empty`  la guarda mira la MARCA `atlas_seed.load_log`, no el número de
+  #   `seed-pull.js --if-empty`  el guion COMPILADO, no `tsx scripts/db/seed-pull.ts`: es lo que
+  #                          permite que la imagen no lleve las dependencias de desarrollo. La
+  #                          guarda mira la MARCA `atlas_seed.load_log`, no el número de
   #                          filas. La carga escribe esa marca; una base que ya la tiene no se toca.
   #                          Contar filas NO servía: una base recién migrada ya trae datos propios
   #                          de las migraciones, así que con «¿hay alguna tabla poblada?» el arranque
@@ -59,7 +61,7 @@ services:
     env_file: ['${ATLAS_ENV_DIR:-/opt/atlas/env}/erp.env']
     command: >
       sh -c "npm run db:migrate:prod &&
-             npx tsx scripts/db/seed-pull.ts pull --if-empty"
+             node dist/scripts/db/seed-pull.js pull --if-empty"
     networks: [atlas_vps]
     restart: 'no'
 
