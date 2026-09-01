@@ -1,0 +1,93 @@
+# Despliegue de PRUEBAS del ERP en el VPS de Contabo (Ubuntu).
+#
+# Va aparte de `docker-compose.yml` —que describe el stack LOCAL con su propio PostgreSQL— porque en
+# el VPS la base vive en Neon y no hay contenedor de Postgres que levantar. Es una decisión de
+# espacio, y trae dos consecuencias: la latencia a la base es un salto por Internet con TLS, y un
+# endpoint de Neon en autosuspend tarda varios segundos en despertar la primera vez. De ahí que los
+# `start_period` de las sondas sean más largos que en local.
+#
+# ## Red compartida entre bloques
+#
+#   docker network create atlas_vps     # una sola vez, en el VPS
+#
+# Este backend NO tiene usuarios propios: la identidad de las personas sale de AtlasBackend, al que
+# alcanza como `http://atlas-backend:3005/api/v1` gracias a esa red. Sin ella habría que pasar por
+# `host.docker.internal`, que en Docker Engine sobre Linux no existe: su fallo se lee como «el
+# servicio de identidad no está disponible» y el portal del ERP no se puede abrir.
+#
+# ## Cómo se levanta
+#
+#   docker compose -f docker-compose.dev.yml up -d --build
+
+name: atlas-erp-vps
+
+x-common: &common
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options:
+      max-size: '10m'
+      max-file: '3'
+
+x-build: &build
+  image: atlas-erp-backend:dev
+  build:
+    context: .
+    dockerfile: Dockerfile.dev
+    cache_from: ['atlas-erp-backend:dev']
+
+services:
+  # -------------------------------------------------------------------------------------------
+  # Job ONE-SHOT: migra y siembra. Las dos órdenes son IDEMPOTENTES, y por eso corre en cada `up`.
+  #
+  #   `db:migrate:prod`      cada `.sql` está escrito para poder reaplicarse (IF NOT EXISTS y
+  #                          equivalentes). Y es esta ruta y no `db:migrate`: son dos caminos
+  #                          distintos que NO aplican lo mismo. El de desarrollo deja las 25 tablas
+  #                          `ad_*` en `public` porque un `SET search_path` de la contabilidad se
+  #                          filtra al siguiente archivo cuando todos comparten proceso; el de
+  #                          producción las deja en `atlas_accounting`, que es donde la rama de
+  #                          semillas las publica. Usar el otro aquí produce un ERP que arranca y no
+  #                          encuentra sus propias tablas.
+  #   `db:seed:pull --if-empty`  la guarda mira la MARCA `atlas_seed.load_log`, no el número de
+  #                          filas. La carga escribe esa marca; una base que ya la tiene no se toca.
+  #                          Contar filas NO servía: una base recién migrada ya trae datos propios
+  #                          de las migraciones, así que con «¿hay alguna tabla poblada?» el arranque
+  #                          se saltaba la siembra en una base virgen y dejaba el ERP sin catálogos.
+  # -------------------------------------------------------------------------------------------
+  migrate:
+    <<: *build
+    env_file: ['${ATLAS_ENV_DIR:-/opt/atlas/env}/erp.env']
+    command: >
+      sh -c "npm run db:migrate:prod &&
+             npx tsx scripts/db/seed-pull.ts pull --if-empty"
+    networks: [atlas_vps]
+    restart: 'no'
+
+  api:
+    <<: [*common, *build]
+    env_file: ['${ATLAS_ENV_DIR:-/opt/atlas/env}/erp.env']
+    ports:
+      # Bucle local: a esta API la llaman el front del ERP (por el rewrite de Next, dentro de la
+      # red) y AtlasBackend (por nombre de servicio). El navegador nunca la llama directamente.
+      - '127.0.0.1:3007:3007'
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      atlas_vps:
+        aliases: [erp]
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1:3007/api/v1/health >/dev/null || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+    stop_grace_period: 20s
+    deploy:
+      resources:
+        limits:
+          memory: 768m
+
+networks:
+  atlas_vps:
+    external: true
