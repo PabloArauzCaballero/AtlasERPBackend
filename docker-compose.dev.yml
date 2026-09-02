@@ -57,6 +57,10 @@ services:
   #                          se saltaba la siembra en una base virgen y dejaba el ERP sin catálogos.
   # -------------------------------------------------------------------------------------------
   migrate:
+    # `init: true` sustituye al `tini` que iba como ENTRYPOINT: ahora es un paquete opcional (el
+    # espejo de Debian puede no responder) y apuntar a un binario que quizá no está deja el
+    # contenedor sin arrancar. Docker trae su propio init y reparte SIGTERM igual.
+    init: true
     <<: *build
     env_file: ['${ATLAS_ENV_DIR:-/opt/atlas/env}/erp.env']
     command: >
@@ -66,6 +70,10 @@ services:
     restart: 'no'
 
   api:
+    # `init: true` sustituye al `tini` que iba como ENTRYPOINT: ahora es un paquete opcional (el
+    # espejo de Debian puede no responder) y apuntar a un binario que quizá no está deja el
+    # contenedor sin arrancar. Docker trae su propio init y reparte SIGTERM igual.
+    init: true
     <<: [*common, *build]
     env_file: ['${ATLAS_ENV_DIR:-/opt/atlas/env}/erp.env']
     ports:

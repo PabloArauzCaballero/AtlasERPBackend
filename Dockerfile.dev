@@ -43,9 +43,27 @@ WORKDIR /app
 
 # `postgresql-client` es el añadido propio de esta imagen: cuando la base se comporta de forma rara
 # en un VPS sin herramientas, tener un `psql` es la diferencia entre diagnosticar y adivinar.
-RUN apt-get update \
-  && apt-get install --no-install-recommends -y tini postgresql-client ca-certificates \
-  && rm -rf /var/lib/apt/lists/*
+#
+# `apt` es OPCIONAL, y esa es la corrección. Esta misma línea tumbó el build de AtlasBackend dos
+# veces con `exit code: 100`, y la causa no estaba en el Dockerfile: el demonio de Docker no tenía
+# DNS. Se arregla en el host, pero una imagen no debería quedarse sin arrancar porque un espejo de
+# Debian no conteste.
+#
+# Se comprobó qué hacía falta de verdad de los tres, y la respuesta es NINGUNO:
+#
+#   ca-certificates    Node trae su propio almacén de CA compilado dentro; verificado en la imagen
+#                      hermana, un `fetch` a https devuelve 200 sin el paquete.
+#   tini               lo aporta Docker con `init: true` en el compose, que no depende de
+#                      descargar nada. Por eso ya NO es el ENTRYPOINT.
+#   postgresql-client  diagnosticar la base desde dentro del contenedor, y sólo eso.
+#
+# `ForceIPv4` y los reintentos cubren los dos fallos de red más comunes de un VPS: IPv6 anunciado
+# sin ruta, y un espejo que contesta a medias.
+RUN printf 'Acquire::ForceIPv4 "true";\nAcquire::Retries "5";\n' > /etc/apt/apt.conf.d/99-atlas \
+  && (apt-get update \
+      && apt-get install --no-install-recommends -y tini postgresql-client ca-certificates \
+      && rm -rf /var/lib/apt/lists/* \
+      || echo 'AVISO: no se pudieron instalar los paquetes opcionales; la imagen funciona igual')
 
 COPY package*.json ./
 RUN --mount=type=cache,target=/root/.npm \
@@ -70,7 +88,9 @@ EXPOSE 3007
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
   CMD wget -qO- "http://127.0.0.1:${PORT:-3007}/api/v1/health" >/dev/null || exit 1
 
-ENTRYPOINT ["/usr/bin/tini", "--"]
+# Sin `ENTRYPOINT` con tini: ahora es un paquete opcional, y apuntar a un binario que puede no
+# estar deja el contenedor sin arrancar —que es peor que no tener init—. Lo pone el compose con
+# `init: true`, y hace el mismo trabajo.
 # `dist/src/main.js`, no `dist/main.js`. `tsconfig.build.json` incluye `src/**` Y `scripts/**`, así
 # que la raíz común que ve tsc es el repositorio y la salida conserva el prefijo `src/`. Con la ruta
 # corta la imagen construye sin un error y muere al arrancar con MODULE_NOT_FOUND.
