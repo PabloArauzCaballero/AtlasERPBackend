@@ -85,8 +85,12 @@ ENV NODE_ENV=development \
     API_GLOBAL_PREFIX=api/v1
 EXPOSE 3007
 
+# Con NODE, no con `wget`: `node:22-bookworm-slim` NO trae wget, así que el healthcheck fallaba
+# SIEMPRE —`wget: not found`, salida distinta de cero— y el contenedor quedaba marcado como
+# `unhealthy` aunque la API respondiera perfectamente. En Coolify eso se ve como «degraded», que
+# manda a buscar una avería que no existe. El intérprete de Node sí está, por definición.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
-  CMD wget -qO- "http://127.0.0.1:${PORT:-3007}/api/v1/health" >/dev/null || exit 1
+  CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3007)+'/api/v1/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" 
 
 # Sin `ENTRYPOINT` con tini: ahora es un paquete opcional, y apuntar a un binario que puede no
 # estar deja el contenedor sin arrancar —que es peor que no tener init—. Lo pone el compose con
