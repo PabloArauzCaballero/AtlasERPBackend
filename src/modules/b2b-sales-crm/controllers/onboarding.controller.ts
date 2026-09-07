@@ -1,4 +1,15 @@
-import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Req,
+  UnauthorizedException,
+} from '@nestjs/common';
+import type { Request } from 'express';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
@@ -27,9 +38,33 @@ import {
 } from '../b2b-sales-crm.schemas';
 import { B2BSalesCrmService } from '../services/b2b-sales-crm.service';
 
+/**
+ * Cookie del token de identidad upstream. Es la MISMA que emite el gateway de autenticación; aquí
+ * sólo se lee, igual que en `partner-onboarding-gateway.controller.ts`.
+ */
+const UPSTREAM_ACCESS_COOKIE = 'atlas_upstream_at';
+
 @Controller('b2b/onboarding')
 export class OnboardingController {
   constructor(private readonly service: B2BSalesCrmService) {}
+
+  /**
+   * El token con el que este backend habla con AtlasBackend en nombre de quien llama.
+   *
+   * Se exige explícitamente en vez de degradar a una llamada sin identificar: encolar un alta de
+   * acceso de forma anónima dejaría la petición sin autor, y el autor es medio expediente. El 401
+   * es honesto —la sesión del ERP existe, la del proveedor de identidad no—, y se resuelve
+   * volviendo a entrar.
+   */
+  private upstreamToken(req: Request): string {
+    const token = (req.cookies as Record<string, string> | undefined)?.[UPSTREAM_ACCESS_COOKIE];
+    if (!token) {
+      throw new UnauthorizedException(
+        'La sesión no lleva token de identidad de Atlas: vuelve a iniciar sesión para poder pedir un acceso de comercio.',
+      );
+    }
+    return token;
+  }
 
   /*
    * Lectura de la cola de onboarding. Faltaba: sin ella la pantalla no podia ofrecer un desplegable
@@ -98,12 +133,35 @@ export class OnboardingController {
     return this.service.createBranch(body);
   }
 
+  /*
+   * Registrar al usuario en el CRM Y pedir su acceso a Atlas, en un solo acto.
+   *
+   * La segunda mitad es la que faltaba: antes esta ruta creaba la membresía y la identidad con la
+   * que esa persona inicia sesión se tecleaba aparte, en el portal interno, sin nada que atara una
+   * cosa con la otra. Ver `B2BOnboardingService.createMerchantUser`.
+   */
   @Roles('OPERATIONS', 'ADMIN')
   @Post('merchant-users')
   createMerchantUser(
+    @Req() req: Request,
     @Body(new ZodValidationPipe(createMerchantUserSchema)) body: CreateMerchantUserDto,
   ): Promise<Record<string, unknown>> {
-    return this.service.createMerchantUser(body);
+    return this.service.createMerchantUser(body, this.upstreamToken(req));
+  }
+
+  /**
+   * Preguntar a Atlas en qué quedó el acceso pedido y enlazar la identidad si ya se concedió.
+   *
+   * Es el cierre del circuito: sin esta llamada `user_id` se queda nulo y el alcance del portal del
+   * comercio depende del enlace de respaldo por correo.
+   */
+  @Roles('OPERATIONS', 'ADMIN', 'COMMERCIAL_MANAGER', 'COMMERCIAL_EXECUTIVE')
+  @Patch('merchant-users/:merchantUserId/identity')
+  syncMerchantUserIdentity(
+    @Req() req: Request,
+    @Param('merchantUserId') merchantUserId: string,
+  ): Promise<Record<string, unknown>> {
+    return this.service.syncMerchantUserIdentity(merchantUserId, this.upstreamToken(req));
   }
 
   @Roles('OPERATIONS', 'LEGAL', 'ADMIN')

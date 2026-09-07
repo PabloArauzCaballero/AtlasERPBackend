@@ -114,3 +114,32 @@ export interface AtlasMerchantAuthResponse {
   refreshToken: string;
   user: AtlasMerchantUserProfile;
 }
+
+/**
+ * Lo que el ERP encola en la cola de altas de identidad de comercio de AtlasBackend.
+ *
+ * Sin contraseña y sin tenant a propósito: ver `AtlasIdentityClient.enqueueMerchantUserProvisioning`.
+ */
+export interface AtlasMerchantProvisioningRequestInput {
+  externalReference: string;
+  accountReference?: string;
+  accountName?: string;
+  branchName?: string;
+  email: string;
+  fullName: string;
+  phone?: string;
+  roleCode?: string;
+  requestedBy?: string;
+}
+
+/** La petición tal y como la devuelve AtlasBackend. `merchantUserId` sólo viene si ya se concedió. */
+export interface AtlasMerchantProvisioningRequest {
+  id: string;
+  status: 'pending' | 'provisioned' | 'rejected' | string;
+  email: string;
+  fullName: string;
+  merchantUserId: string | null;
+  rejectionReason: string | null;
+  requestedAt: string;
+  decidedAt: string | null;
+}

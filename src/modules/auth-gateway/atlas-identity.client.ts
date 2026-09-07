@@ -19,6 +19,8 @@ import type {
   AtlasInternalRoleListItem,
   AtlasInternalUserProfile,
   AtlasMerchantAuthResponse,
+  AtlasMerchantProvisioningRequest,
+  AtlasMerchantProvisioningRequestInput,
   AtlasMerchantUserProfile,
 } from './auth-gateway.types';
 import { isPinChallenge } from './auth-gateway.types';
@@ -109,7 +111,9 @@ export class AtlasIdentityClient {
 
       const payload = response.data;
       const data =
-        payload && typeof payload === 'object' && 'data' in payload ? ((payload as AtlasEnvelope<T>).data as T) : (payload as T);
+        payload && typeof payload === 'object' && 'data' in payload
+          ? ((payload as AtlasEnvelope<T>).data as T)
+          : (payload as T);
       return { data, cookies: parseSetCookies(response.headers['set-cookie']) };
     } catch (error) {
       throw this.translateError(error);
@@ -169,9 +173,13 @@ export class AtlasIdentityClient {
    * había corregido así; éste se había quedado atrás.
    */
   async login(email: string, password: string): Promise<AtlasInternalLoginOutcome> {
-    const { data, cookies } = await this.requestWithCookies<AtlasInternalLoginOutcome>('post', 'internal/auth/login', {
-      body: { email, password },
-    });
+    const { data, cookies } = await this.requestWithCookies<AtlasInternalLoginOutcome>(
+      'post',
+      'internal/auth/login',
+      {
+        body: { email, password },
+      },
+    );
     // Un desafío no trae ni debe traer tokens: se devuelve tal cual para que el llamador lo canjee.
     if (isPinChallenge(data)) return data;
     return this.withInternalSessionTokens(data, cookies);
@@ -179,22 +187,33 @@ export class AtlasIdentityClient {
 
   /** Segundo paso del login interno: `challengeToken` + PIN del correo, a cambio de la sesión. */
   async loginPin(challengeToken: string, pin: string): Promise<AtlasInternalAuthResponse> {
-    const { data, cookies } = await this.requestWithCookies<AtlasInternalAuthResponse>('post', 'internal/auth/login/pin', {
-      body: { challengeToken, pin },
-    });
+    const { data, cookies } = await this.requestWithCookies<AtlasInternalAuthResponse>(
+      'post',
+      'internal/auth/login/pin',
+      {
+        body: { challengeToken, pin },
+      },
+    );
     return this.withInternalSessionTokens(data, cookies);
   }
 
   async refresh(refreshToken: string): Promise<AtlasInternalAuthResponse> {
-    const { data, cookies } = await this.requestWithCookies<AtlasInternalAuthResponse>('post', 'internal/auth/refresh', {
-      body: { refreshToken },
-    });
+    const { data, cookies } = await this.requestWithCookies<AtlasInternalAuthResponse>(
+      'post',
+      'internal/auth/refresh',
+      {
+        body: { refreshToken },
+      },
+    );
     return this.withInternalSessionTokens(data, cookies);
   }
 
   /** Primer paso del cambio de contraseña del usuario autenticado: valida la actual y manda el código. */
   requestPasswordChange(accessToken: string, currentPassword: string): Promise<AtlasPinChallenge> {
-    return this.request('post', 'auth/password/change/request', { body: { currentPassword }, accessToken });
+    return this.request('post', 'auth/password/change/request', {
+      body: { currentPassword },
+      accessToken,
+    });
   }
 
   /** Segundo paso: canjea el desafío y el código por la contraseña nueva. */
@@ -249,25 +268,50 @@ export class AtlasIdentityClient {
   // capacidad sobre `/internal/*`.
 
   async merchantLogin(email: string, password: string): Promise<AtlasMerchantAuthResponse> {
-    const { data, cookies } = await this.requestWithCookies<Omit<AtlasMerchantAuthResponse, 'accessToken' | 'refreshToken'>>(
-      'post',
-      'merchant/auth/login',
-      { body: { email, password } },
-    );
+    const { data, cookies } = await this.requestWithCookies<
+      Omit<AtlasMerchantAuthResponse, 'accessToken' | 'refreshToken'>
+    >('post', 'merchant/auth/login', { body: { email, password } });
     return this.withSessionTokens(data, cookies);
   }
 
   async merchantRefresh(refreshToken: string): Promise<AtlasMerchantAuthResponse> {
-    const { data, cookies } = await this.requestWithCookies<Omit<AtlasMerchantAuthResponse, 'accessToken' | 'refreshToken'>>(
-      'post',
-      'merchant/auth/refresh',
-      { body: { refreshToken } },
-    );
+    const { data, cookies } = await this.requestWithCookies<
+      Omit<AtlasMerchantAuthResponse, 'accessToken' | 'refreshToken'>
+    >('post', 'merchant/auth/refresh', { body: { refreshToken } });
     return this.withSessionTokens(data, cookies);
   }
 
   merchantMe(accessToken: string): Promise<AtlasMerchantUserProfile> {
     return this.request('get', 'merchant/auth/me', { accessToken });
+  }
+
+  /**
+   * Encolar en Atlas el alta de identidad de un usuario de comercio.
+   *
+   * El ERP PIDE; Atlas CONCEDE. Aquí no viaja ninguna contraseña —la genera Atlas al aprobar y se
+   * entrega una sola vez— ni ningún `tenantId` —sale del token—. `externalReference` es el id de la
+   * fila del CRM y hace la llamada idempotente: reintentar tras un corte de red no duplica la
+   * petición, que es el caso normal y no el raro.
+   */
+  enqueueMerchantUserProvisioning(
+    accessToken: string,
+    body: AtlasMerchantProvisioningRequestInput,
+  ): Promise<AtlasMerchantProvisioningRequest> {
+    return this.request('post', 'merchant/users/provisioning-requests', { body, accessToken });
+  }
+
+  /** En qué quedó la petición: `pending`, `provisioned` (con `merchantUserId`) o `rejected`. */
+  getMerchantUserProvisioning(
+    accessToken: string,
+    requestId: string,
+  ): Promise<AtlasMerchantProvisioningRequest> {
+    return this.request(
+      'get',
+      `merchant/users/provisioning-requests/${encodeURIComponent(requestId)}`,
+      {
+        accessToken,
+      },
+    );
   }
 
   merchantLogout(refreshToken: string, allDevices: boolean): Promise<{ loggedOut: boolean }> {
@@ -286,21 +330,25 @@ export class AtlasIdentityClient {
     const accessToken = data.accessToken ?? cookies[ATLAS_ACCESS_COOKIE];
     const refreshToken = data.refreshToken ?? cookies[ATLAS_REFRESH_COOKIE];
     if (!accessToken || !refreshToken) {
-      throw new UnauthorizedException('El servicio de identidad no devolvió una sesión interna utilizable.');
+      throw new UnauthorizedException(
+        'El servicio de identidad no devolvió una sesión interna utilizable.',
+      );
     }
     return { ...data, accessToken, refreshToken };
   }
 
   private withSessionTokens(
-    data: Omit<AtlasMerchantAuthResponse, 'accessToken' | 'refreshToken'> & Partial<AtlasMerchantAuthResponse>,
+    data: Omit<AtlasMerchantAuthResponse, 'accessToken' | 'refreshToken'> &
+      Partial<AtlasMerchantAuthResponse>,
     cookies: Record<string, string>,
   ): AtlasMerchantAuthResponse {
     const accessToken = data.accessToken ?? cookies[ATLAS_ACCESS_COOKIE];
     const refreshToken = data.refreshToken ?? cookies[ATLAS_REFRESH_COOKIE];
     if (!accessToken || !refreshToken) {
-      throw new UnauthorizedException('El servicio de identidad no devolvió una sesión de comercio utilizable.');
+      throw new UnauthorizedException(
+        'El servicio de identidad no devolvió una sesión de comercio utilizable.',
+      );
     }
     return { accessToken, refreshToken, user: data.user };
   }
-
 }

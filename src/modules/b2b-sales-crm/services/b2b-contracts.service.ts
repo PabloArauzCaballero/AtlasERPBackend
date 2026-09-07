@@ -163,15 +163,20 @@ export class B2BContractsService extends B2BSalesCrmUseCaseBase {
    * pasa cuando llega la venta.
    */
   async listMdrRules(contractVersionId?: string): Promise<Record<string, unknown>[]> {
-    this.logger.infoContext(B2BContractsService.name, 'B2B CRM use case started', { useCase: 'listMdrRules' });
+    this.logger.infoContext(B2BContractsService.name, 'B2B CRM use case started', {
+      useCase: 'listMdrRules',
+    });
     const rules = await this.repository.mdrRules.findAll({
       where: (contractVersionId ? { contractVersionId } : {}) as WhereOptions,
       order: [['created_at', 'DESC']],
       limit: 200,
     });
 
-    const especificidad = (regla: { branchId: string | null; productCategory: string | null; riskSegment: string | null }) =>
-      (regla.branchId ? 4 : 0) + (regla.productCategory ? 2 : 0) + (regla.riskSegment ? 1 : 0);
+    const especificidad = (regla: {
+      branchId: string | null;
+      productCategory: string | null;
+      riskSegment: string | null;
+    }) => (regla.branchId ? 4 : 0) + (regla.productCategory ? 2 : 0) + (regla.riskSegment ? 1 : 0);
 
     return rules
       .map((regla) => ({
@@ -191,9 +196,15 @@ export class B2BContractsService extends B2BSalesCrmUseCaseBase {
   }
 
   async createMdrRule(input: CreateMdrRuleDto): Promise<Record<string, unknown>> {
-    this.logger.infoContext(B2BContractsService.name, 'B2B CRM use case started', { useCase: 'createMdrRule' });
+    this.logger.infoContext(B2BContractsService.name, 'B2B CRM use case started', {
+      useCase: 'createMdrRule',
+    });
 
-    if (input.minFeeAmount !== undefined && input.maxFeeAmount !== undefined && input.minFeeAmount > input.maxFeeAmount) {
+    if (
+      input.minFeeAmount !== undefined &&
+      input.maxFeeAmount !== undefined &&
+      input.minFeeAmount > input.maxFeeAmount
+    ) {
       throw new ConflictException('El piso de la comisión no puede superar su techo.');
     }
 
@@ -221,7 +232,9 @@ export class B2BContractsService extends B2BSalesCrmUseCaseBase {
    * se crea otra regla; para dejar de cobrar asi, se desactiva esta.
    */
   async updateMdrRule(ruleId: string, input: UpdateMdrRuleDto): Promise<Record<string, unknown>> {
-    this.logger.infoContext(B2BContractsService.name, 'B2B CRM use case started', { useCase: 'updateMdrRule' });
+    this.logger.infoContext(B2BContractsService.name, 'B2B CRM use case started', {
+      useCase: 'updateMdrRule',
+    });
     const regla = await this.repository.mdrRules.findByPk(ruleId);
     if (!regla) throw new NotFoundException('Regla de comisión no encontrada.');
 

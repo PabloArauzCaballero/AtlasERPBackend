@@ -40,6 +40,7 @@ import { MerchantAccountingBridgeService } from './services/merchant-accounting-
 import { BusinessActionLogsModule } from '../business-action-logs/business-action-logs.module';
 import { AccountingModule } from '../accounting/accounting.module';
 import { PortalModule } from '../portal/portal.module';
+import { AuthGatewayModule } from '../auth-gateway/auth-gateway.module';
 
 @Module({
   imports: [
@@ -48,6 +49,8 @@ import { PortalModule } from '../portal/portal.module';
     AccountingModule,
     /* Para que el canal del comercio no pueda registrar compras de otra cuenta. */
     PortalModule,
+    /* Para encolar en Atlas el alta de identidad del usuario de comercio: el ERP pide, Atlas concede. */
+    AuthGatewayModule,
   ],
   controllers: [
     AccountTagsController,

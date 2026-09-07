@@ -740,6 +740,11 @@ export class MerchantUserModel extends Model {
   @Default('ACTIVE')
   @Column(DataType.STRING(40))
   declare status: string;
+
+  // La petición de alta de identidad encolada en AtlasBackend. Texto, por lo mismo que `userId`:
+  // el identificador del otro lado es opaco (bigints allí, uuid en las fixtures de aquí).
+  @Column({ type: DataType.STRING(120), field: 'identity_request_id' })
+  declare identityRequestId: string | null;
 }
 
 @Table({ schema: SALES_SCHEMA, tableName: 'merchant_onboarding_cases', timestamps: false })

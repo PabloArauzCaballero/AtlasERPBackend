@@ -210,7 +210,10 @@ export class B2BSalesCrmService {
     return this.onboardingService.createOnboardingCase(input);
   }
 
-  listBranches(filtro: { accountId?: string | undefined; status?: string | undefined }): Promise<Record<string, unknown>[]> {
+  listBranches(filtro: {
+    accountId?: string | undefined;
+    status?: string | undefined;
+  }): Promise<Record<string, unknown>[]> {
     return this.onboardingService.listBranches(filtro);
   }
 
@@ -226,8 +229,18 @@ export class B2BSalesCrmService {
     return this.onboardingService.setBranchStatus(branchId, input);
   }
 
-  createMerchantUser(input: CreateMerchantUserDto): Promise<Record<string, unknown>> {
-    return this.onboardingService.createMerchantUser(input);
+  createMerchantUser(
+    input: CreateMerchantUserDto,
+    accessToken: string,
+  ): Promise<Record<string, unknown>> {
+    return this.onboardingService.createMerchantUser(input, accessToken);
+  }
+
+  syncMerchantUserIdentity(
+    merchantUserId: string,
+    accessToken: string,
+  ): Promise<Record<string, unknown>> {
+    return this.onboardingService.syncMerchantUserIdentity(merchantUserId, accessToken);
   }
 
   completeChecklistItem(
@@ -242,7 +255,9 @@ export class B2BSalesCrmService {
     return this.onboardingService.activateOnboardingCase(onboardingCaseId);
   }
 
-  registerPurchase(input: RegisterPurchaseDto & { merchantAccountId: string }): Promise<Record<string, unknown>> {
+  registerPurchase(
+    input: RegisterPurchaseDto & { merchantAccountId: string },
+  ): Promise<Record<string, unknown>> {
     return this.bnplBillingService.registerPurchase(input);
   }
 

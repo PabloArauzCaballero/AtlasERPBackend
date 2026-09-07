@@ -68,7 +68,7 @@ export class AtlasPartnerClient {
       // aquí para que el portal reciba el contrato del dominio y no el sobre de otro servicio.
       const payload = response.data;
       return payload && typeof payload === 'object' && 'data' in payload
-        ? ((payload as { data: T }).data)
+        ? (payload as { data: T }).data
         : (payload as T);
     } catch (error) {
       throw this.translateError(error);
@@ -112,7 +112,8 @@ export class AtlasPartnerClient {
 
       return {
         buffer: Buffer.from(response.data),
-        contentType: (response.headers['content-type'] as string | undefined) ?? 'application/octet-stream',
+        contentType:
+          (response.headers['content-type'] as string | undefined) ?? 'application/octet-stream',
       };
     } catch (error) {
       throw this.translateBinaryError(error);
@@ -153,7 +154,8 @@ export class AtlasPartnerClient {
     const axiosError = error as AxiosError<{ error?: { message?: string }; message?: string }>;
     const status = axiosError.response?.status;
     const body = axiosError.response?.data;
-    const message = body?.error?.message ?? body?.message ?? 'El servicio del expediente no respondió.';
+    const message =
+      body?.error?.message ?? body?.message ?? 'El servicio del expediente no respondió.';
 
     switch (status) {
       case 400:

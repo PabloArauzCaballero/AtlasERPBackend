@@ -13,10 +13,15 @@ import type {
 } from '../b2b-sales-crm.dtos';
 import { B2BSalesCrmRepository } from '../repositories/b2b-sales-crm.repository';
 import { B2BSalesCrmUseCaseBase } from './b2b-sales-crm-use-case.base';
+import { AtlasIdentityClient } from '../../auth-gateway/atlas-identity.client';
 
 @Injectable()
 export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
-  constructor(repository: B2BSalesCrmRepository, logger: PinoLoggerService) {
+  constructor(
+    repository: B2BSalesCrmRepository,
+    logger: PinoLoggerService,
+    private readonly identityClient: AtlasIdentityClient,
+  ) {
     super(repository, logger);
   }
 
@@ -179,7 +184,10 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
    * de donde salieron. Al desactivarla se le quita ademas la capacidad de originar BNPL, que es lo
    * que de verdad significa «cerrada» para el negocio.
    */
-  async setBranchStatus(branchId: string, input: SetBranchStatusDto): Promise<Record<string, unknown>> {
+  async setBranchStatus(
+    branchId: string,
+    input: SetBranchStatusDto,
+  ): Promise<Record<string, unknown>> {
     this.logger.infoContext(B2BOnboardingService.name, 'B2B CRM use case started', {
       useCase: 'setBranchStatus',
     });
@@ -196,8 +204,13 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
   }
 
   private describeBranch(branch: {
-    id: string; accountId: string; name: string; city: string | null;
-    address: string | null; status: string; canOriginateBnpl: boolean;
+    id: string;
+    accountId: string;
+    name: string;
+    city: string | null;
+    address: string | null;
+    status: string;
+    canOriginateBnpl: boolean;
   }): Record<string, unknown> {
     return {
       id: branch.id,
@@ -263,7 +276,36 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
     };
   }
 
-  async createMerchantUser(input: CreateMerchantUserDto): Promise<Record<string, unknown>> {
+  /**
+   * Registrar a una persona como usuario de un comercio, y PEDIR su acceso.
+   *
+   * ## Por qué son dos pasos y no uno
+   *
+   * Esta fila responde «de qué comercio es y qué puede tocar». Quién es y cómo inicia sesión vive
+   * en AtlasBackend (`iam.merchant_users`), y esa parte NO la escribe el ERP: la concede el
+   * personal interno de Atlas, que es quien responde de a quién se le entrega una credencial.
+   *
+   * Antes las dos altas se hacían por separado y sin relación —esta aquí, la identidad tecleada a
+   * mano en el portal interno—, y nada garantizaba que el correo coincidiera. Cuando no coincidía,
+   * `user_id` se quedaba nulo para siempre: la persona podía iniciar sesión y el portal del
+   * comercio le respondía 403, con la causa a dos sistemas de distancia. Ahora el ERP encola la
+   * petición y guarda su identificador, así que siempre se puede responder en qué quedó.
+   *
+   * ## Nace INVITED, no ACTIVE
+   *
+   * Porque todavía no puede entrar: falta que Atlas conceda la identidad. Marcarla ACTIVE de salida
+   * era prometer un acceso que no existía.
+   *
+   * ## Si la cola no responde, el alta NO se guarda
+   *
+   * La fila del CRM y la petición van juntas o no van. Guardar sólo la fila devolvería exactamente
+   * el estado que este cambio elimina: un usuario de comercio del que nadie pidió el acceso, que
+   * nadie va a conceder y que en la pantalla se ve idéntico a uno en trámite.
+   */
+  async createMerchantUser(
+    input: CreateMerchantUserDto,
+    accessToken: string,
+  ): Promise<Record<string, unknown>> {
     this.logger.infoContext(B2BOnboardingService.name, 'B2B CRM use case started', {
       useCase: 'createMerchantUser',
     });
@@ -273,6 +315,7 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
       throw new NotFoundException('Cuenta B2B no encontrada.');
     }
 
+    let branchName: string | null = null;
     if (input.branchId) {
       const branch = await this.repository.branches.findOne({
         where: { id: input.branchId, accountId: input.accountId },
@@ -281,6 +324,7 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
       if (!branch) {
         throw new NotFoundException('Sucursal no encontrada para la cuenta indicada.');
       }
+      branchName = branch.name;
     }
 
     const existingUser = await this.repository.merchantUsers.findOne({
@@ -291,23 +335,97 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
       throw new ConflictException('Ya existe un usuario comercio con ese email en la cuenta.');
     }
 
-    const user = await this.repository.merchantUsers.create({
-      accountId: input.accountId,
-      branchId: input.branchId ?? null,
-      email: input.email,
-      fullName: input.fullName,
-      roleCode: input.roleCode,
-      status: 'ACTIVE',
+    return this.repository.transaction(async (transaction) => {
+      const user = await this.repository.merchantUsers.create(
+        {
+          accountId: input.accountId,
+          branchId: input.branchId ?? null,
+          email: input.email,
+          fullName: input.fullName,
+          roleCode: input.roleCode,
+          status: 'INVITED',
+        },
+        { transaction },
+      );
+
+      // Dentro de la transacción a propósito: si Atlas rechaza la petición —correo ya tomado, otra
+      // pendiente para la misma persona— la fila del CRM se deshace y el error que ve el ejecutivo
+      // comercial es el de Atlas, que es el que explica qué corregir.
+      const request = await this.identityClient.enqueueMerchantUserProvisioning(accessToken, {
+        externalReference: user.id,
+        accountReference: user.accountId,
+        accountName: account.legalName ?? account.tradeName ?? undefined,
+        email: user.email,
+        fullName: user.fullName,
+        roleCode: user.roleCode,
+        ...(branchName ? { branchName } : {}),
+      });
+
+      await user.update({ identityRequestId: request.id }, { transaction });
+
+      return {
+        id: user.id,
+        accountId: user.accountId,
+        branchId: user.branchId,
+        email: user.email,
+        fullName: user.fullName,
+        roleCode: user.roleCode,
+        status: user.status,
+        identityRequestId: request.id,
+        identityStatus: request.status,
+      };
     });
+  }
+
+  /**
+   * Reconciliar el acceso: leer en qué quedó la petición y, si ya se concedió, enlazar la identidad.
+   *
+   * Es lo que cierra el circuito. AtlasBackend no llama de vuelta al ERP —no hay ninguna entrada
+   * pensada para eso y abrirla por esto sólo añadiría una superficie más que proteger—, así que el
+   * ERP pregunta. Escribir `user_id` es lo que hace que el alcance del portal del comercio deje de
+   * depender del enlace de respaldo por correo.
+   *
+   * Es idempotente: llamarla dos veces sobre una ya enlazada no cambia nada.
+   */
+  async syncMerchantUserIdentity(
+    merchantUserId: string,
+    accessToken: string,
+  ): Promise<Record<string, unknown>> {
+    this.logger.infoContext(B2BOnboardingService.name, 'B2B CRM use case started', {
+      useCase: 'syncMerchantUserIdentity',
+    });
+    const user = await this.repository.merchantUsers.findByPk(merchantUserId);
+
+    if (!user) {
+      throw new NotFoundException('Usuario de comercio no encontrado.');
+    }
+
+    if (!user.identityRequestId) {
+      throw new ConflictException(
+        'Este usuario no tiene una petición de acceso encolada: se registró antes de que el alta pasara por la cola.',
+      );
+    }
+
+    const request = await this.identityClient.getMerchantUserProvisioning(
+      accessToken,
+      user.identityRequestId,
+    );
+
+    if (request.status === 'provisioned' && request.merchantUserId) {
+      await user.update({ userId: request.merchantUserId, status: 'ACTIVE' });
+    } else if (request.status === 'rejected') {
+      // No se borra la fila: el rechazo trae motivo y el ejecutivo tiene que poder leerlo, corregir
+      // y volver a pedirlo. Borrarla dejaría el rechazo sin dónde consultarse.
+      await user.update({ status: 'DISABLED' });
+    }
 
     return {
       id: user.id,
-      accountId: user.accountId,
-      branchId: user.branchId,
-      email: user.email,
-      fullName: user.fullName,
-      roleCode: user.roleCode,
       status: user.status,
+      userId: user.userId,
+      identityRequestId: user.identityRequestId,
+      identityStatus: request.status,
+      rejectionReason: request.rejectionReason,
     };
   }
 
