@@ -221,7 +221,8 @@ export class PortalScopeService {
     transaction?: Transaction,
   ): Promise<AdvertiserUserModel[]> {
     const identityClauses: unknown[] = [];
-    if (isUsableIdentityReference(scope.userId)) identityClauses.push({ userId: scope.userId.trim() });
+    if (isUsableIdentityReference(scope.userId))
+      identityClauses.push({ userId: scope.userId.trim() });
     if (scope.email) {
       identityClauses.push(sequelizeWhere(fn('lower', fn('btrim', col('email'))), scope.email));
     }

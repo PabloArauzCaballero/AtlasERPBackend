@@ -41,9 +41,9 @@ Dos formas, en este orden de precedencia (ver `src/database/seed-source.ts`):
 
 | Comando                  | Qué hace                                                                     |
 | ------------------------ | ---------------------------------------------------------------------------- |
-| `npm run db:seed:pull`   | Trae el conjunto publicado. **Destructivo** sobre las tablas del manifiesto.  |
-| `npm run db:seed:status` | Compara lo publicado con lo que hay aquí. No escribe nada.                    |
-| `npm run db:seed:demo`   | Sin cambios: genera operación transaccional de demostración (no es semilla).  |
+| `npm run db:seed:pull`   | Trae el conjunto publicado. **Destructivo** sobre las tablas del manifiesto. |
+| `npm run db:seed:status` | Compara lo publicado con lo que hay aquí. No escribe nada.                   |
+| `npm run db:seed:demo`   | Sin cambios: genera operación transaccional de demostración (no es semilla). |
 
 ## Cómo carga
 

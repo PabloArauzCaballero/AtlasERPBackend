@@ -475,7 +475,10 @@ export class AdsDeliveryService {
       );
       return input.audience;
     }
-    return projectMerchantAudience({ facts, ...(input.audience ? { declared: input.audience } : {}) });
+    return projectMerchantAudience({
+      facts,
+      ...(input.audience ? { declared: input.audience } : {}),
+    });
   }
 
   private pickWinner(ads: AdModel[]): AdModel | null {

@@ -71,8 +71,14 @@ describe('Identidad del comercio en el gateway', () => {
         merchantRefresh: jest.fn().mockResolvedValue(auth),
         merchantLogout: jest.fn().mockResolvedValue({ loggedOut: true }),
       };
-      const tokenIssuer = { issue: jest.fn().mockReturnValue({ accessToken: 'erp-at', expiresIn: '15m' }) };
-      return { service: new AuthGatewayService(identityClient as never, tokenIssuer as never), identityClient, tokenIssuer };
+      const tokenIssuer = {
+        issue: jest.fn().mockReturnValue({ accessToken: 'erp-at', expiresIn: '15m' }),
+      };
+      return {
+        service: new AuthGatewayService(identityClient as never, tokenIssuer as never),
+        identityClient,
+        tokenIssuer,
+      };
     }
 
     it('emite el token de negocio con MERCHANT_ADMIN y el sub del comercio', async () => {
@@ -90,9 +96,14 @@ describe('Identidad del comercio en el gateway', () => {
     });
 
     it('rechaza la sesión si el rol upstream no se puede traducir', async () => {
-      const { service, tokenIssuer } = build({ ...merchantAuth, user: { ...merchantAuth.user, role: 'otro' as never } });
+      const { service, tokenIssuer } = build({
+        ...merchantAuth,
+        user: { ...merchantAuth.user, role: 'otro' as never },
+      });
 
-      await expect(service.merchantLogin('comercio@alfa.test', 'x')).rejects.toThrow(UnauthorizedException);
+      await expect(service.merchantLogin('comercio@alfa.test', 'x')).rejects.toThrow(
+        UnauthorizedException,
+      );
       // Una sesión sin roles parecería funcionar y fallaría endpoint a endpoint: no se emite.
       expect(tokenIssuer.issue).not.toHaveBeenCalled();
     });
@@ -119,7 +130,10 @@ describe('Identidad del comercio en el gateway', () => {
         'atlas_internal_access=abc.def; Path=/; HttpOnly; SameSite=Lax',
         'atlas_internal_refresh=rt-999; Path=/; HttpOnly; Max-Age=1209600',
       ]);
-      expect(cookies).toEqual({ atlas_internal_access: 'abc.def', atlas_internal_refresh: 'rt-999' });
+      expect(cookies).toEqual({
+        atlas_internal_access: 'abc.def',
+        atlas_internal_refresh: 'rt-999',
+      });
     });
 
     it('tolera la ausencia de cabecera y las entradas mal formadas', () => {

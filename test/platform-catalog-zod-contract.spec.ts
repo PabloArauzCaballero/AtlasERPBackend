@@ -1,7 +1,10 @@
 import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { z } from 'zod';
 import { ZodValidationPipe } from '../src/common/pipes/zod-validation.pipe';
-import { contractFromZod, contractsOfHandler } from '../src/modules/platform-catalog/zod-contract.util';
+import {
+  contractFromZod,
+  contractsOfHandler,
+} from '../src/modules/platform-catalog/zod-contract.util';
 
 /**
  * El manifiesto de bloque publica el CONTRATO de cada endpoint leyéndolo del `ZodValidationPipe`
@@ -100,8 +103,7 @@ class ProbeController {
 
 describe('contractsOfHandler', () => {
   const controller = ProbeController.prototype as object;
-  const handler = (name: string): object =>
-    (controller as Record<string, unknown>)[name] as object;
+  const handler = (name: string): object => (controller as Record<string, unknown>)[name] as object;
 
   it('separa el contrato por origen del dato', () => {
     const contracts = contractsOfHandler(handler('record'), controller);
@@ -136,6 +138,10 @@ describe('contractsOfHandler', () => {
    * forma con la que una ruta sin Zod diría «no lo sé»: son cosas distintas.
    */
   it('una ruta sin pipes no inventa contrato', () => {
-    expect(contractsOfHandler(handler('list'), controller)).toEqual({ body: {}, query: {}, path: {} });
+    expect(contractsOfHandler(handler('list'), controller)).toEqual({
+      body: {},
+      query: {},
+      path: {},
+    });
   });
 });

@@ -28,8 +28,34 @@ interface ColumnRow {
   isPrimaryKey: boolean;
 }
 
-const PII_HINTS = ['email', 'phone', 'msisdn', 'document', 'dni', 'nit', 'address', 'birth', 'full_name', 'first_name', 'last_name', 'ip_address', 'contact'];
-const FINANCIAL_HINTS = ['amount', 'balance', 'limit', 'price', 'currency', 'interest', 'payment', 'invoice', 'debit', 'credit', 'tax'];
+const PII_HINTS = [
+  'email',
+  'phone',
+  'msisdn',
+  'document',
+  'dni',
+  'nit',
+  'address',
+  'birth',
+  'full_name',
+  'first_name',
+  'last_name',
+  'ip_address',
+  'contact',
+];
+const FINANCIAL_HINTS = [
+  'amount',
+  'balance',
+  'limit',
+  'price',
+  'currency',
+  'interest',
+  'payment',
+  'invoice',
+  'debit',
+  'credit',
+  'tax',
+];
 const RISK_HINTS = ['score', 'risk', 'decision', 'policy', 'rule', 'fraud', 'threshold', 'outcome'];
 const AUDIT_HINTS = ['audit', 'log', 'event', 'trace', 'approval', 'journal', 'ledger', 'period'];
 
@@ -92,11 +118,15 @@ function describe(columns: readonly ColumnRow[]): CatalogManifestDataEntity {
     entityName: humanize(tableName),
     module: SCHEMA_MODULES[first.schemaName] ?? 'sin-clasificar',
     columnCount: columns.length,
-    primaryKeyColumns: columns.filter((column) => column.isPrimaryKey).map((column) => column.columnName),
+    primaryKeyColumns: columns
+      .filter((column) => column.isPrimaryKey)
+      .map((column) => column.columnName),
     containsPii: matchesAny(names, PII_HINTS),
-    containsFinancialData: matchesAny(names, FINANCIAL_HINTS) || first.schemaName === 'atlas_accounting',
+    containsFinancialData:
+      matchesAny(names, FINANCIAL_HINTS) || first.schemaName === 'atlas_accounting',
     containsRiskData: matchesAny(names, RISK_HINTS),
-    isAuditCritical: matchesAny([tableName.toLowerCase()], AUDIT_HINTS) || first.schemaName === 'atlas_accounting',
+    isAuditCritical:
+      matchesAny([tableName.toLowerCase()], AUDIT_HINTS) || first.schemaName === 'atlas_accounting',
     businessPurpose: `Tabla \`${first.schemaName}.${tableName}\` con ${columns.length} columnas. Propósito inferido del esquema: pendiente de revisión humana.`,
   };
 }

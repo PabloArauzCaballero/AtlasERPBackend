@@ -35,13 +35,27 @@ export class CrmSegmentsController {
   constructor(private readonly service: CrmSegmentsService) {}
 
   /** Qué puede mirar un segmento de cada sujeto. Es lo que llena el desplegable del alta. */
-  @Roles('COMMERCIAL_EXECUTIVE', 'COMMERCIAL_MANAGER', 'FINANCE', 'COLLECTIONS', 'OPERATIONS', 'ADMIN')
+  @Roles(
+    'COMMERCIAL_EXECUTIVE',
+    'COMMERCIAL_MANAGER',
+    'FINANCE',
+    'COLLECTIONS',
+    'OPERATIONS',
+    'ADMIN',
+  )
   @Get('vocabulary')
   vocabulary() {
     return segmentVocabulary();
   }
 
-  @Roles('COMMERCIAL_EXECUTIVE', 'COMMERCIAL_MANAGER', 'FINANCE', 'COLLECTIONS', 'OPERATIONS', 'ADMIN')
+  @Roles(
+    'COMMERCIAL_EXECUTIVE',
+    'COMMERCIAL_MANAGER',
+    'FINANCE',
+    'COLLECTIONS',
+    'OPERATIONS',
+    'ADMIN',
+  )
   @Get()
   list(
     @Query(new ZodValidationPipe(listCrmSegmentsQuerySchema)) query: ListCrmSegmentsQueryDto,
@@ -49,7 +63,14 @@ export class CrmSegmentsController {
     return this.service.list(query);
   }
 
-  @Roles('COMMERCIAL_EXECUTIVE', 'COMMERCIAL_MANAGER', 'FINANCE', 'COLLECTIONS', 'OPERATIONS', 'ADMIN')
+  @Roles(
+    'COMMERCIAL_EXECUTIVE',
+    'COMMERCIAL_MANAGER',
+    'FINANCE',
+    'COLLECTIONS',
+    'OPERATIONS',
+    'ADMIN',
+  )
   @Get(':id')
   get(@Param(new ZodValidationPipe(idParamsSchema)) params: IdParamsDto): Promise<CrmSegmentView> {
     return this.service.get(params.id);

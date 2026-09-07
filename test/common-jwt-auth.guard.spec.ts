@@ -70,7 +70,14 @@ describe('JwtAuthGuard local testing bypass', () => {
     const { JwtService } = await import('@nestjs/jwt');
 
     const token = new JwtService({ secret: env.JWT_ACCESS_SECRET }).sign(
-      { sub: '9002', roleCode: 'MERCHANT_ADMIN', role: 'MERCHANT_ADMIN', roles: ['MERCHANT_ADMIN'], email: 'comercio@atlas.test', tokenType: 'access' },
+      {
+        sub: '9002',
+        roleCode: 'MERCHANT_ADMIN',
+        role: 'MERCHANT_ADMIN',
+        roles: ['MERCHANT_ADMIN'],
+        email: 'comercio@atlas.test',
+        tokenType: 'access',
+      },
       { expiresIn: '5m', issuer: env.JWT_ACCESS_ISSUER, audience: env.JWT_ACCESS_AUDIENCE },
     );
 

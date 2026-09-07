@@ -26,7 +26,10 @@ const seccion = z.object({
   title: z.string().min(1).max(160),
   description: z.string().max(1_000).optional(),
   pageBreakBefore: z.boolean().optional(),
-  fields: z.array(z.object({ label: z.string().min(1).max(120), value: celda })).max(60).optional(),
+  fields: z
+    .array(z.object({ label: z.string().min(1).max(120), value: celda }))
+    .max(60)
+    .optional(),
   table: tabla.optional(),
 });
 

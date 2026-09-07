@@ -44,7 +44,11 @@ export class RouteInventoryService {
         if (verb === undefined) continue;
 
         const method = verbName(verb);
-        const fullPath = joinPath(routePrefix, controllerPath, normalize(Reflect.getMetadata(PATH_METADATA, handler)));
+        const fullPath = joinPath(
+          routePrefix,
+          controllerPath,
+          normalize(Reflect.getMetadata(PATH_METADATA, handler)),
+        );
         // Handler primero, clase después: el mismo orden de resolución que usa `RolesGuard`.
         // Al revés, una ruta que restringe más que su controlador se catalogaría como si
         // restringiera menos, que es la dirección peligrosa del error.

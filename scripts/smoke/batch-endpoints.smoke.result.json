@@ -9,9 +9,7 @@
       "name": "health",
       "method": "GET",
       "path": "/health",
-      "expectedStatuses": [
-        200
-      ],
+      "expectedStatuses": [200],
       "actualStatus": 200,
       "ok": true,
       "durationMs": 33,
@@ -21,9 +19,7 @@
       "name": "ready",
       "method": "GET",
       "path": "/ready",
-      "expectedStatuses": [
-        200
-      ],
+      "expectedStatuses": [200],
       "actualStatus": 200,
       "ok": true,
       "durationMs": 4,
@@ -33,9 +29,7 @@
       "name": "b2b accounts bulk validation",
       "method": "POST",
       "path": "/b2b/accounts/bulk",
-      "expectedStatuses": [
-        400
-      ],
+      "expectedStatuses": [400],
       "actualStatus": 400,
       "ok": true,
       "durationMs": 6,
@@ -45,9 +39,7 @@
       "name": "accounting documents bulk validation",
       "method": "POST",
       "path": "/accounting/documents/bulk",
-      "expectedStatuses": [
-        400
-      ],
+      "expectedStatuses": [400],
       "actualStatus": 400,
       "ok": true,
       "durationMs": 5,
@@ -57,9 +49,7 @@
       "name": "ads advertisers bulk validation",
       "method": "POST",
       "path": "/admin/ads/advertisers/bulk",
-      "expectedStatuses": [
-        400
-      ],
+      "expectedStatuses": [400],
       "actualStatus": 400,
       "ok": true,
       "durationMs": 6,
@@ -69,9 +59,7 @@
       "name": "ads events bulk validation",
       "method": "POST",
       "path": "/ads/events/bulk",
-      "expectedStatuses": [
-        400
-      ],
+      "expectedStatuses": [400],
       "actualStatus": 400,
       "ok": true,
       "durationMs": 4,

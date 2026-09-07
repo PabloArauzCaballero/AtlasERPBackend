@@ -2,7 +2,11 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestj
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
 import type { CreateAccountTagDto, IdParamsDto, UpdateAccountTagDto } from '../b2b-sales-crm.dtos';
-import { createAccountTagSchema, idParamsSchema, updateAccountTagSchema } from '../b2b-sales-crm.schemas';
+import {
+  createAccountTagSchema,
+  idParamsSchema,
+  updateAccountTagSchema,
+} from '../b2b-sales-crm.schemas';
 import { AccountTagsService, type AccountTagView } from '../services/account-tags.service';
 import { AccountTagModel } from '../models/b2b-sales-crm.models';
 

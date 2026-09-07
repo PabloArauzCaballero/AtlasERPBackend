@@ -67,7 +67,10 @@ export class JwtAuthGuard implements CanActivate {
      * dev eso devuelve al login, que es exactamente lo que hay que hacer, y no volver a
      * convertir en ADMIN a quien traia una sesion.
      */
-    if (env.AUTH_DISABLED_FOR_LOCAL_TESTING && !hasAuthorizationHeader(request.headers.authorization)) {
+    if (
+      env.AUTH_DISABLED_FOR_LOCAL_TESTING &&
+      !hasAuthorizationHeader(request.headers.authorization)
+    ) {
       request.user = this.buildLocalTestingUser();
       this.logger.warnContext(JwtAuthGuard.name, 'JWT guard bypassed by local testing env flag', {
         path: request.url,

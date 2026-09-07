@@ -31,7 +31,9 @@ export class ContractsController {
    */
   @Roles('COMMERCIAL_MANAGER', 'FINANCE', 'ADMIN')
   @Get('mdr-rules')
-  listMdrRules(@Query('contractVersionId') contractVersionId?: string): Promise<Record<string, unknown>[]> {
+  listMdrRules(
+    @Query('contractVersionId') contractVersionId?: string,
+  ): Promise<Record<string, unknown>[]> {
     return this.service.listMdrRules(contractVersionId);
   }
 

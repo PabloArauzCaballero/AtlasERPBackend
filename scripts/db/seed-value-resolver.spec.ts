@@ -14,7 +14,9 @@ const column = (columnName: string, dataType: string): SeedColumn => ({
 
 describe('seed-value-resolver', () => {
   it('prioriza un literal permitido por CHECK', () => {
-    expect(findCheckLiteral('status', ["CHECK ((status = ANY (ARRAY['DRAFT', 'ACTIVE'])))"])).toBe('DRAFT');
+    expect(findCheckLiteral('status', ["CHECK ((status = ANY (ARRAY['DRAFT', 'ACTIVE'])))"])).toBe(
+      'DRAFT',
+    );
   });
 
   it('genera fechas finales posteriores a las iniciales', () => {

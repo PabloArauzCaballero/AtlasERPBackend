@@ -121,8 +121,13 @@ export class AuthGatewayService {
     return this.buildSession(await this.identityClient.loginPin(challengeToken, pin));
   }
 
-  async requestPasswordChange(tokens: UpstreamTokens, currentPassword: string): Promise<ProxyResult<AtlasPinChallenge>> {
-    return this.callWithRetry(tokens, (at) => this.identityClient.requestPasswordChange(at, currentPassword));
+  async requestPasswordChange(
+    tokens: UpstreamTokens,
+    currentPassword: string,
+  ): Promise<ProxyResult<AtlasPinChallenge>> {
+    return this.callWithRetry(tokens, (at) =>
+      this.identityClient.requestPasswordChange(at, currentPassword),
+    );
   }
 
   async confirmPasswordChange(
@@ -231,10 +236,16 @@ export class AuthGatewayService {
     if (businessRoles.length === 0) {
       // Fail-closed: un rol upstream que no sabemos traducir no se convierte en una sesión sin
       // permisos, se rechaza. Una sesión vacía parecería funcionar y fallaría endpoint a endpoint.
-      throw new UnauthorizedException('El rol del usuario de comercio no está habilitado en este backend.');
+      throw new UnauthorizedException(
+        'El rol del usuario de comercio no está habilitado en este backend.',
+      );
     }
 
-    const issued = this.tokenIssuer.issue({ sub: auth.user.id, roles: businessRoles, email: auth.user.email });
+    const issued = this.tokenIssuer.issue({
+      sub: auth.user.id,
+      roles: businessRoles,
+      email: auth.user.email,
+    });
     return {
       accessToken: issued.accessToken,
       tokenType: 'Bearer',
@@ -253,7 +264,9 @@ export class AuthGatewayService {
     if (!upstreamRefreshToken) {
       throw new UnauthorizedException('Sesión no disponible. Inicia sesión nuevamente.');
     }
-    return this.buildMerchantSession(await this.identityClient.merchantRefresh(upstreamRefreshToken));
+    return this.buildMerchantSession(
+      await this.identityClient.merchantRefresh(upstreamRefreshToken),
+    );
   }
 
   /**
@@ -265,10 +278,12 @@ export class AuthGatewayService {
     return this.callWithRetry(tokens, (at) => this.identityClient.merchantMe(at));
   }
 
-  async merchantLogout(upstreamRefreshToken: string | undefined, allDevices: boolean): Promise<{ loggedOut: boolean }> {
+  async merchantLogout(
+    upstreamRefreshToken: string | undefined,
+    allDevices: boolean,
+  ): Promise<{ loggedOut: boolean }> {
     // Idempotente: cerrar una sesión que ya no existe no es un error.
     if (!upstreamRefreshToken) return { loggedOut: true };
     return this.identityClient.merchantLogout(upstreamRefreshToken, allDevices);
   }
-
 }

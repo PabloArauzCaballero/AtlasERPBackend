@@ -74,7 +74,9 @@ function prettyDisponible(): boolean {
           ],
           censor: '[REDACTED]',
         },
-        ...(env.NODE_ENV === 'development' && prettyDisponible() ? { transport: { target: 'pino-pretty' } } : {}),
+        ...(env.NODE_ENV === 'development' && prettyDisponible()
+          ? { transport: { target: 'pino-pretty' } }
+          : {}),
       },
     }),
     JwtModule.register({

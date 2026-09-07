@@ -61,7 +61,10 @@ export class AuthGatewayController {
 
   @Public()
   @Post('login')
-  async login(@Body(new ZodValidationPipe(loginSchema)) body: LoginDto, @Res({ passthrough: true }) res: Response) {
+  async login(
+    @Body(new ZodValidationPipe(loginSchema)) body: LoginDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     const outcome = await this.service.login(body.email, body.password);
     // Con el segundo factor pendiente no hay sesión que guardar: ni cookies upstream ni token del
     // ERP. El desafío viaja al front tal cual, y la sesión nace en `login/pin`.
@@ -71,7 +74,10 @@ export class AuthGatewayController {
 
   @Public()
   @Post('login/pin')
-  async loginPin(@Body(new ZodValidationPipe(loginPinSchema)) body: LoginPinDto, @Res({ passthrough: true }) res: Response) {
+  async loginPin(
+    @Body(new ZodValidationPipe(loginPinSchema)) body: LoginPinDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     return this.issueSession(res, await this.service.loginPin(body.challengeToken, body.pin));
   }
 
@@ -87,7 +93,10 @@ export class AuthGatewayController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { result, refreshedTokens } = await this.service.requestPasswordChange(this.readUpstreamTokens(req), body.currentPassword);
+    const { result, refreshedTokens } = await this.service.requestPasswordChange(
+      this.readUpstreamTokens(req),
+      body.currentPassword,
+    );
     this.reapplyRefreshedCookies(res, refreshedTokens);
     return result;
   }
@@ -149,16 +158,34 @@ export class AuthGatewayController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const session = await this.service.merchantLogin(body.email, body.password);
-    this.setUpstreamCookies(res, { accessToken: session.upstreamAccessToken, refreshToken: session.upstreamRefreshToken });
-    return { accessToken: session.accessToken, tokenType: session.tokenType, expiresIn: session.expiresIn, user: session.user };
+    this.setUpstreamCookies(res, {
+      accessToken: session.upstreamAccessToken,
+      refreshToken: session.upstreamRefreshToken,
+    });
+    return {
+      accessToken: session.accessToken,
+      tokenType: session.tokenType,
+      expiresIn: session.expiresIn,
+      user: session.user,
+    };
   }
 
   @Public()
   @Post('merchant/refresh')
   async merchantRefresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
-    const session = await this.service.merchantRefresh(this.readCookie(req, UPSTREAM_REFRESH_COOKIE));
-    this.setUpstreamCookies(res, { accessToken: session.upstreamAccessToken, refreshToken: session.upstreamRefreshToken });
-    return { accessToken: session.accessToken, tokenType: session.tokenType, expiresIn: session.expiresIn, user: session.user };
+    const session = await this.service.merchantRefresh(
+      this.readCookie(req, UPSTREAM_REFRESH_COOKIE),
+    );
+    this.setUpstreamCookies(res, {
+      accessToken: session.upstreamAccessToken,
+      refreshToken: session.upstreamRefreshToken,
+    });
+    return {
+      accessToken: session.accessToken,
+      tokenType: session.tokenType,
+      expiresIn: session.expiresIn,
+      user: session.user,
+    };
   }
 
   @Roles('MERCHANT_ADMIN')
@@ -176,7 +203,10 @@ export class AuthGatewayController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const result = await this.service.merchantLogout(this.readCookie(req, UPSTREAM_REFRESH_COOKIE), body.allDevices);
+    const result = await this.service.merchantLogout(
+      this.readCookie(req, UPSTREAM_REFRESH_COOKIE),
+      body.allDevices,
+    );
     this.clearUpstreamCookies(res);
     return result;
   }
@@ -280,8 +310,16 @@ export class AuthGatewayController {
 
   /** Guarda las cookies upstream y devuelve la sesión propia del ERP. */
   private issueSession(res: Response, session: AuthSessionResult) {
-    this.setUpstreamCookies(res, { accessToken: session.upstreamAccessToken, refreshToken: session.upstreamRefreshToken });
-    return { accessToken: session.accessToken, tokenType: session.tokenType, expiresIn: session.expiresIn, user: session.user };
+    this.setUpstreamCookies(res, {
+      accessToken: session.upstreamAccessToken,
+      refreshToken: session.upstreamRefreshToken,
+    });
+    return {
+      accessToken: session.accessToken,
+      tokenType: session.tokenType,
+      expiresIn: session.expiresIn,
+      user: session.user,
+    };
   }
 
   private readCookie(req: Request, name: string): string | undefined {

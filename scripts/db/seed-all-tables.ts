@@ -87,16 +87,17 @@ async function buildValues(
     if (reference) {
       const value = await catalog.getFirstReferencedValue(reference);
       if (value !== undefined) values[column.columnName] = value;
-      else if (!column.isNullable) throw new Error(`FK sin fila padre: ${reference.targetSchema}.${reference.targetTable}`);
+      else if (!column.isNullable)
+        throw new Error(`FK sin fila padre: ${reference.targetSchema}.${reference.targetTable}`);
       continue;
     }
     if (column.isNullable) continue;
 
-    const enumValue = column.dataType === 'USER-DEFINED'
-      ? await catalog.getFirstEnumValue(column)
-      : undefined;
+    const enumValue =
+      column.dataType === 'USER-DEFINED' ? await catalog.getFirstEnumValue(column) : undefined;
     const value = enumValue ?? resolveSeedValue(table.tableName, column, table.checkDefinitions);
-    if (value === undefined) throw new Error(`Sin valor seed para ${column.columnName} (${column.udtName})`);
+    if (value === undefined)
+      throw new Error(`Sin valor seed para ${column.columnName} (${column.udtName})`);
     values[column.columnName] = value;
   }
   return values;
@@ -104,7 +105,9 @@ async function buildValues(
 
 function assertDemoSeedAllowed(): void {
   if (process.env.ALLOW_DEMO_SEEDS !== 'true') {
-    throw new Error('Seed bloqueado. Defina ALLOW_DEMO_SEEDS=true exclusivamente en un entorno controlado.');
+    throw new Error(
+      'Seed bloqueado. Defina ALLOW_DEMO_SEEDS=true exclusivamente en un entorno controlado.',
+    );
   }
   if (env.NODE_ENV === 'production') {
     throw new Error('El seed de cobertura no puede ejecutarse con NODE_ENV=production.');
@@ -123,6 +126,10 @@ function errorMessage(error: unknown): string {
 }
 
 main().catch((error) => {
-  logger.error('Falló el seed de cobertura.', { layer: 'script', script: 'seed-all-tables', error });
+  logger.error('Falló el seed de cobertura.', {
+    layer: 'script',
+    script: 'seed-all-tables',
+    error,
+  });
   process.exitCode = 1;
 });

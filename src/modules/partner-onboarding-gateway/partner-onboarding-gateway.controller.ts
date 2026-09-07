@@ -1,4 +1,15 @@
-import { Body, Controller, Get, Header, Param, Patch, Post, Req, Res, StreamableFile } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Header,
+  Param,
+  Patch,
+  Post,
+  Req,
+  Res,
+  StreamableFile,
+} from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { AtlasPartnerClient } from './atlas-partner.client';
@@ -31,7 +42,12 @@ export class PartnerOnboardingGatewayController {
   @Post('start')
   @Roles('merchant', 'MERCHANT_ADMIN', 'MERCHANT_OPERATIONS', 'ADMIN')
   start(@Req() req: Request, @Body() body: unknown) {
-    return this.client.forward({ method: 'POST', path: 'partner-onboarding/start', accessToken: this.token(req), body });
+    return this.client.forward({
+      method: 'POST',
+      path: 'partner-onboarding/start',
+      accessToken: this.token(req),
+      body,
+    });
   }
 
   /* Cual es MI expediente. Va antes de `:partnerId/...` o `mine` encajaria en el parametro. */
@@ -58,7 +74,11 @@ export class PartnerOnboardingGatewayController {
   /** Corregir nombre de fachada, rubro y telefono. Admite el expediente ya aprobado. */
   @Patch(':partnerId/commercial-profile')
   @Roles('merchant', 'MERCHANT_ADMIN', 'MERCHANT_OPERATIONS', 'ADMIN')
-  updateCommercialProfile(@Req() req: Request, @Param('partnerId') partnerId: string, @Body() body: unknown) {
+  updateCommercialProfile(
+    @Req() req: Request,
+    @Param('partnerId') partnerId: string,
+    @Body() body: unknown,
+  ) {
     return this.client.forward({
       method: 'PATCH',
       path: `partner-onboarding/${encodeURIComponent(partnerId)}/commercial-profile`,
@@ -77,7 +97,11 @@ export class PartnerOnboardingGatewayController {
    */
   @Post(':partnerId/commercial-registry')
   @Roles('merchant', 'MERCHANT_ADMIN', 'MERCHANT_OPERATIONS', 'ADMIN')
-  setCommercialRegistry(@Req() req: Request, @Param('partnerId') partnerId: string, @Body() body: unknown) {
+  setCommercialRegistry(
+    @Req() req: Request,
+    @Param('partnerId') partnerId: string,
+    @Body() body: unknown,
+  ) {
     return this.client.forward({
       method: 'POST',
       path: `partner-onboarding/${encodeURIComponent(partnerId)}/commercial-registry`,
@@ -88,7 +112,11 @@ export class PartnerOnboardingGatewayController {
 
   @Post(':partnerId/legal-representative')
   @Roles('merchant', 'MERCHANT_ADMIN', 'MERCHANT_OPERATIONS', 'ADMIN')
-  addLegalRepresentative(@Req() req: Request, @Param('partnerId') partnerId: string, @Body() body: unknown) {
+  addLegalRepresentative(
+    @Req() req: Request,
+    @Param('partnerId') partnerId: string,
+    @Body() body: unknown,
+  ) {
     return this.client.forward({
       method: 'POST',
       path: `partner-onboarding/${encodeURIComponent(partnerId)}/legal-representative`,
@@ -100,7 +128,11 @@ export class PartnerOnboardingGatewayController {
   /** Permiso de subida del poder notarial. La ruta del objeto la impone AtlasBackend. */
   @Post(':partnerId/documents/upload-url')
   @Roles('merchant', 'MERCHANT_ADMIN', 'MERCHANT_OPERATIONS', 'ADMIN')
-  documentUploadUrl(@Req() req: Request, @Param('partnerId') partnerId: string, @Body() body: unknown) {
+  documentUploadUrl(
+    @Req() req: Request,
+    @Param('partnerId') partnerId: string,
+    @Body() body: unknown,
+  ) {
     return this.client.forward({
       method: 'POST',
       path: `partner-onboarding/${encodeURIComponent(partnerId)}/documents/upload-url`,
@@ -121,7 +153,11 @@ export class PartnerOnboardingGatewayController {
 
   @Post(':partnerId/branches')
   @Roles('merchant', 'MERCHANT_ADMIN', 'MERCHANT_OPERATIONS', 'ADMIN')
-  registerBranch(@Req() req: Request, @Param('partnerId') partnerId: string, @Body() body: unknown) {
+  registerBranch(
+    @Req() req: Request,
+    @Param('partnerId') partnerId: string,
+    @Body() body: unknown,
+  ) {
     return this.client.forward({
       method: 'POST',
       path: `partner-onboarding/${encodeURIComponent(partnerId)}/branches`,

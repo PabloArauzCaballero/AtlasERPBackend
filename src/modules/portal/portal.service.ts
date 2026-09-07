@@ -218,7 +218,11 @@ export class PortalService {
    * una factura pasada. Las suscripciones NO se tocan: apuntan al plan, no a una copia del precio,
    * y por eso el cambio alcanza a quien ya lo tenía contratado.
    */
-  async updatePlan(planId: string, input: UpdatePlanDto, actor: PortalActor): Promise<PortalPlanDto> {
+  async updatePlan(
+    planId: string,
+    input: UpdatePlanDto,
+    actor: PortalActor,
+  ): Promise<PortalPlanDto> {
     return this.sequelize.transaction(async (transaction) => {
       const plan = await this.planModel.findByPk(planId, {
         transaction,
@@ -545,7 +549,11 @@ export class PortalService {
         affectedTables: ['merchant_branches'],
         affectedRecordCount: 1,
         status: 'SUCCESS',
-        inputSummary: { name: input.name, city: input.city ?? null, delegated: actor.scope.isInternalOperator },
+        inputSummary: {
+          name: input.name,
+          city: input.city ?? null,
+          delegated: actor.scope.isInternalOperator,
+        },
         outputSummary: { branchId: branch.id },
         transaction,
       });
@@ -581,7 +589,10 @@ export class PortalService {
         affectedTables: ['merchant_branches'],
         affectedRecordCount: 1,
         status: 'SUCCESS',
-        inputSummary: { changed: Object.keys(input), before: { name: before.name ?? null, city: before.city ?? null } },
+        inputSummary: {
+          changed: Object.keys(input),
+          before: { name: before.name ?? null, city: before.city ?? null },
+        },
         outputSummary: { branchId: branch.id },
         transaction,
       });
@@ -753,7 +764,8 @@ export class PortalService {
     const invoice = await this.invoiceModel.findOne({
       where: { id: invoiceId, accountId: merchantAccountId },
     });
-    if (!invoice) throw new NotFoundException('La factura no existe o no pertenece a este comercio.');
+    if (!invoice)
+      throw new NotFoundException('La factura no existe o no pertenece a este comercio.');
 
     const [lines, account] = await Promise.all([
       this.invoiceLineModel.findAll({ where: { invoiceId: invoice.id } }),
@@ -1054,5 +1066,4 @@ export class PortalService {
     });
     return merchantUser?.id ?? null;
   }
-
 }

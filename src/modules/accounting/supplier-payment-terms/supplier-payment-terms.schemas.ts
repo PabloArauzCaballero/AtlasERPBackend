@@ -29,10 +29,19 @@ export const createSupplierPaymentTermsSchema = z
   .object({
     legalEntityId: uuid,
     supplierBpId: uuid,
-    code: z.string().trim().min(1).max(40).transform((value) => value.toUpperCase()),
+    code: z
+      .string()
+      .trim()
+      .min(1)
+      .max(40)
+      .transform((value) => value.toUpperCase()),
     name: z.string().trim().min(3).max(140),
     description: z.string().trim().max(2000).optional(),
-    currencyCode: z.string().trim().length(3).transform((value) => value.toUpperCase()),
+    currencyCode: z
+      .string()
+      .trim()
+      .length(3)
+      .transform((value) => value.toUpperCase()),
     modality: z.enum(modalidades),
     computationBase: z.enum(bases).default('FECHA_FACTURA'),
     termDays: z.coerce.number().int().min(0).max(3650).default(0),

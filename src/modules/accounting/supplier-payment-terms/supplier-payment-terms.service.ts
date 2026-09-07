@@ -1,4 +1,9 @@
-import { ConflictException, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { UniqueConstraintError, type WhereOptions } from 'sequelize';
 import { PinoLoggerService } from '../../../common/logger/pino-logger.service';

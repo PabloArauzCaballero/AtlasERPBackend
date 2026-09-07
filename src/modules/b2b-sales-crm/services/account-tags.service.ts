@@ -53,7 +53,9 @@ export class AccountTagsService {
     if (existing) {
       throw new ConflictException(`El tag «${input.name}» ya existe.`);
     }
-    this.logger.infoContext(AccountTagsService.name, 'Creando tag de clasificación', { name: input.name });
+    this.logger.infoContext(AccountTagsService.name, 'Creando tag de clasificación', {
+      name: input.name,
+    });
     return this.tagModel.create({
       name: input.name,
       description: input.description ?? null,
@@ -88,7 +90,10 @@ export class AccountTagsService {
    * repetir la llamada con `force`. Un tag es una clasificación, no un dato del negocio —perderlo no
    * rompe nada—, pero quien lo borra debería saber que está reclasificando 40 cuentas de golpe.
    */
-  async remove(id: string, force: boolean): Promise<{ id: string; name: string; unlinkedAccounts: number }> {
+  async remove(
+    id: string,
+    force: boolean,
+  ): Promise<{ id: string; name: string; unlinkedAccounts: number }> {
     const tag = await this.get(id);
     const inUse = await this.linkModel.count({ where: { tagId: id } });
     if (inUse > 0 && !force) {

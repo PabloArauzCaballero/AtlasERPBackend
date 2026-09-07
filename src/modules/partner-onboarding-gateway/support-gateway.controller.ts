@@ -40,7 +40,11 @@ export class SupportGatewayController {
   @Get('merchant/support/faq')
   @Roles(...COMERCIO)
   faq(@Req() req: Request) {
-    return this.client.forward({ method: 'GET', path: 'merchant/support/faq', accessToken: this.token(req) });
+    return this.client.forward({
+      method: 'GET',
+      path: 'merchant/support/faq',
+      accessToken: this.token(req),
+    });
   }
 
   @Get('merchant/support/knowledge/search')
@@ -76,7 +80,12 @@ export class SupportGatewayController {
   @Post('merchant/support/cases')
   @Roles(...COMERCIO)
   abrirCaso(@Req() req: Request, @Body() body: unknown) {
-    return this.client.forward({ method: 'POST', path: 'merchant/support/cases', accessToken: this.token(req), body });
+    return this.client.forward({
+      method: 'POST',
+      path: 'merchant/support/cases',
+      accessToken: this.token(req),
+      body,
+    });
   }
 
   @Post('merchant/support/cases/:caseId/close-request')
@@ -104,14 +113,23 @@ export class SupportGatewayController {
   @Post('support/channels')
   @Roles(...COMERCIO)
   abrirConversacion(@Req() req: Request, @Body() body: unknown) {
-    return this.client.forward({ method: 'POST', path: 'support/channels', accessToken: this.token(req), body });
+    return this.client.forward({
+      method: 'POST',
+      path: 'support/channels',
+      accessToken: this.token(req),
+      body,
+    });
   }
 
   /** Los no leídos. Va ANTES de `:channelId` o «unread» encajaría en el parámetro. */
   @Get('support/channels/unread')
   @Roles(...COMERCIO)
   sinLeer(@Req() req: Request) {
-    return this.client.forward({ method: 'GET', path: 'support/channels/unread', accessToken: this.token(req) });
+    return this.client.forward({
+      method: 'GET',
+      path: 'support/channels/unread',
+      accessToken: this.token(req),
+    });
   }
 
   @Get('support/channels/:channelId/messages')
@@ -178,7 +196,11 @@ export class SupportGatewayController {
 
   @Post('support/channels/:channelId/attachments/ticket')
   @Roles(...COMERCIO)
-  ticketDeAdjunto(@Req() req: Request, @Param('channelId') channelId: string, @Body() body: unknown) {
+  ticketDeAdjunto(
+    @Req() req: Request,
+    @Param('channelId') channelId: string,
+    @Body() body: unknown,
+  ) {
     return this.client.forward({
       method: 'POST',
       path: `support/channels/${encodeURIComponent(channelId)}/attachments/ticket`,
@@ -196,7 +218,11 @@ export class SupportGatewayController {
    */
   @Get('support/attachments/:attachmentId/content')
   @Roles(...COMERCIO)
-  async adjunto(@Req() req: Request, @Param('attachmentId') attachmentId: string, @Res() res: Response) {
+  async adjunto(
+    @Req() req: Request,
+    @Param('attachmentId') attachmentId: string,
+    @Res() res: Response,
+  ) {
     const archivo = await this.client.forwardBinary({
       method: 'GET',
       path: `support/attachments/${encodeURIComponent(attachmentId)}/content`,
@@ -220,10 +246,16 @@ export class SupportGatewayController {
    */
   @Get('support/channels/:channelId/stream')
   @Roles(...COMERCIO)
-  async hiloEnVivo(@Req() req: Request, @Param('channelId') channelId: string, @Res() res: Response) {
+  async hiloEnVivo(
+    @Req() req: Request,
+    @Param('channelId') channelId: string,
+    @Res() res: Response,
+  ) {
     const token = this.token(req);
     if (!token) {
-      res.status(401).json({ error: { code: 'UNAUTHORIZED', message: 'No hay sesión de identidad.' } });
+      res
+        .status(401)
+        .json({ error: { code: 'UNAUTHORIZED', message: 'No hay sesión de identidad.' } });
       return;
     }
 
@@ -243,7 +275,14 @@ export class SupportGatewayController {
     ).catch(() => null);
 
     if (!upstream?.ok || !upstream.body) {
-      res.status(502).json({ error: { code: 'SUPPORT_STREAM_UNAVAILABLE', message: 'El hilo en vivo no está disponible.' } });
+      res
+        .status(502)
+        .json({
+          error: {
+            code: 'SUPPORT_STREAM_UNAVAILABLE',
+            message: 'El hilo en vivo no está disponible.',
+          },
+        });
       return;
     }
 

@@ -1,4 +1,15 @@
-import { Body, Controller, Get, Header, Param, Post, Query, Req, Res, StreamableFile } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Header,
+  Param,
+  Post,
+  Query,
+  Req,
+  Res,
+  StreamableFile,
+} from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { AtlasPartnerClient } from './atlas-partner.client';
@@ -31,7 +42,8 @@ export class MerchantCreditGatewayController {
     @Param('partnerId') partnerId: string,
     @Query('onlyPending') onlyPending?: string,
   ) {
-    const filtro = onlyPending === undefined ? '' : `?onlyPending=${encodeURIComponent(onlyPending)}`;
+    const filtro =
+      onlyPending === undefined ? '' : `?onlyPending=${encodeURIComponent(onlyPending)}`;
     return this.client.forward({
       method: 'GET',
       path: `merchant/partners/${encodeURIComponent(partnerId)}/credit-applications${filtro}`,
@@ -74,7 +86,8 @@ export class MerchantCreditGatewayController {
     @Param('partnerId') partnerId: string,
     @Query('onlyPending') onlyPending?: string,
   ) {
-    const filtro = onlyPending === undefined ? '' : `?onlyPending=${encodeURIComponent(onlyPending)}`;
+    const filtro =
+      onlyPending === undefined ? '' : `?onlyPending=${encodeURIComponent(onlyPending)}`;
     return this.client.forward({
       method: 'GET',
       path: `merchant/partners/${encodeURIComponent(partnerId)}/payment-claims${filtro}`,

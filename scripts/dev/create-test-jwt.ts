@@ -106,7 +106,9 @@ function issue(user: TestUser): string {
 
 function main(): void {
   if (env.NODE_ENV === 'production') {
-    throw new Error('create-test-jwt no se ejecuta en producción: firma tokens de usuarios falsos.');
+    throw new Error(
+      'create-test-jwt no se ejecuta en producción: firma tokens de usuarios falsos.',
+    );
   }
 
   const args = process.argv.slice(2);

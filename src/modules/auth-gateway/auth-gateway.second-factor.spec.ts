@@ -14,7 +14,11 @@ import { isPinChallenge } from './auth-gateway.types';
  * arreglar un login que "se quedó a medias".
  */
 describe('Segundo factor del login interno en el gateway', () => {
-  const challenge = { pinChallengeRequired: true as const, challengeToken: 'desafio-opaco-1234567890', expiresInMinutes: 10 };
+  const challenge = {
+    pinChallengeRequired: true as const,
+    challengeToken: 'desafio-opaco-1234567890',
+    expiresInMinutes: 10,
+  };
 
   const sessionUpstream = {
     accessToken: 'upstream-at',
@@ -47,7 +51,9 @@ describe('Segundo factor del login interno en el gateway', () => {
       confirmPasswordChange: jest.fn().mockResolvedValue({ passwordChanged: true }),
       refresh: jest.fn(),
     };
-    const tokenIssuer = { issue: jest.fn().mockReturnValue({ accessToken: 'erp-at', expiresIn: '15m' }) };
+    const tokenIssuer = {
+      issue: jest.fn().mockReturnValue({ accessToken: 'erp-at', expiresIn: '15m' }),
+    };
     const service = new AuthGatewayService(identityClient as never, tokenIssuer as never);
     return { service, identityClient, tokenIssuer };
   }
@@ -76,7 +82,10 @@ describe('Segundo factor del login interno en el gateway', () => {
   it('el cambio de contraseña viaja con el token upstream de la sesión, no con credenciales del cuerpo', async () => {
     const { service, identityClient } = build();
 
-    const { result } = await service.requestPasswordChange({ accessToken: 'upstream-at', refreshToken: 'upstream-rt' }, 'la-actual');
+    const { result } = await service.requestPasswordChange(
+      { accessToken: 'upstream-at', refreshToken: 'upstream-rt' },
+      'la-actual',
+    );
 
     expect(identityClient.requestPasswordChange).toHaveBeenCalledWith('upstream-at', 'la-actual');
     expect(isPinChallenge(result)).toBe(true);
@@ -84,9 +93,16 @@ describe('Segundo factor del login interno en el gateway', () => {
 
   it('confirma el cambio pasando el desafío y el código al upstream', async () => {
     const { service, identityClient } = build();
-    const body = { challengeToken: 'desafio-opaco-1234567890', code: '123456', newPassword: 'NuevaClave#2026' };
+    const body = {
+      challengeToken: 'desafio-opaco-1234567890',
+      code: '123456',
+      newPassword: 'NuevaClave#2026',
+    };
 
-    const { result } = await service.confirmPasswordChange({ accessToken: 'upstream-at', refreshToken: 'upstream-rt' }, body);
+    const { result } = await service.confirmPasswordChange(
+      { accessToken: 'upstream-at', refreshToken: 'upstream-rt' },
+      body,
+    );
 
     expect(identityClient.confirmPasswordChange).toHaveBeenCalledWith('upstream-at', body);
     expect(result).toEqual({ passwordChanged: true });

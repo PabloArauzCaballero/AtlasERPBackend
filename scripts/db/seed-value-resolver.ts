@@ -108,7 +108,8 @@ function stringValue(tableName: string, columnName: string, type: string): strin
   if (columnName.includes('country')) return 'BO';
   if (columnName.includes('currency')) return 'BOB';
   if (columnName.includes('code') || columnName.endsWith('_no')) return `SEED-${suffix}`;
-  if (columnName.includes('name') || columnName.includes('description')) return `Registro seed ${suffix}`;
+  if (columnName.includes('name') || columnName.includes('description'))
+    return `Registro seed ${suffix}`;
   if (type === 'character') return 'X';
   return `seed-${suffix}`;
 }

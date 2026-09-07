@@ -1,8 +1,5 @@
 import { z } from 'zod';
-import {
-  checkAttributesAllowed,
-  definitionSchemaFor,
-} from '../../common/segmentation/rule-schema';
+import { checkAttributesAllowed, definitionSchemaFor } from '../../common/segmentation/rule-schema';
 import {
   ATTRIBUTES_BY_SEGMENT_TYPE,
   AUDIENCE_ATTRIBUTES,

@@ -12,9 +12,7 @@
       "name": "health",
       "method": "GET",
       "path": "/health",
-      "expectedStatuses": [
-        200
-      ],
+      "expectedStatuses": [200],
       "actualStatus": 200,
       "ok": true,
       "durationMs": 31,
@@ -30,9 +28,7 @@
       "name": "ready",
       "method": "GET",
       "path": "/ready",
-      "expectedStatuses": [
-        200
-      ],
+      "expectedStatuses": [200],
       "actualStatus": 200,
       "ok": true,
       "durationMs": 6,
@@ -48,11 +44,7 @@
       "name": "/accounting/financial-structure/legal-entities",
       "method": "POST",
       "path": "/accounting/financial-structure/legal-entities",
-      "expectedStatuses": [
-        201,
-        200,
-        409
-      ],
+      "expectedStatuses": [201, 200, 409],
       "actualStatus": 201,
       "ok": true,
       "durationMs": 32,

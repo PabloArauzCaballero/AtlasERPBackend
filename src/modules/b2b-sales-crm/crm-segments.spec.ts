@@ -6,10 +6,7 @@ import {
   segmentVocabulary,
   type CrmSegmentAttribute,
 } from './domain/crm-segments';
-import {
-  createCrmSegmentSchema,
-  updateCrmSegmentSchema,
-} from './b2b-sales-crm.schemas';
+import { createCrmSegmentSchema, updateCrmSegmentSchema } from './b2b-sales-crm.schemas';
 import { describeDefinition } from './services/crm-segments.service';
 
 /**

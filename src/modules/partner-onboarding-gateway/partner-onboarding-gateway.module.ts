@@ -15,7 +15,11 @@ import { SupportGatewayController } from './support-gateway.controller';
  */
 @Module({
   imports: [HttpModule],
-  controllers: [PartnerOnboardingGatewayController, MerchantCreditGatewayController, SupportGatewayController],
+  controllers: [
+    PartnerOnboardingGatewayController,
+    MerchantCreditGatewayController,
+    SupportGatewayController,
+  ],
   providers: [AtlasPartnerClient],
 })
 export class PartnerOnboardingGatewayModule {}

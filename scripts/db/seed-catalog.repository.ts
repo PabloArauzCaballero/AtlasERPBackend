@@ -12,14 +12,17 @@ export class SeedCatalogRepository {
   constructor(private readonly client: Client) {}
 
   async listTables(): Promise<SeedTable[]> {
-    const result = await this.client.query<SeedTable>(`
+    const result = await this.client.query<SeedTable>(
+      `
       SELECT table_schema AS "schemaName", table_name AS "tableName"
       FROM information_schema.tables
       WHERE table_type = 'BASE TABLE'
         AND table_schema = ANY($1)
         AND table_name NOT IN ('atlas_sql_migrations', 'SequelizeMeta')
       ORDER BY table_schema, table_name
-    `, [managedSchemas]);
+    `,
+      [managedSchemas],
+    );
     return result.rows;
   }
 
@@ -50,7 +53,8 @@ export class SeedCatalogRepository {
   }
 
   async getFirstEnumValue(column: SeedColumn): Promise<string | undefined> {
-    const result = await this.client.query<{ value: string }>(`
+    const result = await this.client.query<{ value: string }>(
+      `
       SELECT enumlabel AS value
       FROM pg_enum e
       JOIN pg_type t ON t.oid = e.enumtypid
@@ -58,14 +62,18 @@ export class SeedCatalogRepository {
       WHERE n.nspname = $1 AND t.typname = $2
       ORDER BY enumsortorder
       LIMIT 1
-    `, [column.udtSchema, column.udtName]);
+    `,
+      [column.udtSchema, column.udtName],
+    );
     return result.rows[0]?.value;
   }
 
   async insert(table: SeedTable, values: Readonly<Record<string, unknown>>): Promise<void> {
     const entries = Object.entries(values);
     if (entries.length === 0) {
-      await this.client.query(`INSERT INTO ${quote(table.schemaName)}.${quote(table.tableName)} DEFAULT VALUES`);
+      await this.client.query(
+        `INSERT INTO ${quote(table.schemaName)}.${quote(table.tableName)} DEFAULT VALUES`,
+      );
       return;
     }
     const columns = entries.map(([name]) => quote(name)).join(', ');
@@ -77,7 +85,8 @@ export class SeedCatalogRepository {
   }
 
   private async getColumns(table: SeedTable): Promise<SeedColumn[]> {
-    const result = await this.client.query<SeedColumn>(`
+    const result = await this.client.query<SeedColumn>(
+      `
       SELECT column_name AS "columnName", data_type AS "dataType",
         udt_schema AS "udtSchema", udt_name AS "udtName",
         is_nullable = 'YES' AS "isNullable",
@@ -87,12 +96,15 @@ export class SeedCatalogRepository {
       FROM information_schema.columns
       WHERE table_schema = $1 AND table_name = $2
       ORDER BY ordinal_position
-    `, [table.schemaName, table.tableName]);
+    `,
+      [table.schemaName, table.tableName],
+    );
     return result.rows;
   }
 
   private async getForeignKeys(table: SeedTable): Promise<ForeignKeyReference[]> {
-    const result = await this.client.query<ForeignKeyReference>(`
+    const result = await this.client.query<ForeignKeyReference>(
+      `
       SELECT a.attname AS "columnName", fn.nspname AS "targetSchema",
         fc.relname AS "targetTable", fa.attname AS "targetColumn"
       FROM pg_constraint c
@@ -104,18 +116,23 @@ export class SeedCatalogRepository {
       JOIN pg_attribute a ON a.attrelid = tc.oid AND a.attnum = keys.attnum
       JOIN pg_attribute fa ON fa.attrelid = fc.oid AND fa.attnum = keys.fattnum
       WHERE c.contype = 'f' AND tn.nspname = $1 AND tc.relname = $2
-    `, [table.schemaName, table.tableName]);
+    `,
+      [table.schemaName, table.tableName],
+    );
     return result.rows;
   }
 
   private async getChecks(table: SeedTable): Promise<string[]> {
-    const result = await this.client.query<{ definition: string }>(`
+    const result = await this.client.query<{ definition: string }>(
+      `
       SELECT pg_get_constraintdef(c.oid) AS definition
       FROM pg_constraint c
       JOIN pg_class t ON t.oid = c.conrelid
       JOIN pg_namespace n ON n.oid = t.relnamespace
       WHERE c.contype = 'c' AND n.nspname = $1 AND t.relname = $2
-    `, [table.schemaName, table.tableName]);
+    `,
+      [table.schemaName, table.tableName],
+    );
     return result.rows.map((row) => row.definition);
   }
 }

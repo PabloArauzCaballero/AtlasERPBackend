@@ -6,7 +6,8 @@ import pino from 'pino';
 import { resolveSmokeBaseUrl } from './smoke-base-url';
 
 const API_BASE_URL = resolveSmokeBaseUrl();
-const JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET ?? 'change_me_long_random_secret_32_chars_min';
+const JWT_ACCESS_SECRET =
+  process.env.JWT_ACCESS_SECRET ?? 'change_me_long_random_secret_32_chars_min';
 const REPORT_PATH = resolve(
   process.env.SMOKE_BATCH_REPORT_PATH ?? 'scripts/smoke/batch-endpoints.smoke.result.json',
 );
@@ -75,8 +76,20 @@ function duplicateAccountingDocumentsPayload() {
     ledgerId: '00000000-0000-0000-0000-000000000012',
     currencyCode: 'BOB',
     lines: [
-      { glAccountId: '00000000-0000-0000-0000-000000000013', debit: 100, credit: 0, currencyCode: 'BOB', amountLc: 100 },
-      { glAccountId: '00000000-0000-0000-0000-000000000014', debit: 0, credit: 100, currencyCode: 'BOB', amountLc: -100 },
+      {
+        glAccountId: '00000000-0000-0000-0000-000000000013',
+        debit: 100,
+        credit: 0,
+        currencyCode: 'BOB',
+        amountLc: 100,
+      },
+      {
+        glAccountId: '00000000-0000-0000-0000-000000000014',
+        debit: 0,
+        credit: 100,
+        currencyCode: 'BOB',
+        amountLc: -100,
+      },
     ],
   };
 
@@ -126,11 +139,17 @@ async function requestStep(
       bodyPreview: responseText.slice(0, 1200),
     };
 
-    logger.info({ name, method, path, statusCode: response.status, ok: step.ok }, 'Batch smoke step completed');
+    logger.info(
+      { name, method, path, statusCode: response.status, ok: step.ok },
+      'Batch smoke step completed',
+    );
     return step;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    logger.error({ name, method, path, errorName: error instanceof Error ? error.name : 'UnknownError' }, message);
+    logger.error(
+      { name, method, path, errorName: error instanceof Error ? error.name : 'UnknownError' },
+      message,
+    );
     return {
       name,
       method,
@@ -149,10 +168,28 @@ async function main(): Promise<void> {
   const steps: SmokeStep[] = [
     await requestStep('health', '/health', [200]),
     await requestStep('ready', '/ready', [200]),
-    await requestStep('b2b accounts bulk validation', '/b2b/accounts/bulk', [400], duplicateB2BAccountsPayload()),
-    await requestStep('accounting documents bulk validation', '/accounting/documents/bulk', [400], duplicateAccountingDocumentsPayload()),
-    await requestStep('ads advertisers bulk validation', '/admin/ads/advertisers/bulk', [400], duplicateAdvertisersPayload()),
-    await requestStep('ads events bulk validation', '/ads/events/bulk', [400], { batchExternalId: 'smoke-events-empty', items: [] }),
+    await requestStep(
+      'b2b accounts bulk validation',
+      '/b2b/accounts/bulk',
+      [400],
+      duplicateB2BAccountsPayload(),
+    ),
+    await requestStep(
+      'accounting documents bulk validation',
+      '/accounting/documents/bulk',
+      [400],
+      duplicateAccountingDocumentsPayload(),
+    ),
+    await requestStep(
+      'ads advertisers bulk validation',
+      '/admin/ads/advertisers/bulk',
+      [400],
+      duplicateAdvertisersPayload(),
+    ),
+    await requestStep('ads events bulk validation', '/ads/events/bulk', [400], {
+      batchExternalId: 'smoke-events-empty',
+      items: [],
+    }),
   ];
 
   const passed = steps.every((step) => step.ok);
@@ -160,7 +197,8 @@ async function main(): Promise<void> {
     suite: 'batch-endpoints-smoke',
     executedAt: new Date().toISOString(),
     baseUrl: API_BASE_URL,
-    strategy: 'validation-only: expected 400 proves route, guard, and Zod pipe are reachable without creating records',
+    strategy:
+      'validation-only: expected 400 proves route, guard, and Zod pipe are reachable without creating records',
     passed,
     steps,
   };

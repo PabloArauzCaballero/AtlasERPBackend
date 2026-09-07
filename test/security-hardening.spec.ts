@@ -82,9 +82,7 @@ describe('TLS de la conexión a base de datos', () => {
     isolateFromDotenv();
     const { resolveDbSslOptions } = await import('../src/config/db-ssl');
 
-    expect(
-      resolveDbSslOptions({ DB_SSL: false, DB_SSL_REJECT_UNAUTHORIZED: true }),
-    ).toBe(false);
+    expect(resolveDbSslOptions({ DB_SSL: false, DB_SSL_REJECT_UNAUTHORIZED: true })).toBe(false);
   });
 });
 

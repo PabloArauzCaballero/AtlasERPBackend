@@ -103,11 +103,16 @@ function extractBackendRoutes() {
     const source = readFileSync(filePath, 'utf8');
     const controllerMatch = source.match(/@Controller\(['"]([^'"]*)['"]\)/);
     const basePath = controllerMatch?.[1] ?? '';
-    const routeMatches = [...source.matchAll(/@(Get|Post|Patch|Delete|Put)\((?:['"]([^'"]*)['"])?\)/g)];
+    const routeMatches = [
+      ...source.matchAll(/@(Get|Post|Patch|Delete|Put)\((?:['"]([^'"]*)['"])?\)/g),
+    ];
 
     return routeMatches.map((match) => {
       const method = match[1].toUpperCase();
-      const routePath = [basePath, match[2] ?? ''].map((value) => value.replace(/^\/+|\/+$/g, '')).filter(Boolean).join('/');
+      const routePath = [basePath, match[2] ?? '']
+        .map((value) => value.replace(/^\/+|\/+$/g, ''))
+        .filter(Boolean)
+        .join('/');
       return {
         method,
         route: normalizeRoute(routePath),
@@ -119,7 +124,9 @@ function extractBackendRoutes() {
 
 const backendRoutes = extractBackendRoutes();
 const backendRouteSet = new Set(backendRoutes.map((route) => `${route.method} ${route.route}`));
-const missing = frontendCalls.filter(([method, route]) => !backendRouteSet.has(`${method} ${normalizeRoute(route)}`));
+const missing = frontendCalls.filter(
+  ([method, route]) => !backendRouteSet.has(`${method} ${normalizeRoute(route)}`),
+);
 
 console.log(`Frontend calls audited: ${frontendCalls.length}`);
 console.log(`Backend routes discovered: ${backendRoutes.length}`);

@@ -110,7 +110,10 @@ export class AdsBillingService {
         );
 
         /** Lo consumido en el periodo, sumado por producto: es lo que se le carga al comercio. */
-        const consumedByProduct = new Map<string, { product: BillingProductRow; amountMicros: number }>();
+        const consumedByProduct = new Map<
+          string,
+          { product: BillingProductRow; amountMicros: number }
+        >();
 
         /*
          * Cada línea nombra el producto que se está cobrando y a qué precio unitario.

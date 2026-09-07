@@ -1,9 +1,5 @@
 import { z } from 'zod';
-import {
-  SEGMENT_OPERATORS,
-  type AttributeVocabulary,
-  type SegmentDefinition,
-} from './rule-engine';
+import { SEGMENT_OPERATORS, type AttributeVocabulary, type SegmentDefinition } from './rule-engine';
 
 /**
  * Validación de una definición de segmento, para el vocabulario que se le pase.

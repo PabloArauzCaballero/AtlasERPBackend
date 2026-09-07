@@ -8,10 +8,7 @@ import {
   OpportunityType,
   TermType,
 } from './b2b-sales-crm.enums';
-import {
-  checkAttributesAllowed,
-  definitionSchemaFor,
-} from '../../common/segmentation/rule-schema';
+import { checkAttributesAllowed, definitionSchemaFor } from '../../common/segmentation/rule-schema';
 import type { SegmentDefinition } from '../../common/segmentation/rule-engine';
 import {
   ATTRIBUTES_BY_SUBJECT,
@@ -372,7 +369,9 @@ export const updateMdrRuleSchema = z
     maxFeeAmount: z.number().min(0).nullable().optional(),
     isActive: z.boolean().optional(),
   })
-  .refine((valor) => Object.keys(valor).length > 0, { message: 'Indique al menos un campo a modificar.' });
+  .refine((valor) => Object.keys(valor).length > 0, {
+    message: 'Indique al menos un campo a modificar.',
+  });
 export type UpdateMdrRuleDto = z.infer<typeof updateMdrRuleSchema>;
 
 export const mdrRuleIdParamsSchema = z.object({ ruleId: uuid });
@@ -669,7 +668,13 @@ export const createAccountTagSchema = z.object({
 
 export const updateAccountTagSchema = z
   .object({
-    name: z.string().trim().min(1).max(80).transform((value) => value.toLowerCase()).optional(),
+    name: z
+      .string()
+      .trim()
+      .min(1)
+      .max(80)
+      .transform((value) => value.toLowerCase())
+      .optional(),
     description: z.string().trim().max(200).nullable().optional(),
     isActive: z.coerce.boolean().optional(),
   })

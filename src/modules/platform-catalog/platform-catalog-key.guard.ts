@@ -20,7 +20,13 @@
  * cuántos caracteres iniciales acertó quien prueba, y una llave estática es justo el caso donde
  * ese goteo se puede explotar con paciencia.
  */
-import { CanActivate, ExecutionContext, Injectable, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  ServiceUnavailableException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { timingSafeEqual } from 'node:crypto';
 import type { Request } from 'express';
 import { env } from '../../config/env';

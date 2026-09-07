@@ -251,11 +251,7 @@ const envSchema = z
      * Si el servidor usa una autoridad interna, la salida es declararla en `DB_SSL_CA` /
      * `DB_SSL_CA_FILE`, que valida contra ella; no apagar la comprobación.
      */
-    if (
-      value.NODE_ENV === 'production' &&
-      value.DB_SSL &&
-      !value.DB_SSL_REJECT_UNAUTHORIZED
-    ) {
+    if (value.NODE_ENV === 'production' && value.DB_SSL && !value.DB_SSL_REJECT_UNAUTHORIZED) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['DB_SSL_REJECT_UNAUTHORIZED'],
@@ -337,9 +333,7 @@ const envSchema = z
        */
       JWT_INTERNAL_SECRET:
         value.JWT_INTERNAL_SECRET ??
-        createHmac('sha256', value.JWT_ACCESS_SECRET)
-          .update('atlas:jwt:internal:v1')
-          .digest('hex'),
+        createHmac('sha256', value.JWT_ACCESS_SECRET).update('atlas:jwt:internal:v1').digest('hex'),
     };
   });
 

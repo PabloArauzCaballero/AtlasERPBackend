@@ -1,9 +1,16 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { PinoLoggerService } from '../../../common/logging/pino-logger.service';
-import { matchesDefinition, type SegmentDefinition } from '../../../common/segmentation/rule-engine';
+import {
+  matchesDefinition,
+  type SegmentDefinition,
+} from '../../../common/segmentation/rule-engine';
 import type { AuthUser } from '../../../common/types/auth-context.types';
-import type { CreateCrmSegmentDto, ListCrmSegmentsQueryDto, UpdateCrmSegmentDto } from '../b2b-sales-crm.dtos';
+import type {
+  CreateCrmSegmentDto,
+  ListCrmSegmentsQueryDto,
+  UpdateCrmSegmentDto,
+} from '../b2b-sales-crm.dtos';
 import {
   SUBJECT_LABELS,
   SUBJECT_NAMES,
