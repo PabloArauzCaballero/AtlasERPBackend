@@ -6,19 +6,19 @@ Se revisó la capa `frontend/atlas-erp-web` completa contra los controllers y sc
 
 ## Hallazgos corregidos
 
-| Área | Problema detectado | Corrección implementada |
-|---|---|---|
-| Portal comercio | Compra BNPL usaba `amount` y omitía `consumerId`, pagos 60/40 e installments. | Payload demo alineado con `registerPurchaseSchema`. |
-| Portal comercio | Sucursales/usuarios usaban `addressLine` y `role`. | Se cambió a `address` y `roleCode`. |
-| CRM B2B | Oportunidades omitían `ownerUserId`; cambio de etapa enviaba campo no usado. | Payload ajustado a `createOpportunitySchema` y `moveOpportunityStageSchema`. |
-| CRM B2B | Aprobaciones enviaban `decision`; backend espera `status`. | Payload corregido a `{ status, reason }`. |
-| CRM B2B | Contratos desde propuesta omitían `startDate`; activación omitía `approvedByUserId`. | Payloads corregidos a schemas reales. |
-| CRM B2B | Onboarding omitía `checklistItems`; checklist enviaba `checklistItem` en vez de `checklistItemId`. | Payloads corregidos a schemas reales. |
-| CRM B2B | Cobertura y facturación usaban nombres de campos anteriores al backend actual. | Payloads actualizados a `scheduleCoverageSchema`, `issueInvoiceSchema` y `registerMerchantPaymentSchema`. |
-| Contabilidad | Business partners, contratos, periodos, ledgers, COA, impuestos, recibos y documentos usaban campos no aceptados por Zod. | Todos los payloads demo se alinearon con `accounting.schemas.ts`. |
-| Ads | Algunos filtros permitidos en services no coincidían con schemas Zod del backend. | `adsService` ahora usa whitelists reales: `status`, `surface`, `category`, `isActive`, `severity`, etc. |
-| Tablas | Había paginación server-side en services, pero no controles visibles en UI. | `ResourceList` ahora muestra selector de tamaño, página actual y botones anterior/siguiente. |
-| UX/API | La búsqueda disparaba requests por cada tecla. | Se agregó debounce especializado con `useDebouncedValue`. |
+| Área            | Problema detectado                                                                                                        | Corrección implementada                                                                                   |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Portal comercio | Compra BNPL usaba `amount` y omitía `consumerId`, pagos 60/40 e installments.                                             | Payload demo alineado con `registerPurchaseSchema`.                                                       |
+| Portal comercio | Sucursales/usuarios usaban `addressLine` y `role`.                                                                        | Se cambió a `address` y `roleCode`.                                                                       |
+| CRM B2B         | Oportunidades omitían `ownerUserId`; cambio de etapa enviaba campo no usado.                                              | Payload ajustado a `createOpportunitySchema` y `moveOpportunityStageSchema`.                              |
+| CRM B2B         | Aprobaciones enviaban `decision`; backend espera `status`.                                                                | Payload corregido a `{ status, reason }`.                                                                 |
+| CRM B2B         | Contratos desde propuesta omitían `startDate`; activación omitía `approvedByUserId`.                                      | Payloads corregidos a schemas reales.                                                                     |
+| CRM B2B         | Onboarding omitía `checklistItems`; checklist enviaba `checklistItem` en vez de `checklistItemId`.                        | Payloads corregidos a schemas reales.                                                                     |
+| CRM B2B         | Cobertura y facturación usaban nombres de campos anteriores al backend actual.                                            | Payloads actualizados a `scheduleCoverageSchema`, `issueInvoiceSchema` y `registerMerchantPaymentSchema`. |
+| Contabilidad    | Business partners, contratos, periodos, ledgers, COA, impuestos, recibos y documentos usaban campos no aceptados por Zod. | Todos los payloads demo se alinearon con `accounting.schemas.ts`.                                         |
+| Ads             | Algunos filtros permitidos en services no coincidían con schemas Zod del backend.                                         | `adsService` ahora usa whitelists reales: `status`, `surface`, `category`, `isActive`, `severity`, etc.   |
+| Tablas          | Había paginación server-side en services, pero no controles visibles en UI.                                               | `ResourceList` ahora muestra selector de tamaño, página actual y botones anterior/siguiente.              |
+| UX/API          | La búsqueda disparaba requests por cada tecla.                                                                            | Se agregó debounce especializado con `useDebouncedValue`.                                                 |
 
 ## Reglas de arquitectura verificadas
 

@@ -21,7 +21,12 @@ import type { ZodTypeAny } from 'zod';
 
 export type ContractMap = Record<string, string>;
 
-type ZodDefLike = { typeName?: string; innerType?: ZodTypeAny; schema?: ZodTypeAny; type?: ZodTypeAny };
+type ZodDefLike = {
+  typeName?: string;
+  innerType?: ZodTypeAny;
+  schema?: ZodTypeAny;
+  type?: ZodTypeAny;
+};
 
 function defOf(schema: unknown): ZodDefLike | null {
   if (!schema || typeof schema !== 'object') return null;
@@ -38,7 +43,8 @@ function defOf(schema: unknown): ZodDefLike | null {
 function unwrap(schema: ZodTypeAny, depth = 0): ZodTypeAny {
   if (depth > 8) return schema;
   const def = defOf(schema);
-  const inner = def?.innerType ?? def?.schema ?? (def?.typeName === 'ZodPipeline' ? def?.type : undefined);
+  const inner =
+    def?.innerType ?? def?.schema ?? (def?.typeName === 'ZodPipeline' ? def?.type : undefined);
   return inner ? unwrap(inner, depth + 1) : schema;
 }
 
@@ -92,7 +98,8 @@ export function contractFromZod(schema: unknown): ContractMap {
   if (def?.typeName !== 'ZodObject') return {};
 
   const shapeFactory = (unwrapped as unknown as { shape?: unknown }).shape;
-  const shape = typeof shapeFactory === 'function' ? (shapeFactory as () => unknown)() : shapeFactory;
+  const shape =
+    typeof shapeFactory === 'function' ? (shapeFactory as () => unknown)() : shapeFactory;
   if (!shape || typeof shape !== 'object') return {};
 
   const contract: ContractMap = {};
@@ -113,7 +120,10 @@ type RouteArg = { index: number; pipes?: unknown[] };
  * por eso todo está acotado con guardas: si la forma cambia, este catálogo publica endpoints sin
  * contrato, que es lo que publicaba antes. Nunca rompe una ruta.
  */
-export function contractsOfHandler(handler: object, controller: object): {
+export function contractsOfHandler(
+  handler: object,
+  controller: object,
+): {
   body: ContractMap;
   query: ContractMap;
   path: ContractMap;
@@ -127,9 +137,11 @@ export function contractsOfHandler(handler: object, controller: object): {
    * NO había metadatos: el manifiesto salía sin un solo contrato y nada lo delataba.
    */
   const target = typeof controller === 'function' ? controller : controller.constructor;
-  const metadata = Reflect.getMetadata(ROUTE_ARGS_METADATA, target, (handler as { name?: string }).name ?? '') as
-    | Record<string, RouteArg>
-    | undefined;
+  const metadata = Reflect.getMetadata(
+    ROUTE_ARGS_METADATA,
+    target,
+    (handler as { name?: string }).name ?? '',
+  ) as Record<string, RouteArg> | undefined;
   if (!metadata) return empty;
 
   const result = { body: {} as ContractMap, query: {} as ContractMap, path: {} as ContractMap };
