@@ -23,11 +23,15 @@ import { B2BSalesCrmService } from '../services/b2b-sales-crm.service';
 export class ContractsController {
   constructor(private readonly service: B2BSalesCrmService) {}
 
-  /* Lectura de contratos, para poder ELEGIR uno en vez de teclear su uuid. */
-  @Roles('COMMERCIAL_EXECUTIVE', 'COMMERCIAL_MANAGER', 'LEGAL', 'FINANCE', 'ADMIN')
   /*
    * Las reglas de comision (MDR). No habia NINGUN endpoint: solo se podian crear por SQL, asi que
    * cambiar cuanto cobra Atlas por una venta exigia entrar a la base de datos.
+   *
+   * Habia DOS `@Roles` apilados aqui: el de arriba —el de `listContracts`, que quedo separado de su
+   * ruta por este comentario— ganaba, asi que las reglas las leia tambien LEGAL y el ejecutivo
+   * comercial, y `GET /b2b/contracts` se quedo SIN roles. `RolesGuard` sin metadatos deja pasar,
+   * de modo que cualquier sesion autenticada del ERP —el dueño de un comercio incluido— listaba los
+   * contratos de todos. Es el mismo patron ya corregido en `onboarding.controller.ts`.
    */
   @Roles('COMMERCIAL_MANAGER', 'FINANCE', 'ADMIN')
   @Get('mdr-rules')
@@ -54,6 +58,8 @@ export class ContractsController {
     return this.service.updateMdrRule(params.ruleId, body);
   }
 
+  /* Lectura de contratos, para poder ELEGIR uno en vez de teclear su uuid. */
+  @Roles('COMMERCIAL_EXECUTIVE', 'COMMERCIAL_MANAGER', 'LEGAL', 'FINANCE', 'ADMIN')
   @Get()
   listContracts(): Promise<Record<string, unknown>[]> {
     return this.service.listContracts();

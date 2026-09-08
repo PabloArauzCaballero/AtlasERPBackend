@@ -108,7 +108,6 @@ export class PortalController {
     return this.service.subscribe(body, await this.buildActor(user, requestId));
   }
 
-  @Roles(...PORTAL_ROLES)
   /*
    * Lo que este comercio le debe a Atlas por usar el servicio: la comision de cada venta.
    *

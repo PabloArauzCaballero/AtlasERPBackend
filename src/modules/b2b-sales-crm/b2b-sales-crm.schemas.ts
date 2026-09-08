@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ONBOARDING_CASE_STATUSES, ONBOARDING_SCOPES } from './domain/onboarding-lifecycle';
 import {
   AccountLifecycleStatus,
   AccountType,
@@ -697,6 +698,29 @@ const crmSegmentDefinitionSchema = definitionSchemaFor(CRM_SEGMENT_ATTRIBUTES);
  * volvía a aparecer en ninguna respuesta —era escritura sin lectura—, y sin listado tampoco se
  * podía elegir la sucursal donde se origina una compra a plazos.
  */
+/*
+ * La cola de onboarding. `scope` decide qué es «trabajo»: por defecto los casos abiertos; el
+ * historial (activados) y «todos» son filtros explícitos. El filtro va AQUÍ y no en la tabla:
+ * filtrar en el cliente sobre una página truncada miente en cuanto haya más casos que el límite.
+ */
+export const listOnboardingCasesQuerySchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(200).default(50),
+  scope: z.enum(ONBOARDING_SCOPES).default('abiertos'),
+  status: z.enum(ONBOARDING_CASE_STATUSES).optional(),
+  accountId: uuid.optional(),
+  search: z.string().trim().min(1).max(120).optional(),
+});
+
+/* El contrato del caso: se ELIGE entre las versiones de los contratos de esa misma cuenta. */
+export const assignCaseContractSchema = z.object({ contractVersionId: uuid });
+
+/*
+ * La comisión del alta. Sin `contractVersionId`: cuelga de la versión que el caso ya tiene, así
+ * que pedirla otra vez sólo daría ocasión de colgar la regla de otro contrato.
+ */
+export const createCaseMdrRuleSchema = createMdrRuleSchema.omit({ contractVersionId: true });
+
 export const listBranchesQuerySchema = z.object({
   accountId: uuid.optional(),
   status: z.string().trim().min(2).max(30).optional(),

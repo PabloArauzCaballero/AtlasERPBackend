@@ -92,6 +92,10 @@ export class B2BAccountModel extends Model {
   @Column({ type: DataType.UUID, field: 'business_partner_id' })
   declare businessPartnerId: string | null;
 
+  /* El expediente del comercio en AtlasBackend (`partner_profiles._id`). Opaco; nulo sin enlazar. */
+  @Column({ type: DataType.STRING(64), field: 'partner_profile_id' })
+  declare partnerProfileId: string | null;
+
   @AllowNull(false)
   @Column({ type: DataType.STRING(220), field: 'legal_name' })
   declare legalName: string;
@@ -773,9 +777,43 @@ export class MerchantOnboardingCaseModel extends Model {
   @Column({ type: DataType.DATE, field: 'completed_at' })
   declare completedAt: Date | null;
 
+  /*
+   * La posición del caso en la cadena ERP → Motor → Portal → ERP (migración 20260908120000).
+   * El contrato pactado para el alta; nulo = la activación usa la versión activa de la cuenta.
+   */
+  @ForeignKey(() => ContractVersionModel)
+  @Column({ type: DataType.UUID, field: 'contract_version_id' })
+  declare contractVersionId: string | null;
+
+  /* Lo que devolvió el Motor (vía AtlasBackend). Opacos: no se interpretan aquí. */
+  @Column({ type: DataType.STRING(120), field: 'decision_execution_id' })
+  declare decisionExecutionId: string | null;
+
+  @Column({ type: DataType.STRING(40), field: 'decision_outcome' })
+  declare decisionOutcome: string | null;
+
+  @Column({ type: DataType.STRING(240), field: 'decision_reason' })
+  declare decisionReason: string | null;
+
+  @Column({ type: DataType.STRING(120), field: 'decision_artifact_version' })
+  declare decisionArtifactVersion: string | null;
+
+  @Column({ type: DataType.STRING(120), field: 'manual_review_case_code' })
+  declare manualReviewCaseCode: string | null;
+
+  @Column({ type: DataType.DATE, field: 'decided_at' })
+  declare decidedAt: Date | null;
+
+  /* Cuándo el ERP acusó que el portal concedió las credenciales. */
+  @Column({ type: DataType.DATE, field: 'identity_acknowledged_at' })
+  declare identityAcknowledgedAt: Date | null;
+
   /* La cuenta, para poder listar los casos por el NOMBRE del comercio y no por su uuid. */
   @BelongsTo(() => B2BAccountModel)
   declare account?: B2BAccountModel;
+
+  @BelongsTo(() => ContractVersionModel)
+  declare contractVersion?: ContractVersionModel;
 
   @HasMany(() => OnboardingChecklistItemModel)
   declare checklistItems?: OnboardingChecklistItemModel[];

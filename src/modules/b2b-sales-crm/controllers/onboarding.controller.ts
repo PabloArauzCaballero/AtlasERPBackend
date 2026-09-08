@@ -24,10 +24,16 @@ import type {
   UpdateBranchDto,
   BranchIdParamsDto,
   ListBranchesQueryDto,
+  ListOnboardingCasesQueryDto,
+  AssignCaseContractDto,
+  CreateCaseMdrRuleDto,
 } from '../b2b-sales-crm.dtos';
 import {
   branchIdParamsSchema,
   listBranchesQuerySchema,
+  listOnboardingCasesQuerySchema,
+  assignCaseContractSchema,
+  createCaseMdrRuleSchema,
   completeChecklistItemSchema,
   createBranchSchema,
   createMerchantUserSchema,
@@ -72,8 +78,20 @@ export class OnboardingController {
    */
   @Roles('OPERATIONS', 'LEGAL', 'ADMIN', 'COMMERCIAL_EXECUTIVE')
   @Get('cases')
-  listCases(): Promise<Record<string, unknown>[]> {
-    return this.service.listOnboardingCases();
+  listCases(
+    @Query(new ZodValidationPipe(listOnboardingCasesQuerySchema)) query: ListOnboardingCasesQueryDto,
+  ): Promise<Record<string, unknown>> {
+    return this.service.listOnboardingCases(query);
+  }
+
+  /*
+   * Las cifras del mini-tablero. Va ANTES de `cases/:onboardingCaseId`: si no, «summary» cae en el
+   * parámetro y el validador de uuid lo rechaza con un 400 que habla de otra cosa.
+   */
+  @Roles('OPERATIONS', 'LEGAL', 'ADMIN', 'COMMERCIAL_EXECUTIVE')
+  @Get('cases/summary')
+  summarizeCases(): Promise<Record<string, unknown>> {
+    return this.service.summarizeOnboardingQueue();
   }
 
   @Roles('OPERATIONS', 'LEGAL', 'ADMIN', 'COMMERCIAL_EXECUTIVE')
@@ -162,6 +180,38 @@ export class OnboardingController {
     @Param('merchantUserId') merchantUserId: string,
   ): Promise<Record<string, unknown>> {
     return this.service.syncMerchantUserIdentity(merchantUserId, this.upstreamToken(req));
+  }
+
+  /*
+   * El contrato y la comisión del alta, sobre el caso. Antes la comisión era una pestaña global
+   * que pedía elegir el contrato otra vez en un desplegable, y el contrato del caso no se elegía
+   * en ninguna parte: la activación miraba «el activo de la cuenta» y ya.
+   */
+  @Roles('OPERATIONS', 'LEGAL', 'ADMIN', 'COMMERCIAL_MANAGER', 'COMMERCIAL_EXECUTIVE')
+  @Get('cases/:onboardingCaseId/contract-options')
+  listCaseContractOptions(
+    @Param(new ZodValidationPipe(onboardingCaseIdParamsSchema)) params: OnboardingCaseIdParamsDto,
+  ): Promise<Record<string, unknown>[]> {
+    return this.service.listCaseContractOptions(params.onboardingCaseId);
+  }
+
+  @Roles('OPERATIONS', 'LEGAL', 'ADMIN', 'COMMERCIAL_MANAGER')
+  @Patch('cases/:onboardingCaseId/contract')
+  assignCaseContract(
+    @Param(new ZodValidationPipe(onboardingCaseIdParamsSchema)) params: OnboardingCaseIdParamsDto,
+    @Body(new ZodValidationPipe(assignCaseContractSchema)) body: AssignCaseContractDto,
+  ): Promise<Record<string, unknown>> {
+    return this.service.assignCaseContract(params.onboardingCaseId, body);
+  }
+
+  /* Mismos roles que `POST /b2b/contracts/mdr-rules`: es la misma decisión, dicha desde el caso. */
+  @Roles('COMMERCIAL_MANAGER', 'FINANCE', 'ADMIN')
+  @Post('cases/:onboardingCaseId/mdr-rules')
+  createCaseMdrRule(
+    @Param(new ZodValidationPipe(onboardingCaseIdParamsSchema)) params: OnboardingCaseIdParamsDto,
+    @Body(new ZodValidationPipe(createCaseMdrRuleSchema)) body: CreateCaseMdrRuleDto,
+  ): Promise<Record<string, unknown>> {
+    return this.service.createCaseMdrRule(params.onboardingCaseId, body);
   }
 
   @Roles('OPERATIONS', 'LEGAL', 'ADMIN')

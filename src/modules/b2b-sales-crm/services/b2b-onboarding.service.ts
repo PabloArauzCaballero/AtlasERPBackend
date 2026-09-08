@@ -8,12 +8,63 @@ import type {
   CreateBranchDto,
   CreateMerchantUserDto,
   CreateOnboardingCaseDto,
+  ListOnboardingCasesQueryDto,
+  AssignCaseContractDto,
   SetBranchStatusDto,
   UpdateBranchDto,
 } from '../b2b-sales-crm.dtos';
+import {
+  ONBOARDING_OPEN_STATUSES,
+  ONBOARDING_TERMINAL_STATUS,
+  statusesForScope,
+  summarizeOnboardingQueue,
+  type OnboardingCaseSnapshot,
+} from '../domain/onboarding-lifecycle';
+import type { ContractVersionModel, MerchantOnboardingCaseModel } from '../models/b2b-sales-crm.models';
 import { B2BSalesCrmRepository } from '../repositories/b2b-sales-crm.repository';
 import { B2BSalesCrmUseCaseBase } from './b2b-sales-crm-use-case.base';
 import { AtlasIdentityClient } from '../../auth-gateway/atlas-identity.client';
+
+/**
+ * «Pendiente» con la regla de la activación: todo lo que no esté completado ni eximido. Antes la
+ * lista contaba sólo `PENDING` y la activación también rechazaba `BLOCKED`, así que un caso podía
+ * enseñar «0 pendientes» y aun así no activarse.
+ */
+function countPendingItems(items: readonly { status: string }[]): number {
+  return items.filter((item) => item.status !== ChecklistStatus.COMPLETED && item.status !== ChecklistStatus.WAIVED).length;
+}
+
+/** Activa y vigente hoy, y su contrato activo: la misma regla que `findActiveContractVersion`. */
+function isContractVersionActivatable(
+  version: { status: string; validFrom: string; validTo: string | null; contract?: { status: string } | undefined },
+  today: string,
+): boolean {
+  return (
+    version.status === 'ACTIVE' &&
+    version.contract?.status === 'ACTIVE' &&
+    version.validFrom <= today &&
+    (version.validTo === null || version.validTo >= today)
+  );
+}
+
+/**
+ * La posición del caso en la cadena, tal como la lee la fila: el contrato pactado y lo que dijo
+ * el Motor. Se publica igual en la lista y en el detalle para que la pantalla no tenga dos formas.
+ */
+function describeCaseChain(row: MerchantOnboardingCaseModel): Record<string, unknown> {
+  return {
+    contractVersionId: row.contractVersionId,
+    contractNumber: row.contractVersion?.contract?.contractNumber ?? null,
+    contractVersionNumber: row.contractVersion?.versionNumber ?? null,
+    contractVersionStatus: row.contractVersion?.status ?? null,
+    decisionOutcome: row.decisionOutcome,
+    decisionReason: row.decisionReason,
+    decisionExecutionId: row.decisionExecutionId,
+    manualReviewCaseCode: row.manualReviewCaseCode,
+    decidedAt: row.decidedAt,
+    identityAcknowledgedAt: row.identityAcknowledgedAt,
+  };
+}
 
 @Injectable()
 export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
@@ -39,7 +90,7 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
       const existingOpenCase = await this.repository.onboardingCases.findOne({
         where: {
           accountId: input.accountId,
-          status: { [Op.in]: ['OPEN', 'IN_PROGRESS', 'BLOCKED'] },
+          status: { [Op.in]: [...ONBOARDING_OPEN_STATUSES] },
         },
         transaction,
       });
@@ -74,32 +125,56 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
   }
 
   /**
-   * Lista los casos con el NOMBRE del comercio, no solo su uuid.
+   * La cola de onboarding: sólo lo que falta por hacer, salvo que se pida el historial.
    *
-   * Sin esta lectura la pantalla no tenia de donde sacar los casos y pedia teclear el uuid a mano:
-   * un vendedor no se sabe un uuid de memoria, asi que el flujo era inoperable fuera de una demo
-   * preparada. Devuelve `tradeName` para que el desplegable diga «CPA Centro...» y no un hexadecimal.
+   * Sin esta lectura la pantalla no tenía de dónde sacar los casos y pedía teclear el uuid a mano.
+   * Y con la lectura sin filtro pasaba lo contrario: los comercios ya activados salían en la misma
+   * tabla que los pendientes, así que la cola no se podía leer. El `scope` decide qué es trabajo
+   * (ver `domain/onboarding-lifecycle.ts`), y se aplica en la consulta, no en el cliente.
+   * Devuelve `tradeName` para que la fila diga «CPA Centro…» y no un hexadecimal.
    */
-  async listOnboardingCases(): Promise<Record<string, unknown>[]> {
+  async listOnboardingCases(query: ListOnboardingCasesQueryDto): Promise<Record<string, unknown>> {
     this.logger.infoContext(B2BOnboardingService.name, 'B2B CRM use case started', {
       useCase: 'listOnboardingCases',
     });
-    const rows = await this.repository.onboardingCases.findAll({
-      include: [this.repository.accounts, this.repository.checklistItems],
+    const statuses = query.status ? [query.status] : statusesForScope(query.scope);
+    const where: Record<string | symbol, unknown> = { status: { [Op.in]: statuses } };
+    if (query.accountId) where.accountId = query.accountId;
+
+    const accountWhere = query.search
+      ? {
+          [Op.or]: [
+            { tradeName: { [Op.iLike]: `%${query.search}%` } },
+            { legalName: { [Op.iLike]: `%${query.search}%` } },
+          ],
+        }
+      : undefined;
+
+    const offset = (query.page - 1) * query.limit;
+    const result = await this.repository.onboardingCases.findAndCountAll({
+      where,
+      include: [
+        { model: this.repository.accounts, required: true, ...(accountWhere ? { where: accountWhere } : {}) },
+        this.repository.checklistItems,
+        { model: this.repository.contractVersions, required: false, include: [this.repository.contracts] },
+      ],
       /* El ATRIBUTO del modelo, no la columna: con `started_at` Sequelize genera una referencia
          que Postgres no resuelve dentro de la subconsulta que produce `limit` + `include`. */
       order: [['startedAt', 'DESC']],
-      limit: 200,
+      limit: query.limit,
+      offset,
+      distinct: true,
     });
 
-    return rows.map((row) => ({
+    const items = result.rows.map((row) => ({
       id: row.id,
       accountId: row.accountId,
       tradeName: row.account?.tradeName ?? row.account?.legalName ?? null,
       status: row.status,
       startedAt: row.startedAt,
       completedAt: row.completedAt,
-      pendingItems: (row.checklistItems ?? []).filter((item) => item.status === 'PENDING').length,
+      pendingItems: countPendingItems(row.checklistItems ?? []),
+      ...describeCaseChain(row),
       checklistItems: (row.checklistItems ?? []).map((item) => ({
         id: item.id,
         itemType: item.itemType,
@@ -107,17 +182,59 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
         status: item.status,
       })),
     }));
+
+    return {
+      items,
+      page: query.page,
+      limit: query.limit,
+      total: result.count,
+      totalPages: Math.ceil(result.count / query.limit),
+    };
+  }
+
+  /**
+   * Las cifras del mini-tablero, contadas sobre TODOS los casos y con la misma regla que aplica la
+   * activación. Un tablero que afirma «3 listos» con una regla distinta a la del botón convence a
+   * quien lo lee de algo que el backend va a rechazar.
+   */
+  async summarizeOnboardingQueue(): Promise<Record<string, unknown>> {
+    this.logger.infoContext(B2BOnboardingService.name, 'B2B CRM use case started', {
+      useCase: 'summarizeOnboardingQueue',
+    });
+    const rows = await this.repository.onboardingCases.findAll({
+      include: [this.repository.checklistItems],
+    });
+
+    // El contrato sólo importa para los que podrían activarse: consultarlo para los ya activados
+    // sería trabajo para no usarlo. Y se resuelve con la MISMA función que la activación —el
+    // pactado en el caso, o el activo de la cuenta— para que «listo» aquí sea «listo» allí.
+    const snapshots: OnboardingCaseSnapshot[] = [];
+    for (const row of rows) {
+      const pendingItems = countPendingItems(row.checklistItems ?? []);
+      const candidate = row.status !== ONBOARDING_TERMINAL_STATUS && pendingItems === 0;
+      snapshots.push({
+        status: row.status,
+        pendingItems,
+        hasActiveContract: candidate
+          ? Boolean(await this.resolveContractVersionForActivation(row))
+          : false,
+      });
+    }
+
+    return { ...summarizeOnboardingQueue(snapshots), total: rows.length };
   }
 
   async getOnboardingCase(id: string, transaction?: Transaction): Promise<Record<string, unknown>> {
     this.logger.infoContext(B2BOnboardingService.name, 'B2B CRM use case started', {
       useCase: 'getOnboardingCase',
     });
+    const include = [
+      this.repository.checklistItems,
+      { model: this.repository.contractVersions, required: false, include: [this.repository.contracts] },
+    ];
     const caseRecord = await this.repository.onboardingCases.findByPk(
       id,
-      transaction
-        ? { include: [this.repository.checklistItems], transaction }
-        : { include: [this.repository.checklistItems] },
+      transaction ? { include, transaction } : { include },
     );
 
     if (!caseRecord) {
@@ -131,6 +248,7 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
       status: caseRecord.status,
       startedAt: caseRecord.startedAt,
       completedAt: caseRecord.completedAt,
+      ...describeCaseChain(caseRecord),
       checklistItems: caseRecord.checklistItems?.map((item) => ({
         id: item.id,
         itemType: item.itemType,
@@ -145,16 +263,8 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
        * mirado nada es peor que no tener panel, porque convence a quien lo lee de que ya comprobo.
        */
       readiness: {
-        pendingChecklistItems: (caseRecord.checklistItems ?? []).filter(
-          (item) => item.status !== 'COMPLETED' && item.status !== 'WAIVED',
-        ).length,
-        hasActiveContract: Boolean(
-          await this.repository.findActiveContractVersion(
-            caseRecord.accountId,
-            new Date().toISOString().slice(0, 10),
-            transaction,
-          ),
-        ),
+        pendingChecklistItems: countPendingItems(caseRecord.checklistItems ?? []),
+        hasActiveContract: Boolean(await this.resolveContractVersionForActivation(caseRecord, transaction)),
       },
     };
   }
@@ -429,6 +539,95 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
     };
   }
 
+  /**
+   * Las versiones de contrato entre las que se puede elegir para ESTE caso: las de los contratos
+   * de su misma cuenta. Se etiquetan con lo que decide si sirven para activar —estado y vigencia—
+   * para que quien elige vea por qué una no va a pasar.
+   */
+  async listCaseContractOptions(onboardingCaseId: string): Promise<Record<string, unknown>[]> {
+    const caseRecord = await this.repository.onboardingCases.findByPk(onboardingCaseId);
+    if (!caseRecord) throw new NotFoundException('Caso de onboarding no encontrado.');
+
+    const versions = await this.repository.contractVersions.findAll({
+      include: [{ model: this.repository.contracts, required: true, where: { accountId: caseRecord.accountId } }],
+      order: [['validFrom', 'DESC'], ['versionNumber', 'DESC']],
+    });
+    const today = new Date().toISOString().slice(0, 10);
+    return versions.map((version) => ({
+      id: version.id,
+      contractId: version.contractId,
+      contractNumber: version.contract?.contractNumber ?? null,
+      contractStatus: version.contract?.status ?? null,
+      versionNumber: version.versionNumber,
+      status: version.status,
+      validFrom: version.validFrom,
+      validTo: version.validTo,
+      vigente: isContractVersionActivatable(version, today),
+      selected: version.id === caseRecord.contractVersionId,
+    }));
+  }
+
+  /**
+   * Pactar el contrato del alta. Sólo uno de la MISMA cuenta: colgar el caso de un contrato ajeno
+   * activaría a un comercio con las condiciones de otro, y el 404 lo dice como lo que es.
+   */
+  async assignCaseContract(
+    onboardingCaseId: string,
+    input: AssignCaseContractDto,
+  ): Promise<Record<string, unknown>> {
+    this.logger.infoContext(B2BOnboardingService.name, 'B2B CRM use case started', {
+      useCase: 'assignCaseContract',
+    });
+    const caseRecord = await this.repository.onboardingCases.findByPk(onboardingCaseId);
+    if (!caseRecord) throw new NotFoundException('Caso de onboarding no encontrado.');
+    if (caseRecord.status === ONBOARDING_TERMINAL_STATUS) {
+      throw new ConflictException('El comercio ya está activado: el contrato del alta no se cambia sobre un expediente cerrado.');
+    }
+
+    const version = await this.repository.contractVersions.findOne({
+      where: { id: input.contractVersionId },
+      include: [{ model: this.repository.contracts, required: true, where: { accountId: caseRecord.accountId } }],
+    });
+    if (!version) {
+      throw new NotFoundException('Esa versión de contrato no existe o no es de este comercio.');
+    }
+
+    await caseRecord.update({ contractVersionId: version.id });
+    return this.getOnboardingCase(onboardingCaseId);
+  }
+
+  /** La versión de contrato del caso, exigida: sin ella no hay de dónde colgar una comisión. */
+  async requireCaseContractVersionId(onboardingCaseId: string): Promise<string> {
+    const caseRecord = await this.repository.onboardingCases.findByPk(onboardingCaseId);
+    if (!caseRecord) throw new NotFoundException('Caso de onboarding no encontrado.');
+    if (!caseRecord.contractVersionId) {
+      throw new ConflictException('Este caso no tiene contrato pactado: asigna el contrato antes de la comisión.');
+    }
+    return caseRecord.contractVersionId;
+  }
+
+  /**
+   * Con qué contrato se activa: el pactado en el caso si lo hay —y sólo si está activo y vigente—,
+   * o, si el caso no pactó ninguno, la versión activa de la cuenta (lo que siempre se hizo).
+   * Un contrato pactado pero no vigente NO cae al de la cuenta: sería activar con condiciones
+   * distintas de las que alguien eligió a propósito.
+   */
+  private async resolveContractVersionForActivation(
+    caseRecord: { accountId: string; contractVersionId: string | null },
+    transaction?: Transaction,
+  ): Promise<ContractVersionModel | null> {
+    const today = new Date().toISOString().slice(0, 10);
+    if (!caseRecord.contractVersionId) {
+      return this.repository.findActiveContractVersion(caseRecord.accountId, today, transaction);
+    }
+    const version = await this.repository.contractVersions.findOne({
+      where: { id: caseRecord.contractVersionId },
+      include: [{ model: this.repository.contracts, required: true, where: { accountId: caseRecord.accountId } }],
+      ...(transaction ? { transaction } : {}),
+    });
+    return version && isContractVersionActivatable(version, today) ? version : null;
+  }
+
   async completeChecklistItem(
     onboardingCaseId: string,
     input: CompleteChecklistItemDto,
@@ -501,6 +700,12 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
         throw new NotFoundException('Caso de onboarding no encontrado.');
       }
 
+      // Activar dos veces reescribiría `completedAt` y volvería a tocar sucursales ya activas: el
+      // expediente diría que el comercio se habilitó hoy cuando lleva meses operando.
+      if (caseRecord.status === ONBOARDING_TERMINAL_STATUS) {
+        throw new ConflictException('El comercio ya está activado: este caso es su expediente cerrado.');
+      }
+
       const items = caseRecord.checklistItems ?? [];
       if (
         items.length === 0 ||
@@ -514,14 +719,14 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
         );
       }
 
-      const activeVersion = await this.repository.findActiveContractVersion(
-        caseRecord.accountId,
-        new Date().toISOString().slice(0, 10),
-        transaction,
-      );
+      const activeVersion = await this.resolveContractVersionForActivation(caseRecord, transaction);
 
       if (!activeVersion) {
-        throw new ConflictException('No se puede activar comercio sin contrato activo.');
+        throw new ConflictException(
+          caseRecord.contractVersionId
+            ? 'El contrato pactado para este alta no está activo ni vigente: fírmalo y actívalo, o pacta otro.'
+            : 'No se puede activar comercio sin contrato activo.',
+        );
       }
 
       await caseRecord.update({ status: 'COMPLETED', completedAt: new Date() }, { transaction });

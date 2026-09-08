@@ -30,6 +30,9 @@ import type {
   ScheduleCoverageDto,
   SignContractDto,
   UpdateProposalDto,
+  ListOnboardingCasesQueryDto,
+  AssignCaseContractDto,
+  CreateCaseMdrRuleDto,
 } from '../b2b-sales-crm.dtos';
 import { B2BAccountsService } from './b2b-accounts.service';
 import { B2BBnplBillingService } from './b2b-bnpl-billing.service';
@@ -198,8 +201,35 @@ export class B2BSalesCrmService {
     return this.pipelineService.listContracts();
   }
 
-  listOnboardingCases(): Promise<Record<string, unknown>[]> {
-    return this.onboardingService.listOnboardingCases();
+  listOnboardingCases(query: ListOnboardingCasesQueryDto): Promise<Record<string, unknown>> {
+    return this.onboardingService.listOnboardingCases(query);
+  }
+
+  summarizeOnboardingQueue(): Promise<Record<string, unknown>> {
+    return this.onboardingService.summarizeOnboardingQueue();
+  }
+
+  listCaseContractOptions(onboardingCaseId: string): Promise<Record<string, unknown>[]> {
+    return this.onboardingService.listCaseContractOptions(onboardingCaseId);
+  }
+
+  assignCaseContract(
+    onboardingCaseId: string,
+    input: AssignCaseContractDto,
+  ): Promise<Record<string, unknown>> {
+    return this.onboardingService.assignCaseContract(onboardingCaseId, input);
+  }
+
+  /**
+   * La comisión del alta cuelga del contrato DEL CASO: se resuelve aquí y se crea con la misma
+   * regla que cualquier otra regla de comisión, para que no haya dos formas de pactarla.
+   */
+  async createCaseMdrRule(
+    onboardingCaseId: string,
+    input: CreateCaseMdrRuleDto,
+  ): Promise<Record<string, unknown>> {
+    const contractVersionId = await this.onboardingService.requireCaseContractVersionId(onboardingCaseId);
+    return this.contractsService.createMdrRule({ ...input, contractVersionId });
   }
 
   getOnboardingCase(onboardingCaseId: string): Promise<Record<string, unknown>> {

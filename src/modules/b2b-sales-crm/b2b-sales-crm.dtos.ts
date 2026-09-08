@@ -8,6 +8,9 @@ import type {
   updateCrmSegmentSchema,
   listCrmSegmentsQuerySchema,
   listBranchesQuerySchema,
+  listOnboardingCasesQuerySchema,
+  assignCaseContractSchema,
+  createCaseMdrRuleSchema,
   createActivitySchema,
   updateActivitySchema,
   listActivitiesQuerySchema,
@@ -104,3 +107,6 @@ export type CreateCrmSegmentDto = z.infer<typeof createCrmSegmentSchema>;
 export type UpdateCrmSegmentDto = z.infer<typeof updateCrmSegmentSchema>;
 export type ListCrmSegmentsQueryDto = z.infer<typeof listCrmSegmentsQuerySchema>;
 export type ListBranchesQueryDto = z.infer<typeof listBranchesQuerySchema>;
+export type ListOnboardingCasesQueryDto = z.infer<typeof listOnboardingCasesQuerySchema>;
+export type AssignCaseContractDto = z.infer<typeof assignCaseContractSchema>;
+export type CreateCaseMdrRuleDto = z.infer<typeof createCaseMdrRuleSchema>;

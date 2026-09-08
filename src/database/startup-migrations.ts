@@ -42,6 +42,8 @@ export const STARTUP_MIGRATION_FILES = [
   'src/database/migrations/20260826220000-catalogo-productos-facturables.sql',
   'src/database/migrations/20260816090000-create-b2b-credit-rating.sql',
   'src/database/migrations/20260827120000-crm-segments-por-sujeto.sql',
+  'src/database/migrations/20260906140000-merchant-user-identity-request.sql',
+  'src/database/migrations/20260908120000-onboarding-case-lifecycle.sql',
   // Ultima a proposito: reubica las tablas de ATLAS Ads cuando una instalacion antigua las
   // creo en `public`. Necesita que todas las migraciones que las alteran hayan corrido ya.
   'src/database/migrations/20260901000000-ads-en-atlas-accounting.sql',

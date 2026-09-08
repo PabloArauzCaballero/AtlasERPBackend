@@ -29,3 +29,19 @@ dice a quién agrupa cada uno —`CREDIT_APPLICANT` (cliente que solicita crédi
 relación con un segmento es ser su `owner_user_id`. Tampoco es la audiencia publicitaria
 (`ad_target_segments`), que responde a quién se le SIRVE un anuncio. El vocabulario admisible de
 `definition_json` está en `modules/b2b-sales-crm/domain/crm-segments.ts` y se valida en el borde.
+
+## 20260906140000-merchant-user-identity-request.sql
+
+Añade `atlas_sales.merchant_users.identity_request_id`: la petición de alta de identidad encolada
+en AtlasBackend que respalda a ese usuario del comercio. Se escribió el 2026-09-06 pero **no se
+registró en ninguna de las tres listas** (`db:migrate:prod`, `db:migrate:crm`,
+`STARTUP_MIGRATION_FILES`), así que ningún entorno migrado desde entonces tenía la columna y
+`POST /b2b/onboarding/merchant-users` moría en la base. Registrada el 2026-09-08.
+
+## 20260908120000-onboarding-case-lifecycle.sql
+
+El caso de onboarding guarda su posición en la cadena ERP → Motor → Portal → ERP: el desenlace del
+KYB del Motor (`decision_*`, `manual_review_case_code`, `decided_at`), el acuse de la identidad
+concedida (`identity_acknowledged_at`) y el contrato pactado para el alta (`contract_version_id`,
+del que cuelga la comisión). Añade `b2b_accounts.partner_profile_id`, el puente al expediente del
+comercio en AtlasBackend, sin el cual no hay a quién pedirle la verificación.
