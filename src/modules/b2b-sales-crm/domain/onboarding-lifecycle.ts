@@ -108,3 +108,45 @@ export function summarizeOnboardingQueue(rows: readonly OnboardingCaseSnapshot[]
 export function isReadyToActivate(row: OnboardingCaseSnapshot): boolean {
   return row.status !== ONBOARDING_TERMINAL_STATUS && row.pendingItems === 0 && row.hasActiveContract;
 }
+
+/**
+ * En qué quedaron las credenciales pedidas para un comercio, contadas sobre sus usuarios del CRM.
+ *
+ * `pendientes` son los INVITED con petición encolada: los que todavía hay que ir a preguntar.
+ * `concedidas` son los que ya tienen identidad detrás (`userId`). `rechazadas` quedan DISABLED
+ * con la petición puesta: no se borran, porque el rechazo trae motivo y hay que poder leerlo.
+ */
+export interface CredentialsSnapshot {
+  status: string;
+  identityRequestId: string | null;
+  userId: string | null;
+}
+
+export interface CredentialsSummary {
+  pedidas: number;
+  pendientes: number;
+  concedidas: number;
+  rechazadas: number;
+}
+
+export function summarizeCredentials(users: readonly CredentialsSnapshot[]): CredentialsSummary {
+  const summary: CredentialsSummary = { pedidas: 0, pendientes: 0, concedidas: 0, rechazadas: 0 };
+  for (const user of users) {
+    if (!user.identityRequestId) continue;
+    summary.pedidas += 1;
+    if (user.userId) summary.concedidas += 1;
+    else if (user.status === 'INVITED') summary.pendientes += 1;
+    else if (user.status === 'DISABLED') summary.rechazadas += 1;
+  }
+  return summary;
+}
+
+/** El texto de la fila. Una frase, no cuatro cifras: es lo que responde «¿ya pueden entrar?». */
+export function describeCredentials(summary: CredentialsSummary): string {
+  if (summary.pedidas === 0) return 'Sin pedir';
+  const partes: string[] = [];
+  if (summary.concedidas) partes.push(`${summary.concedidas} concedida${summary.concedidas === 1 ? '' : 's'}`);
+  if (summary.pendientes) partes.push(`${summary.pendientes} pendiente${summary.pendientes === 1 ? '' : 's'}`);
+  if (summary.rechazadas) partes.push(`${summary.rechazadas} rechazada${summary.rechazadas === 1 ? '' : 's'}`);
+  return partes.join(' · ');
+}

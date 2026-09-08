@@ -1,6 +1,8 @@
 import {
   ONBOARDING_CASE_STATUSES,
+  describeCredentials,
   isReadyToActivate,
+  summarizeCredentials,
   statusesForScope,
   summarizeOnboardingQueue,
 } from './onboarding-lifecycle';
@@ -57,5 +59,17 @@ describe('Ciclo de vida del caso de onboarding', () => {
 
   it('sin contrato vigente no está listo, por limpio que esté el checklist', () => {
     expect(isReadyToActivate({ status: 'OPEN', pendingItems: 0, hasActiveContract: false })).toBe(false);
+  });
+
+  it('las credenciales se cuentan sólo sobre los usuarios con petición encolada', () => {
+    const summary = summarizeCredentials([
+      { status: 'ACTIVE', identityRequestId: null, userId: null }, // anterior a la cola: no cuenta
+      { status: 'INVITED', identityRequestId: '7', userId: null },
+      { status: 'ACTIVE', identityRequestId: '8', userId: '41' },
+      { status: 'DISABLED', identityRequestId: '9', userId: null },
+    ]);
+    expect(summary).toEqual({ pedidas: 3, pendientes: 1, concedidas: 1, rechazadas: 1 });
+    expect(describeCredentials(summary)).toBe('1 concedida · 1 pendiente · 1 rechazada');
+    expect(describeCredentials(summarizeCredentials([]))).toBe('Sin pedir');
   });
 });

@@ -209,6 +209,14 @@ export class B2BSalesCrmService {
     return this.onboardingService.summarizeOnboardingQueue();
   }
 
+  reconcileCaseIdentity(
+    onboardingCaseId: string,
+    accessToken: string,
+    actor: AuthUser,
+  ): Promise<Record<string, unknown>> {
+    return this.onboardingService.reconcileCaseIdentity(onboardingCaseId, accessToken, actor);
+  }
+
   listCaseContractOptions(onboardingCaseId: string): Promise<Record<string, unknown>[]> {
     return this.onboardingService.listCaseContractOptions(onboardingCaseId);
   }

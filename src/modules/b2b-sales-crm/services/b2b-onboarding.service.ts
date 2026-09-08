@@ -16,7 +16,9 @@ import type {
 import {
   ONBOARDING_OPEN_STATUSES,
   ONBOARDING_TERMINAL_STATUS,
+  describeCredentials,
   statusesForScope,
+  summarizeCredentials,
   summarizeOnboardingQueue,
   type OnboardingCaseSnapshot,
 } from '../domain/onboarding-lifecycle';
@@ -24,6 +26,8 @@ import type { ContractVersionModel, MerchantOnboardingCaseModel } from '../model
 import { B2BSalesCrmRepository } from '../repositories/b2b-sales-crm.repository';
 import { B2BSalesCrmUseCaseBase } from './b2b-sales-crm-use-case.base';
 import { AtlasIdentityClient } from '../../auth-gateway/atlas-identity.client';
+import type { AtlasMerchantProvisioningRequest } from '../../auth-gateway/auth-gateway.types';
+import { BusinessActionLogsService } from '../../business-action-logs/business-action-logs.service';
 
 /**
  * «Pendiente» con la regla de la activación: todo lo que no esté completado ni eximido. Antes la
@@ -72,6 +76,7 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
     repository: B2BSalesCrmRepository,
     logger: PinoLoggerService,
     private readonly identityClient: AtlasIdentityClient,
+    private readonly businessActionLogsService: BusinessActionLogsService,
   ) {
     super(repository, logger);
   }
@@ -166,6 +171,7 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
       distinct: true,
     });
 
+    const credentialsByAccount = await this.credentialsByAccount(result.rows.map((row) => row.accountId));
     const items = result.rows.map((row) => ({
       id: row.id,
       accountId: row.accountId,
@@ -175,6 +181,7 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
       completedAt: row.completedAt,
       pendingItems: countPendingItems(row.checklistItems ?? []),
       ...describeCaseChain(row),
+      ...this.describeCredentialsOf(credentialsByAccount.get(row.accountId) ?? []),
       checklistItems: (row.checklistItems ?? []).map((item) => ({
         id: item.id,
         itemType: item.itemType,
@@ -249,6 +256,7 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
       startedAt: caseRecord.startedAt,
       completedAt: caseRecord.completedAt,
       ...describeCaseChain(caseRecord),
+      ...this.describeCredentialsOf((await this.credentialsByAccount([caseRecord.accountId], transaction)).get(caseRecord.accountId) ?? []),
       checklistItems: caseRecord.checklistItems?.map((item) => ({
         id: item.id,
         itemType: item.itemType,
@@ -473,6 +481,12 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
 
       await user.update({ identityRequestId: request.id }, { transaction });
 
+      // El caso abierto de ese comercio pasa a «esperando credenciales»: es el tramo del portal.
+      await this.repository.onboardingCases.update(
+        { status: 'ALTA_PENDIENTE' },
+        { where: { accountId: input.accountId, status: { [Op.in]: ['OPEN', 'IN_PROGRESS', 'VERIFICADO', 'LISTO'] } }, transaction },
+      );
+
       return {
         id: user.id,
         accountId: user.accountId,
@@ -520,14 +534,7 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
       accessToken,
       user.identityRequestId,
     );
-
-    if (request.status === 'provisioned' && request.merchantUserId) {
-      await user.update({ userId: request.merchantUserId, status: 'ACTIVE' });
-    } else if (request.status === 'rejected') {
-      // No se borra la fila: el rechazo trae motivo y el ejecutivo tiene que poder leerlo, corregir
-      // y volver a pedirlo. Borrarla dejaría el rechazo sin dónde consultarse.
-      await user.update({ status: 'DISABLED' });
-    }
+    await this.applyProvisioningResult(user, request);
 
     return {
       id: user.id,
@@ -626,6 +633,125 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
       ...(transaction ? { transaction } : {}),
     });
     return version && isContractVersionActivatable(version, today) ? version : null;
+  }
+
+  /**
+   * El acuse que antes no llegaba nunca.
+   *
+   * AtlasBackend no llama de vuelta al ERP —no hay entrada pensada para eso y abrirla añadiría una
+   * superficie más que proteger—, así que el ERP PREGUNTA: por cada usuario del comercio con
+   * petición encolada y sin resolver, lee en qué quedó y lo aplica. Cuando todas las pedidas están
+   * resueltas y al menos una concedida, el caso pasa a LISTO y queda `identity_acknowledged_at`,
+   * que es lo que la fila enseña como «credenciales concedidas». Se llama al abrir la cola y desde
+   * la fila; es idempotente, y deja huella en `business_action_logs` sólo cuando algo cambió.
+   */
+  async reconcileCaseIdentity(
+    onboardingCaseId: string,
+    accessToken: string,
+    actor: AuthUser,
+  ): Promise<Record<string, unknown>> {
+    this.logger.infoContext(B2BOnboardingService.name, 'B2B CRM use case started', {
+      useCase: 'reconcileCaseIdentity',
+    });
+    const caseRecord = await this.repository.onboardingCases.findByPk(onboardingCaseId);
+    if (!caseRecord) throw new NotFoundException('Caso de onboarding no encontrado.');
+
+    const users = await this.repository.merchantUsers.findAll({
+      where: { accountId: caseRecord.accountId, identityRequestId: { [Op.ne]: null } },
+    });
+    const pendientes = users.filter((user) => user.status === 'INVITED' && !user.userId);
+
+    const resueltos: Array<{ id: string; email: string; status: string; identityStatus: string; rejectionReason: string | null }> = [];
+    for (const user of pendientes) {
+      const request = await this.identityClient.getMerchantUserProvisioning(accessToken, String(user.identityRequestId));
+      const cambio = await this.applyProvisioningResult(user, request);
+      if (cambio) {
+        resueltos.push({ id: user.id, email: user.email, status: user.status, identityStatus: request.status, rejectionReason: request.rejectionReason ?? null });
+      }
+    }
+
+    const summary = summarizeCredentials(users);
+    const todasResueltas = summary.pedidas > 0 && summary.pendientes === 0 && summary.concedidas > 0;
+    let acuse = caseRecord.identityAcknowledgedAt;
+    if (todasResueltas && !acuse && caseRecord.status !== ONBOARDING_TERMINAL_STATUS) {
+      acuse = new Date();
+      await caseRecord.update({
+        identityAcknowledgedAt: acuse,
+        ...(caseRecord.status === 'ALTA_PENDIENTE' ? { status: 'LISTO' } : {}),
+      });
+    }
+
+    if (resueltos.length > 0) {
+      await this.businessActionLogsService.record({
+        moduleCode: 'B2B_SALES_CRM',
+        businessProcess: 'MERCHANT_ONBOARDING',
+        actionCode: 'ACKNOWLEDGE_MERCHANT_CREDENTIALS',
+        actorUserId: actor.sub,
+        actorRole: actor.role ?? null,
+        aggregateType: 'MERCHANT_ONBOARDING_CASE',
+        aggregateId: caseRecord.id,
+        affectedTables: ['atlas_sales.merchant_users', 'atlas_sales.merchant_onboarding_cases'],
+        affectedRecordCount: resueltos.length + (acuse && todasResueltas ? 1 : 0),
+        status: 'SUCCESS',
+        outputSummary: { resueltos, credenciales: summary, acusadoEn: acuse },
+      });
+    }
+
+    return {
+      id: caseRecord.id,
+      status: caseRecord.status,
+      identityAcknowledgedAt: acuse,
+      ...this.describeCredentialsOf(users),
+      resueltos,
+    };
+  }
+
+  /**
+   * Aplica lo que dijo Atlas sobre una petición. Devuelve si la fila cambió.
+   *
+   * El rechazo NO borra la fila: trae motivo y el ejecutivo tiene que poder leerlo, corregir y
+   * volver a pedirlo. Borrarla dejaría el rechazo sin dónde consultarse.
+   */
+  private async applyProvisioningResult(
+    user: { status: string; userId: string | null; update: (values: Record<string, unknown>) => Promise<unknown> },
+    request: AtlasMerchantProvisioningRequest,
+  ): Promise<boolean> {
+    if (request.status === 'provisioned' && request.merchantUserId && !user.userId) {
+      await user.update({ userId: request.merchantUserId, status: 'ACTIVE' });
+      return true;
+    }
+    if (request.status === 'rejected' && user.status !== 'DISABLED') {
+      await user.update({ status: 'DISABLED' });
+      return true;
+    }
+    return false;
+  }
+
+  /** Los usuarios con petición de identidad, agrupados por cuenta, para la lista y el detalle. */
+  private async credentialsByAccount(
+    accountIds: string[],
+    transaction?: Transaction,
+  ): Promise<Map<string, Array<{ status: string; identityRequestId: string | null; userId: string | null }>>> {
+    const map = new Map<string, Array<{ status: string; identityRequestId: string | null; userId: string | null }>>();
+    if (accountIds.length === 0) return map;
+    const users = await this.repository.merchantUsers.findAll({
+      where: { accountId: { [Op.in]: accountIds } },
+      attributes: ['accountId', 'status', 'identityRequestId', 'userId'],
+      ...(transaction ? { transaction } : {}),
+    });
+    for (const user of users) {
+      const list = map.get(user.accountId) ?? [];
+      list.push({ status: user.status, identityRequestId: user.identityRequestId, userId: user.userId });
+      map.set(user.accountId, list);
+    }
+    return map;
+  }
+
+  private describeCredentialsOf(
+    users: ReadonlyArray<{ status: string; identityRequestId: string | null; userId: string | null }>,
+  ): Record<string, unknown> {
+    const credentials = summarizeCredentials(users);
+    return { credentials, credentialsSummary: describeCredentials(credentials) };
   }
 
   async completeChecklistItem(

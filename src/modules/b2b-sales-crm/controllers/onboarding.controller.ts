@@ -214,6 +214,20 @@ export class OnboardingController {
     return this.service.createCaseMdrRule(params.onboardingCaseId, body);
   }
 
+  /**
+   * El acuse de las credenciales: el ERP pregunta a Atlas en qué quedó cada petición del comercio
+   * y lo aplica al caso. Es lo que antes había que hacer usuario por usuario, acordándose.
+   */
+  @Roles('OPERATIONS', 'ADMIN', 'COMMERCIAL_MANAGER', 'COMMERCIAL_EXECUTIVE')
+  @Post('cases/:onboardingCaseId/identity/reconcile')
+  reconcileCaseIdentity(
+    @Req() req: Request,
+    @Param(new ZodValidationPipe(onboardingCaseIdParamsSchema)) params: OnboardingCaseIdParamsDto,
+    @CurrentUser() user: AuthUser,
+  ): Promise<Record<string, unknown>> {
+    return this.service.reconcileCaseIdentity(params.onboardingCaseId, this.upstreamToken(req), user);
+  }
+
   @Roles('OPERATIONS', 'LEGAL', 'ADMIN')
   @Patch('cases/:onboardingCaseId/checklist')
   completeChecklistItem(
