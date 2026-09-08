@@ -43,6 +43,19 @@ function countPendingItems(items: readonly { status: string }[]): number {
   return items.filter((item) => item.status !== ChecklistStatus.COMPLETED && item.status !== ChecklistStatus.WAIVED).length;
 }
 
+/**
+ * Lo que publica AtlasBackend al decidir el KYB. `evaluatedAt` es cuándo respondió el Motor; el
+ * `decidedAt` del perfil significa otra cosa (cuándo quedó firme el expediente) y no se lee aquí.
+ */
+interface KybDecision {
+  outcome: KybOutcome;
+  reason: string | null;
+  executionId: string | null;
+  artifactVersionId: string | null;
+  manualReviewCaseCode: string | null;
+  evaluatedAt: string | null;
+}
+
 /** Activa y vigente hoy, y su contrato activo: la misma regla que `findActiveContractVersion`. */
 function isContractVersionActivatable(
   version: { status: string; validFrom: string; validTo: string | null; contract?: { status: string } | undefined },
@@ -723,7 +736,7 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
     const respuesta = await this.partnerClient.forward<{
       partnerId: string;
       onboardingStatus: string;
-      decision: { outcome: KybOutcome; reason: string | null; executionId: string | null; artifactVersionId: string | null; manualReviewCaseCode: string | null; decidedAt: string | null };
+      decision: KybDecision;
     }>({
       method: 'POST',
       path: `operations/partners/${encodeURIComponent(partnerId)}/kyb-review`,
@@ -744,7 +757,7 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
       affectedRecordCount: 1,
       status: 'SUCCESS',
       inputSummary: { partnerId, reason: input.reason ?? null },
-      outputSummary: respuesta.decision,
+      outputSummary: { ...respuesta.decision },
     });
     return this.getOnboardingCase(onboardingCaseId);
   }
@@ -763,21 +776,23 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
     if (!partnerId) {
       return { id: caseRecord.id, status: caseRecord.status, decisionOutcome: caseRecord.decisionOutcome, changed: false, reason: 'SIN_EXPEDIENTE_EN_ATLAS' };
     }
+    // En `status` el bloque `decision` viaja dentro de `profile` (AtlasBackend, 2026-09-08).
     const estado = await this.partnerClient.forward<{
-      decision?: { outcome: KybOutcome; reason: string | null; executionId: string | null; artifactVersionId: string | null; manualReviewCaseCode: string | null; decidedAt: string | null } | null;
+      profile?: { decision?: KybDecision | null } | null;
     }>({
       method: 'GET',
       path: `partner-onboarding/${encodeURIComponent(partnerId)}/status`,
       accessToken,
     });
-    const changed = estado.decision ? await this.applyKybDecision(caseRecord, estado.decision) : false;
+    const decision = estado.profile?.decision ?? null;
+    const changed = decision?.outcome ? await this.applyKybDecision(caseRecord, decision) : false;
     return { id: caseRecord.id, status: caseRecord.status, decisionOutcome: caseRecord.decisionOutcome, changed };
   }
 
   /** Aplica lo que publicó el Motor. Devuelve si el caso cambió. No reabre un caso ya activado. */
   private async applyKybDecision(
     caseRecord: MerchantOnboardingCaseModel,
-    decision: { outcome: KybOutcome; reason: string | null; executionId: string | null; artifactVersionId: string | null; manualReviewCaseCode: string | null; decidedAt: string | null },
+    decision: KybDecision,
   ): Promise<boolean> {
     if (caseRecord.status === ONBOARDING_TERMINAL_STATUS) return false;
     const mismo =
@@ -795,7 +810,7 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
       decisionExecutionId: decision.executionId ?? null,
       decisionArtifactVersion: decision.artifactVersionId ?? null,
       manualReviewCaseCode: decision.manualReviewCaseCode ?? null,
-      decidedAt: decision.decidedAt ? new Date(decision.decidedAt) : new Date(),
+      decidedAt: decision.evaluatedAt ? new Date(decision.evaluatedAt) : new Date(),
       ...(conservar ? {} : { status: siguiente }),
     });
     return true;
