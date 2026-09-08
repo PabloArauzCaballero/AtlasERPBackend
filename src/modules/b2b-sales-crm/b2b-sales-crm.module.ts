@@ -41,6 +41,7 @@ import { BusinessActionLogsModule } from '../business-action-logs/business-actio
 import { AccountingModule } from '../accounting/accounting.module';
 import { PortalModule } from '../portal/portal.module';
 import { AuthGatewayModule } from '../auth-gateway/auth-gateway.module';
+import { PartnerOnboardingGatewayModule } from '../partner-onboarding-gateway/partner-onboarding-gateway.module';
 
 @Module({
   imports: [
@@ -51,6 +52,8 @@ import { AuthGatewayModule } from '../auth-gateway/auth-gateway.module';
     PortalModule,
     /* Para encolar en Atlas el alta de identidad del usuario de comercio: el ERP pide, Atlas concede. */
     AuthGatewayModule,
+    /* Para pedir la verificación KYB del comercio: el ERP pide, AtlasBackend decide con el Motor. */
+    PartnerOnboardingGatewayModule,
   ],
   controllers: [
     AccountTagsController,

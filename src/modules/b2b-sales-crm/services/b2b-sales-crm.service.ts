@@ -33,6 +33,7 @@ import type {
   ListOnboardingCasesQueryDto,
   AssignCaseContractDto,
   CreateCaseMdrRuleDto,
+  RequestKybReviewDto,
 } from '../b2b-sales-crm.dtos';
 import { B2BAccountsService } from './b2b-accounts.service';
 import { B2BBnplBillingService } from './b2b-bnpl-billing.service';
@@ -207,6 +208,23 @@ export class B2BSalesCrmService {
 
   summarizeOnboardingQueue(): Promise<Record<string, unknown>> {
     return this.onboardingService.summarizeOnboardingQueue();
+  }
+
+  linkPartnerProfile(onboardingCaseId: string, accessToken: string): Promise<Record<string, unknown>> {
+    return this.onboardingService.linkPartnerProfile(onboardingCaseId, accessToken);
+  }
+
+  requestKybReview(
+    onboardingCaseId: string,
+    input: RequestKybReviewDto,
+    accessToken: string,
+    actor: AuthUser,
+  ): Promise<Record<string, unknown>> {
+    return this.onboardingService.requestKybReview(onboardingCaseId, input, accessToken, actor);
+  }
+
+  syncKybDecision(onboardingCaseId: string, accessToken: string): Promise<Record<string, unknown>> {
+    return this.onboardingService.syncKybDecision(onboardingCaseId, accessToken);
   }
 
   reconcileCaseIdentity(

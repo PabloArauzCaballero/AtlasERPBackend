@@ -27,6 +27,7 @@ import type {
   ListOnboardingCasesQueryDto,
   AssignCaseContractDto,
   CreateCaseMdrRuleDto,
+  RequestKybReviewDto,
 } from '../b2b-sales-crm.dtos';
 import {
   branchIdParamsSchema,
@@ -34,6 +35,7 @@ import {
   listOnboardingCasesQuerySchema,
   assignCaseContractSchema,
   createCaseMdrRuleSchema,
+  requestKybReviewSchema,
   completeChecklistItemSchema,
   createBranchSchema,
   createMerchantUserSchema,
@@ -212,6 +214,40 @@ export class OnboardingController {
     @Body(new ZodValidationPipe(createCaseMdrRuleSchema)) body: CreateCaseMdrRuleDto,
   ): Promise<Record<string, unknown>> {
     return this.service.createCaseMdrRule(params.onboardingCaseId, body);
+  }
+
+  /*
+   * El tramo del Motor. El ERP PIDE la verificación; decide AtlasBackend con el artefacto
+   * PARTNER_KYB_REVIEW, y es el único origen de esa decisión. Antes la activación no preguntaba a
+   * nadie: checklist + contrato y adelante.
+   */
+  @Roles('OPERATIONS', 'ADMIN', 'COMMERCIAL_MANAGER')
+  @Post('cases/:onboardingCaseId/partner-link')
+  linkPartnerProfile(
+    @Req() req: Request,
+    @Param(new ZodValidationPipe(onboardingCaseIdParamsSchema)) params: OnboardingCaseIdParamsDto,
+  ): Promise<Record<string, unknown>> {
+    return this.service.linkPartnerProfile(params.onboardingCaseId, this.upstreamToken(req));
+  }
+
+  @Roles('OPERATIONS', 'ADMIN', 'COMMERCIAL_MANAGER')
+  @Post('cases/:onboardingCaseId/kyb-review')
+  requestKybReview(
+    @Req() req: Request,
+    @Param(new ZodValidationPipe(onboardingCaseIdParamsSchema)) params: OnboardingCaseIdParamsDto,
+    @Body(new ZodValidationPipe(requestKybReviewSchema)) body: RequestKybReviewDto,
+    @CurrentUser() user: AuthUser,
+  ): Promise<Record<string, unknown>> {
+    return this.service.requestKybReview(params.onboardingCaseId, body, this.upstreamToken(req), user);
+  }
+
+  @Roles('OPERATIONS', 'ADMIN', 'COMMERCIAL_MANAGER', 'COMMERCIAL_EXECUTIVE')
+  @Post('cases/:onboardingCaseId/kyb-review/sync')
+  syncKybDecision(
+    @Req() req: Request,
+    @Param(new ZodValidationPipe(onboardingCaseIdParamsSchema)) params: OnboardingCaseIdParamsDto,
+  ): Promise<Record<string, unknown>> {
+    return this.service.syncKybDecision(params.onboardingCaseId, this.upstreamToken(req));
   }
 
   /**

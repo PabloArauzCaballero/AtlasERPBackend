@@ -721,6 +721,11 @@ export const assignCaseContractSchema = z.object({ contractVersionId: uuid });
  */
 export const createCaseMdrRuleSchema = createMdrRuleSchema.omit({ contractVersionId: true });
 
+/* Por qué se pide la verificación. Opcional: queda en el expediente de AtlasBackend. */
+export const requestKybReviewSchema = z.object({
+  reason: z.string().trim().min(3).max(240).optional(),
+});
+
 export const listBranchesQuerySchema = z.object({
   accountId: uuid.optional(),
   status: z.string().trim().min(2).max(30).optional(),

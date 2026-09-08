@@ -11,6 +11,7 @@ import type {
   listOnboardingCasesQuerySchema,
   assignCaseContractSchema,
   createCaseMdrRuleSchema,
+  requestKybReviewSchema,
   createActivitySchema,
   updateActivitySchema,
   listActivitiesQuerySchema,
@@ -110,3 +111,4 @@ export type ListBranchesQueryDto = z.infer<typeof listBranchesQuerySchema>;
 export type ListOnboardingCasesQueryDto = z.infer<typeof listOnboardingCasesQuerySchema>;
 export type AssignCaseContractDto = z.infer<typeof assignCaseContractSchema>;
 export type CreateCaseMdrRuleDto = z.infer<typeof createCaseMdrRuleSchema>;
+export type RequestKybReviewDto = z.infer<typeof requestKybReviewSchema>;

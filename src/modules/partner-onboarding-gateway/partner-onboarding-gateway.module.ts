@@ -21,5 +21,7 @@ import { SupportGatewayController } from './support-gateway.controller';
     SupportGatewayController,
   ],
   providers: [AtlasPartnerClient],
+  /* El CRM lo usa para pedir la verificación KYB del comercio: el ERP pide, AtlasBackend decide con el Motor. */
+  exports: [AtlasPartnerClient],
 })
 export class PartnerOnboardingGatewayModule {}

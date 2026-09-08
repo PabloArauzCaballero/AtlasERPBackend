@@ -10,13 +10,17 @@ import type {
   CreateOnboardingCaseDto,
   ListOnboardingCasesQueryDto,
   AssignCaseContractDto,
+  RequestKybReviewDto,
   SetBranchStatusDto,
   UpdateBranchDto,
 } from '../b2b-sales-crm.dtos';
 import {
   ONBOARDING_OPEN_STATUSES,
   ONBOARDING_TERMINAL_STATUS,
+  STATUSES_THAT_CAN_REQUEST_KYB,
+  STATUS_FOR_KYB_OUTCOME,
   describeCredentials,
+  type KybOutcome,
   statusesForScope,
   summarizeCredentials,
   summarizeOnboardingQueue,
@@ -28,6 +32,7 @@ import { B2BSalesCrmUseCaseBase } from './b2b-sales-crm-use-case.base';
 import { AtlasIdentityClient } from '../../auth-gateway/atlas-identity.client';
 import type { AtlasMerchantProvisioningRequest } from '../../auth-gateway/auth-gateway.types';
 import { BusinessActionLogsService } from '../../business-action-logs/business-action-logs.service';
+import { AtlasPartnerClient } from '../../partner-onboarding-gateway/atlas-partner.client';
 
 /**
  * «Pendiente» con la regla de la activación: todo lo que no esté completado ni eximido. Antes la
@@ -67,6 +72,7 @@ function describeCaseChain(row: MerchantOnboardingCaseModel): Record<string, unk
     manualReviewCaseCode: row.manualReviewCaseCode,
     decidedAt: row.decidedAt,
     identityAcknowledgedAt: row.identityAcknowledgedAt,
+    partnerProfileId: row.account?.partnerProfileId ?? null,
   };
 }
 
@@ -77,6 +83,7 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
     logger: PinoLoggerService,
     private readonly identityClient: AtlasIdentityClient,
     private readonly businessActionLogsService: BusinessActionLogsService,
+    private readonly partnerClient: AtlasPartnerClient,
   ) {
     super(repository, logger);
   }
@@ -225,6 +232,7 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
         hasActiveContract: candidate
           ? Boolean(await this.resolveContractVersionForActivation(row))
           : false,
+        motorApproved: row.decisionOutcome === 'APROBADO',
       });
     }
 
@@ -237,6 +245,7 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
     });
     const include = [
       this.repository.checklistItems,
+      this.repository.accounts,
       { model: this.repository.contractVersions, required: false, include: [this.repository.contracts] },
     ];
     const caseRecord = await this.repository.onboardingCases.findByPk(
@@ -273,6 +282,7 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
       readiness: {
         pendingChecklistItems: countPendingItems(caseRecord.checklistItems ?? []),
         hasActiveContract: Boolean(await this.resolveContractVersionForActivation(caseRecord, transaction)),
+        motorApproved: caseRecord.decisionOutcome === 'APROBADO',
       },
     };
   }
@@ -636,6 +646,183 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
   }
 
   /**
+   * Enlazar el caso con el expediente del comercio en AtlasBackend (`partner_profiles`).
+   *
+   * El puente `partner_profiles.erp_account_id` va en el otro sentido y es nulable a propósito, y
+   * el ERP no tenía nada que apuntara al expediente: no había a quién pedirle la verificación. Se
+   * busca por `erpAccountId` y, si no, por NIT; al encontrarlo se guarda aquí y se escribe también
+   * allá, para que la búsqueda por NIT sólo haga falta la primera vez. Un comercio SIN expediente es
+   * un estado visible («sin expediente»), no un 500: el comercio tiene que abrirlo desde su portal.
+   */
+  async linkPartnerProfile(onboardingCaseId: string, accessToken: string): Promise<Record<string, unknown>> {
+    this.logger.infoContext(B2BOnboardingService.name, 'B2B CRM use case started', {
+      useCase: 'linkPartnerProfile',
+    });
+    const caseRecord = await this.repository.onboardingCases.findByPk(onboardingCaseId, { include: [this.repository.accounts] });
+    if (!caseRecord?.account) throw new NotFoundException('Caso de onboarding no encontrado.');
+    const account = caseRecord.account;
+    if (account.partnerProfileId) {
+      return { id: caseRecord.id, partnerProfileId: account.partnerProfileId, linked: true, alreadyLinked: true };
+    }
+
+    const encontrado = await this.findPartnerProfile(account.id, account.taxId, accessToken);
+    if (!encontrado) {
+      return { id: caseRecord.id, partnerProfileId: null, linked: false, reason: 'SIN_EXPEDIENTE_EN_ATLAS' };
+    }
+
+    if (encontrado.erpAccountId !== account.id) {
+      // Se escribe el puente en AtlasBackend. Si ya apunta a OTRA cuenta, es un 409 de allá y se
+      // deja pasar tal cual: dos cuentas del ERP reclamando el mismo expediente es un problema de
+      // datos que hay que mirar, no que resolver a ciegas.
+      await this.partnerClient.forward({
+        method: 'PATCH',
+        path: `operations/partners/${encodeURIComponent(encontrado.partnerId)}/erp-account`,
+        accessToken,
+        body: { erpAccountId: account.id },
+      });
+    }
+    await account.update({ partnerProfileId: encontrado.partnerId });
+    return { id: caseRecord.id, partnerProfileId: encontrado.partnerId, linked: true, onboardingStatus: encontrado.onboardingStatus };
+  }
+
+  /**
+   * Pedir al Motor la verificación del comercio. El ERP PIDE; decide AtlasBackend con el Motor.
+   *
+   * Nunca se llama al Motor directo: `POST /operations/partners/:partnerId/kyb-review` es el ÚNICO
+   * origen de esa decisión (el autoservicio del comercio pasa por la misma función). El caso queda
+   * EN_VERIFICACION antes de llamar; si AtlasBackend responde 503 porque el Motor no está, el caso
+   * se queda ahí con el error visible: **nunca se aprueba solo**.
+   */
+  async requestKybReview(
+    onboardingCaseId: string,
+    input: RequestKybReviewDto,
+    accessToken: string,
+    actor: AuthUser,
+  ): Promise<Record<string, unknown>> {
+    this.logger.infoContext(B2BOnboardingService.name, 'B2B CRM use case started', {
+      useCase: 'requestKybReview',
+    });
+    const caseRecord = await this.repository.onboardingCases.findByPk(onboardingCaseId, { include: [this.repository.accounts] });
+    if (!caseRecord?.account) throw new NotFoundException('Caso de onboarding no encontrado.');
+    if (!STATUSES_THAT_CAN_REQUEST_KYB.includes(caseRecord.status as never)) {
+      throw new ConflictException(`El caso está en ${caseRecord.status}: la verificación ya se pidió o ya no aplica.`);
+    }
+
+    let partnerId = caseRecord.account.partnerProfileId;
+    if (!partnerId) {
+      const enlace = await this.linkPartnerProfile(onboardingCaseId, accessToken);
+      partnerId = (enlace.partnerProfileId as string | null) ?? null;
+    }
+    if (!partnerId) {
+      throw new ConflictException(
+        'Este comercio no tiene expediente en Atlas: tiene que abrirlo desde su portal antes de que se pueda verificar.',
+      );
+    }
+
+    await caseRecord.update({ status: 'EN_VERIFICACION' });
+    const respuesta = await this.partnerClient.forward<{
+      partnerId: string;
+      onboardingStatus: string;
+      decision: { outcome: KybOutcome; reason: string | null; executionId: string | null; artifactVersionId: string | null; manualReviewCaseCode: string | null; decidedAt: string | null };
+    }>({
+      method: 'POST',
+      path: `operations/partners/${encodeURIComponent(partnerId)}/kyb-review`,
+      accessToken,
+      body: input.reason ? { reason: input.reason } : {},
+    });
+
+    await this.applyKybDecision(caseRecord, respuesta.decision);
+    await this.businessActionLogsService.record({
+      moduleCode: 'B2B_SALES_CRM',
+      businessProcess: 'MERCHANT_ONBOARDING',
+      actionCode: 'REQUEST_KYB_REVIEW',
+      actorUserId: actor.sub,
+      actorRole: actor.role ?? null,
+      aggregateType: 'MERCHANT_ONBOARDING_CASE',
+      aggregateId: caseRecord.id,
+      affectedTables: ['atlas_sales.merchant_onboarding_cases'],
+      affectedRecordCount: 1,
+      status: 'SUCCESS',
+      inputSummary: { partnerId, reason: input.reason ?? null },
+      outputSummary: respuesta.decision,
+    });
+    return this.getOnboardingCase(onboardingCaseId);
+  }
+
+  /**
+   * Traer el desenlace vigente del expediente: lo que resolvió el caso de revisión manual del Motor
+   * (lo aplica un job de AtlasBackend) o una decisión que el autoservicio disparó por su cuenta.
+   */
+  async syncKybDecision(onboardingCaseId: string, accessToken: string): Promise<Record<string, unknown>> {
+    this.logger.infoContext(B2BOnboardingService.name, 'B2B CRM use case started', {
+      useCase: 'syncKybDecision',
+    });
+    const caseRecord = await this.repository.onboardingCases.findByPk(onboardingCaseId, { include: [this.repository.accounts] });
+    if (!caseRecord?.account) throw new NotFoundException('Caso de onboarding no encontrado.');
+    const partnerId = caseRecord.account.partnerProfileId;
+    if (!partnerId) {
+      return { id: caseRecord.id, status: caseRecord.status, decisionOutcome: caseRecord.decisionOutcome, changed: false, reason: 'SIN_EXPEDIENTE_EN_ATLAS' };
+    }
+    const estado = await this.partnerClient.forward<{
+      decision?: { outcome: KybOutcome; reason: string | null; executionId: string | null; artifactVersionId: string | null; manualReviewCaseCode: string | null; decidedAt: string | null } | null;
+    }>({
+      method: 'GET',
+      path: `partner-onboarding/${encodeURIComponent(partnerId)}/status`,
+      accessToken,
+    });
+    const changed = estado.decision ? await this.applyKybDecision(caseRecord, estado.decision) : false;
+    return { id: caseRecord.id, status: caseRecord.status, decisionOutcome: caseRecord.decisionOutcome, changed };
+  }
+
+  /** Aplica lo que publicó el Motor. Devuelve si el caso cambió. No reabre un caso ya activado. */
+  private async applyKybDecision(
+    caseRecord: MerchantOnboardingCaseModel,
+    decision: { outcome: KybOutcome; reason: string | null; executionId: string | null; artifactVersionId: string | null; manualReviewCaseCode: string | null; decidedAt: string | null },
+  ): Promise<boolean> {
+    if (caseRecord.status === ONBOARDING_TERMINAL_STATUS) return false;
+    const mismo =
+      caseRecord.decisionExecutionId === decision.executionId &&
+      caseRecord.decisionOutcome === decision.outcome &&
+      caseRecord.manualReviewCaseCode === (decision.manualReviewCaseCode ?? null);
+    if (mismo) return false;
+
+    const siguiente = STATUS_FOR_KYB_OUTCOME[decision.outcome];
+    // Un APROBADO tardío (revisión manual resuelta) no retrocede un caso que ya fue más lejos.
+    const conservar = siguiente === 'VERIFICADO' && ['ALTA_PENDIENTE', 'LISTO'].includes(caseRecord.status);
+    await caseRecord.update({
+      decisionOutcome: decision.outcome,
+      decisionReason: decision.reason ?? null,
+      decisionExecutionId: decision.executionId ?? null,
+      decisionArtifactVersion: decision.artifactVersionId ?? null,
+      manualReviewCaseCode: decision.manualReviewCaseCode ?? null,
+      decidedAt: decision.decidedAt ? new Date(decision.decidedAt) : new Date(),
+      ...(conservar ? {} : { status: siguiente }),
+    });
+    return true;
+  }
+
+  private async findPartnerProfile(
+    erpAccountId: string,
+    taxId: string | null,
+    accessToken: string,
+  ): Promise<{ partnerId: string; onboardingStatus: string; erpAccountId: string | null } | null> {
+    type Fila = { partnerId: string; onboardingStatus: string; erpAccountId: string | null };
+    const porCuenta = await this.partnerClient.forward<{ items: Fila[] }>({
+      method: 'GET',
+      path: `operations/partners?erpAccountId=${encodeURIComponent(erpAccountId)}`,
+      accessToken,
+    });
+    if (porCuenta.items?.[0]) return porCuenta.items[0];
+    if (!taxId) return null;
+    const porNit = await this.partnerClient.forward<{ items: Fila[] }>({
+      method: 'GET',
+      path: `operations/partners?taxId=${encodeURIComponent(taxId)}`,
+      accessToken,
+    });
+    return porNit.items?.[0] ?? null;
+  }
+
+  /**
    * El acuse que antes no llegaba nunca.
    *
    * AtlasBackend no llama de vuelta al ERP —no hay entrada pensada para eso y abrirla añadiría una
@@ -830,6 +1017,18 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
       // expediente diría que el comercio se habilitó hoy cuando lleva meses operando.
       if (caseRecord.status === ONBOARDING_TERMINAL_STATUS) {
         throw new ConflictException('El comercio ya está activado: este caso es su expediente cerrado.');
+      }
+
+      // Va PRIMERO porque es el tramo más lejano de la cadena: lo que falte aquí manda a otro
+      // sistema, y hay que decirlo antes que un requisito que se cierra en esta misma pantalla.
+      // Compuerta dura: sin APROBADO del Motor no se activa a nadie. Se corta aquí y no en la
+      // pantalla porque una pantalla se salta con `curl`. Si el Motor está caído, el caso espera.
+      if (caseRecord.decisionOutcome !== 'APROBADO') {
+        throw new ConflictException(
+          caseRecord.decisionOutcome
+            ? `El Motor no aprobó este comercio (${caseRecord.decisionOutcome}): no se puede activar.`
+            : 'Falta la verificación del Motor: pide la verificación del comercio antes de activarlo.',
+        );
       }
 
       const items = caseRecord.checklistItems ?? [];

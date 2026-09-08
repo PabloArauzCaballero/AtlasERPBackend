@@ -55,10 +55,31 @@ export function statusesForScope(scope: OnboardingScope): readonly OnboardingCas
   return ONBOARDING_CASE_STATUSES;
 }
 
+/** Lo que publica el Motor al decidir el KYB, tal cual: no se interpreta aquí. */
+export const KYB_OUTCOMES = ['APROBADO', 'RECHAZADO', 'REVISION_MANUAL'] as const;
+export type KybOutcome = (typeof KYB_OUTCOMES)[number];
+
+/** A qué estado del caso lleva cada desenlace del Motor. */
+export const STATUS_FOR_KYB_OUTCOME: Record<KybOutcome, OnboardingCaseStatus> = {
+  APROBADO: 'VERIFICADO',
+  RECHAZADO: 'RECHAZADO',
+  REVISION_MANUAL: 'REVISION_MANUAL',
+};
+
+/** Desde qué estados se puede (volver a) pedir la verificación. */
+export const STATUSES_THAT_CAN_REQUEST_KYB: readonly OnboardingCaseStatus[] = [
+  'OPEN',
+  'IN_PROGRESS',
+  'BLOCKED',
+  'RECHAZADO',
+];
+
 export interface OnboardingCaseSnapshot {
   status: string;
   pendingItems: number;
   hasActiveContract: boolean;
+  /** `decision_outcome === 'APROBADO'`: la compuerta dura. */
+  motorApproved: boolean;
 }
 
 /**
@@ -101,12 +122,18 @@ export function summarizeOnboardingQueue(rows: readonly OnboardingCaseSnapshot[]
 }
 
 /**
- * Lo que la activación comprueba de verdad: sin requisitos pendientes y con contrato vigente.
- * Cuando la verificación del Motor sea obligatoria (compuerta dura) se añadirá aquí, y la cifra
- * del tablero cambiará con ella, que es la gracia de contar con la misma regla.
+ * Lo que la activación comprueba de verdad: sin requisitos pendientes, con contrato vigente y con
+ * el KYB APROBADO por el Motor. La tercera es la compuerta dura: sin desenlace del Motor no se
+ * activa a nadie, y se corta en el servicio, no en la pantalla, porque una pantalla se salta con
+ * `curl`. Contar aquí con la misma regla es lo que hace que «listos» en el tablero sea verdad.
  */
 export function isReadyToActivate(row: OnboardingCaseSnapshot): boolean {
-  return row.status !== ONBOARDING_TERMINAL_STATUS && row.pendingItems === 0 && row.hasActiveContract;
+  return (
+    row.status !== ONBOARDING_TERMINAL_STATUS &&
+    row.pendingItems === 0 &&
+    row.hasActiveContract &&
+    row.motorApproved
+  );
 }
 
 /**
