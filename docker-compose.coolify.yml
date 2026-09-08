@@ -26,7 +26,9 @@
 # `/etc/docker/daemon.json` —FUSIONÁNDOLO, no sobrescribiéndolo— y se comprueba con
 # `docker run --rm alpine nslookup registry.yarnpkg.com`.
 #
-# **El endpoint de Neon tiene que ser el DIRECTO**, sin `-pooler`.
+# **La base es `atlas_erp` en `atlas-postgres`**, el PostgreSQL propio del host, no un servicio
+# gestionado: se llega por el alias de red, nunca por la IP del host, porque `ufw` sólo abre
+# 22/80/443 y un paquete a la IP se descarta en vez de fallar.
 
 name: atlas-erp
 
