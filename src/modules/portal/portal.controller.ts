@@ -125,6 +125,8 @@ export class PortalController {
     return this.service.listCommissions(scope, merchantAccountId);
   }
 
+  /* Sin `@Roles`, `RolesGuard` deja pasar a cualquier sesión autenticada: faltaba. */
+  @Roles(...PORTAL_ROLES)
   @Get('branches')
   async listBranches(
     @Query(new ZodValidationPipe(branchesQuerySchema)) query: BranchesQueryDto,

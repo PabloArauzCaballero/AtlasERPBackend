@@ -72,10 +72,10 @@ describe('Ciclo de vida del caso de onboarding', () => {
       { status: 'ACTIVE', identityRequestId: null, userId: null }, // anterior a la cola: no cuenta
       { status: 'INVITED', identityRequestId: '7', userId: null },
       { status: 'ACTIVE', identityRequestId: '8', userId: '41' },
-      { status: 'DISABLED', identityRequestId: '9', userId: null },
+      { status: 'DISABLED', identityRequestId: '9', userId: null, rejectionReason: 'Correo ya tomado' },
     ]);
-    expect(summary).toEqual({ pedidas: 3, pendientes: 1, concedidas: 1, rechazadas: 1 });
-    expect(describeCredentials(summary)).toBe('1 concedida · 1 pendiente · 1 rechazada');
+    expect(summary).toEqual({ pedidas: 3, pendientes: 1, concedidas: 1, rechazadas: 1, motivosRechazo: ['Correo ya tomado'] });
+    expect(describeCredentials(summary)).toBe('1 concedida · 1 pendiente · 1 rechazada (Correo ya tomado)');
     expect(describeCredentials(summarizeCredentials([]))).toBe('Sin pedir');
   });
 });

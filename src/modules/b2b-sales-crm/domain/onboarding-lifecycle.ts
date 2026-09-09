@@ -147,6 +147,7 @@ export interface CredentialsSnapshot {
   status: string;
   identityRequestId: string | null;
   userId: string | null;
+  rejectionReason?: string | null | undefined;
 }
 
 export interface CredentialsSummary {
@@ -154,16 +155,22 @@ export interface CredentialsSummary {
   pendientes: number;
   concedidas: number;
   rechazadas: number;
+  /** Los motivos de rechazo, sin repetir: la fila los enseña sin volver a preguntar. */
+  motivosRechazo: string[];
 }
 
 export function summarizeCredentials(users: readonly CredentialsSnapshot[]): CredentialsSummary {
-  const summary: CredentialsSummary = { pedidas: 0, pendientes: 0, concedidas: 0, rechazadas: 0 };
+  const summary: CredentialsSummary = { pedidas: 0, pendientes: 0, concedidas: 0, rechazadas: 0, motivosRechazo: [] };
   for (const user of users) {
     if (!user.identityRequestId) continue;
     summary.pedidas += 1;
     if (user.userId) summary.concedidas += 1;
     else if (user.status === 'INVITED') summary.pendientes += 1;
-    else if (user.status === 'DISABLED') summary.rechazadas += 1;
+    else if (user.status === 'DISABLED') {
+      summary.rechazadas += 1;
+      const motivo = user.rejectionReason?.trim();
+      if (motivo && !summary.motivosRechazo.includes(motivo)) summary.motivosRechazo.push(motivo);
+    }
   }
   return summary;
 }
@@ -174,6 +181,9 @@ export function describeCredentials(summary: CredentialsSummary): string {
   const partes: string[] = [];
   if (summary.concedidas) partes.push(`${summary.concedidas} concedida${summary.concedidas === 1 ? '' : 's'}`);
   if (summary.pendientes) partes.push(`${summary.pendientes} pendiente${summary.pendientes === 1 ? '' : 's'}`);
-  if (summary.rechazadas) partes.push(`${summary.rechazadas} rechazada${summary.rechazadas === 1 ? '' : 's'}`);
+  if (summary.rechazadas) {
+    const motivo = summary.motivosRechazo.length ? ` (${summary.motivosRechazo.join('; ')})` : '';
+    partes.push(`${summary.rechazadas} rechazada${summary.rechazadas === 1 ? '' : 's'}${motivo}`);
+  }
   return partes.join(' · ');
 }

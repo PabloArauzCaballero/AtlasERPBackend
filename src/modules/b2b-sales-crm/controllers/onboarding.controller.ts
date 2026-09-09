@@ -96,6 +96,19 @@ export class OnboardingController {
     return this.service.summarizeOnboardingQueue();
   }
 
+  /**
+   * Acusar de una vez todo lo que espera a otro sistema: credenciales pendientes en el portal y
+   * desenlaces del Motor. Una llamada por carga de la cola, en vez de una por fila.
+   */
+  @Roles('OPERATIONS', 'ADMIN', 'COMMERCIAL_MANAGER', 'COMMERCIAL_EXECUTIVE')
+  @Post('cases/reconcile-pending')
+  reconcilePendingCases(
+    @Req() req: Request,
+    @CurrentUser() user: AuthUser,
+  ): Promise<Record<string, unknown>> {
+    return this.service.reconcilePendingCases(this.upstreamToken(req), user);
+  }
+
   @Roles('OPERATIONS', 'LEGAL', 'ADMIN', 'COMMERCIAL_EXECUTIVE')
   @Get('cases/:onboardingCaseId')
   getCase(
@@ -146,6 +159,8 @@ export class OnboardingController {
     return this.service.listBranches(query);
   }
 
+  /* Faltaba el `@Roles`: sin él, cualquier sesión del ERP podía abrir sucursales a cualquier comercio. */
+  @Roles('OPERATIONS', 'ADMIN', 'MERCHANT_ADMIN')
   @Post('branches')
   createBranch(
     @Body(new ZodValidationPipe(createBranchSchema)) body: CreateBranchDto,

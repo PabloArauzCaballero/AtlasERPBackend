@@ -749,6 +749,10 @@ export class MerchantUserModel extends Model {
   // el identificador del otro lado es opaco (bigints allí, uuid en las fixtures de aquí).
   @Column({ type: DataType.STRING(120), field: 'identity_request_id' })
   declare identityRequestId: string | null;
+
+  /* Por qué Atlas rechazó el acceso pedido. Nulo si no se rechazó (migración 20260909100000). */
+  @Column({ type: DataType.STRING(240), field: 'identity_rejection_reason' })
+  declare identityRejectionReason: string | null;
 }
 
 @Table({ schema: SALES_SCHEMA, tableName: 'merchant_onboarding_cases', timestamps: false })

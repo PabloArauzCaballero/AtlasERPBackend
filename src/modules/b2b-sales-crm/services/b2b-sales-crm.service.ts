@@ -227,6 +227,10 @@ export class B2BSalesCrmService {
     return this.onboardingService.syncKybDecision(onboardingCaseId, accessToken);
   }
 
+  reconcilePendingCases(accessToken: string, actor: AuthUser): Promise<Record<string, unknown>> {
+    return this.onboardingService.reconcilePendingCases(accessToken, actor);
+  }
+
   reconcileCaseIdentity(
     onboardingCaseId: string,
     accessToken: string,

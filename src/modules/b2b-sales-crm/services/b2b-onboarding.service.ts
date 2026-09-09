@@ -20,6 +20,7 @@ import {
   STATUSES_THAT_CAN_REQUEST_KYB,
   STATUS_FOR_KYB_OUTCOME,
   describeCredentials,
+  type CredentialsSnapshot,
   type KybOutcome,
   statusesForScope,
   summarizeCredentials,
@@ -838,6 +839,51 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
   }
 
   /**
+   * Acusar de una vez todo lo que espera a otro sistema.
+   *
+   * La cola lanzaba un acuse POR FILA al abrirse: con decenas de casos eran decenas de llamadas por
+   * carga. Aquí es una: se recorren los casos abiertos que esperan al portal (credenciales
+   * pendientes) o al Motor (EN_VERIFICACION, REVISION_MANUAL), con un tope, y cada uno se acusa
+   * por separado para que el fallo de uno —un expediente sin enlazar, Atlas caído— no impida acusar
+   * los demás. El ERP no tiene planificador; cuando lo tenga, esto es lo que correrá el job.
+   */
+  async reconcilePendingCases(accessToken: string, actor: AuthUser): Promise<Record<string, unknown>> {
+    this.logger.infoContext(B2BOnboardingService.name, 'B2B CRM use case started', {
+      useCase: 'reconcilePendingCases',
+    });
+    const TOPE = 50;
+    const abiertos = await this.repository.onboardingCases.findAll({
+      where: { status: { [Op.in]: [...ONBOARDING_OPEN_STATUSES] } },
+      order: [['startedAt', 'ASC']],
+      limit: TOPE,
+    });
+    const credenciales = await this.credentialsByAccount(abiertos.map((row) => row.accountId));
+
+    let revisados = 0;
+    let cambiados = 0;
+    const errores: Array<{ id: string; error: string }> = [];
+    for (const caso of abiertos) {
+      const esperaPortal = (credenciales.get(caso.accountId) ?? []).some((u) => u.identityRequestId && u.status === 'INVITED' && !u.userId);
+      const esperaMotor = caso.status === 'EN_VERIFICACION' || caso.status === 'REVISION_MANUAL';
+      if (!esperaPortal && !esperaMotor) continue;
+      revisados += 1;
+      try {
+        if (esperaMotor) {
+          const r = await this.syncKybDecision(caso.id, accessToken);
+          if (r.changed) cambiados += 1;
+        }
+        if (esperaPortal) {
+          const r = await this.reconcileCaseIdentity(caso.id, accessToken, actor);
+          if (Array.isArray(r.resueltos) && r.resueltos.length > 0) cambiados += 1;
+        }
+      } catch (error) {
+        errores.push({ id: caso.id, error: error instanceof Error ? error.message : String(error) });
+      }
+    }
+    return { revisados, cambiados, errores, tope: TOPE };
+  }
+
+  /**
    * El acuse que antes no llegaba nunca.
    *
    * AtlasBackend no llama de vuelta al ERP —no hay entrada pensada para eso y abrirla añadiría una
@@ -923,7 +969,7 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
       return true;
     }
     if (request.status === 'rejected' && user.status !== 'DISABLED') {
-      await user.update({ status: 'DISABLED' });
+      await user.update({ status: 'DISABLED', identityRejectionReason: request.rejectionReason ?? null });
       return true;
     }
     return false;
@@ -933,25 +979,23 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
   private async credentialsByAccount(
     accountIds: string[],
     transaction?: Transaction,
-  ): Promise<Map<string, Array<{ status: string; identityRequestId: string | null; userId: string | null }>>> {
-    const map = new Map<string, Array<{ status: string; identityRequestId: string | null; userId: string | null }>>();
+  ): Promise<Map<string, CredentialsSnapshot[]>> {
+    const map = new Map<string, CredentialsSnapshot[]>();
     if (accountIds.length === 0) return map;
     const users = await this.repository.merchantUsers.findAll({
       where: { accountId: { [Op.in]: accountIds } },
-      attributes: ['accountId', 'status', 'identityRequestId', 'userId'],
+      attributes: ['accountId', 'status', 'identityRequestId', 'userId', 'identityRejectionReason'],
       ...(transaction ? { transaction } : {}),
     });
     for (const user of users) {
       const list = map.get(user.accountId) ?? [];
-      list.push({ status: user.status, identityRequestId: user.identityRequestId, userId: user.userId });
+      list.push({ status: user.status, identityRequestId: user.identityRequestId, userId: user.userId, rejectionReason: user.identityRejectionReason });
       map.set(user.accountId, list);
     }
     return map;
   }
 
-  private describeCredentialsOf(
-    users: ReadonlyArray<{ status: string; identityRequestId: string | null; userId: string | null }>,
-  ): Record<string, unknown> {
+  private describeCredentialsOf(users: ReadonlyArray<CredentialsSnapshot>): Record<string, unknown> {
     const credentials = summarizeCredentials(users);
     return { credentials, credentialsSummary: describeCredentials(credentials) };
   }

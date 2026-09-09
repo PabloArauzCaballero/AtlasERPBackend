@@ -45,3 +45,8 @@ KYB del Motor (`decision_*`, `manual_review_case_code`, `decided_at`), el acuse 
 concedida (`identity_acknowledged_at`) y el contrato pactado para el alta (`contract_version_id`,
 del que cuelga la comisión). Añade `b2b_accounts.partner_profile_id`, el puente al expediente del
 comercio en AtlasBackend, sin el cual no hay a quién pedirle la verificación.
+
+## 20260909100000-merchant-user-identity-rejection.sql
+
+`atlas_sales.merchant_users.identity_rejection_reason`: el motivo con el que Atlas rechazó el acceso
+pedido. El acuse lo recibía y lo tiraba; ahora la fila de la cola lo enseña sin volver a preguntar.
