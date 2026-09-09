@@ -4,11 +4,12 @@
 
 **Fuera del repositorio.** El conjunto sembrado —plan de cuentas, impuestos, territorios, productos
 facturables, placements y políticas de publicidad, política de calificación ASFI, y los comercios y
-usuarios de prueba— se publica en una **rama** de PostgreSQL gestionado y se trae con un comando:
+usuarios de prueba— se publica en una **base separada** (`seed_atlas_erp`) del mismo PostgreSQL
+propio (`atlas-postgres`) y se trae con un comando:
 
 ```bash
 npm run db:migrate     # el esquema lo siguen definiendo las migraciones versionadas
-npm run db:seed:pull   # los datos los trae la rama
+npm run db:seed:pull   # los datos los trae la base de semillas
 ```
 
 Antes eran `src/database/seeders/`, de los cuales 1,5 MB era un solo archivo:
@@ -16,18 +17,19 @@ Antes eran `src/database/seeders/`, de los cuales 1,5 MB era un solo archivo:
 cuentas del plan contable. Un JSON de ese tamaño en el árbol de fuentes no se revisa en un PR, no se
 diferencia de forma legible y se clona en cada `git clone` desde entonces hasta siempre.
 
-## La rama es el perfil
+## La base es el perfil
 
 No hay lista de archivos por entorno. `REFERENCE_SEEDS`/`DEVELOPMENT_SEEDS` en
 `database-seeder.service.ts` decidían con `NODE_ENV` qué `.sql` entraba; ahora lo decide **a qué
-rama se apunta**, y a la rama de producción no se le puede pedir lo que no tiene. Como cada rama de
-Neon tiene su propio endpoint, cambiar de perfil es cambiar `SEED_SOURCE_HOST`.
+base se apunta**, y a la base de producción no se le puede pedir lo que no tiene. Como todas las
+bases de semillas viven en el mismo host (`atlas-postgres`), cambiar de perfil es cambiar
+`SEED_SOURCE_DB`, no el host.
 
 Esa lista, además, era un sitio donde las cosas se caían: la política de calificación ASFI llevaba
 desde agosto en disco sin estar en ella ni tener guion de npm, así que `rating_policy_versions` y
 `rating_policy_bands` estaban vacías en toda base creada desde entonces y el calificador devolvía
 `RATING_POLICY_NOT_ACTIVE`. Un conjunto publicado no tiene lista que actualizar: lo que está en la
-rama, llega.
+base de semillas, llega.
 
 ## Configuración
 
@@ -35,7 +37,7 @@ Dos formas, en este orden de precedencia (ver `src/database/seed-source.ts`):
 
 1. `SEED_SOURCE_DATABASE_URL` — cadena completa. Gana sobre todo lo demás.
 2. `SEED_SOURCE_HOST` + `SEED_SOURCE_DB` + `SEED_SOURCE_USER` + `SEED_SOURCE_PASSWORD` — la vía
-   cómoda cuando **sólo cambia la rama**.
+   cómoda cuando **sólo cambia la base**.
 
 ## Comandos
 

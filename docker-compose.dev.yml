@@ -1,10 +1,11 @@
 # Despliegue de PRUEBAS del ERP en el VPS de Contabo (Ubuntu).
 #
 # Va aparte de `docker-compose.yml` —que describe el stack LOCAL con su propio PostgreSQL— porque en
-# el VPS la base vive en Neon y no hay contenedor de Postgres que levantar. Es una decisión de
-# espacio, y trae dos consecuencias: la latencia a la base es un salto por Internet con TLS, y un
-# endpoint de Neon en autosuspend tarda varios segundos en despertar la primera vez. De ahí que los
-# `start_period` de las sondas sean más largos que en local.
+# el VPS la base vive en `atlas-postgres` (contenedor propio del host `pablo-h310`, fuera de este
+# compose) y no hay contenedor de Postgres que levantar aquí. La latencia a la base sigue siendo un
+# salto de red —de ahí que los `start_period` de las sondas sean más largos que en local—, pero ya
+# no hay pooler ni autosuspend: la base está siempre despierta y se llega por el alias
+# `atlas-postgres`, nunca por la IP del host.
 #
 # ## Red compartida entre bloques
 #
