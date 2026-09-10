@@ -20,6 +20,22 @@ jobs:
     name: Tipos, lint y pruebas
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # El arranque real necesita una base a la que conectarse: Sequelize se conecta al construir el
+    # proveedor, así que sin PostgreSQL el proceso muere por la razón equivocada y el paso no diría
+    # nada sobre el árbol de dependencias, que es lo que se quiere comprobar.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: atlas_erp_ci
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
 
@@ -48,3 +64,47 @@ jobs:
       # alguien los borre o rompa el patrón de nombres, esto tiene que ponerse rojo y no verde.
       - name: Pruebas unitarias
         run: yarn test
+
+      - name: Compilar
+        run: yarn build
+
+      # NINGUNA prueba unitaria levanta el árbol de Nest, así que un fallo de resolución de
+      # dependencias —un proveedor que un controlador inyecta y que su módulo no provee— compila,
+      # pasa las 333 pruebas, produce un build verde y REVIENTA al arrancar el proceso. Pasó el
+      # 2026-09-10: el ERP de dev estuvo veinte minutos en bucle de reinicio con todo en verde.
+      #
+      # Esto es lo único que lo caza sin desplegar: arrancar de verdad y esperar la línea que sólo
+      # se imprime cuando la aplicación quedó escuchando. `NestFactory.create(..., {preview: true})`
+      # NO sirve: no instancia proveedores, así que da verde sobre este mismo fallo.
+      - name: Arranque real de la aplicación
+        env:
+          NODE_ENV: test
+          PORT: '3007'
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/atlas_erp_ci
+          DB_SSL: 'false'
+          STARTUP_MIGRATIONS_ENABLED: 'false'
+          STARTUP_SEEDS_ENABLED: 'false'
+          JWT_ACCESS_SECRET: ci_secret_with_more_than_32_characters
+          CORS_ALLOWED_ORIGINS: http://localhost:5273
+          LOG_LEVEL: info
+        run: |
+          set -euo pipefail
+          node dist/src/main.js > arranque.log 2>&1 &
+          pid=$!
+          for _ in $(seq 1 60); do
+            if grep -q 'process is listening' arranque.log; then
+              echo '✅ La aplicación arrancó y quedó escuchando.'
+              kill "$pid"
+              exit 0
+            fi
+            if ! kill -0 "$pid" 2>/dev/null; then
+              echo '❌ El proceso murió durante el arranque:'
+              cat arranque.log
+              exit 1
+            fi
+            sleep 1
+          done
+          echo '❌ La aplicación no llegó a escuchar en 60 s:'
+          cat arranque.log
+          kill "$pid" || true
+          exit 1
