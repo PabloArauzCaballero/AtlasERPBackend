@@ -8,7 +8,7 @@ import { env } from './config/env';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
-import { HttpAccessRegistryService } from './common/observability/http-access-registry.service';
+import { ObservabilityModule } from './common/observability/observability.module';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { RequestContextMiddleware } from './common/middleware/request-context.middleware';
@@ -52,6 +52,7 @@ function prettyDisponible(): boolean {
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ObservabilityModule,
     PinoLoggerModule,
     AccountingLoggerModule,
     NestPinoLoggerModule.forRoot({
@@ -102,7 +103,6 @@ function prettyDisponible(): boolean {
   ],
   providers: [
     HttpExceptionFilter,
-    HttpAccessRegistryService,
     LoggingInterceptor,
     ResponseInterceptor,
     { provide: APP_GUARD, useClass: ThrottlerGuard },
