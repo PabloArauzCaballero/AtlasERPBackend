@@ -70,6 +70,14 @@ describe('HttpAccessRegistryService · pantallas', () => {
     expect(registro.snapshot().entries).toHaveLength(1);
   });
 
+  it('más de 40 rutas en una pantalla: se deja de anotar y se DICE', () => {
+    const registro = new HttpAccessRegistryService();
+    for (let i = 0; i < 41; i += 1) registro.record('GET', `/api/v1/r/${i}`, 200, origen);
+    const [pantalla] = registro.snapshot().screens;
+    expect(pantalla?.routes).toHaveLength(40);
+    expect(pantalla?.routesTruncated).toBe(true);
+  });
+
   it('al tope deja de anotar pantallas nuevas y lo DICE', () => {
     const registro = new HttpAccessRegistryService();
     for (let i = 0; i <= 2000; i += 1)
@@ -81,6 +89,48 @@ describe('HttpAccessRegistryService · pantallas', () => {
 });
 
 describe('LoggingInterceptor · anota la pantalla que declara la petición', () => {
+  async function pasar(conUsuario: boolean) {
+    const valores: Record<string, string> = {
+      'x-atlas-flow': '/operaciones/cartera',
+      'x-atlas-product': 'erp-portal',
+    };
+    const request: Record<string, unknown> = {
+      method: 'GET',
+      baseUrl: '/api/v1',
+      route: { path: '/health' },
+      originalUrl: '/api/v1/health',
+      url: '/api/v1/health',
+      header: (nombre: string) => valores[nombre.toLowerCase()],
+      ...(conUsuario ? { user: { sub: 'u1' } } : {}),
+    };
+    const oyentes: Array<() => void> = [];
+    const response = {
+      statusCode: 200,
+      setHeader: () => undefined,
+      once: (_: string, fn: () => void) => oyentes.push(fn),
+    };
+    const contexto = {
+      switchToHttp: () => ({ getRequest: () => request, getResponse: () => response }),
+    } as unknown as ExecutionContext;
+    const registro = new HttpAccessRegistryService();
+    const logger = { infoContext: () => undefined, warnContext: () => undefined } as never;
+    await lastValueFrom(
+      new LoggingInterceptor(logger, registro).intercept(contexto, { handle: () => of(null) }),
+    );
+    oyentes.forEach((fn) => fn());
+    return registro.snapshot();
+  }
+
+  it('una llamada anónima no anota pantalla: no se puede llenar el tope desde una ruta pública', async () => {
+    const snapshot = await pasar(false);
+    expect(snapshot.screens).toEqual([]);
+    expect(snapshot.entries).toHaveLength(1);
+  });
+
+  it('con usuario sí se anota', async () => {
+    expect((await pasar(true)).screens).toHaveLength(1);
+  });
+
   it('lee x-atlas-flow y x-atlas-product de la petición real', async () => {
     const valores: Record<string, string> = {
       'x-atlas-flow': '/operaciones/cartera',
@@ -93,6 +143,7 @@ describe('LoggingInterceptor · anota la pantalla que declara la petición', () 
       originalUrl: '/api/v1/portfolio',
       url: '/api/v1/portfolio',
       header: (nombre: string) => valores[nombre.toLowerCase()],
+      user: { sub: 'u1' },
     };
     const oyentes: Array<() => void> = [];
     const response = {
@@ -124,7 +175,12 @@ describe('CORS · las cabeceras propias del portal pasan el preflight', () => {
 
   it('permite la correlación y el origen de pantalla', () => {
     expect(buildCorsOptions().allowedHeaders).toEqual(
-      expect.arrayContaining(['X-Correlation-Id', 'X-Atlas-Flow', 'X-Atlas-Product']),
+      expect.arrayContaining([
+        'X-Correlation-Id',
+        'X-Atlas-Flow',
+        'X-Atlas-Product',
+        'X-Idempotency-Key',
+      ]),
     );
   });
 });

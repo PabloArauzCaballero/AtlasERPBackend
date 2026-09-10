@@ -20,6 +20,8 @@ export interface ScreenRunTally {
   failed: number;
   lastAt: string;
   routes: Array<{ method: string; path: string; calls: number; failed: number }>;
+  /** Si se dejaron de anotar rutas de esta pantalla por el tope: la lista de rutas no está completa. */
+  routesTruncated: boolean;
 }
 
 /**
@@ -131,6 +133,7 @@ export class HttpAccessRegistryService {
         failed: 0,
         lastAt: '',
         routes: [],
+        routesTruncated: false,
       };
       this.screens.set(clave, tally);
     }
@@ -144,6 +147,8 @@ export class HttpAccessRegistryService {
       ruta.failed += fallo;
     } else if (tally.routes.length < HttpAccessRegistryService.MAX_ROUTES_PER_SCREEN) {
       tally.routes.push({ method, path, calls: 1, failed: fallo });
+    } else {
+      tally.routesTruncated = true;
     }
   }
 }
