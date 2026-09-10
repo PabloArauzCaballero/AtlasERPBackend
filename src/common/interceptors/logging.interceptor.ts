@@ -9,6 +9,7 @@ import {
 import type { Request, Response } from 'express';
 import { catchError, Observable, tap, throwError } from 'rxjs';
 import { HttpAccessRegistryService } from '../observability/http-access-registry.service';
+import { requestOrigin } from '../observability/request-origin';
 import { PinoLoggerService } from '../logging/pino-logger.service';
 import type { AuthUser } from '../types/auth-context.types';
 
@@ -56,7 +57,12 @@ export class LoggingInterceptor implements NestInterceptor {
      * igual; para una evidencia que alguien va a leer, no: un código inventado es un código falso.
      */
     response.once('finish', () => {
-      this.accesos.record(request.method, this.routeTemplate(request), response.statusCode);
+      this.accesos.record(
+        request.method,
+        this.routeTemplate(request),
+        response.statusCode,
+        requestOrigin((nombre) => request.header(nombre)),
+      );
     });
 
     this.logger.infoContext(this.contextName, 'HTTP request started', {

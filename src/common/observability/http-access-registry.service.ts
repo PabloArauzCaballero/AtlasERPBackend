@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import type { RequestOrigin } from './request-origin';
 
 /** Lo que se sabe de una ruta desde que arrancó esta instancia. */
 export interface AccessRunTally {
@@ -9,6 +10,16 @@ export interface AccessRunTally {
   lastStatus: number;
   lastAt: string;
   statuses: Record<string, number>;
+}
+
+/** Lo que se hizo desde una pantalla de un cliente, desde que arrancó esta instancia. */
+export interface ScreenRunTally {
+  client: string;
+  screen: string;
+  calls: number;
+  failed: number;
+  lastAt: string;
+  routes: Array<{ method: string; path: string; calls: number; failed: number }>;
 }
 
 /**
@@ -37,10 +48,25 @@ export interface AccessRunTally {
 export class HttpAccessRegistryService {
   /** Tope de seguridad: si se superara, algo está generando rutas en vez de reusar plantillas. */
   private static readonly MAX_ENTRIES = 2000;
+  /**
+   * Las pantallas llegan con su ruta CONCRETA (`/operaciones/clientes/42`), así que este mapa sí
+   * crece con el tráfico. Al tope se deja de anotar pantallas nuevas y se DICE: quien lea la lista
+   * tiene que saber que le faltan, o convertiría un corte en «nadie abrió esa pantalla».
+   */
+  private static readonly MAX_SCREENS = 2000;
+  private static readonly MAX_ROUTES_PER_SCREEN = 40;
   private readonly tallies = new Map<string, AccessRunTally>();
+  private readonly screens = new Map<string, ScreenRunTally>();
+  private screensTruncated = false;
   private readonly startedAt = new Date().toISOString();
 
-  record(method: string, path: string, statusCode: number): void {
+  record(
+    method: string,
+    path: string,
+    statusCode: number,
+    origin: RequestOrigin | null = null,
+  ): void {
+    if (origin) this.recordScreen(method, path, statusCode, origin);
     const clave = `${method} ${path}`;
     const previo = this.tallies.get(clave);
     if (!previo && this.tallies.size >= HttpAccessRegistryService.MAX_ENTRIES) return;
@@ -61,13 +87,63 @@ export class HttpAccessRegistryService {
     this.tallies.set(clave, tally);
   }
 
-  snapshot(): { since: string; scope: string; entries: AccessRunTally[] } {
+  snapshot(): {
+    since: string;
+    scope: string;
+    entries: AccessRunTally[];
+    screens: ScreenRunTally[];
+    screensTruncated: boolean;
+  } {
     return {
       since: this.startedAt,
       scope: 'process',
       entries: [...this.tallies.values()].sort((a, b) =>
         `${a.method} ${a.path}`.localeCompare(`${b.method} ${b.path}`),
       ),
+      screens: [...this.screens.values()].sort((a, b) =>
+        `${a.client} ${a.screen}`.localeCompare(`${b.client} ${b.screen}`),
+      ),
+      screensTruncated: this.screensTruncated,
     };
+  }
+
+  /**
+   * Desde qué pantalla se llamó, para que Flujos pueda verificar las pantallas del portal del ERP.
+   * Mismo criterio de fallo que las rutas: sólo el 5xx.
+   */
+  private recordScreen(
+    method: string,
+    path: string,
+    statusCode: number,
+    origin: RequestOrigin,
+  ): void {
+    const clave = `${origin.client} ${origin.screen}`;
+    let tally = this.screens.get(clave);
+    if (!tally) {
+      if (this.screens.size >= HttpAccessRegistryService.MAX_SCREENS) {
+        this.screensTruncated = true;
+        return;
+      }
+      tally = {
+        client: origin.client,
+        screen: origin.screen,
+        calls: 0,
+        failed: 0,
+        lastAt: '',
+        routes: [],
+      };
+      this.screens.set(clave, tally);
+    }
+    const fallo = statusCode >= 500 ? 1 : 0;
+    tally.calls += 1;
+    tally.failed += fallo;
+    tally.lastAt = new Date().toISOString();
+    const ruta = tally.routes.find((r) => r.method === method && r.path === path);
+    if (ruta) {
+      ruta.calls += 1;
+      ruta.failed += fallo;
+    } else if (tally.routes.length < HttpAccessRegistryService.MAX_ROUTES_PER_SCREEN) {
+      tally.routes.push({ method, path, calls: 1, failed: fallo });
+    }
   }
 }
