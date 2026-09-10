@@ -23,6 +23,8 @@ export function buildCorsOptions(): CorsOptions {
       'X-Correlation-Id',
       'X-Atlas-Flow',
       'X-Atlas-Product',
+      // El envío de campañas la exige (`admin-ads.controller.ts`) y el portal la manda.
+      'X-Idempotency-Key',
     ],
   };
 }

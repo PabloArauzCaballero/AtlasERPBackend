@@ -61,7 +61,9 @@ export class LoggingInterceptor implements NestInterceptor {
         request.method,
         this.routeTemplate(request),
         response.statusCode,
-        requestOrigin((nombre) => request.header(nombre)),
+        // Sólo con usuario: una ruta pública (health, auth) acepta cualquier cabecera, y unas miles de
+        // llamadas anónimas bastaban para llenar el tope y dejar de anotar pantallas reales.
+        request.user ? requestOrigin((nombre) => request.header(nombre)) : null,
       );
     });
 
