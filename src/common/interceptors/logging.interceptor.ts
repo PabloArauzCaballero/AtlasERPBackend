@@ -101,6 +101,10 @@ export class LoggingInterceptor implements NestInterceptor {
   }
 
   private resolveRequestId(request: RequestWithLogContext): string {
+    // Lo resuelve `RequestContextMiddleware`, que corre antes. Releer aquí la cabecera con OTRO patrón
+    // (1-120 caracteres frente a 8-120) daba dos ids para la misma petición cuando el valor cabía en
+    // uno y no en el otro, y además ignoraba el `x-correlation-id` que el middleware sí acepta.
+    if (request.requestId) return request.requestId;
     const existing = request.header('x-request-id')?.trim();
     const isSafeExternalRequestId =
       existing !== undefined && /^[A-Za-z0-9_.:-]{1,120}$/.test(existing);
