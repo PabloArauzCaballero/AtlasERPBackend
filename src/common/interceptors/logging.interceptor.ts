@@ -1,5 +1,11 @@
 import { randomUUID } from 'node:crypto';
-import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
+import {
+  CallHandler,
+  ExecutionContext,
+  HttpException,
+  Injectable,
+  NestInterceptor,
+} from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { catchError, Observable, tap, throwError } from 'rxjs';
 import { HttpAccessRegistryService } from '../observability/http-access-registry.service';
@@ -63,14 +69,18 @@ export class LoggingInterceptor implements NestInterceptor {
         });
       }),
       catchError((error: unknown) => {
-        // El estado aún no está puesto cuando el manejador lanza: un error sin estado es un 500.
-        const estado = response.statusCode >= 400 ? response.statusCode : 500;
+        // Cuando el manejador lanza, `response.statusCode` sigue siendo el 200 por defecto: el filtro
+        // de excepciones aún no ha corrido. El estado real lo lleva la excepción, y hay que leerlo de
+        // ahí: contar un `BadRequestException` como 500 convertiría «el flujo rechazó una entrada
+        // inválida, que es su trabajo» en «el flujo está roto». Sólo lo que no es `HttpException` —un
+        // fallo no previsto— es un 500 de verdad.
+        const estado = error instanceof HttpException ? error.getStatus() : 500;
         this.accesos.record(request.method, this.routeTemplate(request), estado);
         this.logger.warnContext(this.contextName, 'HTTP request failed before response', {
           requestId,
           method: request.method,
           path: request.originalUrl ?? request.url,
-          statusCode: response.statusCode,
+          statusCode: estado,
           durationMs: Date.now() - startedAt,
           errorName: error instanceof Error ? error.name : 'UnknownError',
           userId: request.user?.sub,
