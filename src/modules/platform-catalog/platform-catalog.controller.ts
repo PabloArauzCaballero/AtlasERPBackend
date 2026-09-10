@@ -10,12 +10,32 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
 import { Public } from '../../common/decorators/public.decorator';
 import { PlatformCatalogKeyGuard } from './platform-catalog-key.guard';
+import { HttpAccessRegistryService } from '../../common/observability/http-access-registry.service';
 import { PlatformCatalogService } from './platform-catalog.service';
 import type { CatalogManifest } from './platform-catalog.types';
 
 @Controller('platform')
 export class PlatformCatalogController {
-  constructor(private readonly catalog: PlatformCatalogService) {}
+  constructor(
+    private readonly catalog: PlatformCatalogService,
+    private readonly accesos: HttpAccessRegistryService,
+  ) {}
+
+  /**
+   * Qué rutas de este bloque se han ejercitado de verdad y cómo acabaron. Lo consume Flujos para
+   * verificar los flujos del ERP contra ejecución real en lugar de dar por bueno el código.
+   *
+   * Misma puerta que el manifiesto: quien llama es un servicio, no una persona. El alcance viaja
+   * en la respuesta (`scope: 'process'`, `since`) porque el contador es de esta instancia y desde
+   * su arranque: quien lo lea debe saber que un vacío significa «nadie ha pasado por aquí desde
+   * que arrancó», no «esta ruta está rota».
+   */
+  @Public()
+  @UseGuards(PlatformCatalogKeyGuard)
+  @Get('access-runs')
+  accessRuns() {
+    return this.accesos.snapshot();
+  }
 
   @Public()
   @UseGuards(PlatformCatalogKeyGuard)

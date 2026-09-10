@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { catchError, Observable, tap, throwError } from 'rxjs';
+import { HttpAccessRegistryService } from '../observability/http-access-registry.service';
 import { PinoLoggerService } from '../logging/pino-logger.service';
 import type { AuthUser } from '../types/auth-context.types';
 
@@ -14,7 +15,21 @@ interface RequestWithLogContext extends Request {
 export class LoggingInterceptor implements NestInterceptor {
   private readonly contextName = LoggingInterceptor.name;
 
-  constructor(private readonly logger: PinoLoggerService) {}
+  constructor(
+    private readonly logger: PinoLoggerService,
+    private readonly accesos: HttpAccessRegistryService,
+  ) {}
+
+  /**
+   * La PLANTILLA de la ruta (`/x/:id`), no la URL concreta. Express la deja en `route.path` una vez
+   * resuelto el manejador; si no está —404 sin ruta, por ejemplo— se cae a la URL sin query, que es
+   * lo mejor que se puede decir sin inventar.
+   */
+  private routeTemplate(request: RequestWithLogContext): string {
+    const plantilla = (request as { route?: { path?: string } }).route?.path;
+    if (plantilla) return `${request.baseUrl ?? ''}${plantilla}`;
+    return (request.originalUrl ?? request.url).split('?')[0] ?? request.url;
+  }
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const http = context.switchToHttp();
@@ -36,6 +51,7 @@ export class LoggingInterceptor implements NestInterceptor {
 
     return next.handle().pipe(
       tap(() => {
+        this.accesos.record(request.method, this.routeTemplate(request), response.statusCode);
         this.logger.infoContext(this.contextName, 'HTTP request completed', {
           requestId,
           method: request.method,
@@ -47,6 +63,9 @@ export class LoggingInterceptor implements NestInterceptor {
         });
       }),
       catchError((error: unknown) => {
+        // El estado aún no está puesto cuando el manejador lanza: un error sin estado es un 500.
+        const estado = response.statusCode >= 400 ? response.statusCode : 500;
+        this.accesos.record(request.method, this.routeTemplate(request), estado);
         this.logger.warnContext(this.contextName, 'HTTP request failed before response', {
           requestId,
           method: request.method,
