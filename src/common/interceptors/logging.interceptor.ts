@@ -46,6 +46,19 @@ export class LoggingInterceptor implements NestInterceptor {
 
     response.setHeader('X-Request-Id', requestId);
 
+    /**
+     * El registro de accesos se anota cuando la respuesta ya SALIÓ, no cuando el manejador termina.
+     *
+     * En ese momento `statusCode` es el definitivo: el 201 de un POST, el 204 de un borrado y el
+     * código que puso el filtro de excepciones si hubo error. Dentro del `tap` todavía no lo es
+     * —Express arranca en 200 y Nest fija el estado al enviar, después de los interceptores—, así
+     * que un POST que responde 201 se habría anotado como 200. Para decidir si algo está roto da
+     * igual; para una evidencia que alguien va a leer, no: un código inventado es un código falso.
+     */
+    response.once('finish', () => {
+      this.accesos.record(request.method, this.routeTemplate(request), response.statusCode);
+    });
+
     this.logger.infoContext(this.contextName, 'HTTP request started', {
       requestId,
       method: request.method,
@@ -57,7 +70,6 @@ export class LoggingInterceptor implements NestInterceptor {
 
     return next.handle().pipe(
       tap(() => {
-        this.accesos.record(request.method, this.routeTemplate(request), response.statusCode);
         this.logger.infoContext(this.contextName, 'HTTP request completed', {
           requestId,
           method: request.method,
@@ -69,13 +81,10 @@ export class LoggingInterceptor implements NestInterceptor {
         });
       }),
       catchError((error: unknown) => {
-        // Cuando el manejador lanza, `response.statusCode` sigue siendo el 200 por defecto: el filtro
-        // de excepciones aún no ha corrido. El estado real lo lleva la excepción, y hay que leerlo de
-        // ahí: contar un `BadRequestException` como 500 convertiría «el flujo rechazó una entrada
-        // inválida, que es su trabajo» en «el flujo está roto». Sólo lo que no es `HttpException` —un
-        // fallo no previsto— es un 500 de verdad.
+        // Aquí `response.statusCode` sigue siendo el 200 por defecto —el filtro de excepciones aún no
+        // ha corrido—, así que para el LOG el estado se lee de la excepción, que es quien lo lleva.
+        // El registro de accesos no lo necesita: se anota en `finish`, cuando ya es el definitivo.
         const estado = error instanceof HttpException ? error.getStatus() : 500;
-        this.accesos.record(request.method, this.routeTemplate(request), estado);
         this.logger.warnContext(this.contextName, 'HTTP request failed before response', {
           requestId,
           method: request.method,
