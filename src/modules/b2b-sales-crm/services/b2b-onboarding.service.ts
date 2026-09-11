@@ -660,6 +660,30 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
   }
 
   /**
+   * El contrato legal POR DEFECTO del inquilino, tal como lo publica el portal interno de Atlas.
+   *
+   * No es el contrato comercial del caso (ese es `contract_version_id`, del ERP): es el texto legal
+   * que Atlas exige tener vigente para que el Motor apruebe (`kyb_contrato_legal_vigente`). El ERP
+   * sólo lo LEE, para decir en la cola cuál rige o que no hay ninguno; publicarlo o cambiarlo es del
+   * portal. `null` no es error: un inquilino recién abierto todavía no tiene contrato.
+   */
+  async getDefaultLegalContractTemplate(accessToken: string): Promise<Record<string, unknown>> {
+    const respuesta = await this.partnerClient.forward<{
+      template: { templateId: string; templateCode: string; name: string; version: number; status: string; isDefault: boolean } | null;
+    }>({
+      method: 'GET',
+      path: 'operations/partner-contract-templates/default',
+      accessToken,
+    });
+    const plantilla = respuesta.template;
+    return {
+      template: plantilla
+        ? { templateId: plantilla.templateId, templateCode: plantilla.templateCode, name: plantilla.name, version: plantilla.version, status: plantilla.status }
+        : null,
+    };
+  }
+
+  /**
    * Enlazar el caso con el expediente del comercio en AtlasBackend (`partner_profiles`).
    *
    * El puente `partner_profiles.erp_account_id` va en el otro sentido y es nulable a propósito, y

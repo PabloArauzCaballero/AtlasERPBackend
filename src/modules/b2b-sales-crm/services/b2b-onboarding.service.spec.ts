@@ -184,3 +184,18 @@ describe('B2BOnboardingService · la compuerta dura', () => {
     await expect(service.activateOnboardingCase('caso-1')).rejects.toThrow(/RECHAZADO/);
   });
 });
+
+describe('B2BOnboardingService · el contrato legal por defecto', () => {
+  it('lo lee de AtlasBackend y publica sólo la cabecera, nunca el cuerpo', async () => {
+    const forward = jest.fn(async () => ({ template: { templateId: '5', templateCode: 'CONTRATO-COMERCIO', name: 'Contrato marco', version: 2, body: 'texto largo', status: 'active', isDefault: true } }));
+    const { service } = build({ forward });
+    const result = await service.getDefaultLegalContractTemplate('tok');
+    expect(forward).toHaveBeenCalledWith(expect.objectContaining({ method: 'GET', path: 'operations/partner-contract-templates/default' }));
+    expect(result).toEqual({ template: { templateId: '5', templateCode: 'CONTRATO-COMERCIO', name: 'Contrato marco', version: 2, status: 'active' } });
+  });
+
+  it('`null` no es un error: el inquilino aún no publicó ninguno', async () => {
+    const { service } = build({ forward: jest.fn(async () => ({ template: null })) });
+    expect(await service.getDefaultLegalContractTemplate('tok')).toEqual({ template: null });
+  });
+});

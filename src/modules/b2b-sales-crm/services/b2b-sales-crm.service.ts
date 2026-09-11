@@ -210,6 +210,10 @@ export class B2BSalesCrmService {
     return this.onboardingService.summarizeOnboardingQueue();
   }
 
+  getDefaultLegalContractTemplate(accessToken: string): Promise<Record<string, unknown>> {
+    return this.onboardingService.getDefaultLegalContractTemplate(accessToken);
+  }
+
   linkPartnerProfile(onboardingCaseId: string, accessToken: string): Promise<Record<string, unknown>> {
     return this.onboardingService.linkPartnerProfile(onboardingCaseId, accessToken);
   }

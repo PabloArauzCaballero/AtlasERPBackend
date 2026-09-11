@@ -97,6 +97,16 @@ export class OnboardingController {
   }
 
   /**
+   * El contrato legal por defecto que rige en Atlas (lo publica el portal interno). El ERP sólo lo
+   * lee: sin él, el Motor no aprueba a nadie, y la cola tiene que poder decirlo.
+   */
+  @Roles('OPERATIONS', 'LEGAL', 'ADMIN', 'COMMERCIAL_MANAGER', 'COMMERCIAL_EXECUTIVE')
+  @Get('legal-contract-template')
+  getDefaultLegalContractTemplate(@Req() req: Request): Promise<Record<string, unknown>> {
+    return this.service.getDefaultLegalContractTemplate(this.upstreamToken(req));
+  }
+
+  /**
    * Acusar de una vez todo lo que espera a otro sistema: credenciales pendientes en el portal y
    * desenlaces del Motor. Una llamada por carga de la cola, en vez de una por fila.
    */
