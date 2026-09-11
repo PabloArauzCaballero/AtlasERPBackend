@@ -112,12 +112,15 @@ export class AdminAdsAuthoringController {
     return this.authoringService.listAdSets(campaignId);
   }
 
+  /* Faltaba el `@Roles`: sin él, `RolesGuard` dejaba leer creatividades y ubicaciones a cualquier sesión. */
   @Get('creatives')
+  @Roles('ADS_ADMIN_VIEWER', 'ADS_ADMIN_MANAGER', 'ADS_ADMIN_OPERATOR', 'ADS_AUDITOR')
   listCreatives(@Query('advertiserId') advertiserId?: string) {
     return this.authoringService.listCreatives(advertiserId);
   }
 
   @Get('placements')
+  @Roles('ADS_ADMIN_VIEWER', 'ADS_ADMIN_MANAGER', 'ADS_ADMIN_OPERATOR', 'ADS_AUDITOR')
   listPlacements() {
     return this.authoringService.listPlacements();
   }
