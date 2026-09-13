@@ -16,7 +16,7 @@ import { isPinChallenge } from './auth-gateway.types';
 describe('Segundo factor del login interno en el gateway', () => {
   const challenge = {
     pinChallengeRequired: true as const,
-    challengeToken: 'desafio-opaco-1234567890',
+    challengeToken: 'desafio-opaco-1234567890', // gitleaks:allow — fixture inventado
     expiresInMinutes: 10,
   };
 
@@ -94,7 +94,7 @@ describe('Segundo factor del login interno en el gateway', () => {
   it('confirma el cambio pasando el desafío y el código al upstream', async () => {
     const { service, identityClient } = build();
     const body = {
-      challengeToken: 'desafio-opaco-1234567890',
+      challengeToken: 'desafio-opaco-1234567890', // gitleaks:allow — fixture inventado
       code: '123456',
       newPassword: 'NuevaClave#2026',
     };
