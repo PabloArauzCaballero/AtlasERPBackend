@@ -46,8 +46,18 @@ x-common: &common
 # Compose lanzaría dos construcciones CONCURRENTES de la misma imagen y en un VPS eso compite por
 # memoria: en AtlasBackend, con tres, el OOM se llevaba una distinta en cada intento y el síntoma
 # —`yarn install ... exit code: 1`— no mencionaba la memoria por ninguna parte.
+#
+# `pull_policy: never` en quien REUTILIZA la imagen, y ninguna en quien la construye. Coolify 4.3.19
+# ejecuta `docker compose pull --ignore-buildable` antes del corte: salta a `migrate` (tiene
+# `build:`) pero toma a `api` por imagen de registro, y `atlas-erp-backend:coolify` es un tag LOCAL.
+# Sin la política, el pull termina en `pull access denied` y ABORTA el despliegue dejando el
+# contenedor anterior sirviendo — el despliegue «falla» y nada se cae, así que nadie lo nota hasta
+# que un cambio no aparece. Comprobado el 2026-09-13 en el host con un compose de prueba que repite
+# esa secuencia. No se usa `build` en su lugar: obliga a `up -d` a reconstruir la imagen DESPUÉS de
+# parar el contenedor viejo (33 s de caída medidos en AtlasBackend).
 x-image: &image
   image: atlas-erp-backend:coolify
+  pull_policy: never
 
 x-build: &build
   image: atlas-erp-backend:coolify
