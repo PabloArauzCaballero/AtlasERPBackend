@@ -11,3 +11,7 @@ yarn-error.log*
 
 # Grafo de conocimiento: artefacto generado, se regenera con `graphify update .`
 graphify-out/
+
+# Registros de corridas locales: la evidencia vigente es la CI
+docs/progress/checks/**/*.log
+docs/source-modules/*/progress/checks/**/*.log

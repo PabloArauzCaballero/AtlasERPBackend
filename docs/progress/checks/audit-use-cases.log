@@ -1,8 +1,0 @@
-
-> atlas-integrated-backend@1.0.0 audit:use-cases
-> tsx scripts/audit/use-cases.ts && prettier --write docs/audit/use-case-compliance-audit.json docs/audit/use-case-compliance-audit.md
-
-{"level":30,"time":"2026-07-09T03:31:36.376Z","service":"atlas-integrated-backend","script":"use-cases-audit","name":"atlas-integrated-backend-audit","layer":"script","totalUseCases":258,"PRODUCTION_COVERED":46,"MODEL_SUPPORTED":109,"EXCLUDED_INTEGRATION_SCOPE":54,"DOCUMENTED_EXTENSION_POINT":49,"jsonOutputPath":"/mnt/data/atlas-review-work/atlas-integrated-backend/docs/audit/use-case-compliance-audit.json","markdownOutputPath":"/mnt/data/atlas-review-work/atlas-integrated-backend/docs/audit/use-case-compliance-audit.md","msg":"Auditoría de casos de uso generada."}
-docs/audit/use-case-compliance-audit.json 219ms
-docs/audit/use-case-compliance-audit.md 535ms
-exit_code=0
