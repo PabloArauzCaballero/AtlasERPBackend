@@ -28,7 +28,9 @@ describe('Ciclo de vida del caso de onboarding', () => {
 
   it('los valores heredados IN_PROGRESS y BLOCKED siguen contando como abiertos', () => {
     // Son filas anteriores al vocabulario nuevo; no se migran y no pueden desaparecer de la cola.
-    expect(statusesForScope('abiertos')).toEqual(expect.arrayContaining(['IN_PROGRESS', 'BLOCKED']));
+    expect(statusesForScope('abiertos')).toEqual(
+      expect.arrayContaining(['IN_PROGRESS', 'BLOCKED']),
+    );
   });
 
   it('el resumen cuenta con la misma regla que la activación', () => {
@@ -55,16 +57,44 @@ describe('Ciclo de vida del caso de onboarding', () => {
   });
 
   it('un caso COMPLETED nunca está «listo para activar», aunque cumpla todo', () => {
-    expect(isReadyToActivate({ status: 'COMPLETED', pendingItems: 0, hasActiveContract: true, motorApproved: true })).toBe(false);
+    expect(
+      isReadyToActivate({
+        status: 'COMPLETED',
+        pendingItems: 0,
+        hasActiveContract: true,
+        motorApproved: true,
+      }),
+    ).toBe(false);
   });
 
   it('sin contrato vigente no está listo, por limpio que esté el checklist', () => {
-    expect(isReadyToActivate({ status: 'OPEN', pendingItems: 0, hasActiveContract: false, motorApproved: true })).toBe(false);
+    expect(
+      isReadyToActivate({
+        status: 'OPEN',
+        pendingItems: 0,
+        hasActiveContract: false,
+        motorApproved: true,
+      }),
+    ).toBe(false);
   });
 
   it('sin APROBADO del Motor no está listo: es la compuerta dura', () => {
-    expect(isReadyToActivate({ status: 'OPEN', pendingItems: 0, hasActiveContract: true, motorApproved: false })).toBe(false);
-    expect(isReadyToActivate({ status: 'VERIFICADO', pendingItems: 0, hasActiveContract: true, motorApproved: true })).toBe(true);
+    expect(
+      isReadyToActivate({
+        status: 'OPEN',
+        pendingItems: 0,
+        hasActiveContract: true,
+        motorApproved: false,
+      }),
+    ).toBe(false);
+    expect(
+      isReadyToActivate({
+        status: 'VERIFICADO',
+        pendingItems: 0,
+        hasActiveContract: true,
+        motorApproved: true,
+      }),
+    ).toBe(true);
   });
 
   it('las credenciales se cuentan sólo sobre los usuarios con petición encolada', () => {
@@ -72,10 +102,23 @@ describe('Ciclo de vida del caso de onboarding', () => {
       { status: 'ACTIVE', identityRequestId: null, userId: null }, // anterior a la cola: no cuenta
       { status: 'INVITED', identityRequestId: '7', userId: null },
       { status: 'ACTIVE', identityRequestId: '8', userId: '41' },
-      { status: 'DISABLED', identityRequestId: '9', userId: null, rejectionReason: 'Correo ya tomado' },
+      {
+        status: 'DISABLED',
+        identityRequestId: '9',
+        userId: null,
+        rejectionReason: 'Correo ya tomado',
+      },
     ]);
-    expect(summary).toEqual({ pedidas: 3, pendientes: 1, concedidas: 1, rechazadas: 1, motivosRechazo: ['Correo ya tomado'] });
-    expect(describeCredentials(summary)).toBe('1 concedida · 1 pendiente · 1 rechazada (Correo ya tomado)');
+    expect(summary).toEqual({
+      pedidas: 3,
+      pendientes: 1,
+      concedidas: 1,
+      rechazadas: 1,
+      motivosRechazo: ['Correo ya tomado'],
+    });
+    expect(describeCredentials(summary)).toBe(
+      '1 concedida · 1 pendiente · 1 rechazada (Correo ya tomado)',
+    );
     expect(describeCredentials(summarizeCredentials([]))).toBe('Sin pedir');
   });
 });

@@ -96,7 +96,9 @@ export interface OnboardingQueueSummary {
   activados: number;
 }
 
-export function summarizeOnboardingQueue(rows: readonly OnboardingCaseSnapshot[]): OnboardingQueueSummary {
+export function summarizeOnboardingQueue(
+  rows: readonly OnboardingCaseSnapshot[],
+): OnboardingQueueSummary {
   const summary: OnboardingQueueSummary = {
     abiertos: 0,
     esperandoMotor: 0,
@@ -160,7 +162,13 @@ export interface CredentialsSummary {
 }
 
 export function summarizeCredentials(users: readonly CredentialsSnapshot[]): CredentialsSummary {
-  const summary: CredentialsSummary = { pedidas: 0, pendientes: 0, concedidas: 0, rechazadas: 0, motivosRechazo: [] };
+  const summary: CredentialsSummary = {
+    pedidas: 0,
+    pendientes: 0,
+    concedidas: 0,
+    rechazadas: 0,
+    motivosRechazo: [],
+  };
   for (const user of users) {
     if (!user.identityRequestId) continue;
     summary.pedidas += 1;
@@ -179,8 +187,10 @@ export function summarizeCredentials(users: readonly CredentialsSnapshot[]): Cre
 export function describeCredentials(summary: CredentialsSummary): string {
   if (summary.pedidas === 0) return 'Sin pedir';
   const partes: string[] = [];
-  if (summary.concedidas) partes.push(`${summary.concedidas} concedida${summary.concedidas === 1 ? '' : 's'}`);
-  if (summary.pendientes) partes.push(`${summary.pendientes} pendiente${summary.pendientes === 1 ? '' : 's'}`);
+  if (summary.concedidas)
+    partes.push(`${summary.concedidas} concedida${summary.concedidas === 1 ? '' : 's'}`);
+  if (summary.pendientes)
+    partes.push(`${summary.pendientes} pendiente${summary.pendientes === 1 ? '' : 's'}`);
   if (summary.rechazadas) {
     const motivo = summary.motivosRechazo.length ? ` (${summary.motivosRechazo.join('; ')})` : '';
     partes.push(`${summary.rechazadas} rechazada${summary.rechazadas === 1 ? '' : 's'}${motivo}`);

@@ -53,6 +53,12 @@ jobs:
       - name: Lint
         run: yarn lint
 
+      # El formato entra como gate porque ya estaba en el repositorio (prettier es dependencia y
+      # `format` lo escribe): sin comprobarlo, el árbol se separa del estándar sin que nadie lo vea.
+      # Se añadió el 2026-09-13 con los 7 archivos que había pendientes ya formateados.
+      - name: Formato (prettier)
+        run: npx prettier --check .
+
       # Las tres listas de migraciones (db:migrate:prod, los guiones por dominio y
       # STARTUP_MIGRATION_FILES) describen el mismo conjunto y nada obligaba a que coincidieran.
       # No coincidian: produccion se saltaba una migracion y el arranque cubria 14 de 22. Es una

@@ -27,7 +27,10 @@ import {
   summarizeOnboardingQueue,
   type OnboardingCaseSnapshot,
 } from '../domain/onboarding-lifecycle';
-import type { ContractVersionModel, MerchantOnboardingCaseModel } from '../models/b2b-sales-crm.models';
+import type {
+  ContractVersionModel,
+  MerchantOnboardingCaseModel,
+} from '../models/b2b-sales-crm.models';
 import { B2BSalesCrmRepository } from '../repositories/b2b-sales-crm.repository';
 import { B2BSalesCrmUseCaseBase } from './b2b-sales-crm-use-case.base';
 import { AtlasIdentityClient } from '../../auth-gateway/atlas-identity.client';
@@ -41,7 +44,9 @@ import { AtlasPartnerClient } from '../../partner-onboarding-gateway/atlas-partn
  * enseñar «0 pendientes» y aun así no activarse.
  */
 function countPendingItems(items: readonly { status: string }[]): number {
-  return items.filter((item) => item.status !== ChecklistStatus.COMPLETED && item.status !== ChecklistStatus.WAIVED).length;
+  return items.filter(
+    (item) => item.status !== ChecklistStatus.COMPLETED && item.status !== ChecklistStatus.WAIVED,
+  ).length;
 }
 
 /**
@@ -59,7 +64,12 @@ interface KybDecision {
 
 /** Activa y vigente hoy, y su contrato activo: la misma regla que `findActiveContractVersion`. */
 function isContractVersionActivatable(
-  version: { status: string; validFrom: string; validTo: string | null; contract?: { status: string } | undefined },
+  version: {
+    status: string;
+    validFrom: string;
+    validTo: string | null;
+    contract?: { status: string } | undefined;
+  },
   today: string,
 ): boolean {
   return (
@@ -180,9 +190,17 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
     const result = await this.repository.onboardingCases.findAndCountAll({
       where,
       include: [
-        { model: this.repository.accounts, required: true, ...(accountWhere ? { where: accountWhere } : {}) },
+        {
+          model: this.repository.accounts,
+          required: true,
+          ...(accountWhere ? { where: accountWhere } : {}),
+        },
         this.repository.checklistItems,
-        { model: this.repository.contractVersions, required: false, include: [this.repository.contracts] },
+        {
+          model: this.repository.contractVersions,
+          required: false,
+          include: [this.repository.contracts],
+        },
       ],
       /* El ATRIBUTO del modelo, no la columna: con `started_at` Sequelize genera una referencia
          que Postgres no resuelve dentro de la subconsulta que produce `limit` + `include`. */
@@ -192,7 +210,9 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
       distinct: true,
     });
 
-    const credentialsByAccount = await this.credentialsByAccount(result.rows.map((row) => row.accountId));
+    const credentialsByAccount = await this.credentialsByAccount(
+      result.rows.map((row) => row.accountId),
+    );
     const items = result.rows.map((row) => ({
       id: row.id,
       accountId: row.accountId,
@@ -260,7 +280,11 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
     const include = [
       this.repository.checklistItems,
       this.repository.accounts,
-      { model: this.repository.contractVersions, required: false, include: [this.repository.contracts] },
+      {
+        model: this.repository.contractVersions,
+        required: false,
+        include: [this.repository.contracts],
+      },
     ];
     const caseRecord = await this.repository.onboardingCases.findByPk(
       id,
@@ -279,7 +303,11 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
       startedAt: caseRecord.startedAt,
       completedAt: caseRecord.completedAt,
       ...describeCaseChain(caseRecord),
-      ...this.describeCredentialsOf((await this.credentialsByAccount([caseRecord.accountId], transaction)).get(caseRecord.accountId) ?? []),
+      ...this.describeCredentialsOf(
+        (await this.credentialsByAccount([caseRecord.accountId], transaction)).get(
+          caseRecord.accountId,
+        ) ?? [],
+      ),
       checklistItems: caseRecord.checklistItems?.map((item) => ({
         id: item.id,
         itemType: item.itemType,
@@ -295,7 +323,9 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
        */
       readiness: {
         pendingChecklistItems: countPendingItems(caseRecord.checklistItems ?? []),
-        hasActiveContract: Boolean(await this.resolveContractVersionForActivation(caseRecord, transaction)),
+        hasActiveContract: Boolean(
+          await this.resolveContractVersionForActivation(caseRecord, transaction),
+        ),
         motorApproved: caseRecord.decisionOutcome === 'APROBADO',
       },
     };
@@ -508,7 +538,13 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
       // El caso abierto de ese comercio pasa a «esperando credenciales»: es el tramo del portal.
       await this.repository.onboardingCases.update(
         { status: 'ALTA_PENDIENTE' },
-        { where: { accountId: input.accountId, status: { [Op.in]: ['OPEN', 'IN_PROGRESS', 'VERIFICADO', 'LISTO'] } }, transaction },
+        {
+          where: {
+            accountId: input.accountId,
+            status: { [Op.in]: ['OPEN', 'IN_PROGRESS', 'VERIFICADO', 'LISTO'] },
+          },
+          transaction,
+        },
       );
 
       return {
@@ -580,8 +616,17 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
     if (!caseRecord) throw new NotFoundException('Caso de onboarding no encontrado.');
 
     const versions = await this.repository.contractVersions.findAll({
-      include: [{ model: this.repository.contracts, required: true, where: { accountId: caseRecord.accountId } }],
-      order: [['validFrom', 'DESC'], ['versionNumber', 'DESC']],
+      include: [
+        {
+          model: this.repository.contracts,
+          required: true,
+          where: { accountId: caseRecord.accountId },
+        },
+      ],
+      order: [
+        ['validFrom', 'DESC'],
+        ['versionNumber', 'DESC'],
+      ],
     });
     const today = new Date().toISOString().slice(0, 10);
     return versions.map((version) => ({
@@ -612,12 +657,20 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
     const caseRecord = await this.repository.onboardingCases.findByPk(onboardingCaseId);
     if (!caseRecord) throw new NotFoundException('Caso de onboarding no encontrado.');
     if (caseRecord.status === ONBOARDING_TERMINAL_STATUS) {
-      throw new ConflictException('El comercio ya está activado: el contrato del alta no se cambia sobre un expediente cerrado.');
+      throw new ConflictException(
+        'El comercio ya está activado: el contrato del alta no se cambia sobre un expediente cerrado.',
+      );
     }
 
     const version = await this.repository.contractVersions.findOne({
       where: { id: input.contractVersionId },
-      include: [{ model: this.repository.contracts, required: true, where: { accountId: caseRecord.accountId } }],
+      include: [
+        {
+          model: this.repository.contracts,
+          required: true,
+          where: { accountId: caseRecord.accountId },
+        },
+      ],
     });
     if (!version) {
       throw new NotFoundException('Esa versión de contrato no existe o no es de este comercio.');
@@ -632,7 +685,9 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
     const caseRecord = await this.repository.onboardingCases.findByPk(onboardingCaseId);
     if (!caseRecord) throw new NotFoundException('Caso de onboarding no encontrado.');
     if (!caseRecord.contractVersionId) {
-      throw new ConflictException('Este caso no tiene contrato pactado: asigna el contrato antes de la comisión.');
+      throw new ConflictException(
+        'Este caso no tiene contrato pactado: asigna el contrato antes de la comisión.',
+      );
     }
     return caseRecord.contractVersionId;
   }
@@ -653,7 +708,13 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
     }
     const version = await this.repository.contractVersions.findOne({
       where: { id: caseRecord.contractVersionId },
-      include: [{ model: this.repository.contracts, required: true, where: { accountId: caseRecord.accountId } }],
+      include: [
+        {
+          model: this.repository.contracts,
+          required: true,
+          where: { accountId: caseRecord.accountId },
+        },
+      ],
       ...(transaction ? { transaction } : {}),
     });
     return version && isContractVersionActivatable(version, today) ? version : null;
@@ -669,7 +730,14 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
    */
   async getDefaultLegalContractTemplate(accessToken: string): Promise<Record<string, unknown>> {
     const respuesta = await this.partnerClient.forward<{
-      template: { templateId: string; templateCode: string; name: string; version: number; status: string; isDefault: boolean } | null;
+      template: {
+        templateId: string;
+        templateCode: string;
+        name: string;
+        version: number;
+        status: string;
+        isDefault: boolean;
+      } | null;
     }>({
       method: 'GET',
       path: 'operations/partner-contract-templates/default',
@@ -678,7 +746,13 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
     const plantilla = respuesta.template;
     return {
       template: plantilla
-        ? { templateId: plantilla.templateId, templateCode: plantilla.templateCode, name: plantilla.name, version: plantilla.version, status: plantilla.status }
+        ? {
+            templateId: plantilla.templateId,
+            templateCode: plantilla.templateCode,
+            name: plantilla.name,
+            version: plantilla.version,
+            status: plantilla.status,
+          }
         : null,
     };
   }
@@ -692,20 +766,35 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
    * allá, para que la búsqueda por NIT sólo haga falta la primera vez. Un comercio SIN expediente es
    * un estado visible («sin expediente»), no un 500: el comercio tiene que abrirlo desde su portal.
    */
-  async linkPartnerProfile(onboardingCaseId: string, accessToken: string): Promise<Record<string, unknown>> {
+  async linkPartnerProfile(
+    onboardingCaseId: string,
+    accessToken: string,
+  ): Promise<Record<string, unknown>> {
     this.logger.infoContext(B2BOnboardingService.name, 'B2B CRM use case started', {
       useCase: 'linkPartnerProfile',
     });
-    const caseRecord = await this.repository.onboardingCases.findByPk(onboardingCaseId, { include: [this.repository.accounts] });
+    const caseRecord = await this.repository.onboardingCases.findByPk(onboardingCaseId, {
+      include: [this.repository.accounts],
+    });
     if (!caseRecord?.account) throw new NotFoundException('Caso de onboarding no encontrado.');
     const account = caseRecord.account;
     if (account.partnerProfileId) {
-      return { id: caseRecord.id, partnerProfileId: account.partnerProfileId, linked: true, alreadyLinked: true };
+      return {
+        id: caseRecord.id,
+        partnerProfileId: account.partnerProfileId,
+        linked: true,
+        alreadyLinked: true,
+      };
     }
 
     const encontrado = await this.findPartnerProfile(account.id, account.taxId, accessToken);
     if (!encontrado) {
-      return { id: caseRecord.id, partnerProfileId: null, linked: false, reason: 'SIN_EXPEDIENTE_EN_ATLAS' };
+      return {
+        id: caseRecord.id,
+        partnerProfileId: null,
+        linked: false,
+        reason: 'SIN_EXPEDIENTE_EN_ATLAS',
+      };
     }
 
     if (encontrado.erpAccountId !== account.id) {
@@ -720,7 +809,12 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
       });
     }
     await account.update({ partnerProfileId: encontrado.partnerId });
-    return { id: caseRecord.id, partnerProfileId: encontrado.partnerId, linked: true, onboardingStatus: encontrado.onboardingStatus };
+    return {
+      id: caseRecord.id,
+      partnerProfileId: encontrado.partnerId,
+      linked: true,
+      onboardingStatus: encontrado.onboardingStatus,
+    };
   }
 
   /**
@@ -740,10 +834,14 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
     this.logger.infoContext(B2BOnboardingService.name, 'B2B CRM use case started', {
       useCase: 'requestKybReview',
     });
-    const caseRecord = await this.repository.onboardingCases.findByPk(onboardingCaseId, { include: [this.repository.accounts] });
+    const caseRecord = await this.repository.onboardingCases.findByPk(onboardingCaseId, {
+      include: [this.repository.accounts],
+    });
     if (!caseRecord?.account) throw new NotFoundException('Caso de onboarding no encontrado.');
     if (!STATUSES_THAT_CAN_REQUEST_KYB.includes(caseRecord.status as never)) {
-      throw new ConflictException(`El caso está en ${caseRecord.status}: la verificación ya se pidió o ya no aplica.`);
+      throw new ConflictException(
+        `El caso está en ${caseRecord.status}: la verificación ya se pidió o ya no aplica.`,
+      );
     }
 
     let partnerId = caseRecord.account.partnerProfileId;
@@ -791,15 +889,26 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
    * Traer el desenlace vigente del expediente: lo que resolvió el caso de revisión manual del Motor
    * (lo aplica un job de AtlasBackend) o una decisión que el autoservicio disparó por su cuenta.
    */
-  async syncKybDecision(onboardingCaseId: string, accessToken: string): Promise<Record<string, unknown>> {
+  async syncKybDecision(
+    onboardingCaseId: string,
+    accessToken: string,
+  ): Promise<Record<string, unknown>> {
     this.logger.infoContext(B2BOnboardingService.name, 'B2B CRM use case started', {
       useCase: 'syncKybDecision',
     });
-    const caseRecord = await this.repository.onboardingCases.findByPk(onboardingCaseId, { include: [this.repository.accounts] });
+    const caseRecord = await this.repository.onboardingCases.findByPk(onboardingCaseId, {
+      include: [this.repository.accounts],
+    });
     if (!caseRecord?.account) throw new NotFoundException('Caso de onboarding no encontrado.');
     const partnerId = caseRecord.account.partnerProfileId;
     if (!partnerId) {
-      return { id: caseRecord.id, status: caseRecord.status, decisionOutcome: caseRecord.decisionOutcome, changed: false, reason: 'SIN_EXPEDIENTE_EN_ATLAS' };
+      return {
+        id: caseRecord.id,
+        status: caseRecord.status,
+        decisionOutcome: caseRecord.decisionOutcome,
+        changed: false,
+        reason: 'SIN_EXPEDIENTE_EN_ATLAS',
+      };
     }
     // En `status` el bloque `decision` viaja dentro de `profile` (AtlasBackend, 2026-09-08).
     const estado = await this.partnerClient.forward<{
@@ -811,7 +920,12 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
     });
     const decision = estado.profile?.decision ?? null;
     const changed = decision?.outcome ? await this.applyKybDecision(caseRecord, decision) : false;
-    return { id: caseRecord.id, status: caseRecord.status, decisionOutcome: caseRecord.decisionOutcome, changed };
+    return {
+      id: caseRecord.id,
+      status: caseRecord.status,
+      decisionOutcome: caseRecord.decisionOutcome,
+      changed,
+    };
   }
 
   /** Aplica lo que publicó el Motor. Devuelve si el caso cambió. No reabre un caso ya activado. */
@@ -828,7 +942,8 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
 
     const siguiente = STATUS_FOR_KYB_OUTCOME[decision.outcome];
     // Un APROBADO tardío (revisión manual resuelta) no retrocede un caso que ya fue más lejos.
-    const conservar = siguiente === 'VERIFICADO' && ['ALTA_PENDIENTE', 'LISTO'].includes(caseRecord.status);
+    const conservar =
+      siguiente === 'VERIFICADO' && ['ALTA_PENDIENTE', 'LISTO'].includes(caseRecord.status);
     await caseRecord.update({
       decisionOutcome: decision.outcome,
       decisionReason: decision.reason ?? null,
@@ -871,7 +986,10 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
    * por separado para que el fallo de uno —un expediente sin enlazar, Atlas caído— no impida acusar
    * los demás. El ERP no tiene planificador; cuando lo tenga, esto es lo que correrá el job.
    */
-  async reconcilePendingCases(accessToken: string, actor: AuthUser): Promise<Record<string, unknown>> {
+  async reconcilePendingCases(
+    accessToken: string,
+    actor: AuthUser,
+  ): Promise<Record<string, unknown>> {
     this.logger.infoContext(B2BOnboardingService.name, 'B2B CRM use case started', {
       useCase: 'reconcilePendingCases',
     });
@@ -887,7 +1005,9 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
     let cambiados = 0;
     const errores: Array<{ id: string; error: string }> = [];
     for (const caso of abiertos) {
-      const esperaPortal = (credenciales.get(caso.accountId) ?? []).some((u) => u.identityRequestId && u.status === 'INVITED' && !u.userId);
+      const esperaPortal = (credenciales.get(caso.accountId) ?? []).some(
+        (u) => u.identityRequestId && u.status === 'INVITED' && !u.userId,
+      );
       const esperaMotor = caso.status === 'EN_VERIFICACION' || caso.status === 'REVISION_MANUAL';
       if (!esperaPortal && !esperaMotor) continue;
       revisados += 1;
@@ -901,7 +1021,10 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
           if (Array.isArray(r.resueltos) && r.resueltos.length > 0) cambiados += 1;
         }
       } catch (error) {
-        errores.push({ id: caso.id, error: error instanceof Error ? error.message : String(error) });
+        errores.push({
+          id: caso.id,
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
     }
     return { revisados, cambiados, errores, tope: TOPE };
@@ -933,17 +1056,33 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
     });
     const pendientes = users.filter((user) => user.status === 'INVITED' && !user.userId);
 
-    const resueltos: Array<{ id: string; email: string; status: string; identityStatus: string; rejectionReason: string | null }> = [];
+    const resueltos: Array<{
+      id: string;
+      email: string;
+      status: string;
+      identityStatus: string;
+      rejectionReason: string | null;
+    }> = [];
     for (const user of pendientes) {
-      const request = await this.identityClient.getMerchantUserProvisioning(accessToken, String(user.identityRequestId));
+      const request = await this.identityClient.getMerchantUserProvisioning(
+        accessToken,
+        String(user.identityRequestId),
+      );
       const cambio = await this.applyProvisioningResult(user, request);
       if (cambio) {
-        resueltos.push({ id: user.id, email: user.email, status: user.status, identityStatus: request.status, rejectionReason: request.rejectionReason ?? null });
+        resueltos.push({
+          id: user.id,
+          email: user.email,
+          status: user.status,
+          identityStatus: request.status,
+          rejectionReason: request.rejectionReason ?? null,
+        });
       }
     }
 
     const summary = summarizeCredentials(users);
-    const todasResueltas = summary.pedidas > 0 && summary.pendientes === 0 && summary.concedidas > 0;
+    const todasResueltas =
+      summary.pedidas > 0 && summary.pendientes === 0 && summary.concedidas > 0;
     let acuse = caseRecord.identityAcknowledgedAt;
     if (todasResueltas && !acuse && caseRecord.status !== ONBOARDING_TERMINAL_STATUS) {
       acuse = new Date();
@@ -985,7 +1124,11 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
    * volver a pedirlo. Borrarla dejaría el rechazo sin dónde consultarse.
    */
   private async applyProvisioningResult(
-    user: { status: string; userId: string | null; update: (values: Record<string, unknown>) => Promise<unknown> },
+    user: {
+      status: string;
+      userId: string | null;
+      update: (values: Record<string, unknown>) => Promise<unknown>;
+    },
     request: AtlasMerchantProvisioningRequest,
   ): Promise<boolean> {
     if (request.status === 'provisioned' && request.merchantUserId && !user.userId) {
@@ -993,7 +1136,10 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
       return true;
     }
     if (request.status === 'rejected' && user.status !== 'DISABLED') {
-      await user.update({ status: 'DISABLED', identityRejectionReason: request.rejectionReason ?? null });
+      await user.update({
+        status: 'DISABLED',
+        identityRejectionReason: request.rejectionReason ?? null,
+      });
       return true;
     }
     return false;
@@ -1013,13 +1159,20 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
     });
     for (const user of users) {
       const list = map.get(user.accountId) ?? [];
-      list.push({ status: user.status, identityRequestId: user.identityRequestId, userId: user.userId, rejectionReason: user.identityRejectionReason });
+      list.push({
+        status: user.status,
+        identityRequestId: user.identityRequestId,
+        userId: user.userId,
+        rejectionReason: user.identityRejectionReason,
+      });
       map.set(user.accountId, list);
     }
     return map;
   }
 
-  private describeCredentialsOf(users: ReadonlyArray<CredentialsSnapshot>): Record<string, unknown> {
+  private describeCredentialsOf(
+    users: ReadonlyArray<CredentialsSnapshot>,
+  ): Record<string, unknown> {
     const credentials = summarizeCredentials(users);
     return { credentials, credentialsSummary: describeCredentials(credentials) };
   }
@@ -1099,7 +1252,9 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
       // Activar dos veces reescribiría `completedAt` y volvería a tocar sucursales ya activas: el
       // expediente diría que el comercio se habilitó hoy cuando lleva meses operando.
       if (caseRecord.status === ONBOARDING_TERMINAL_STATUS) {
-        throw new ConflictException('El comercio ya está activado: este caso es su expediente cerrado.');
+        throw new ConflictException(
+          'El comercio ya está activado: este caso es su expediente cerrado.',
+        );
       }
 
       // Va PRIMERO porque es el tramo más lejano de la cadena: lo que falte aquí manda a otro

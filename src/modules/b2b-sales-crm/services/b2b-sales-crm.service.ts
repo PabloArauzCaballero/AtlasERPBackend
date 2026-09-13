@@ -214,7 +214,10 @@ export class B2BSalesCrmService {
     return this.onboardingService.getDefaultLegalContractTemplate(accessToken);
   }
 
-  linkPartnerProfile(onboardingCaseId: string, accessToken: string): Promise<Record<string, unknown>> {
+  linkPartnerProfile(
+    onboardingCaseId: string,
+    accessToken: string,
+  ): Promise<Record<string, unknown>> {
     return this.onboardingService.linkPartnerProfile(onboardingCaseId, accessToken);
   }
 
@@ -262,7 +265,8 @@ export class B2BSalesCrmService {
     onboardingCaseId: string,
     input: CreateCaseMdrRuleDto,
   ): Promise<Record<string, unknown>> {
-    const contractVersionId = await this.onboardingService.requireCaseContractVersionId(onboardingCaseId);
+    const contractVersionId =
+      await this.onboardingService.requireCaseContractVersionId(onboardingCaseId);
     return this.contractsService.createMdrRule({ ...input, contractVersionId });
   }
 

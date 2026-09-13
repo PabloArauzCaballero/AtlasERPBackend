@@ -12,7 +12,9 @@ import { B2BOnboardingService } from './b2b-onboarding.service';
 type Fila = Record<string, unknown> & { update: jest.Mock };
 const fila = (values: Record<string, unknown>): Fila => {
   const row: Fila = { ...values, update: jest.fn() };
-  row.update.mockImplementation(async (patch: Record<string, unknown>) => Object.assign(row, patch));
+  row.update.mockImplementation(async (patch: Record<string, unknown>) =>
+    Object.assign(row, patch),
+  );
   return row;
 };
 
@@ -26,7 +28,14 @@ const DECISION = {
   evaluatedAt: '2026-09-09T12:00:00.000Z',
 };
 
-function build(overrides: { caso?: Record<string, unknown>; users?: Fila[]; forward?: jest.Mock; provisioning?: jest.Mock } = {}) {
+function build(
+  overrides: {
+    caso?: Record<string, unknown>;
+    users?: Fila[];
+    forward?: jest.Mock;
+    provisioning?: jest.Mock;
+  } = {},
+) {
   const caso = fila({
     id: 'caso-1',
     accountId: 'acc-1',
@@ -71,46 +80,74 @@ function build(overrides: { caso?: Record<string, unknown>; users?: Fila[]; forw
 
 describe('B2BOnboardingService · el tramo del Motor', () => {
   it('pide el KYB por AtlasBackend, lee `evaluatedAt` y pasa el caso a VERIFICADO', async () => {
-    const forward = jest.fn(async () => ({ partnerId: 'p-9', onboardingStatus: 'approved', decision: DECISION }));
+    const forward = jest.fn(async () => ({
+      partnerId: 'p-9',
+      onboardingStatus: 'approved',
+      decision: DECISION,
+    }));
     const { service, caso, partnerClient, logs } = build({ forward });
 
     await service.requestKybReview('caso-1', { reason: 'alta comercial' }, 'tok', ACTOR);
 
-    expect(partnerClient.forward).toHaveBeenCalledWith(expect.objectContaining({
-      method: 'POST',
-      path: 'operations/partners/p-9/kyb-review',
-      body: { reason: 'alta comercial' },
-    }));
+    expect(partnerClient.forward).toHaveBeenCalledWith(
+      expect.objectContaining({
+        method: 'POST',
+        path: 'operations/partners/p-9/kyb-review',
+        body: { reason: 'alta comercial' },
+      }),
+    );
     expect(caso.status).toBe('VERIFICADO');
     expect(caso.decisionOutcome).toBe('APROBADO');
     expect(caso.decisionExecutionId).toBe('exec-77');
     expect(caso.decidedAt).toEqual(new Date(DECISION.evaluatedAt));
-    expect(logs.record).toHaveBeenCalledWith(expect.objectContaining({ actionCode: 'REQUEST_KYB_REVIEW' }));
+    expect(logs.record).toHaveBeenCalledWith(
+      expect.objectContaining({ actionCode: 'REQUEST_KYB_REVIEW' }),
+    );
   });
 
   it('RECHAZADO y REVISION_MANUAL llevan a su estado, y el caso queda EN_VERIFICACION si AtlasBackend falla', async () => {
-    const rechazo = build({ forward: jest.fn(async () => ({ decision: { ...DECISION, outcome: 'RECHAZADO', reason: 'KYB_REQUISITOS_INCOMPLETOS' } })) });
+    const rechazo = build({
+      forward: jest.fn(async () => ({
+        decision: { ...DECISION, outcome: 'RECHAZADO', reason: 'KYB_REQUISITOS_INCOMPLETOS' },
+      })),
+    });
     await rechazo.service.requestKybReview('caso-1', {}, 'tok', ACTOR);
     expect(rechazo.caso.status).toBe('RECHAZADO');
 
-    const revision = build({ forward: jest.fn(async () => ({ decision: { ...DECISION, outcome: 'REVISION_MANUAL', manualReviewCaseCode: 'MRC-1' } })) });
+    const revision = build({
+      forward: jest.fn(async () => ({
+        decision: { ...DECISION, outcome: 'REVISION_MANUAL', manualReviewCaseCode: 'MRC-1' },
+      })),
+    });
     await revision.service.requestKybReview('caso-1', {}, 'tok', ACTOR);
     expect(revision.caso.status).toBe('REVISION_MANUAL');
     expect(revision.caso.manualReviewCaseCode).toBe('MRC-1');
 
-    const caido = build({ forward: jest.fn(async () => { throw new Error('DECISION_ENGINE_UNAVAILABLE'); }) });
-    await expect(caido.service.requestKybReview('caso-1', {}, 'tok', ACTOR)).rejects.toThrow('DECISION_ENGINE_UNAVAILABLE');
+    const caido = build({
+      forward: jest.fn(async () => {
+        throw new Error('DECISION_ENGINE_UNAVAILABLE');
+      }),
+    });
+    await expect(caido.service.requestKybReview('caso-1', {}, 'tok', ACTOR)).rejects.toThrow(
+      'DECISION_ENGINE_UNAVAILABLE',
+    );
     expect(caido.caso.status).toBe('EN_VERIFICACION');
     expect(caido.caso.decisionOutcome).toBeNull();
   });
 
   it('sin expediente enlazado lo busca por cuenta y luego por NIT, y escribe el puente en los dos lados', async () => {
-    const forward = jest.fn()
+    const forward = jest
+      .fn()
       .mockResolvedValueOnce({ items: [] })
-      .mockResolvedValueOnce({ items: [{ partnerId: 'p-42', onboardingStatus: 'under_review', erpAccountId: null }] })
+      .mockResolvedValueOnce({
+        items: [{ partnerId: 'p-42', onboardingStatus: 'under_review', erpAccountId: null }],
+      })
       .mockResolvedValueOnce({})
       .mockResolvedValueOnce({ decision: DECISION });
-    const { service, caso, partnerClient } = build({ forward, caso: { account: { id: 'acc-1', taxId: '123', partnerProfileId: null, update: jest.fn() } } });
+    const { service, caso, partnerClient } = build({
+      forward,
+      caso: { account: { id: 'acc-1', taxId: '123', partnerProfileId: null, update: jest.fn() } },
+    });
 
     await service.requestKybReview('caso-1', {}, 'tok', ACTOR);
 
@@ -121,19 +158,33 @@ describe('B2BOnboardingService · el tramo del Motor', () => {
       'operations/partners/p-42/erp-account',
       'operations/partners/p-42/kyb-review',
     ]);
-    expect((caso.account as { update: jest.Mock }).update).toHaveBeenCalledWith({ partnerProfileId: 'p-42' });
+    expect((caso.account as { update: jest.Mock }).update).toHaveBeenCalledWith({
+      partnerProfileId: 'p-42',
+    });
   });
 
   it('sin expediente en Atlas es un 409 que lo dice, no un 500', async () => {
     const forward = jest.fn(async () => ({ items: [] }));
-    const { service, caso } = build({ forward, caso: { account: { id: 'acc-1', taxId: null, partnerProfileId: null, update: jest.fn() } } });
-    await expect(service.requestKybReview('caso-1', {}, 'tok', ACTOR)).rejects.toThrow(ConflictException);
+    const { service, caso } = build({
+      forward,
+      caso: { account: { id: 'acc-1', taxId: null, partnerProfileId: null, update: jest.fn() } },
+    });
+    await expect(service.requestKybReview('caso-1', {}, 'tok', ACTOR)).rejects.toThrow(
+      ConflictException,
+    );
     expect(caso.status).toBe('OPEN');
   });
 
   it('`sync` lee `profile.decision` de status y un APROBADO tardío no retrocede un caso que ya pidió credenciales', async () => {
     const forward = jest.fn(async () => ({ profile: { decision: DECISION } }));
-    const { service, caso } = build({ forward, caso: { status: 'ALTA_PENDIENTE', decisionOutcome: 'REVISION_MANUAL', manualReviewCaseCode: 'MRC-1' } });
+    const { service, caso } = build({
+      forward,
+      caso: {
+        status: 'ALTA_PENDIENTE',
+        decisionOutcome: 'REVISION_MANUAL',
+        manualReviewCaseCode: 'MRC-1',
+      },
+    });
 
     const result = await service.syncKybDecision('caso-1', 'tok');
 
@@ -145,12 +196,35 @@ describe('B2BOnboardingService · el tramo del Motor', () => {
 
 describe('B2BOnboardingService · el acuse del portal', () => {
   it('aplica lo concedido y lo rechazado, guarda el motivo, y con todo resuelto deja el caso LISTO', async () => {
-    const concedido = fila({ id: 'u1', email: 'a@x', accountId: 'acc-1', status: 'INVITED', userId: null, identityRequestId: '7' });
-    const rechazado = fila({ id: 'u2', email: 'b@x', accountId: 'acc-1', status: 'INVITED', userId: null, identityRequestId: '8' });
-    const provisioning = jest.fn()
+    const concedido = fila({
+      id: 'u1',
+      email: 'a@x',
+      accountId: 'acc-1',
+      status: 'INVITED',
+      userId: null,
+      identityRequestId: '7',
+    });
+    const rechazado = fila({
+      id: 'u2',
+      email: 'b@x',
+      accountId: 'acc-1',
+      status: 'INVITED',
+      userId: null,
+      identityRequestId: '8',
+    });
+    const provisioning = jest
+      .fn()
       .mockResolvedValueOnce({ status: 'provisioned', merchantUserId: '41', rejectionReason: null })
-      .mockResolvedValueOnce({ status: 'rejected', merchantUserId: null, rejectionReason: 'Correo ya tomado' });
-    const { service, caso, logs } = build({ users: [concedido, rechazado], provisioning, caso: { status: 'ALTA_PENDIENTE' } });
+      .mockResolvedValueOnce({
+        status: 'rejected',
+        merchantUserId: null,
+        rejectionReason: 'Correo ya tomado',
+      });
+    const { service, caso, logs } = build({
+      users: [concedido, rechazado],
+      provisioning,
+      caso: { status: 'ALTA_PENDIENTE' },
+    });
 
     const result = await service.reconcileCaseIdentity('caso-1', 'tok', ACTOR);
 
@@ -161,12 +235,24 @@ describe('B2BOnboardingService · el acuse del portal', () => {
     expect(caso.status).toBe('LISTO');
     expect(caso.identityAcknowledgedAt).toBeInstanceOf(Date);
     expect(result.resueltos).toHaveLength(2);
-    expect(logs.record).toHaveBeenCalledWith(expect.objectContaining({ actionCode: 'ACKNOWLEDGE_MERCHANT_CREDENTIALS' }));
+    expect(logs.record).toHaveBeenCalledWith(
+      expect.objectContaining({ actionCode: 'ACKNOWLEDGE_MERCHANT_CREDENTIALS' }),
+    );
   });
 
   it('es idempotente: sin nada que resolver no escribe ni registra', async () => {
-    const activo = fila({ id: 'u1', email: 'a@x', accountId: 'acc-1', status: 'ACTIVE', userId: '41', identityRequestId: '7' });
-    const { service, logs, identityClient } = build({ users: [activo], caso: { status: 'LISTO', identityAcknowledgedAt: new Date() } });
+    const activo = fila({
+      id: 'u1',
+      email: 'a@x',
+      accountId: 'acc-1',
+      status: 'ACTIVE',
+      userId: '41',
+      identityRequestId: '7',
+    });
+    const { service, logs, identityClient } = build({
+      users: [activo],
+      caso: { status: 'LISTO', identityAcknowledgedAt: new Date() },
+    });
     await service.reconcileCaseIdentity('caso-1', 'tok', ACTOR);
     expect(identityClient.getMerchantUserProvisioning).not.toHaveBeenCalled();
     expect(logs.record).not.toHaveBeenCalled();
@@ -176,22 +262,49 @@ describe('B2BOnboardingService · el acuse del portal', () => {
 describe('B2BOnboardingService · la compuerta dura', () => {
   it('sin APROBADO del Motor no activa, y lo dice antes que el checklist', async () => {
     const { service } = build({ caso: { checklistItems: [{ status: 'PENDING' }] } });
-    await expect(service.activateOnboardingCase('caso-1')).rejects.toThrow(/verificación del Motor/);
+    await expect(service.activateOnboardingCase('caso-1')).rejects.toThrow(
+      /verificación del Motor/,
+    );
   });
 
   it('con el Motor en contra tampoco, y nombra el desenlace', async () => {
-    const { service } = build({ caso: { decisionOutcome: 'RECHAZADO', checklistItems: [{ status: 'COMPLETED' }] } });
+    const { service } = build({
+      caso: { decisionOutcome: 'RECHAZADO', checklistItems: [{ status: 'COMPLETED' }] },
+    });
     await expect(service.activateOnboardingCase('caso-1')).rejects.toThrow(/RECHAZADO/);
   });
 });
 
 describe('B2BOnboardingService · el contrato legal por defecto', () => {
   it('lo lee de AtlasBackend y publica sólo la cabecera, nunca el cuerpo', async () => {
-    const forward = jest.fn(async () => ({ template: { templateId: '5', templateCode: 'CONTRATO-COMERCIO', name: 'Contrato marco', version: 2, body: 'texto largo', status: 'active', isDefault: true } }));
+    const forward = jest.fn(async () => ({
+      template: {
+        templateId: '5',
+        templateCode: 'CONTRATO-COMERCIO',
+        name: 'Contrato marco',
+        version: 2,
+        body: 'texto largo',
+        status: 'active',
+        isDefault: true,
+      },
+    }));
     const { service } = build({ forward });
     const result = await service.getDefaultLegalContractTemplate('tok');
-    expect(forward).toHaveBeenCalledWith(expect.objectContaining({ method: 'GET', path: 'operations/partner-contract-templates/default' }));
-    expect(result).toEqual({ template: { templateId: '5', templateCode: 'CONTRATO-COMERCIO', name: 'Contrato marco', version: 2, status: 'active' } });
+    expect(forward).toHaveBeenCalledWith(
+      expect.objectContaining({
+        method: 'GET',
+        path: 'operations/partner-contract-templates/default',
+      }),
+    );
+    expect(result).toEqual({
+      template: {
+        templateId: '5',
+        templateCode: 'CONTRATO-COMERCIO',
+        name: 'Contrato marco',
+        version: 2,
+        status: 'active',
+      },
+    });
   });
 
   it('`null` no es un error: el inquilino aún no publicó ninguno', async () => {

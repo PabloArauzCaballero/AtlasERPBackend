@@ -275,14 +275,12 @@ export class SupportGatewayController {
     ).catch(() => null);
 
     if (!upstream?.ok || !upstream.body) {
-      res
-        .status(502)
-        .json({
-          error: {
-            code: 'SUPPORT_STREAM_UNAVAILABLE',
-            message: 'El hilo en vivo no está disponible.',
-          },
-        });
+      res.status(502).json({
+        error: {
+          code: 'SUPPORT_STREAM_UNAVAILABLE',
+          message: 'El hilo en vivo no está disponible.',
+        },
+      });
       return;
     }
 

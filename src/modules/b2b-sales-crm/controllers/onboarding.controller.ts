@@ -81,7 +81,8 @@ export class OnboardingController {
   @Roles('OPERATIONS', 'LEGAL', 'ADMIN', 'COMMERCIAL_EXECUTIVE')
   @Get('cases')
   listCases(
-    @Query(new ZodValidationPipe(listOnboardingCasesQuerySchema)) query: ListOnboardingCasesQueryDto,
+    @Query(new ZodValidationPipe(listOnboardingCasesQuerySchema))
+    query: ListOnboardingCasesQueryDto,
   ): Promise<Record<string, unknown>> {
     return this.service.listOnboardingCases(query);
   }
@@ -263,7 +264,12 @@ export class OnboardingController {
     @Body(new ZodValidationPipe(requestKybReviewSchema)) body: RequestKybReviewDto,
     @CurrentUser() user: AuthUser,
   ): Promise<Record<string, unknown>> {
-    return this.service.requestKybReview(params.onboardingCaseId, body, this.upstreamToken(req), user);
+    return this.service.requestKybReview(
+      params.onboardingCaseId,
+      body,
+      this.upstreamToken(req),
+      user,
+    );
   }
 
   @Roles('OPERATIONS', 'ADMIN', 'COMMERCIAL_MANAGER', 'COMMERCIAL_EXECUTIVE')
@@ -286,7 +292,11 @@ export class OnboardingController {
     @Param(new ZodValidationPipe(onboardingCaseIdParamsSchema)) params: OnboardingCaseIdParamsDto,
     @CurrentUser() user: AuthUser,
   ): Promise<Record<string, unknown>> {
-    return this.service.reconcileCaseIdentity(params.onboardingCaseId, this.upstreamToken(req), user);
+    return this.service.reconcileCaseIdentity(
+      params.onboardingCaseId,
+      this.upstreamToken(req),
+      user,
+    );
   }
 
   @Roles('OPERATIONS', 'LEGAL', 'ADMIN')
