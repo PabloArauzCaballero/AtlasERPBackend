@@ -66,13 +66,39 @@ export const STATUS_FOR_KYB_OUTCOME: Record<KybOutcome, OnboardingCaseStatus> = 
   REVISION_MANUAL: 'REVISION_MANUAL',
 };
 
-/** Desde qué estados se puede (volver a) pedir la verificación. */
+/**
+ * Desde qué estados se puede (volver a) pedir la verificación.
+ *
+ * `EN_VERIFICACION` está a propósito: la llamada al Motor es síncrona, así que ese estado sólo
+ * debería durar lo que dura la petición. Si AtlasBackend respondió 503 el servicio devuelve el caso
+ * a donde estaba, pero las filas que se atascaron ANTES de ese arreglo se quedaron ahí sin veredicto
+ * y sin botón. Admitir el reintento desde `EN_VERIFICACION` es lo que las saca del callejón; no
+ * duplica nada porque un caso con veredicto ya no está en ese estado.
+ */
 export const STATUSES_THAT_CAN_REQUEST_KYB: readonly OnboardingCaseStatus[] = [
   'OPEN',
   'IN_PROGRESS',
   'BLOCKED',
   'RECHAZADO',
+  'EN_VERIFICACION',
 ];
+
+/**
+ * Lo que publicó el Motor, o `REVISION_MANUAL` si no es uno de los tres desenlaces conocidos.
+ *
+ * Un artefacto puede añadir mañana un desenlace que este código no conoce, o publicar vacío si la
+ * salida declarada no se rellenó. Ninguna de las dos cosas puede convertirse en `status: undefined`
+ * (que Sequelize ignora y deja el caso en `EN_VERIFICACION` con un `decision_outcome` que no
+ * significa nada). Un desenlace desconocido lo mira una persona: NUNCA habilita a activar.
+ */
+export function normalizeKybOutcome(outcome: string | null | undefined): KybOutcome {
+  const normalized = String(outcome ?? '')
+    .trim()
+    .toUpperCase();
+  return (KYB_OUTCOMES as readonly string[]).includes(normalized)
+    ? (normalized as KybOutcome)
+    : 'REVISION_MANUAL';
+}
 
 export interface OnboardingCaseSnapshot {
   status: string;

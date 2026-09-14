@@ -1,4 +1,9 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Op, Transaction } from 'sequelize';
 import { PinoLoggerService } from '../../../common/logging/pino-logger.service';
 import type { AuthUser } from '../../../common/types/auth-context.types';
@@ -20,6 +25,7 @@ import {
   STATUSES_THAT_CAN_REQUEST_KYB,
   STATUS_FOR_KYB_OUTCOME,
   describeCredentials,
+  normalizeKybOutcome,
   type CredentialsSnapshot,
   type KybOutcome,
   statusesForScope,
@@ -523,15 +529,19 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
       // Dentro de la transacción a propósito: si Atlas rechaza la petición —correo ya tomado, otra
       // pendiente para la misma persona— la fila del CRM se deshace y el error que ve el ejecutivo
       // comercial es el de Atlas, que es el que explica qué corregir.
-      const request = await this.identityClient.enqueueMerchantUserProvisioning(accessToken, {
-        externalReference: user.id,
-        accountReference: user.accountId,
-        accountName: account.legalName ?? account.tradeName ?? undefined,
-        email: user.email,
-        fullName: user.fullName,
-        roleCode: user.roleCode,
-        ...(branchName ? { branchName } : {}),
-      });
+      const request = await this.identityClient
+        .enqueueMerchantUserProvisioning(accessToken, {
+          externalReference: user.id,
+          accountReference: user.accountId,
+          accountName: account.legalName ?? account.tradeName ?? undefined,
+          email: user.email,
+          fullName: user.fullName,
+          roleCode: user.roleCode,
+          ...(branchName ? { branchName } : {}),
+        })
+        .catch((error: unknown) => {
+          throw this.explicarPermisoFaltante(error, 'merchant.users.request');
+        });
 
       await user.update({ identityRequestId: request.id }, { transaction });
 
@@ -855,17 +865,23 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
       );
     }
 
+    const estadoPrevio = caseRecord.status;
     await caseRecord.update({ status: 'EN_VERIFICACION' });
-    const respuesta = await this.partnerClient.forward<{
-      partnerId: string;
-      onboardingStatus: string;
-      decision: KybDecision;
-    }>({
-      method: 'POST',
-      path: `operations/partners/${encodeURIComponent(partnerId)}/kyb-review`,
-      accessToken,
-      body: input.reason ? { reason: input.reason } : {},
-    });
+    let respuesta: { partnerId: string; onboardingStatus: string; decision: KybDecision };
+    try {
+      respuesta = await this.partnerClient.forward<typeof respuesta>({
+        method: 'POST',
+        path: `operations/partners/${encodeURIComponent(partnerId)}/kyb-review`,
+        accessToken,
+        body: input.reason ? { reason: input.reason } : {},
+      });
+    } catch (error) {
+      // Sin veredicto no hay verificación en curso. Dejar el caso EN_VERIFICACION tras un 503 lo
+      // convertía en un callejón sin salida: sin veredicto que sincronizar y sin botón para volver
+      // a pedir. El caso vuelve a donde estaba y el error se ve entero; nunca se aprueba solo.
+      await caseRecord.update({ status: estadoPrevio });
+      throw this.explicarPermisoFaltante(error, 'partner.kyb.request');
+    }
 
     await this.applyKybDecision(caseRecord, respuesta.decision);
     await this.businessActionLogsService.record({
@@ -936,17 +952,21 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
     if (caseRecord.status === ONBOARDING_TERMINAL_STATUS) return false;
     const mismo =
       caseRecord.decisionExecutionId === decision.executionId &&
-      caseRecord.decisionOutcome === decision.outcome &&
+      caseRecord.decisionOutcome === normalizeKybOutcome(decision.outcome) &&
       caseRecord.manualReviewCaseCode === (decision.manualReviewCaseCode ?? null);
     if (mismo) return false;
 
-    const siguiente = STATUS_FOR_KYB_OUTCOME[decision.outcome];
+    const outcome = normalizeKybOutcome(decision.outcome);
+    const siguiente = STATUS_FOR_KYB_OUTCOME[outcome];
     // Un APROBADO tardío (revisión manual resuelta) no retrocede un caso que ya fue más lejos.
     const conservar =
       siguiente === 'VERIFICADO' && ['ALTA_PENDIENTE', 'LISTO'].includes(caseRecord.status);
     await caseRecord.update({
-      decisionOutcome: decision.outcome,
-      decisionReason: decision.reason ?? null,
+      decisionOutcome: outcome,
+      decisionReason:
+        outcome === decision.outcome
+          ? (decision.reason ?? null)
+          : `DESENLACE_DESCONOCIDO:${decision.outcome || 'vacio'}`,
       decisionExecutionId: decision.executionId ?? null,
       decisionArtifactVersion: decision.artifactVersionId ?? null,
       manualReviewCaseCode: decision.manualReviewCaseCode ?? null,
@@ -954,6 +974,23 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
       ...(conservar ? {} : { status: siguiente }),
     });
     return true;
+  }
+
+  /**
+   * Un 403 de AtlasBackend dicho con lo que hace falta para resolverlo.
+   *
+   * El ERP concede sus botones por rol de negocio (`ADMIN`, `OPERATIONS`…), pero AtlasBackend
+   * decide por PERMISO RBAC, y los dos vocabularios no coinciden: un `SYSTEMS_ADMIN` es `ADMIN` en
+   * el ERP y no tiene `partner.kyb.request`. Sin esto la pantalla enseñaba «no tiene los permisos
+   * requeridos» y nadie sabía cuál. Los roles que lo llevan son los de
+   * `internal-rbac.permissions.ts` de AtlasBackend; si allí cambian, aquí sólo cambia el texto.
+   */
+  private explicarPermisoFaltante(error: unknown, permiso: string): unknown {
+    if (!(error instanceof ForbiddenException)) return error;
+    return new ForbiddenException(
+      `Tu sesión de Atlas no tiene el permiso «${permiso}» (lo llevan OPERATIONS_MANAGER y SUPER_ADMIN). ` +
+        `Pídelo al administrador de identidades o que lo haga alguien con ese rol. Nada se guardó.`,
+    );
   }
 
   private async findPartnerProfile(

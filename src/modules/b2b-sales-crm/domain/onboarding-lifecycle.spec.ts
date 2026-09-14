@@ -5,6 +5,8 @@ import {
   summarizeCredentials,
   statusesForScope,
   summarizeOnboardingQueue,
+  normalizeKybOutcome,
+  STATUSES_THAT_CAN_REQUEST_KYB,
 } from './onboarding-lifecycle';
 
 /**
@@ -120,5 +122,24 @@ describe('Ciclo de vida del caso de onboarding', () => {
       '1 concedida · 1 pendiente · 1 rechazada (Correo ya tomado)',
     );
     expect(describeCredentials(summarizeCredentials([]))).toBe('Sin pedir');
+  });
+
+  it('un desenlace que no es de los tres conocidos —o vacío— se trata como REVISION_MANUAL', () => {
+    expect(normalizeKybOutcome('APROBADO')).toBe('APROBADO');
+    expect(normalizeKybOutcome(' rechazado ')).toBe('RECHAZADO');
+    expect(normalizeKybOutcome('REVISION_MANUAL')).toBe('REVISION_MANUAL');
+    // Lo que rompía la cola: `STATUS_FOR_KYB_OUTCOME['']` daba `undefined` y el caso se quedaba
+    // EN_VERIFICACION con un `decision_outcome` vacío persistido.
+    expect(normalizeKybOutcome('')).toBe('REVISION_MANUAL');
+    expect(normalizeKybOutcome(null)).toBe('REVISION_MANUAL');
+    expect(normalizeKybOutcome('DESENLACE_NUEVO_DEL_ARTEFACTO')).toBe('REVISION_MANUAL');
+  });
+
+  it('un caso atascado EN_VERIFICACION puede volver a pedir la verificación', () => {
+    expect(STATUSES_THAT_CAN_REQUEST_KYB).toContain('EN_VERIFICACION');
+    // Con veredicto ya no se vuelve a pedir desde aquí: VERIFICADO y REVISION_MANUAL siguen su curso.
+    expect(STATUSES_THAT_CAN_REQUEST_KYB).not.toContain('VERIFICADO');
+    expect(STATUSES_THAT_CAN_REQUEST_KYB).not.toContain('REVISION_MANUAL');
+    expect(STATUSES_THAT_CAN_REQUEST_KYB).not.toContain('COMPLETED');
   });
 });

@@ -1,4 +1,4 @@
-import { ConflictException } from '@nestjs/common';
+import { ConflictException, ForbiddenException } from '@nestjs/common';
 import { B2BOnboardingService } from './b2b-onboarding.service';
 
 /**
@@ -131,8 +131,54 @@ describe('B2BOnboardingService · el tramo del Motor', () => {
     await expect(caido.service.requestKybReview('caso-1', {}, 'tok', ACTOR)).rejects.toThrow(
       'DECISION_ENGINE_UNAVAILABLE',
     );
-    expect(caido.caso.status).toBe('EN_VERIFICACION');
+    // Vuelve a donde estaba: EN_VERIFICACION sin veredicto era un callejón sin salida (sin botón
+    // para volver a pedir y sin nada que sincronizar). Y sigue sin aprobarse solo.
+    expect(caido.caso.status).toBe('OPEN');
     expect(caido.caso.decisionOutcome).toBeNull();
+  });
+
+  it('un caso que quedó atascado EN_VERIFICACION admite volver a pedir la verificación', async () => {
+    const forward = jest.fn(async () => ({ decision: DECISION }));
+    const { service, caso } = build({ forward, caso: { status: 'EN_VERIFICACION' } });
+
+    await service.requestKybReview('caso-1', {}, 'tok', ACTOR);
+
+    expect(forward).toHaveBeenCalledTimes(1);
+    expect(caso.status).toBe('VERIFICADO');
+  });
+
+  it('un desenlace que el ERP no conoce —o vacío— deja el caso en REVISION_MANUAL, nunca en el limbo', async () => {
+    const vacio = build({
+      forward: jest.fn(async () => ({ decision: { ...DECISION, outcome: '', reason: null } })),
+    });
+    await vacio.service.requestKybReview('caso-1', {}, 'tok', ACTOR);
+    expect(vacio.caso.status).toBe('REVISION_MANUAL');
+    expect(vacio.caso.decisionOutcome).toBe('REVISION_MANUAL');
+    expect(vacio.caso.decisionReason).toBe('DESENLACE_DESCONOCIDO:vacio');
+
+    const nuevo = build({
+      forward: jest.fn(async () => ({
+        decision: { ...DECISION, outcome: 'DESENLACE_NUEVO', reason: 'lo que sea' },
+      })),
+    });
+    await nuevo.service.requestKybReview('caso-1', {}, 'tok', ACTOR);
+    expect(nuevo.caso.status).toBe('REVISION_MANUAL');
+    expect(nuevo.caso.decisionReason).toBe('DESENLACE_DESCONOCIDO:DESENLACE_NUEVO');
+  });
+
+  it('el 403 de AtlasBackend dice QUÉ permiso falta, y el caso vuelve a donde estaba', async () => {
+    const { service, caso } = build({
+      forward: jest.fn(async () => {
+        throw new ForbiddenException(
+          'El usuario interno no tiene los permisos requeridos para esta operación.',
+        );
+      }),
+    });
+
+    await expect(service.requestKybReview('caso-1', {}, 'tok', ACTOR)).rejects.toThrow(
+      /partner\.kyb\.request/,
+    );
+    expect(caso.status).toBe('OPEN');
   });
 
   it('sin expediente enlazado lo busca por cuenta y luego por NIT, y escribe el puente en los dos lados', async () => {
@@ -310,5 +356,75 @@ describe('B2BOnboardingService · el contrato legal por defecto', () => {
   it('`null` no es un error: el inquilino aún no publicó ninguno', async () => {
     const { service } = build({ forward: jest.fn(async () => ({ template: null })) });
     expect(await service.getDefaultLegalContractTemplate('tok')).toEqual({ template: null });
+  });
+});
+
+describe('B2BOnboardingService · pedir credenciales', () => {
+  function buildAlta(enqueue: jest.Mock) {
+    const user = fila({
+      id: 'u-1',
+      accountId: 'acc-1',
+      branchId: null,
+      email: 'x@y.z',
+      fullName: 'X',
+      roleCode: 'MERCHANT_OPERATOR',
+      status: 'INVITED',
+    });
+    const repository = {
+      accounts: { findByPk: jest.fn(async () => ({ id: 'acc-1', legalName: 'Comercio SRL' })) },
+      branches: { findOne: jest.fn() },
+      merchantUsers: { findOne: jest.fn(async () => null), create: jest.fn(async () => user) },
+      onboardingCases: { update: jest.fn() },
+      transaction: jest.fn(async (fn: (t: unknown) => Promise<unknown>) => fn(undefined)),
+    };
+    const service = new B2BOnboardingService(
+      repository as never,
+      { infoContext: jest.fn() } as never,
+      { enqueueMerchantUserProvisioning: enqueue } as never,
+      { record: jest.fn() } as never,
+      { forward: jest.fn() } as never,
+    );
+    return { service, repository, user };
+  }
+
+  it('el 403 de AtlasBackend dice qué permiso falta y la fila del CRM no queda a medias', async () => {
+    const { service, repository } = buildAlta(
+      jest.fn(async () => {
+        throw new ForbiddenException('El usuario interno no tiene los permisos requeridos.');
+      }),
+    );
+
+    await expect(
+      service.createMerchantUser(
+        {
+          accountId: 'acc-1',
+          email: 'x@y.z',
+          fullName: 'X',
+          roleCode: 'MERCHANT_OPERATOR',
+        } as never,
+        'tok',
+      ),
+    ).rejects.toThrow(/merchant\.users\.request/);
+    // La transacción se deshace con el error: no queda un INVITED sin petición detrás.
+    expect(repository.onboardingCases.update).not.toHaveBeenCalled();
+  });
+
+  it('cualquier otro rechazo de Atlas llega tal cual: es el que explica qué corregir', async () => {
+    const { service } = buildAlta(
+      jest.fn(async () => {
+        throw new ConflictException('Ya hay una petición pendiente para ese correo.');
+      }),
+    );
+    await expect(
+      service.createMerchantUser(
+        {
+          accountId: 'acc-1',
+          email: 'x@y.z',
+          fullName: 'X',
+          roleCode: 'MERCHANT_OPERATOR',
+        } as never,
+        'tok',
+      ),
+    ).rejects.toThrow('Ya hay una petición pendiente para ese correo.');
   });
 });
