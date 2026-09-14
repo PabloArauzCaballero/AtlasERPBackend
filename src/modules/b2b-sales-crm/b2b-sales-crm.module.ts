@@ -32,6 +32,8 @@ import { B2BContractsService } from './services/b2b-contracts.service';
 import { B2BCreditRatingService } from './services/b2b-credit-rating.service';
 import { B2BCreditRatingQueryService } from './services/b2b-credit-rating-query.service';
 import { B2BCoverageService } from './services/b2b-coverage.service';
+import { B2BOverdueSweepProcessor } from './services/b2b-overdue-sweep.processor';
+import { B2BOverdueSweepService } from './services/b2b-overdue-sweep.service';
 import { B2BOnboardingService } from './services/b2b-onboarding.service';
 import { B2BPipelineService } from './services/b2b-pipeline.service';
 import { B2BReconciliationService } from './services/b2b-reconciliation.service';
@@ -84,6 +86,8 @@ import { PartnerOnboardingGatewayModule } from '../partner-onboarding-gateway/pa
     B2BOnboardingService,
     B2BBnplBillingService,
     B2BCoverageService,
+    B2BOverdueSweepService,
+    B2BOverdueSweepProcessor,
     B2BReconciliationService,
     B2BSalesCrmService,
     MerchantAccountingBridgeService,

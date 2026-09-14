@@ -39,6 +39,8 @@ import { B2BAccountsService } from './b2b-accounts.service';
 import { B2BBnplBillingService } from './b2b-bnpl-billing.service';
 import { B2BContractsService } from './b2b-contracts.service';
 import { B2BCoverageService } from './b2b-coverage.service';
+import { B2BOverdueSweepService } from './b2b-overdue-sweep.service';
+import type { OverdueSweepResult } from './b2b-overdue-sweep.service';
 import { B2BOnboardingService } from './b2b-onboarding.service';
 import { B2BPipelineService } from './b2b-pipeline.service';
 import { B2BReconciliationService } from './b2b-reconciliation.service';
@@ -52,6 +54,7 @@ export class B2BSalesCrmService {
     private readonly onboardingService: B2BOnboardingService,
     private readonly bnplBillingService: B2BBnplBillingService,
     private readonly coverageService: B2BCoverageService,
+    private readonly overdueSweepService: B2BOverdueSweepService,
     private readonly reconciliationService: B2BReconciliationService,
   ) {}
 
@@ -335,6 +338,11 @@ export class B2BSalesCrmService {
 
   registerMerchantPayment(input: RegisterMerchantPaymentDto): Promise<Record<string, unknown>> {
     return this.bnplBillingService.registerMerchantPayment(input);
+  }
+
+  /** Marca OVERDUE las cuotas vencidas sin pago, a demanda (la pasada periódica corre sola). */
+  sweepOverdueInstallments(): Promise<OverdueSweepResult> {
+    return this.overdueSweepService.sweep();
   }
 
   scheduleCoverage(input: ScheduleCoverageDto): Promise<Record<string, unknown>> {

@@ -16,6 +16,7 @@ import {
   scheduleCoverageSchema,
 } from '../b2b-sales-crm.schemas';
 import { B2BSalesCrmService } from '../services/b2b-sales-crm.service';
+import type { OverdueSweepResult } from '../services/b2b-overdue-sweep.service';
 
 @Controller('b2b/coverage')
 export class CoverageController {
@@ -41,6 +42,16 @@ export class CoverageController {
   @Get('recoveries')
   listRecoveries(): Promise<Record<string, unknown>[]> {
     return this.service.listRecoveries();
+  }
+
+  /*
+   * La pasada de vencidas a demanda. Corre sola cada hora dentro del API; esto es para no esperar
+   * después de cargar cuotas o de corregir una fecha.
+   */
+  @Roles('FINANCE', 'OPERATIONS', 'ADMIN')
+  @Post('installments/sweep-overdue')
+  sweepOverdue(): Promise<OverdueSweepResult> {
+    return this.service.sweepOverdueInstallments();
   }
 
   @Roles('FINANCE', 'OPERATIONS', 'ADMIN')

@@ -204,6 +204,13 @@ const envSchema = z
     OUTBOX_WORKER_POLL_INTERVAL_MS: z.coerce.number().int().positive().default(5000),
     OUTBOX_WORKER_BATCH_SIZE: z.coerce.number().int().positive().max(100).default(25),
     WORKER_SHUTDOWN_TIMEOUT_SECONDS: z.coerce.number().int().positive().default(30),
+
+    /* Pasada que marca OVERDUE las cuotas BNPL vencidas; corre dentro del API (ver B2BOverdueSweepProcessor). */
+    BNPL_OVERDUE_SWEEP_ENABLED: z
+      .enum(['true', 'false'])
+      .default('true')
+      .transform((value) => value === 'true'),
+    BNPL_OVERDUE_SWEEP_INTERVAL_MS: z.coerce.number().int().positive().default(3_600_000),
   })
   .superRefine((value, context) => {
     const globalPrefixes = [

@@ -27,3 +27,7 @@ Contiene la lógica de negocio del módulo dividida por subdominio para evitar u
 - Configuración global.
 - Validaciones HTTP que pertenezcan a schemas Zod.
 - Integraciones externas improvisadas.
+
+## `b2b-overdue-sweep.service.ts`
+
+Marca `OVERDUE` las cuotas BNPL con `due_date` pasada y sin pago del consumidor reportado o confirmado. Corre sola cada hora dentro del API (`b2b-overdue-sweep.processor.ts`, `BNPL_OVERDUE_SWEEP_*`) y a demanda por `POST /b2b/coverage/installments/sweep-overdue`. Hasta el 2026-09-14 una cuota sólo pasaba a `OVERDUE` al programar la cobertura a mano, y el tablero de Finanzas subestimaba las cuotas en mora sin cobertura.
