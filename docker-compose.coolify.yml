@@ -96,6 +96,8 @@ services:
   #
   # Con el `if`, «este despliegue no siembra» —legítimo— deja de confundirse con «la siembra
   # falló», que sí debe parar el despliegue.
+  # `node --run` y no `npm run`: npm ya no viaja en la imagen (ver Dockerfile). Ejecuta el MISMO
+  # script de package.json, sin npm de por medio. Disponible desde Node 22.
   migrate:
     <<: *build
     init: true
@@ -103,7 +105,7 @@ services:
       - sh
       - -c
       - >
-        npm run db:migrate:prod &&
+        node --run db:migrate:prod &&
         if [ -n "$${SEED_SOURCE_DATABASE_URL}$${SEED_SOURCE_HOST}" ]; then
         node dist/scripts/db/seed-pull.js pull --if-empty;
         else echo 'sin SEED_SOURCE_*: se migra pero no se siembra'; fi

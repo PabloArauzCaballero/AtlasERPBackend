@@ -14,7 +14,25 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 COPY package*.json ./
+# `--upgrade libcrypto3 libssl3`: la base fija una version de OpenSSL con dos altos que Alpine ya
+# corrigio (CVE-2026-14456, en 3.5.8-r0); no llegan solos porque la etiqueta esta clavada. Se
+# actualizan ESOS paquetes, nunca `apk upgrade` a secas, que cambiaria la base entre dos builds del
+# mismo commit.
+RUN apk add --no-cache --upgrade libcrypto3 libssl3
+
 RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
+
+# npm FUERA de la imagen que se despliega, YA instaladas las dependencias.
+#
+# La mayoria de los CVEs de esta imagen no son dependencias del ERP: viven dentro del npm que trae
+# node:22-alpine. Medido con Trivy antes de tocar nada: el CRITICO de `tar` (CVE-2026-59873) y los
+# altos de `pacote`, `sigstore`, `picomatch`, `ip-address` y `brace-expansion` salen todos de
+# `/usr/local/lib/node_modules/npm`, no de `app/node_modules`.
+#
+# Es seguro porque nada lo usa en ejecucion: el contenedor arranca con `node dist/src/main.js` y el
+# healthcheck es `wget`. Las MIGRACIONES si lo usaban (`npm run db:migrate:prod` en el compose) y por
+# eso pasan a `node --run`, que ejecuta el mismo script de package.json sin npm de por medio.
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 
 COPY --from=build --chown=node:node /app/dist ./dist
 COPY --chown=node:node src/database/migrations ./src/database/migrations
