@@ -54,7 +54,11 @@ describe('Segundo factor del login interno en el gateway', () => {
     const tokenIssuer = {
       issue: jest.fn().mockReturnValue({ accessToken: 'erp-at', expiresIn: '15m' }),
     };
-    const service = new AuthGatewayService(identityClient as never, tokenIssuer as never);
+    const service = new AuthGatewayService(
+      identityClient as never,
+      tokenIssuer as never,
+      { resolveId: jest.fn(async () => 'aaaaaaaa-0000-4000-8000-000000000001') } as never,
+    );
     return { service, identityClient, tokenIssuer };
   }
 

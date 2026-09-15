@@ -8,6 +8,7 @@ import type { AuthUser, RequestWithAuthUser } from '../types/auth-context.types'
 
 interface JwtPayload {
   sub?: string;
+  atlasUserId?: string;
   roleCode?: string;
   role?: string;
   roles?: string[];
@@ -193,6 +194,7 @@ export class JwtAuthGuard implements CanActivate {
       role: payload.role ?? payload.roleCode ?? primaryRole,
       roles,
       ...(payload.email ? { email: payload.email } : {}),
+      ...(payload.atlasUserId ? { atlasUserId: payload.atlasUserId } : {}),
       ...(legalEntityIds ? { legalEntityIds } : {}),
       ...(payload.tokenType ? { tokenType: payload.tokenType } : {}),
     };

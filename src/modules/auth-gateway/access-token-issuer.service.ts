@@ -17,7 +17,12 @@ export interface IssuedAccessToken {
 export class AccessTokenIssuerService {
   private readonly jwtService = new JwtService({ secret: env.JWT_ACCESS_SECRET });
 
-  issue(input: { sub: string; roles: string[]; email?: string }): IssuedAccessToken {
+  issue(input: {
+    sub: string;
+    atlasUserId?: string;
+    roles: string[];
+    email?: string;
+  }): IssuedAccessToken {
     const primaryRole = input.roles[0] ?? 'NONE';
     const payload: AuthUser = {
       sub: input.sub,
@@ -25,6 +30,7 @@ export class AccessTokenIssuerService {
       role: primaryRole,
       roles: input.roles,
       ...(input.email ? { email: input.email } : {}),
+      ...(input.atlasUserId ? { atlasUserId: input.atlasUserId } : {}),
       tokenType: 'access',
     };
 

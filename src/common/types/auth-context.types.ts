@@ -1,5 +1,8 @@
 export interface AuthUser {
+  /** Usuario interno de ESTE backend (uuid de `atlas_sales.internal_users`) o usuario de comercio. */
   sub: string;
+  /** Identificador opaco que emitió AtlasBackend para la misma persona; sólo para trazas y llamadas upstream. */
+  atlasUserId?: string;
   roleCode?: string;
   role?: string;
   roles?: string[];

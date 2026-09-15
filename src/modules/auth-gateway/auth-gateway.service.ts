@@ -1,6 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { AccessTokenIssuerService } from './access-token-issuer.service';
 import { AtlasIdentityClient } from './atlas-identity.client';
+import { InternalUserMirrorService } from './internal-user-mirror.service';
 import { mapAtlasRolesToBusinessRoles, mapMerchantRoles } from './role-mapping';
 import type {
   AtlasInternalAuthResponse,
@@ -44,12 +45,20 @@ export class AuthGatewayService {
   constructor(
     private readonly identityClient: AtlasIdentityClient,
     private readonly tokenIssuer: AccessTokenIssuerService,
+    private readonly mirror: InternalUserMirrorService,
   ) {}
 
-  private buildSession(auth: AtlasInternalAuthResponse): AuthSessionResult {
+  private async buildSession(auth: AtlasInternalAuthResponse): Promise<AuthSessionResult> {
     const businessRoles = mapAtlasRolesToBusinessRoles(auth.user.roles);
+    // `sub` es el uuid de ESTA base, no el id de Atlas: ver `InternalUserMirrorService`.
+    const sub = await this.mirror.resolveId({
+      email: auth.user.email,
+      fullName: auth.user.fullName ?? auth.user.name,
+      roleCode: businessRoles[0] ?? 'NONE',
+    });
     const issued = this.tokenIssuer.issue({
-      sub: auth.user.id,
+      sub,
+      atlasUserId: auth.user.id,
       roles: businessRoles,
       email: auth.user.email,
     });

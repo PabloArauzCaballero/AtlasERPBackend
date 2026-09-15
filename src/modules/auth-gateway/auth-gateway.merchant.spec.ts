@@ -75,7 +75,11 @@ describe('Identidad del comercio en el gateway', () => {
         issue: jest.fn().mockReturnValue({ accessToken: 'erp-at', expiresIn: '15m' }),
       };
       return {
-        service: new AuthGatewayService(identityClient as never, tokenIssuer as never),
+        service: new AuthGatewayService(
+          identityClient as never,
+          tokenIssuer as never,
+          { resolveId: jest.fn(async () => 'aaaaaaaa-0000-4000-8000-000000000001') } as never,
+        ),
         identityClient,
         tokenIssuer,
       };
