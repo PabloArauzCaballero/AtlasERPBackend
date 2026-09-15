@@ -42,14 +42,12 @@ describe('DocumentsService.generate · plantilla', () => {
   });
 
   it('un 200 que no es application/pdf no se entrega como PDF', async () => {
-    jest
-      .spyOn(globalThis, 'fetch')
-      .mockResolvedValue(
-        new Response('{"documentId":"DOC-1"}', {
-          status: 200,
-          headers: { 'content-type': 'application/json' },
-        }),
-      );
+    jest.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('{"documentId":"DOC-1"}', {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      }),
+    );
     const service = await servicio();
     await expect(
       service.generate({ payload: { title: 'x', sections: [{ title: 's' }] } }),
