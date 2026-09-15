@@ -47,6 +47,24 @@ export class SupportGatewayController {
     });
   }
 
+  /**
+   * Los motivos por los que el comercio puede abrir un caso.
+   *
+   * Faltaba. AtlasBackend publica `GET /merchant/support/categories` desde el principio, pero esta
+   * pasarela no la reenviaba y el navegador nunca habla con AtlasBackend directo: el 404 lo daba
+   * este servicio, la pantalla lo tragaba con un `.catch` y el panel «¿Sobre qué es?» salía siempre
+   * vacío, así que toda conversación nacía sin clasificar y caía en la cola genérica.
+   */
+  @Get('merchant/support/categories')
+  @Roles(...COMERCIO)
+  motivos(@Req() req: Request) {
+    return this.client.forward({
+      method: 'GET',
+      path: 'merchant/support/categories',
+      accessToken: this.token(req),
+    });
+  }
+
   @Get('merchant/support/knowledge/search')
   @Roles(...COMERCIO)
   buscar(@Req() req: Request, @Query('q') q: string) {
