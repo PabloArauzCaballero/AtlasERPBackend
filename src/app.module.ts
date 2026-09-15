@@ -18,6 +18,7 @@ import { DatabaseModule } from './database/sequelize.module';
 import { HealthModule } from './modules/health/health.module';
 import { AuthGatewayModule } from './modules/auth-gateway/auth-gateway.module';
 import { PartnerOnboardingGatewayModule } from './modules/partner-onboarding-gateway/partner-onboarding-gateway.module';
+import { NotificationCampaignsGatewayModule } from './modules/notification-campaigns-gateway/notification-campaigns-gateway.module';
 import { B2BSalesCrmModule } from './modules/b2b-sales-crm/b2b-sales-crm.module';
 import { AccountingModule } from './modules/accounting/accounting.module';
 import { AdsModule } from './modules/ads/ads.module';
@@ -91,6 +92,7 @@ function prettyDisponible(): boolean {
     HealthModule,
     AuthGatewayModule,
     PartnerOnboardingGatewayModule,
+    NotificationCampaignsGatewayModule,
     B2BSalesCrmModule,
     AccountingModule,
     AdsModule,

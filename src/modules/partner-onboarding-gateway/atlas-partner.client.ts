@@ -44,6 +44,8 @@ export class AtlasPartnerClient {
     path: string;
     accessToken: string | undefined;
     body?: unknown;
+    /** Cabeceras de la llamada que el upstream exige, como `x-idempotency-key`. Nunca `Authorization`. */
+    headers?: Record<string, string>;
   }): Promise<T> {
     if (!input.accessToken) {
       throw new UnauthorizedException('No hay sesión de identidad para operar el expediente.');
@@ -56,6 +58,7 @@ export class AtlasPartnerClient {
           url: `${env.ATLAS_IDENTITY_BASE_URL}/${input.path.replace(/^\/+/, '')}`,
           data: input.body,
           headers: {
+            ...input.headers,
             Authorization: `Bearer ${input.accessToken}`,
             'x-tenant-id': env.ATLAS_IDENTITY_TENANT_ID,
             Accept: 'application/json',
