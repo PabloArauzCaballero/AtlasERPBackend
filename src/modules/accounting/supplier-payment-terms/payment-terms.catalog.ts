@@ -96,16 +96,38 @@ export const MEDIOS_DE_PAGO = {
   TRANSFERENCIA: {
     code: 'TRANSFERENCIA',
     label: 'Transferencia bancaria',
+    help: 'Abono a la cuenta del proveedor; exige registrar sus datos bancarios.',
     /** Sin cuenta del proveedor no se puede emitir: es un dato obligatorio, no un adorno. */
     exigeCuenta: true,
   },
-  CHEQUE: { code: 'CHEQUE', label: 'Cheque', exigeCuenta: false },
-  EFECTIVO: { code: 'EFECTIVO', label: 'Efectivo', exigeCuenta: false },
-  TARJETA: { code: 'TARJETA', label: 'Tarjeta', exigeCuenta: false },
-  QR: { code: 'QR', label: 'Pago con QR', exigeCuenta: true },
+  CHEQUE: {
+    code: 'CHEQUE',
+    label: 'Cheque',
+    help: 'Se gira contra una cuenta propia; el egreso se confirma al cobrarse.',
+    exigeCuenta: false,
+  },
+  EFECTIVO: {
+    code: 'EFECTIVO',
+    label: 'Efectivo',
+    help: 'Entrega en caja; conviene sólo para importes menores por el control que exige.',
+    exigeCuenta: false,
+  },
+  TARJETA: {
+    code: 'TARJETA',
+    label: 'Tarjeta',
+    help: 'Se carga a una tarjeta de la empresa; concilia contra el extracto del emisor.',
+    exigeCuenta: false,
+  },
+  QR: {
+    code: 'QR',
+    label: 'Pago con QR',
+    help: 'Transferencia inmediata leyendo el QR del proveedor; exige su cuenta destino.',
+    exigeCuenta: true,
+  },
   COMPENSACION: {
     code: 'COMPENSACION',
     label: 'Compensación de saldos',
+    help: 'No sale dinero: se cruza la deuda contra lo que ese mismo tercero adeuda.',
     exigeCuenta: false,
   },
 } as const;
@@ -114,25 +136,90 @@ export type MedioDePago = keyof typeof MEDIOS_DE_PAGO;
 
 /** Cada cuánto se repite, cuando la modalidad es recurrente. */
 export const FRECUENCIAS = {
-  UNICA: { code: 'UNICA', label: 'Pago único', meses: null },
-  SEMANAL: { code: 'SEMANAL', label: 'Semanal', meses: null },
-  QUINCENAL: { code: 'QUINCENAL', label: 'Quincenal', meses: null },
-  MENSUAL: { code: 'MENSUAL', label: 'Mensual', meses: 1 },
-  BIMESTRAL: { code: 'BIMESTRAL', label: 'Bimestral', meses: 2 },
-  TRIMESTRAL: { code: 'TRIMESTRAL', label: 'Trimestral', meses: 3 },
-  SEMESTRAL: { code: 'SEMESTRAL', label: 'Semestral', meses: 6 },
-  ANUAL: { code: 'ANUAL', label: 'Anual', meses: 12 },
+  UNICA: {
+    code: 'UNICA',
+    label: 'Pago único',
+    help: 'No se repite: se liquida una sola vez y la condición se agota.',
+    meses: null,
+  },
+  SEMANAL: {
+    code: 'SEMANAL',
+    label: 'Semanal',
+    help: 'Se repite cada siete días; para servicios que se consumen a diario.',
+    meses: null,
+  },
+  QUINCENAL: {
+    code: 'QUINCENAL',
+    label: 'Quincenal',
+    help: 'Dos liquidaciones por mes; habitual en personal eventual y fletes.',
+    meses: null,
+  },
+  MENSUAL: {
+    code: 'MENSUAL',
+    label: 'Mensual',
+    help: 'Una vez al mes; es la frecuencia de alquileres y servicios básicos.',
+    meses: 1,
+  },
+  BIMESTRAL: {
+    code: 'BIMESTRAL',
+    label: 'Bimestral',
+    help: 'Una vez cada dos meses; suma sesenta días al vencimiento anterior.',
+    meses: 2,
+  },
+  TRIMESTRAL: {
+    code: 'TRIMESTRAL',
+    label: 'Trimestral',
+    help: 'Cuatro liquidaciones al año; usual en mantenimientos y licencias.',
+    meses: 3,
+  },
+  SEMESTRAL: {
+    code: 'SEMESTRAL',
+    label: 'Semestral',
+    help: 'Dos liquidaciones al año; propio de pólizas y contratos largos.',
+    meses: 6,
+  },
+  ANUAL: {
+    code: 'ANUAL',
+    label: 'Anual',
+    help: 'Una sola liquidación por gestión; para renovaciones de doce meses.',
+    meses: 12,
+  },
 } as const;
 
 export type Frecuencia = keyof typeof FRECUENCIAS;
 
 /** Ciclo de vida de una condición de pago. */
 export const ESTADOS_CONDICION = {
-  BORRADOR: { code: 'BORRADOR', label: 'Borrador', aplicable: false },
-  ACTIVA: { code: 'ACTIVA', label: 'Activa', aplicable: true },
-  SUSPENDIDA: { code: 'SUSPENDIDA', label: 'Suspendida', aplicable: false },
-  VENCIDA: { code: 'VENCIDA', label: 'Vencida', aplicable: false },
-  ARCHIVADA: { code: 'ARCHIVADA', label: 'Archivada', aplicable: false },
+  BORRADOR: {
+    code: 'BORRADOR',
+    label: 'Borrador',
+    help: 'Se está redactando; todavía no se aplica a ninguna factura.',
+    aplicable: false,
+  },
+  ACTIVA: {
+    code: 'ACTIVA',
+    label: 'Activa',
+    help: 'La única que calcula vencimientos; elígela cuando el acuerdo ya rige.',
+    aplicable: true,
+  },
+  SUSPENDIDA: {
+    code: 'SUSPENDIDA',
+    label: 'Suspendida',
+    help: 'En pausa por una disputa o revisión; se reactiva sin volver a crearla.',
+    aplicable: false,
+  },
+  VENCIDA: {
+    code: 'VENCIDA',
+    label: 'Vencida',
+    help: 'Pasó su fecha de vigencia; hay que renegociarla para volver a usarla.',
+    aplicable: false,
+  },
+  ARCHIVADA: {
+    code: 'ARCHIVADA',
+    label: 'Archivada',
+    help: 'Retirada del uso; se conserva sólo para consultar el historial.',
+    aplicable: false,
+  },
 } as const;
 
 export type EstadoCondicion = keyof typeof ESTADOS_CONDICION;

@@ -264,14 +264,30 @@ describe('publicidad', () => {
 describe('servicio de catálogo', () => {
   const service = new CatalogService();
 
-  it('publica todos los dominios con código y etiqueta', () => {
+  it('publica todos los dominios con código, etiqueta y ayuda', () => {
     const { domains } = service.list();
     expect(Object.keys(domains).length).toBeGreaterThanOrEqual(90);
     expect(domains['crm.riskTier']).toEqual([
-      { code: 'LOW', label: 'Bajo' },
-      { code: 'MEDIUM', label: 'Medio' },
-      { code: 'HIGH', label: 'Alto' },
-      { code: 'CRITICAL', label: 'Crítico' },
+      {
+        code: 'LOW',
+        label: 'Bajo',
+        help: 'Historial limpio y actividad estable; no exige controles extra.',
+      },
+      {
+        code: 'MEDIUM',
+        label: 'Medio',
+        help: 'Señales menores a vigilar; se revisa en el seguimiento habitual.',
+      },
+      {
+        code: 'HIGH',
+        label: 'Alto',
+        help: 'Exige garantías o límites más estrictos antes de operar.',
+      },
+      {
+        code: 'CRITICAL',
+        label: 'Crítico',
+        help: 'No se opera sin aprobación expresa de riesgo y cumplimiento.',
+      },
     ]);
   });
 
@@ -283,7 +299,7 @@ describe('servicio de catálogo', () => {
     expect(() => service.list(['crm.noExiste'])).toThrow('No existe el dominio «crm.noExiste».');
   });
 
-  it('un dominio suelto lleva su descripción y la ayuda cuando la hay', () => {
+  it('un dominio suelto lleva su descripción y la ayuda de cada valor', () => {
     const domain = service.one('accounting.glAccountStatus');
     expect(domain?.description).toBe('Estado de una cuenta contable.');
     expect(domain?.options.find((option) => option.code === 'ARCHIVED')?.help).toBeTruthy();

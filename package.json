@@ -38,7 +38,8 @@
     "db:metadata:export": "tsx scripts/db/export-entity-inventory.ts",
     "db:seed:pull": "tsx scripts/db/seed-pull.ts pull",
     "db:seed:status": "tsx scripts/db/seed-pull.ts status",
-    "check:migration-lists": "tsx scripts/db/check-migration-lists.ts"
+    "check:migration-lists": "tsx scripts/db/check-migration-lists.ts",
+    "catalog:fixture": "tsx scripts/catalog/export-domains-fixture.ts"
   },
   "dependencies": {
     "@nestjs/axios": "^4.0.1",

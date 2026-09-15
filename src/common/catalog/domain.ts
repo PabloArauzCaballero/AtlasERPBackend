@@ -30,8 +30,15 @@ export interface DomainOption<C extends string = string> {
   readonly code: C;
   /** Lo que se muestra. Se puede retocar sin migrar nada. */
   readonly label: string;
-  /** Explicación corta cuando la etiqueta no basta para elegir bien. */
-  readonly help?: string;
+  /**
+   * Qué significa esa opción y cuándo elegirla. OBLIGATORIA.
+   *
+   * El frontend la pinta como descripción de cada fila del select, así que una etiqueta suelta
+   * («Parcial», «OCI», «BDP») deja a quien llena el formulario adivinando. Es obligatoria por el
+   * tipo y no por convención: el día que se añada un valor sin explicarlo, esto deja de compilar
+   * en vez de llegar a la pantalla como una fila muda. No repite la etiqueta: la explica.
+   */
+  readonly help: string;
 }
 
 /**
@@ -77,6 +84,9 @@ export function defineDomain<const C extends string>(
     if (!option.label.trim()) {
       throw new Error(`El código «${option.code}» de «${name}» no tiene etiqueta.`);
     }
+    if (!option.help.trim()) {
+      throw new Error(`El código «${option.code}» de «${name}» no tiene ayuda.`);
+    }
     seen.add(option.code);
   }
   const codes = options.map((option) => option.code) as unknown as readonly [C, ...C[]];
@@ -85,21 +95,21 @@ export function defineDomain<const C extends string>(
 
 /**
  * Construye las opciones de un dominio a partir de una lista de códigos que ya existe en el
- * código (un array `as const` o los valores de un `enum`), poniéndole la etiqueta a cada uno.
+ * código (un array `as const` o los valores de un `enum`), poniéndole la etiqueta y la ayuda a
+ * cada uno.
  *
  * Así el dominio no REESCRIBE la lista —sigue mandando la del módulo— y TypeScript obliga a
- * etiquetar todos los valores: si alguien añade uno al array, esto deja de compilar hasta que se le
- * ponga nombre.
+ * describir todos los valores: si alguien añade uno al array, esto deja de compilar hasta que se le
+ * ponga nombre Y explicación. La forma corta (sólo la cadena de la etiqueta) se retiró el
+ * 2026-09-15 justamente porque dejaba escribir un valor sin ayuda sin que nada lo notara.
  */
 export function labelled<const C extends string>(
   codes: readonly C[],
-  labels: { readonly [K in C]: string | { readonly label: string; readonly help: string } },
+  labels: { readonly [K in C]: { readonly label: string; readonly help: string } },
 ): DomainOption<C>[] {
   return codes.map((code) => {
     const entry = labels[code];
-    return typeof entry === 'string'
-      ? { code, label: entry }
-      : { code, label: entry.label, help: entry.help };
+    return { code, label: entry.label, help: entry.help };
   });
 }
 

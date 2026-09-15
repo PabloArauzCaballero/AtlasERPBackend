@@ -15,7 +15,7 @@ function publish(domain: DomainDefinition): PublishedDomain {
     options: domain.options.map((option) => ({
       code: option.code,
       label: option.label,
-      ...(option.help ? { help: option.help } : {}),
+      help: option.help,
     })),
   };
 }
