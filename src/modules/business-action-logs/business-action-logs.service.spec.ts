@@ -68,3 +68,17 @@ describe('BusinessActionLogsService.record · origen del registro', () => {
     );
   });
 });
+
+describe('BusinessActionLogsService.list · filtro por origen', () => {
+  it('sourceSystem=ERP_PAPER acota la consulta a lo transcrito de papel', async () => {
+    const model = { findAndCountAll: jest.fn(async () => ({ rows: [], count: 0 })) };
+    const service = new BusinessActionLogsService(
+      model as never,
+      { infoContext: jest.fn() } as never,
+    );
+    await service.list({ page: 1, pageSize: 25, sourceSystem: 'ERP_PAPER' });
+    expect(model.findAndCountAll).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ sourceSystem: 'ERP_PAPER' }) }),
+    );
+  });
+});

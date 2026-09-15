@@ -80,6 +80,7 @@ export class BusinessActionLogsService {
     if (query.aggregateId) where.aggregateId = query.aggregateId;
     if (query.actorUserId) where.actorUserId = query.actorUserId;
     if (query.correlationId) where.correlationId = query.correlationId;
+    if (query.sourceSystem) where.sourceSystem = query.sourceSystem;
     if (query.from || query.to) {
       where.createdAt = {
         ...(query.from ? { [Op.gte]: new Date(`${query.from}T00:00:00.000Z`) } : {}),

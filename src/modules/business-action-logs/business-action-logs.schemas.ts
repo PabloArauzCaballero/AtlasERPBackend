@@ -15,6 +15,8 @@ export const businessActionLogQuerySchema = z
     aggregateId: z.string().trim().min(1).max(120).optional(),
     actorUserId: uuid.optional(),
     correlationId: z.string().trim().min(1).max(160).optional(),
+    /** De dónde nació el registro: ATLAS (tecleado), ERP_PAPER (transcrito de un papel)… */
+    sourceSystem: z.string().trim().min(2).max(80).optional(),
     from: dateOnly.optional(),
     to: dateOnly.optional(),
   })
