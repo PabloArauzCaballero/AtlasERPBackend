@@ -27,7 +27,11 @@ WORKDIR /app
 COPY package*.json ./
 # `--ignore-scripts`: ninguna dependencia de este proyecto compila nada nativo, y saltarse los
 # postinstall es una superficie menos en una imagen que se reconstruye a menudo.
-RUN --mount=type=cache,target=/root/.npm \
+# `sharing=locked`: sin esto BuildKit comparte la cache entre builds Y ENTRE ETAPAS —que corren en
+# paralelo—, y dos `npm ci` escribiendo a la vez en `/root/.npm` revientan con
+# `ENOTEMPTY: directory not empty, rmdir '/root/.npm/_cacache/index-v5/..'`. El despliegue muere en
+# la instalacion de dependencias y el error no menciona ni concurrencia ni cache compartida.
+RUN --mount=type=cache,target=/root/.npm,sharing=locked \
     npm ci --ignore-scripts
 
 FROM node:22-bookworm-slim AS build
@@ -66,8 +70,12 @@ RUN printf 'Acquire::ForceIPv4 "true";\nAcquire::Retries "5";\n' > /etc/apt/apt.
       || echo 'AVISO: no se pudieron instalar los paquetes opcionales; la imagen funciona igual')
 
 COPY package*.json ./
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci --omit=dev --ignore-scripts && npm cache clean --force
+# Sin `npm cache clean`: aqui la cache es un MONTAJE del build, no una capa de la imagen, asi que
+# limpiarla no quita un solo byte del resultado — y en cambio borra lo que la otra etapa esta usando.
+# Era el disparador directo del ENOTEMPTY. En `Dockerfile` (produccion) no hay montaje: alli el
+# `cache clean` si cae sobre una capa real y por eso se queda.
+RUN --mount=type=cache,target=/root/.npm,sharing=locked \
+    npm ci --omit=dev --ignore-scripts
 
 # `dist/` ENTERO, no sólo `dist/src`: `dist/scripts` es lo que hace innecesarias las dependencias de
 # desarrollo. Y `package.json` conserva los scripts npm, así que `npm run db:migrate:prod` sigue
