@@ -1,4 +1,4 @@
-import { AccessTokenIssuerService } from '../src/modules/auth-gateway/access-token-issuer.service';
+import type { AccessTokenIssuerService } from '../src/modules/auth-gateway/access-token-issuer.service';
 import { AuthGatewayService } from '../src/modules/auth-gateway/auth-gateway.service';
 import { InternalUserMirrorService } from '../src/modules/auth-gateway/internal-user-mirror.service';
 
