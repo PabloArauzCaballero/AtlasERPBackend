@@ -1,3 +1,4 @@
+import { nextDocumentNumber } from '../../../../common/numbering/document-numbering';
 import { createHash } from 'crypto';
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
@@ -59,11 +60,38 @@ export class AccountingDocumentsService {
     );
   }
 
-  async createDraftInTransaction(
+  /**
+   * El número del documento, asignado por el backend cuando no viene.
+   *
+   * La serie es por entidad legal —así la declara única la tabla—. Los flujos internos (factura,
+   * recibo, puente del CRM) siguen mandando su propio número derivado (`AR-…`, `RCPT-…`,
+   * `MINV-…`) y no pasan por aquí.
+   */
+  private async withDocumentNumber(
     input: CreateAccountingDocumentDto,
+    transaction: Transaction,
+  ): Promise<CreateAccountingDocumentDto & { documentNo: string }> {
+    if (input.documentNo) return { ...input, documentNo: input.documentNo };
+    const documentNo = await nextDocumentNumber(
+      this.sequelize,
+      {
+        prefix: 'DOC',
+        table: 'atlas_accounting.accounting_document',
+        column: 'document_no',
+        date: input.documentDate,
+        scope: { column: 'legal_entity_id', value: input.legalEntityId },
+      },
+      transaction,
+    );
+    return { ...input, documentNo };
+  }
+
+  async createDraftInTransaction(
+    rawInput: CreateAccountingDocumentDto,
     user: AuthUser,
     transaction: Transaction,
   ) {
+    const input = await this.withDocumentNumber(rawInput, transaction);
     this.legalEntityAccessService.assertCanAccessLegalEntity(user, input.legalEntityId);
     this.doubleEntryValidator.validate(input.lines);
     await this.sapPostingValidationService.assertDocumentCanBePosted(input, transaction);
@@ -427,14 +455,28 @@ export class AccountingDocumentsService {
         order: [['lineNo', 'ASC']],
       });
 
+      const reversalDocumentNo =
+        input.reversalDocumentNo ??
+        (await nextDocumentNumber(
+          this.sequelize,
+          {
+            prefix: 'DOC',
+            table: 'atlas_accounting.accounting_document',
+            column: 'document_no',
+            date: input.reversalDate,
+            scope: { column: 'legal_entity_id', value: original.legalEntityId },
+          },
+          transaction,
+        ));
+
       const reversal = await this.createDraftInTransaction(
         {
           legalEntityId: original.legalEntityId,
           sourceSystem: 'ACCOUNTING',
           sourceType: 'REVERSAL',
-          sourceId: `${original.id}:${input.reversalDocumentNo}`,
+          sourceId: `${original.id}:${reversalDocumentNo}`,
           documentType: 'REVERSAL',
-          documentNo: input.reversalDocumentNo,
+          documentNo: reversalDocumentNo,
           documentDate: input.reversalDate,
           postingDate: input.reversalDate,
           accountingPeriodId: input.accountingPeriodId,

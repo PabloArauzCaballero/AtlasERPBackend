@@ -1,3 +1,4 @@
+import { nextDocumentNumber } from '../../../common/numbering/document-numbering';
 import {
   BadRequestException,
   ConflictException,
@@ -214,7 +215,18 @@ export class B2BPipelineService extends B2BSalesCrmUseCaseBase {
         {
           opportunityId: opportunity.id,
           accountId: opportunity.accountId,
-          proposalNumber: input.proposalNumber,
+          proposalNumber:
+            input.proposalNumber ??
+            (await nextDocumentNumber(
+              this.repository.sequelize,
+              {
+                prefix: 'PROP',
+                table: 'atlas_sales.commercial_proposals',
+                column: 'proposal_number',
+                date: new Date(),
+              },
+              transaction,
+            )),
           status: mdrBelowMinimum ? ProposalStatus.PENDING_APPROVAL : ProposalStatus.DRAFT,
           validUntil: input.validUntil ?? null,
           totalEstimatedMonthlyRevenue: input.totalEstimatedMonthlyRevenue?.toFixed(2) ?? null,

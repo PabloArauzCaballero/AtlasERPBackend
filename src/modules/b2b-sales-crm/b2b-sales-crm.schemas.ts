@@ -242,7 +242,11 @@ const proposalLineSchema = z
 
 export const createProposalSchema = z.object({
   opportunityId: uuid,
-  proposalNumber: z.string().trim().min(3).max(80),
+  /*
+   * Si no viene, lo asigna el backend: PROP-AAAA-NNNNNN. Se sigue aceptando mientras haya pantallas
+   * desplegadas que lo mandan; se retira cuando ninguna lo mande.
+   */
+  proposalNumber: z.string().trim().min(3).max(80).optional(),
   validUntil: dateOnly.optional(),
   totalEstimatedMonthlyRevenue: money.optional(),
   pricingExceptionReason: z.string().trim().min(5).max(1000).optional(),
@@ -279,7 +283,8 @@ export const rejectProposalSchema = z.object({
 export const createContractFromProposalSchema = z
   .object({
     proposalId: uuid,
-    contractNumber: z.string().trim().min(3).max(80),
+    /* Si no viene, lo asigna el backend: CTR-AAAA-NNNNNN. */
+    contractNumber: z.string().trim().min(3).max(80).optional(),
     startDate: dateOnly,
     endDate: dateOnly.optional(),
     billingCycle: zodEnum(contractBillingCycleDomain).default('MONTHLY'),

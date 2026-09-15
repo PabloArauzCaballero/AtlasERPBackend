@@ -170,14 +170,16 @@ export const createBranchSchema = z.object({
 
 export const createFiscalYearSchema = z.object({
   legalEntityId: uuid,
-  yearLabel: z.string().min(4).max(10),
+  /* Si no viene, se deriva de las fechas: «2026» o «2026-2027». */
+  yearLabel: z.string().trim().min(4).max(10).optional(),
   startDate: dateLike,
   endDate: dateLike,
 });
 
 export const createAccountingPeriodSchema = z.object({
   fiscalYearId: uuid,
-  periodNo: z.coerce.number().int().min(1).max(13),
+  /* Si no viene, es el siguiente del año fiscal. */
+  periodNo: z.coerce.number().int().min(1).max(13).optional(),
   startDate: dateLike,
   endDate: dateLike,
 });
@@ -233,7 +235,8 @@ export const partnerAccountPurposeEnum = z.enum([
 ]);
 
 export const createBusinessPartnerSchema = z.object({
-  partnerNo: z.string().min(1).max(40),
+  /* Si no viene, lo asigna el backend: BP-AAAA-NNNNNN. */
+  partnerNo: z.string().trim().min(1).max(40).optional(),
   partnerType: partnerTypeEnum,
   legalName: z.string().min(1).max(200),
   tradeName: z.string().max(160).optional(),
@@ -264,7 +267,8 @@ export const addBusinessPartnerRoleSchema = z.object({
 });
 
 export const createContractHeaderSchema = z.object({
-  contractNo: z.string().min(1).max(40),
+  /* Si no viene, lo asigna el backend: CTA-AAAA-NNNNNN. */
+  contractNo: z.string().trim().min(1).max(40).optional(),
   contractType: zodEnum(accountingContractTypeDomain),
   legalEntityId: uuid,
   counterpartyBpId: uuid,
@@ -307,7 +311,8 @@ export const createAccountingDocumentSchema = z.object({
   sourceType: z.string().min(1).max(30),
   sourceId: z.string().min(1).max(80),
   documentType: z.string().min(1).max(30),
-  documentNo: z.string().min(1).max(40),
+  /* Si no viene, lo asigna el backend por entidad legal: DOC-AAAA-NNNNNN. */
+  documentNo: z.string().trim().min(1).max(40).optional(),
   documentDate: dateLike,
   postingDate: dateLike,
   accountingPeriodId: uuid,
@@ -328,8 +333,11 @@ export const bulkCreateAccountingDocumentsSchema = z
     const sourceKeys = new Set<string>();
 
     input.items.forEach((item, index) => {
-      const documentNo = `${item.legalEntityId}:${item.documentNo}`.toUpperCase();
-      if (documentNos.has(documentNo)) {
+      // Sin número no hay duplicado posible: lo asigna el backend, uno distinto por documento.
+      const documentNo = item.documentNo
+        ? `${item.legalEntityId}:${item.documentNo}`.toUpperCase()
+        : null;
+      if (documentNo && documentNos.has(documentNo)) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['items', index, 'documentNo'],
@@ -337,7 +345,7 @@ export const bulkCreateAccountingDocumentsSchema = z
             'No se permiten números de documento duplicados dentro del mismo batch para la misma entidad legal.',
         });
       }
-      documentNos.add(documentNo);
+      if (documentNo) documentNos.add(documentNo);
 
       const sourceKey = `${item.sourceSystem}:${item.sourceType}:${item.sourceId}`.toUpperCase();
       if (sourceKeys.has(sourceKey)) {
@@ -352,7 +360,8 @@ export const bulkCreateAccountingDocumentsSchema = z
   });
 
 export const reverseAccountingDocumentSchema = z.object({
-  reversalDocumentNo: z.string().min(1).max(40),
+  /* Si no viene, el asiento de reversión toma el siguiente número de la serie DOC. */
+  reversalDocumentNo: z.string().trim().min(1).max(40).optional(),
   reversalDate: dateLike,
   accountingPeriodId: uuid,
   reason: z.string().min(3).max(240),
@@ -410,7 +419,8 @@ export const issueArInvoiceSchema = z.object({
 export const recordReceiptSchema = z.object({
   legalEntityId: uuid,
   payerBpId: uuid,
-  receiptNo: z.string().min(1).max(40),
+  /* Si no viene, lo asigna el backend por entidad legal: REC-AAAA-NNNNNN. */
+  receiptNo: z.string().trim().min(1).max(40).optional(),
   receiptDate: dateLike,
   amount: positiveMoney,
   currencyCode: currency,

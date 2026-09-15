@@ -1,3 +1,4 @@
+import { fiscalYearLabel } from '../fiscal-year-label';
 import {
   BadRequestException,
   ConflictException,
@@ -95,7 +96,10 @@ export class FinancialStructureService {
     return this.sequelize.transaction(async (transaction) => {
       this.legalEntityAccessService.assertCanAccessLegalEntity(user, input.legalEntityId);
       this.assertDateRangeIsValid(input.startDate, input.endDate, 'INVALID_FISCAL_YEAR_DATE_RANGE');
-      return this.fiscalYearModel.create(input, { transaction });
+      return this.fiscalYearModel.create(
+        { ...input, yearLabel: input.yearLabel ?? fiscalYearLabel(input.startDate, input.endDate) },
+        { transaction },
+      );
     });
   }
 
@@ -113,7 +117,8 @@ export class FinancialStructureService {
       const fiscalYear = await this.assertPeriodIsInsideFiscalYear(input, transaction);
       this.legalEntityAccessService.assertCanAccessLegalEntity(user, fiscalYear.legalEntityId);
       await this.assertPeriodDoesNotOverlap(input, transaction);
-      return this.accountingPeriodModel.create(input, { transaction });
+      const periodNo = input.periodNo ?? (await this.nextPeriodNo(input.fiscalYearId, transaction));
+      return this.accountingPeriodModel.create({ ...input, periodNo }, { transaction });
     });
   }
 
@@ -300,6 +305,26 @@ export class FinancialStructureService {
     }
 
     return fiscalYear;
+  }
+
+  /**
+   * Siguiente número de período del año fiscal. Un año contable admite hasta 13: los doce meses y
+   * el período de ajuste. La UNIQUE (fiscal_year_id, period_no) resuelve dos altas simultáneas con
+   * un 409 en vez de dos períodos con el mismo número.
+   */
+  private async nextPeriodNo(fiscalYearId: string, transaction: Transaction): Promise<number> {
+    const current = (await this.accountingPeriodModel.max('periodNo', {
+      where: { fiscalYearId },
+      transaction,
+    })) as number | null;
+    const next = (Number(current) || 0) + 1;
+    if (next > 13) {
+      throw new ConflictException({
+        code: 'FISCAL_YEAR_PERIODS_EXHAUSTED',
+        message: 'El año fiscal ya tiene sus 13 períodos.',
+      });
+    }
+    return next;
   }
 
   private async assertPeriodDoesNotOverlap(

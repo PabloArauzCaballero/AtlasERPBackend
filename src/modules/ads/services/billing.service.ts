@@ -1,3 +1,4 @@
+import { nextDocumentNumber } from '../../../common/numbering/document-numbering';
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectConnection } from '@nestjs/sequelize';
 import { Sequelize } from 'sequelize-typescript';
@@ -94,9 +95,25 @@ export class AdsBillingService {
           });
         }
 
+        /*
+         * Las facturas de publicidad nacían sin número (`invoice_number` NULL en todas). Cada una lleva
+         * ahora su serie; la tabla va sin esquema porque el modelo también, y el search_path la resuelve.
+         */
+        const invoiceNumber = await nextDocumentNumber(
+          this.sequelize,
+          {
+            prefix: 'FAC-AD',
+            table: 'ad_invoices',
+            column: 'invoice_number',
+            date: input.periodEnd,
+          },
+          transaction,
+        );
+
         const invoice = await this.billingRepository.createInvoice(
           {
             advertiserId: group.advertiserId,
+            invoiceNumber,
             billingProfileId: billingProfile.id,
             periodStart: input.periodStart,
             periodEnd: input.periodEnd,

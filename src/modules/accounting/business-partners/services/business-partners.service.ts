@@ -1,3 +1,4 @@
+import { nextDocumentNumber } from '../../../../common/numbering/document-numbering';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Op, WhereOptions } from 'sequelize';
@@ -51,7 +52,22 @@ export class BusinessPartnersService {
     });
     const { defaultAccounts, ...partnerInput } = input;
     return this.sequelize.transaction(async (transaction) => {
-      const partner = await this.businessPartnerModel.create(partnerInput, { transaction });
+      const partnerNo =
+        partnerInput.partnerNo ??
+        (await nextDocumentNumber(
+          this.sequelize,
+          {
+            prefix: 'BP',
+            table: 'atlas_accounting.business_partner',
+            column: 'partner_no',
+            date: new Date(),
+          },
+          transaction,
+        ));
+      const partner = await this.businessPartnerModel.create(
+        { ...partnerInput, partnerNo },
+        { transaction },
+      );
 
       // Auto-provisión: cada propósito por defecto queda como slot (cuenta GL a asignar luego),
       // salvo que la creación ya traiga la cuenta explícita en `defaultAccounts`.

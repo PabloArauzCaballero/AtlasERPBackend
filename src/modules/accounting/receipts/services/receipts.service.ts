@@ -1,3 +1,4 @@
+import { nextDocumentNumber } from '../../../../common/numbering/document-numbering';
 import {
   BadRequestException,
   ConflictException,
@@ -82,11 +83,26 @@ export class ReceiptsService {
       this.legalEntityAccessService.assertCanAccessLegalEntity(user, input.legalEntityId);
       await this.assertReceiptCanBeRecorded(input, transaction);
 
+      // La serie es por entidad legal, como la declara única la tabla (legal_entity_id, receipt_no).
+      const receiptNo =
+        input.receiptNo ??
+        (await nextDocumentNumber(
+          this.sequelize,
+          {
+            prefix: 'REC',
+            table: 'atlas_accounting.receipt',
+            column: 'receipt_no',
+            date: input.receiptDate,
+            scope: { column: 'legal_entity_id', value: input.legalEntityId },
+          },
+          transaction,
+        ));
+
       const receipt = await this.receiptModel.create(
         {
           legalEntityId: input.legalEntityId,
           payerBpId: input.payerBpId,
-          receiptNo: input.receiptNo,
+          receiptNo,
           receiptDate: input.receiptDate,
           amount: input.amount,
           currencyCode: input.currencyCode,
@@ -114,7 +130,7 @@ export class ReceiptsService {
           sourceType: 'RECEIPT',
           sourceId: receipt.id,
           documentType: 'RECEIPT',
-          documentNo: `RCPT-${input.receiptNo}`,
+          documentNo: `RCPT-${receiptNo}`,
           documentDate: input.receiptDate,
           postingDate: input.receiptDate,
           accountingPeriodId: input.accountingPeriodId,
@@ -131,7 +147,7 @@ export class ReceiptsService {
               partnerId: input.payerBpId,
               referenceType: 'RECEIPT',
               referenceId: receipt.id,
-              description: `Ingreso banco recibo ${input.receiptNo}`,
+              description: `Ingreso banco recibo ${receiptNo}`,
             },
             {
               glAccountId: input.arControlGlAccountId,
@@ -142,7 +158,7 @@ export class ReceiptsService {
               partnerId: input.payerBpId,
               referenceType: 'RECEIPT',
               referenceId: receipt.id,
-              description: `Cancelación CxC recibo ${input.receiptNo}`,
+              description: `Cancelación CxC recibo ${receiptNo}`,
             },
           ],
         },

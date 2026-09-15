@@ -1,3 +1,4 @@
+import { nextDocumentNumber } from '../../../../common/numbering/document-numbering';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Sequelize } from 'sequelize-typescript';
@@ -100,7 +101,22 @@ export class ContractsService {
         transaction,
       );
 
-      const contract = await this.contractHeaderModel.create(input, { transaction });
+      const contractNo =
+        input.contractNo ??
+        (await nextDocumentNumber(
+          this.sequelize,
+          {
+            prefix: 'CTA',
+            table: 'atlas_accounting.contract_header',
+            column: 'contract_no',
+            date: input.startDate,
+          },
+          transaction,
+        ));
+      const contract = await this.contractHeaderModel.create(
+        { ...input, contractNo },
+        { transaction },
+      );
       this.logger.info('Contrato creado.', {
         layer: 'service',
         module: 'contracts',

@@ -80,6 +80,15 @@ export class HttpExceptionFilter implements ExceptionFilter {
         status: HttpStatus.CONFLICT,
         code: 'UNIQUE_CONSTRAINT_ERROR',
         message: 'Ya existe un registro con valores únicos repetidos.',
+        // Qué columna chocó: sin esto el formulario sólo puede decir «algo está repetido».
+        ...(exception.errors?.length
+          ? {
+              details: exception.errors.map((error) => ({
+                path: error.path,
+                message: error.message,
+              })),
+            }
+          : {}),
       };
     }
 
