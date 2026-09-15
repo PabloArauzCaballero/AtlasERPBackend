@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { blankFormPayloadSchema } from './blank-form.schema';
 
 /**
  * Lo que el ERP acepta imprimir.
@@ -33,35 +34,55 @@ const seccion = z.object({
   table: tabla.optional(),
 });
 
-export const generateDocumentSchema = z.object({
-  /** Nombre propuesto del archivo. El worker lo devuelve en `Content-Disposition`. */
-  filename: z.string().trim().min(1).max(120).optional(),
-  payload: z.object({
-    title: z.string().min(1).max(160),
-    subtitle: z.string().max(240).optional(),
-    generatedAt: z.string().datetime().optional(),
-    summary: z
-      .array(
-        z.object({
-          label: z.string().min(1).max(80),
-          value: celda,
-          caption: z.string().max(120).optional(),
-        }),
-      )
-      .max(4)
-      .optional(),
-    notices: z
-      .array(
-        z.object({
-          level: z.enum(['positive', 'caution', 'critical']),
-          title: z.string().max(120).optional(),
-          text: z.string().min(1).max(1_200),
-        }),
-      )
-      .max(8)
-      .optional(),
-    sections: z.array(seccion).min(1).max(60),
-  }),
+/** Plantillas del worker que el ERP deja pedir. Cerrada: un `templateId` libre sería elegir plantilla ajena. */
+export const DOCUMENT_TEMPLATE_IDS = ['generic-result-report', 'blank-form'] as const;
+export type DocumentTemplateId = (typeof DOCUMENT_TEMPLATE_IDS)[number];
+
+const filename = z.string().trim().min(1).max(120).optional();
+
+export const genericReportPayloadSchema = z.object({
+  title: z.string().min(1).max(160),
+  subtitle: z.string().max(240).optional(),
+  generatedAt: z.string().datetime().optional(),
+  summary: z
+    .array(
+      z.object({
+        label: z.string().min(1).max(80),
+        value: celda,
+        caption: z.string().max(120).optional(),
+      }),
+    )
+    .max(4)
+    .optional(),
+  notices: z
+    .array(
+      z.object({
+        level: z.enum(['positive', 'caution', 'critical']),
+        title: z.string().max(120).optional(),
+        text: z.string().min(1).max(1_200),
+      }),
+    )
+    .max(8)
+    .optional(),
+  sections: z.array(seccion).min(1).max(60),
 });
+
+/**
+ * Dos formas, una por plantilla. `templateId` ausente sigue siendo el informe genérico, para que
+ * ninguna pantalla que ya imprime cambie de comportamiento.
+ */
+export const generateDocumentSchema = z.union([
+  z.object({
+    templateId: z.literal('generic-result-report').optional(),
+    /** Nombre propuesto del archivo. El worker lo devuelve en `Content-Disposition`. */
+    filename,
+    payload: genericReportPayloadSchema,
+  }),
+  z.object({
+    templateId: z.literal('blank-form'),
+    filename,
+    payload: blankFormPayloadSchema,
+  }),
+]);
 
 export type GenerateDocumentDto = z.infer<typeof generateDocumentSchema>;

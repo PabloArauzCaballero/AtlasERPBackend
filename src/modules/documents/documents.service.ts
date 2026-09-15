@@ -8,8 +8,8 @@ export interface GeneratedPdf {
   filename: string;
 }
 
-/** Plantilla genérica del worker: título, cifras, avisos, secciones con campos y tablas. */
-const TEMPLATE_ID = 'generic-result-report';
+/** Plantilla por defecto: título, cifras, avisos, secciones con campos y tablas. */
+const DEFAULT_TEMPLATE_ID = 'generic-result-report';
 
 /**
  * Puerta del ERP hacia el generador documental.
@@ -54,7 +54,7 @@ export class DocumentsService {
           [env.PDF_WORKER_SERVICE_HEADER]: serviceKey,
         },
         body: JSON.stringify({
-          templateId: TEMPLATE_ID,
+          templateId: input.templateId ?? DEFAULT_TEMPLATE_ID,
           // Quién firma el documento. Sin esto el worker pone su membrete por defecto, que es
           // el del motor de decisión, sobre facturas y listados que nunca pasaron por él.
           brandId: env.PDF_WORKER_BRAND_ID,

@@ -1,6 +1,7 @@
-import { Injectable, NestMiddleware } from '@nestjs/common';
+import { BadRequestException, Injectable, NestMiddleware } from '@nestjs/common';
 import type { NextFunction, Request, Response } from 'express';
 import { randomUUID } from 'crypto';
+import { paperEntryContext, parsePaperEntryHeaders } from './paper-entry.context';
 
 interface RequestWithRequestId extends Request {
   requestId?: string;
@@ -29,6 +30,27 @@ export class RequestContextMiddleware implements NestMiddleware {
       firstSafe(request.header('x-request-id'), request.header('x-correlation-id')) ?? randomUUID();
     request.requestId = requestId;
     response.setHeader('X-Request-Id', requestId);
+
+    // Transcripción desde papel: se valida AQUÍ, antes de que nada se escriba, porque un registro
+    // que entra sin serie válida no es «un registro de papel con un defecto», es un registro
+    // tecleado que dice ser de papel.
+    let papel;
+    try {
+      papel = parsePaperEntryHeaders({
+        channel: request.header('x-atlas-entry-channel'),
+        serial: request.header('x-atlas-paper-serial'),
+        form: request.header('x-atlas-paper-form'),
+      });
+    } catch (error) {
+      throw new BadRequestException({
+        code: 'PAPER_ENTRY_INVALID',
+        message: error instanceof Error ? error.message : 'Cabeceras de transcripción inválidas.',
+      });
+    }
+    if (papel) {
+      paperEntryContext.run(papel, () => next());
+      return;
+    }
     next();
   }
 }
