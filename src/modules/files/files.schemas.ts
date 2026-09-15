@@ -15,21 +15,30 @@ export const fileOwnerTypeEnum = z.enum([
   'OTHER',
 ]);
 
+/** Los tipos que el almacén de evidencia de Atlas admite y verifica por magic bytes. */
+export const fileContentTypeEnum = z.enum(['application/pdf', 'image/jpeg', 'image/png']);
+export const MAX_FILE_BYTES = 15 * 1024 * 1024;
+
+/**
+ * Permiso de subida. Antes era una «firma de Cloudinary» que sólo cubría la carpeta; ahora es un
+ * ticket firmado de AtlasBackend que fija tipo y tamaño: el almacén rechaza lo que no coincida.
+ */
 export const uploadSignatureSchema = z.object({
   ownerType: fileOwnerTypeEnum,
   ownerId: uuid,
+  contentType: fileContentTypeEnum,
+  sizeBytes: z.number().int().positive().max(MAX_FILE_BYTES),
 });
 
+/** El archivo ya subido. AtlasBackend lo verifica (prefijo, existencia, hash, tipo real) antes de registrarlo. */
 export const registerFileSchema = z.object({
   ownerType: fileOwnerTypeEnum,
   ownerId: uuid,
   fileName: z.string().min(1).max(240),
-  storagePublicId: z.string().min(1).max(300),
-  secureUrl: z.string().url().max(600),
-  mimeType: z.string().max(120).optional(),
-  byteSize: z.coerce.number().int().nonnegative().optional(),
-  resourceType: z.string().max(20).optional(),
-  sha256: z.string().length(64).optional(),
+  storageKey: z.string().min(1).max(300),
+  sha256: z.string().regex(/^[a-fA-F0-9]{64}$/),
+  contentType: fileContentTypeEnum,
+  byteSize: z.number().int().positive().max(MAX_FILE_BYTES),
 });
 
 export const listFilesQuerySchema = z.object({

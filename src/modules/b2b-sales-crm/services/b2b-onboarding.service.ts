@@ -10,6 +10,8 @@ import type { AuthUser } from '../../../common/types/auth-context.types';
 import { AccountLifecycleStatus, BranchStatus, ChecklistStatus } from '../b2b-sales-crm.enums';
 import type {
   CompleteChecklistItemDto,
+  ChecklistEvidenceUploadUrlDto,
+  AttachChecklistEvidenceDto,
   CreateBranchDto,
   CreateMerchantUserDto,
   CreateOnboardingCaseDto,
@@ -314,13 +316,7 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
           caseRecord.accountId,
         ) ?? [],
       ),
-      checklistItems: caseRecord.checklistItems?.map((item) => ({
-        id: item.id,
-        itemType: item.itemType,
-        description: item.description,
-        status: item.status,
-        completedByUserId: item.completedByUserId,
-      })),
+      checklistItems: caseRecord.checklistItems?.map((item) => describeChecklistItem(item)),
       /*
        * Las DOS condiciones que `activateOnboardingCase` comprueba de verdad antes de habilitar al
        * comercio. Se devuelven aqui para que la pantalla pueda decir en que estado esta cada una en
@@ -1222,12 +1218,23 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
     this.logger.infoContext(B2BOnboardingService.name, 'B2B CRM use case started', {
       useCase: 'completeChecklistItem',
     });
-    const item = await this.repository.checklistItems.findOne({
-      where: { id: input.checklistItemId, onboardingCaseId },
-    });
+    const item = await this.findChecklistItem(onboardingCaseId, input.checklistItemId);
 
-    if (!item) {
-      throw new NotFoundException('Ítem de checklist no encontrado.');
+    /*
+     * Un requisito documental no se completa con un desplegable.
+     *
+     * Hasta el 2026-09-14 «NIT vigente» o «Poder del representante» pasaban a COMPLETED sin que
+     * existiera ningún archivo: la pantalla prometía requisitos legales y guardaba una casilla.
+     * Eximirlo (WAIVED) sigue siendo posible y queda escrito como tal; completarlo exige el archivo.
+     */
+    if (
+      input.status === ChecklistStatus.COMPLETED &&
+      requiresEvidence(item.itemType) &&
+      !item.evidenceStorageKey
+    ) {
+      throw new ConflictException(
+        `REQUISITO_SIN_EVIDENCIA: el requisito «${item.description}» (${item.itemType}) exige un archivo antes de marcarse completado; adjúntalo o exímelo.`,
+      );
     }
 
     await item.update({
@@ -1235,6 +1242,100 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
       completedByUserId: await this.resolveInternalUserId(user),
     });
     return this.getOnboardingCase(onboardingCaseId);
+  }
+
+  /**
+   * Permiso de subida para el archivo de un requisito. Lo emite AtlasBackend: la ruta del objeto
+   * la impone él (`<tenant>/erp-onboarding_case-<caso>/<tipo>/…`) y firma tipo y tamaño.
+   */
+  async createChecklistEvidenceUploadUrl(
+    onboardingCaseId: string,
+    checklistItemId: string,
+    input: ChecklistEvidenceUploadUrlDto,
+    accessToken: string,
+  ): Promise<Record<string, unknown>> {
+    const item = await this.findChecklistItem(onboardingCaseId, checklistItemId);
+    return this.partnerClient.forward<Record<string, unknown>>({
+      method: 'POST',
+      path: 'operations/erp-documents/upload-url',
+      accessToken,
+      body: {
+        ownerType: 'ONBOARDING_CASE',
+        ownerId: onboardingCaseId,
+        documentKind: item.itemType,
+        contentType: input.contentType,
+        sizeBytes: input.sizeBytes,
+      },
+    });
+  }
+
+  /**
+   * Registra el archivo ya subido como evidencia del requisito.
+   *
+   * AtlasBackend lo VERIFICA primero (prefijo de propiedad, existencia, hash, tamaño y tipo real):
+   * registrar lo que el navegador declara sin mirarlo dejaría un requisito «respaldado» por un
+   * objeto que no existe o que no es lo que dice ser.
+   */
+  async attachChecklistEvidence(
+    onboardingCaseId: string,
+    checklistItemId: string,
+    input: AttachChecklistEvidenceDto,
+    accessToken: string,
+  ): Promise<Record<string, unknown>> {
+    this.logger.infoContext(B2BOnboardingService.name, 'B2B CRM use case started', {
+      useCase: 'attachChecklistEvidence',
+    });
+    const item = await this.findChecklistItem(onboardingCaseId, checklistItemId);
+    const verified = await this.partnerClient.forward<{
+      sizeBytes: number;
+      sha256: string;
+      contentType: string | null;
+    }>({
+      method: 'POST',
+      path: 'operations/erp-documents/verify',
+      accessToken,
+      body: {
+        storageKey: input.storageKey,
+        sha256: input.sha256,
+        contentType: input.contentType,
+        sizeBytes: input.sizeBytes,
+      },
+    });
+    await item.update({
+      evidenceStorageKey: input.storageKey,
+      evidenceContentType: input.contentType,
+      evidenceSha256: verified.sha256 ?? input.sha256,
+      evidenceSizeBytes: verified.sizeBytes ?? input.sizeBytes,
+      evidenceUploadedAt: new Date(),
+    });
+    return this.getOnboardingCase(onboardingCaseId);
+  }
+
+  /** Los bytes del archivo del requisito, para verlo. Pasan por AtlasBackend con la sesión: nunca por URL pública. */
+  async readChecklistEvidence(
+    onboardingCaseId: string,
+    checklistItemId: string,
+    accessToken: string,
+  ): Promise<{ buffer: Buffer; contentType: string }> {
+    const item = await this.findChecklistItem(onboardingCaseId, checklistItemId);
+    if (!item.evidenceStorageKey) {
+      throw new NotFoundException('Este requisito no tiene archivo adjunto.');
+    }
+    return this.partnerClient.forwardBinary({
+      method: 'GET',
+      path: `operations/erp-documents/content?storageKey=${encodeURIComponent(item.evidenceStorageKey)}`,
+      accessToken,
+    });
+  }
+
+  private async findChecklistItem(onboardingCaseId: string, checklistItemId: string) {
+    const item = await this.repository.checklistItems.findOne({
+      where: { id: checklistItemId, onboardingCaseId },
+    });
+    if (!item) {
+      throw new NotFoundException('Ítem de checklist no encontrado.');
+    }
+    return item;
   }
 
   /**
@@ -1342,4 +1443,53 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
       return this.getOnboardingCase(caseRecord.id, transaction);
     });
   }
+}
+
+/**
+ * Qué tipos de requisito exigen ARCHIVO para completarse. Los tipos son texto libre al abrir el
+ * caso (`itemType`), así que se decide por familia: lo legal y documental lleva papel; lo operativo
+ * o técnico (una visita, una configuración) se completa sin él.
+ */
+const EVIDENCE_REQUIRED_ITEM_TYPES = new Set([
+  'LEGAL',
+  'NIT',
+  'MATRICULA',
+  'PODER',
+  'KYB',
+  'DOCUMENTO',
+  'CONTRATO',
+  'FISCAL',
+]);
+
+export function requiresEvidence(itemType: string): boolean {
+  return EVIDENCE_REQUIRED_ITEM_TYPES.has(
+    String(itemType ?? '')
+      .trim()
+      .toUpperCase(),
+  );
+}
+
+function describeChecklistItem(item: {
+  id: string;
+  itemType: string;
+  description: string;
+  status: string;
+  completedByUserId: string | null;
+  evidenceStorageKey?: string | null;
+  evidenceContentType?: string | null;
+  evidenceSizeBytes?: number | null;
+  evidenceUploadedAt?: Date | null;
+}): Record<string, unknown> {
+  return {
+    id: item.id,
+    itemType: item.itemType,
+    description: item.description,
+    status: item.status,
+    completedByUserId: item.completedByUserId,
+    requiresEvidence: requiresEvidence(item.itemType),
+    hasEvidence: Boolean(item.evidenceStorageKey),
+    evidenceContentType: item.evidenceContentType ?? null,
+    evidenceSizeBytes: item.evidenceSizeBytes ?? null,
+    evidenceUploadedAt: item.evidenceUploadedAt ?? null,
+  };
 }

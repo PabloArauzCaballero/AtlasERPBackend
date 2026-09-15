@@ -20,6 +20,9 @@ import type {
   ratingHistoryQuerySchema,
   ratingSweepSchema,
   completeChecklistItemSchema,
+  checklistItemIdParamsSchema,
+  checklistEvidenceUploadUrlSchema,
+  attachChecklistEvidenceSchema,
   contractIdParamsSchema,
   bulkCreateAccountsSchema,
   createAccountSchema,
@@ -89,6 +92,9 @@ export type SetBranchStatusDto = z.infer<typeof setBranchStatusSchema>;
 export type BranchIdParamsDto = z.infer<typeof branchIdParamsSchema>;
 export type CreateMerchantUserDto = z.infer<typeof createMerchantUserSchema>;
 export type CompleteChecklistItemDto = z.infer<typeof completeChecklistItemSchema>;
+export type ChecklistItemIdParamsDto = z.infer<typeof checklistItemIdParamsSchema>;
+export type ChecklistEvidenceUploadUrlDto = z.infer<typeof checklistEvidenceUploadUrlSchema>;
+export type AttachChecklistEvidenceDto = z.infer<typeof attachChecklistEvidenceSchema>;
 export type RegisterPurchaseDto = z.infer<typeof registerPurchaseSchema>;
 export type IssueInvoiceDto = z.infer<typeof issueInvoiceSchema>;
 export type RegisterMerchantPaymentDto = z.infer<typeof registerMerchantPaymentSchema>;

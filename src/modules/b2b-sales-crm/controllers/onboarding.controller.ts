@@ -5,17 +5,23 @@ import {
   Param,
   Patch,
   Post,
+  Header,
   Query,
   Req,
+  Res,
+  StreamableFile,
   UnauthorizedException,
 } from '@nestjs/common';
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
 import type { AuthUser } from '../../../common/types/auth-context.types';
 import type {
   CompleteChecklistItemDto,
+  ChecklistItemIdParamsDto,
+  ChecklistEvidenceUploadUrlDto,
+  AttachChecklistEvidenceDto,
   CreateBranchDto,
   CreateMerchantUserDto,
   CreateOnboardingCaseDto,
@@ -37,6 +43,9 @@ import {
   createCaseMdrRuleSchema,
   requestKybReviewSchema,
   completeChecklistItemSchema,
+  checklistItemIdParamsSchema,
+  checklistEvidenceUploadUrlSchema,
+  attachChecklistEvidenceSchema,
   createBranchSchema,
   createMerchantUserSchema,
   createOnboardingCaseSchema,
@@ -307,6 +316,59 @@ export class OnboardingController {
     @CurrentUser() user: AuthUser,
   ): Promise<Record<string, unknown>> {
     return this.service.completeChecklistItem(params.onboardingCaseId, body, user);
+  }
+
+  /*
+   * El archivo del requisito. Tres pasos, como el poder del comercio: permiso firmado que emite
+   * AtlasBackend, subida directa del navegador al almacén, y registro aquí tras la verificación
+   * del objeto. Los bytes se sirven con la sesión, nunca por URL.
+   */
+  @Roles('OPERATIONS', 'LEGAL', 'ADMIN')
+  @Post('cases/:onboardingCaseId/checklist/:checklistItemId/evidence/upload-url')
+  checklistEvidenceUploadUrl(
+    @Req() req: Request,
+    @Param(new ZodValidationPipe(checklistItemIdParamsSchema)) params: ChecklistItemIdParamsDto,
+    @Body(new ZodValidationPipe(checklistEvidenceUploadUrlSchema))
+    body: ChecklistEvidenceUploadUrlDto,
+  ): Promise<Record<string, unknown>> {
+    return this.service.createChecklistEvidenceUploadUrl(
+      params.onboardingCaseId,
+      params.checklistItemId,
+      body,
+      this.upstreamToken(req),
+    );
+  }
+
+  @Roles('OPERATIONS', 'LEGAL', 'ADMIN')
+  @Post('cases/:onboardingCaseId/checklist/:checklistItemId/evidence')
+  attachChecklistEvidence(
+    @Req() req: Request,
+    @Param(new ZodValidationPipe(checklistItemIdParamsSchema)) params: ChecklistItemIdParamsDto,
+    @Body(new ZodValidationPipe(attachChecklistEvidenceSchema)) body: AttachChecklistEvidenceDto,
+  ): Promise<Record<string, unknown>> {
+    return this.service.attachChecklistEvidence(
+      params.onboardingCaseId,
+      params.checklistItemId,
+      body,
+      this.upstreamToken(req),
+    );
+  }
+
+  @Roles('OPERATIONS', 'LEGAL', 'ADMIN', 'COMMERCIAL_MANAGER')
+  @Get('cases/:onboardingCaseId/checklist/:checklistItemId/evidence/content')
+  @Header('Cache-Control', 'private, max-age=60')
+  async checklistEvidenceContent(
+    @Req() req: Request,
+    @Param(new ZodValidationPipe(checklistItemIdParamsSchema)) params: ChecklistItemIdParamsDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    const archivo = await this.service.readChecklistEvidence(
+      params.onboardingCaseId,
+      params.checklistItemId,
+      this.upstreamToken(req),
+    );
+    res.setHeader('Content-Type', archivo.contentType);
+    return new StreamableFile(archivo.buffer);
   }
 
   @Roles('OPERATIONS', 'ADMIN')

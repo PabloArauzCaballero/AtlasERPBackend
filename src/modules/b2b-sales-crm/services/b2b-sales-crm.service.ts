@@ -3,6 +3,8 @@ import type { AuthUser } from '../../../common/types/auth-context.types';
 import type {
   ApplyRecoveryPaymentDto,
   CompleteChecklistItemDto,
+  ChecklistEvidenceUploadUrlDto,
+  AttachChecklistEvidenceDto,
   BulkCreateAccountsDto,
   CreateAccountDto,
   CreateBranchDto,
@@ -320,6 +322,46 @@ export class B2BSalesCrmService {
     user: AuthUser,
   ): Promise<Record<string, unknown>> {
     return this.onboardingService.completeChecklistItem(onboardingCaseId, input, user);
+  }
+
+  createChecklistEvidenceUploadUrl(
+    onboardingCaseId: string,
+    checklistItemId: string,
+    input: ChecklistEvidenceUploadUrlDto,
+    accessToken: string,
+  ): Promise<Record<string, unknown>> {
+    return this.onboardingService.createChecklistEvidenceUploadUrl(
+      onboardingCaseId,
+      checklistItemId,
+      input,
+      accessToken,
+    );
+  }
+
+  attachChecklistEvidence(
+    onboardingCaseId: string,
+    checklistItemId: string,
+    input: AttachChecklistEvidenceDto,
+    accessToken: string,
+  ): Promise<Record<string, unknown>> {
+    return this.onboardingService.attachChecklistEvidence(
+      onboardingCaseId,
+      checklistItemId,
+      input,
+      accessToken,
+    );
+  }
+
+  readChecklistEvidence(
+    onboardingCaseId: string,
+    checklistItemId: string,
+    accessToken: string,
+  ): Promise<{ buffer: Buffer; contentType: string }> {
+    return this.onboardingService.readChecklistEvidence(
+      onboardingCaseId,
+      checklistItemId,
+      accessToken,
+    );
   }
 
   activateOnboardingCase(onboardingCaseId: string): Promise<Record<string, unknown>> {

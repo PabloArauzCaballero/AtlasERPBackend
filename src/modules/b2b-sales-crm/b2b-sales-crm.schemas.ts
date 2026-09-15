@@ -396,6 +396,36 @@ export const completeChecklistItemSchema = z.object({
   status: z.nativeEnum(ChecklistStatus).default(ChecklistStatus.COMPLETED),
 });
 
+export const checklistItemIdParamsSchema = z.object({
+  onboardingCaseId: uuid,
+  checklistItemId: uuid,
+});
+
+/** Lo que el navegador pide para subir el archivo de un requisito: tipo y tamaño, que AtlasBackend firma. */
+export const checklistEvidenceUploadUrlSchema = z.object({
+  contentType: z.enum(['application/pdf', 'image/jpeg', 'image/png']),
+  sizeBytes: z
+    .number()
+    .int()
+    .positive()
+    .max(15 * 1024 * 1024),
+});
+
+/** El archivo ya subido: AtlasBackend lo verifica (prefijo, existencia, hash, tipo real) antes de registrarlo. */
+export const attachChecklistEvidenceSchema = z.object({
+  storageKey: z.string().trim().min(1).max(500),
+  sha256: z
+    .string()
+    .trim()
+    .regex(/^[a-fA-F0-9]{64}$/),
+  contentType: z.enum(['application/pdf', 'image/jpeg', 'image/png']),
+  sizeBytes: z
+    .number()
+    .int()
+    .positive()
+    .max(15 * 1024 * 1024),
+});
+
 export const registerPurchaseSchema = z
   .object({
     /*

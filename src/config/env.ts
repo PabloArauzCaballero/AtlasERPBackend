@@ -185,10 +185,6 @@ const envSchema = z
     ADS_BILLING_TAX_RATE: z.coerce.number().min(0).max(1).default(0),
     // Almacenamiento de archivos del ERP (Cloudinary, signed direct upload).
     // Opcionales: si no se configuran, los endpoints de /files responden 503 explícito.
-    CLOUDINARY_CLOUD_NAME: z.string().min(1).optional(),
-    CLOUDINARY_API_KEY: z.string().min(1).optional(),
-    CLOUDINARY_API_SECRET: z.string().min(1).optional(),
-    CLOUDINARY_UPLOAD_FOLDER: z.string().min(1).default('atlas-erp'),
 
     EMAIL_PROVIDER_MODE: z.enum(['mock', 'sendgrid']).default('mock'),
     SENDGRID_API_KEY: z.string().optional(),

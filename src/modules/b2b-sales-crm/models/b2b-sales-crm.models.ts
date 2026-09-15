@@ -847,6 +847,22 @@ export class OnboardingChecklistItemModel extends Model {
   @ForeignKey(() => InternalUserModel)
   @Column({ type: DataType.UUID, field: 'completed_by_user_id' })
   declare completedByUserId: string | null;
+
+  /* El archivo que respalda el requisito. Vive en el almacén de evidencia de Atlas; aquí, su referencia. */
+  @Column({ type: DataType.STRING(500), field: 'evidence_storage_key' })
+  declare evidenceStorageKey: string | null;
+
+  @Column({ type: DataType.STRING(120), field: 'evidence_content_type' })
+  declare evidenceContentType: string | null;
+
+  @Column({ type: DataType.CHAR(64), field: 'evidence_sha256' })
+  declare evidenceSha256: string | null;
+
+  @Column({ type: DataType.BIGINT, field: 'evidence_size_bytes' })
+  declare evidenceSizeBytes: number | null;
+
+  @Column({ type: DataType.DATE, field: 'evidence_uploaded_at' })
+  declare evidenceUploadedAt: Date | null;
 }
 
 @Table({ schema: SALES_SCHEMA, tableName: 'consumers_ref', timestamps: false })

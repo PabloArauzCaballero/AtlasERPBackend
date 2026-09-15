@@ -428,3 +428,148 @@ describe('B2BOnboardingService · pedir credenciales', () => {
     ).rejects.toThrow('Ya hay una petición pendiente para ese correo.');
   });
 });
+
+describe('B2BOnboardingService · evidencia de los requisitos', () => {
+  const requisitoLegal = () =>
+    fila({
+      id: 'item-1',
+      onboardingCaseId: 'caso-1',
+      itemType: 'LEGAL',
+      description: 'NIT vigente',
+      status: 'PENDING',
+      evidenceStorageKey: null,
+    });
+
+  function buildConItem(item: Fila, forward?: jest.Mock) {
+    const built = build({ forward });
+    const repository = built.repository as unknown as {
+      checklistItems: Record<string, unknown>;
+      internalUsers?: Record<string, unknown>;
+    };
+    repository.checklistItems.findOne = jest.fn(async () => item);
+    repository.internalUsers = {
+      findOne: jest.fn(async () => ({ id: 'iu-1' })),
+      create: jest.fn(),
+    };
+    return built;
+  }
+
+  it('un requisito documental NO se completa sin archivo: 409 REQUISITO_SIN_EVIDENCIA', async () => {
+    const item = requisitoLegal();
+    const { service } = buildConItem(item);
+    await expect(
+      service.completeChecklistItem(
+        'caso-1',
+        { checklistItemId: 'item-1', status: 'COMPLETED' } as never,
+        ACTOR,
+      ),
+    ).rejects.toThrow(/REQUISITO_SIN_EVIDENCIA/);
+    expect(item.update).not.toHaveBeenCalled();
+  });
+
+  it('eximirlo (WAIVED) sigue siendo posible sin archivo, y queda escrito como tal', async () => {
+    const item = requisitoLegal();
+    const { service } = buildConItem(item);
+    await service
+      .completeChecklistItem(
+        'caso-1',
+        { checklistItemId: 'item-1', status: 'WAIVED' } as never,
+        ACTOR,
+      )
+      .catch(() => undefined);
+    expect(item.update).toHaveBeenCalledWith(expect.objectContaining({ status: 'WAIVED' }));
+  });
+
+  it('un requisito operativo se completa sin archivo', async () => {
+    const item = fila({
+      id: 'item-2',
+      itemType: 'VISITA',
+      description: 'Visita al local',
+      status: 'PENDING',
+      evidenceStorageKey: null,
+    });
+    const { service } = buildConItem(item);
+    await service
+      .completeChecklistItem(
+        'caso-1',
+        { checklistItemId: 'item-2', status: 'COMPLETED' } as never,
+        ACTOR,
+      )
+      .catch(() => undefined);
+    expect(item.update).toHaveBeenCalledWith(expect.objectContaining({ status: 'COMPLETED' }));
+  });
+
+  it('adjuntar la evidencia pide a AtlasBackend que VERIFIQUE el objeto antes de registrarlo', async () => {
+    const item = requisitoLegal();
+    const forward = jest.fn(async () => ({
+      sizeBytes: 4321,
+      sha256: 'AB'.repeat(32),
+      contentType: 'application/pdf',
+    }));
+    const { service, partnerClient } = buildConItem(item, forward);
+    await service
+      .attachChecklistEvidence(
+        'caso-1',
+        'item-1',
+        {
+          storageKey: '1/erp-onboarding_case-caso-1/legal/x.pdf',
+          sha256: 'ab'.repeat(32),
+          contentType: 'application/pdf',
+          sizeBytes: 4321,
+        },
+        'token-upstream',
+      )
+      .catch(() => undefined);
+    expect(partnerClient.forward).toHaveBeenCalledWith(
+      expect.objectContaining({
+        method: 'POST',
+        path: 'operations/erp-documents/verify',
+        accessToken: 'token-upstream',
+      }),
+    );
+    expect(item.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        evidenceStorageKey: '1/erp-onboarding_case-caso-1/legal/x.pdf',
+        evidenceSizeBytes: 4321,
+      }),
+    );
+  });
+
+  it('si AtlasBackend rechaza el objeto, el requisito queda sin evidencia', async () => {
+    const item = requisitoLegal();
+    const forward = jest.fn(async () => {
+      throw new ConflictException('EVIDENCE_HASH_MISMATCH');
+    });
+    const { service } = buildConItem(item, forward);
+    await expect(
+      service.attachChecklistEvidence(
+        'caso-1',
+        'item-1',
+        {
+          storageKey: '1/erp-onboarding_case-caso-1/legal/x.pdf',
+          sha256: 'ab'.repeat(32),
+          contentType: 'application/pdf',
+          sizeBytes: 1,
+        },
+        'token',
+      ),
+    ).rejects.toThrow('EVIDENCE_HASH_MISMATCH');
+    expect(item.update).not.toHaveBeenCalled();
+  });
+
+  it('con archivo registrado, el requisito documental sí se completa', async () => {
+    const item = fila({
+      ...requisitoLegal(),
+      evidenceStorageKey: '1/erp-onboarding_case-caso-1/legal/x.pdf',
+    });
+    const { service } = buildConItem(item);
+    await service
+      .completeChecklistItem(
+        'caso-1',
+        { checklistItemId: 'item-1', status: 'COMPLETED' } as never,
+        ACTOR,
+      )
+      .catch(() => undefined);
+    expect(item.update).toHaveBeenCalledWith(expect.objectContaining({ status: 'COMPLETED' }));
+  });
+});

@@ -1,15 +1,15 @@
 import { Module } from '@nestjs/common';
-import { HttpModule } from '@nestjs/axios';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { filesModels } from '../../database/models';
-import { CloudinaryService } from './cloudinary.service';
+import { PartnerOnboardingGatewayModule } from '../partner-onboarding-gateway/partner-onboarding-gateway.module';
 import { ErpFilesService } from './erp-files.service';
 import { FilesController } from './files.controller';
 
+/** Los archivos viven en el almacén de evidencia de Atlas; el cliente de la pasarela es quien habla con él. */
 @Module({
-  imports: [HttpModule.register({ timeout: 15_000 }), SequelizeModule.forFeature(filesModels)],
+  imports: [PartnerOnboardingGatewayModule, SequelizeModule.forFeature(filesModels)],
   controllers: [FilesController],
-  providers: [ErpFilesService, CloudinaryService],
+  providers: [ErpFilesService],
   exports: [ErpFilesService],
 })
 export class FilesModule {}
