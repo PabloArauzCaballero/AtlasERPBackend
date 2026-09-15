@@ -83,7 +83,6 @@ export class AccountingDocumentsController {
       module: 'accounting-documents',
       action: 'reverseDocument',
       accountingDocumentId: params.id,
-      reversalDocumentNo: body.reversalDocumentNo,
       userId: user.sub,
     });
     return this.service.reverseDocument(params.id, body, user);

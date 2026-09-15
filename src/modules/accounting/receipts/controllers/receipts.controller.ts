@@ -48,7 +48,6 @@ export class ReceiptsController {
       layer: 'controller',
       module: 'receipts',
       action: 'record',
-      receiptNo: body.receiptNo,
       legalEntityId: body.legalEntityId,
       payerBpId: body.payerBpId,
       userId: user.sub,

@@ -53,7 +53,6 @@ export class ContractsService {
       });
     this.legalEntityAccessService.assertCanAccessLegalEntity(user, contract.legalEntityId);
     const allowed = [
-      'contractNo',
       'contractType',
       'counterpartyBpId',
       'startDate',
@@ -86,7 +85,6 @@ export class ContractsService {
       layer: 'service',
       module: 'contracts',
       action: 'create',
-      contractNo: input.contractNo,
       contractType: input.contractType,
       legalEntityId: input.legalEntityId,
       userId: user.sub,
@@ -101,18 +99,16 @@ export class ContractsService {
         transaction,
       );
 
-      const contractNo =
-        input.contractNo ??
-        (await nextDocumentNumber(
-          this.sequelize,
-          {
-            prefix: 'CTA',
-            table: 'atlas_accounting.contract_header',
-            column: 'contract_no',
-            date: input.startDate,
-          },
-          transaction,
-        ));
+      const contractNo = await nextDocumentNumber(
+        this.sequelize,
+        {
+          prefix: 'CTA',
+          table: 'atlas_accounting.contract_header',
+          column: 'contract_no',
+          date: input.startDate,
+        },
+        transaction,
+      );
       const contract = await this.contractHeaderModel.create(
         { ...input, contractNo },
         { transaction },

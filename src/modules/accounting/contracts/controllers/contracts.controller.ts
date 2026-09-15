@@ -50,7 +50,6 @@ export class ContractsController {
       layer: 'controller',
       module: 'contracts',
       action: 'create',
-      contractNo: body.contractNo,
       contractType: body.contractType,
       legalEntityId: body.legalEntityId,
       userId: user.sub,

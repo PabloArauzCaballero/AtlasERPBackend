@@ -20,9 +20,9 @@ import {
 /**
  * Los correlativos que se pedían al usuario pasan a asignarlos el backend (2026-09-15).
  *
- * Primer tiempo de la transición: el número es OPCIONAL. Si viene, se respeta (hay pantallas
- * desplegadas que aún lo mandan); si falta, lo genera `nextDocumentNumber` con la misma serie y el
- * mismo cerrojo que ya numeran las facturas.
+ * El número no viaja en la petición (se descarta si llega): lo genera `nextDocumentNumber` con la
+ * misma serie y el mismo cerrojo que ya numeran las facturas. `documentNo` sigue aceptándose porque
+ * los importadores contables traen el suyo.
  */
 
 const uuid = '11111111-1111-4111-8111-111111111111';
@@ -89,21 +89,39 @@ describe('el número deja de ser obligatorio', () => {
     ).toBe(true);
   });
 
-  it('el número que ya viene se sigue respetando', () => {
+  /*
+   * Tiempo 2 (mismo día): el número ya NO viaja. Si una pantalla vieja lo manda, se descarta —como
+   * con las facturas— y el backend numera igual. Así no hay ventana de 400 mientras se despliega.
+   */
+  it('un número mandado a mano se descarta', () => {
+    const parsed = createProposalSchema.parse({
+      opportunityId: uuid,
+      proposalNumber: 'CP-2026-001',
+      lines: [
+        {
+          termType: 'SETUP_FEE',
+          description: 'Alta',
+          fixedAmount: 100,
+          billingTiming: 'ONE_TIME',
+        },
+      ],
+    });
+    expect(parsed).not.toHaveProperty('proposalNumber');
     expect(
-      createProposalSchema.parse({
-        opportunityId: uuid,
-        proposalNumber: 'CP-2026-001',
-        lines: [
-          {
-            termType: 'SETUP_FEE',
-            description: 'Alta',
-            fixedAmount: 100,
-            billingTiming: 'ONE_TIME',
-          },
-        ],
-      }).proposalNumber,
-    ).toBe('CP-2026-001');
+      recordReceiptSchema.parse({
+        legalEntityId: uuid,
+        payerBpId: uuid,
+        receiptNo: 'DEMO-REC-0001',
+        receiptDate: '2026-09-15',
+        amount: 10,
+        currencyCode: 'BOB',
+        bankGlAccountId: uuid,
+        arControlGlAccountId: uuid,
+        accountingPeriodId: uuid,
+        ledgerId: uuid,
+        allocations: [{ arInvoiceId: uuid, allocatedAmount: 10 }],
+      }),
+    ).not.toHaveProperty('receiptNo');
   });
 });
 

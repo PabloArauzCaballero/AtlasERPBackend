@@ -51,7 +51,7 @@ export class ReceiptsService {
     if (!row)
       throw new NotFoundException({ code: 'RECEIPT_NOT_FOUND', message: 'El recibo no existe.' });
     this.legalEntityAccessService.assertCanAccessLegalEntity(user, row.legalEntityId);
-    const allowed = ['receiptNo', 'receiptDate', 'status', 'bankAccountId'];
+    const allowed = ['receiptDate', 'status', 'bankAccountId'];
     await row.update(
       Object.fromEntries(Object.entries(input).filter(([key]) => allowed.includes(key))),
     );
@@ -73,7 +73,6 @@ export class ReceiptsService {
       layer: 'service',
       module: 'receipts',
       action: 'record',
-      receiptNo: input.receiptNo,
       legalEntityId: input.legalEntityId,
       payerBpId: input.payerBpId,
       allocationCount: input.allocations.length,
@@ -84,19 +83,17 @@ export class ReceiptsService {
       await this.assertReceiptCanBeRecorded(input, transaction);
 
       // La serie es por entidad legal, como la declara única la tabla (legal_entity_id, receipt_no).
-      const receiptNo =
-        input.receiptNo ??
-        (await nextDocumentNumber(
-          this.sequelize,
-          {
-            prefix: 'REC',
-            table: 'atlas_accounting.receipt',
-            column: 'receipt_no',
-            date: input.receiptDate,
-            scope: { column: 'legal_entity_id', value: input.legalEntityId },
-          },
-          transaction,
-        ));
+      const receiptNo = await nextDocumentNumber(
+        this.sequelize,
+        {
+          prefix: 'REC',
+          table: 'atlas_accounting.receipt',
+          column: 'receipt_no',
+          date: input.receiptDate,
+          scope: { column: 'legal_entity_id', value: input.legalEntityId },
+        },
+        transaction,
+      );
 
       const receipt = await this.receiptModel.create(
         {
@@ -193,7 +190,6 @@ export class ReceiptsService {
       layer: 'service',
       module: 'receipts',
       action: 'assertReceiptCanBeRecorded',
-      receiptNo: input.receiptNo,
       legalEntityId: input.legalEntityId,
     });
     await this.businessPartnerRoleValidationService.assertHasAnyActiveRole(
@@ -292,7 +288,6 @@ export class ReceiptsService {
       layer: 'service',
       module: 'receipts',
       action: 'updateInvoiceStatusesAfterAllocation',
-      receiptNo: input.receiptNo,
     });
     const invoiceIds = [...new Set(input.allocations.map((allocation) => allocation.arInvoiceId))];
 

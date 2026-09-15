@@ -34,7 +34,6 @@ export class BusinessPartnersController {
       layer: 'controller',
       module: 'business-partners',
       action: 'create',
-      partnerNo: body.partnerNo,
       partnerType: body.partnerType,
     });
     return this.service.create(body);

@@ -242,11 +242,7 @@ const proposalLineSchema = z
 
 export const createProposalSchema = z.object({
   opportunityId: uuid,
-  /*
-   * Si no viene, lo asigna el backend: PROP-AAAA-NNNNNN. Se sigue aceptando mientras haya pantallas
-   * desplegadas que lo mandan; se retira cuando ninguna lo mande.
-   */
-  proposalNumber: z.string().trim().min(3).max(80).optional(),
+  /* El número NO viaja: lo asigna el backend (PROP-AAAA-NNNNNN). Si alguien lo manda se descarta. */
   validUntil: dateOnly.optional(),
   totalEstimatedMonthlyRevenue: money.optional(),
   pricingExceptionReason: z.string().trim().min(5).max(1000).optional(),
@@ -258,12 +254,11 @@ export const createProposalSchema = z.object({
  *
  * Las lineas NO se tocan aqui: cambiar un termino comercial despues de enviar la propuesta es
  * pactar otra cosa distinta con el mismo numero, y eso se hace creando una propuesta nueva. Lo que
- * se corrige es lo que se teclea mal —el numero, la vigencia, el ingreso estimado— mientras la
+ * se corrige es lo que se teclea mal —la vigencia, el ingreso estimado— mientras la
  * propuesta sigue siendo un borrador.
  */
 export const updateProposalSchema = z
   .object({
-    proposalNumber: z.string().trim().min(3).max(80).optional(),
     validUntil: dateOnly.nullable().optional(),
     totalEstimatedMonthlyRevenue: money.nullable().optional(),
   })
@@ -283,8 +278,7 @@ export const rejectProposalSchema = z.object({
 export const createContractFromProposalSchema = z
   .object({
     proposalId: uuid,
-    /* Si no viene, lo asigna el backend: CTR-AAAA-NNNNNN. */
-    contractNumber: z.string().trim().min(3).max(80).optional(),
+    /* El número NO viaja: lo asigna el backend (CTR-AAAA-NNNNNN). */
     startDate: dateOnly,
     endDate: dateOnly.optional(),
     billingCycle: zodEnum(contractBillingCycleDomain).default('MONTHLY'),

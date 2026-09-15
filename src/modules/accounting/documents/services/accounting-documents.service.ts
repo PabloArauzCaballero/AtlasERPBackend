@@ -395,7 +395,6 @@ export class AccountingDocumentsService {
       module: 'accounting-documents',
       action: 'reverseDocument',
       accountingDocumentId: id,
-      reversalDocumentNo: input.reversalDocumentNo,
       userId: user.sub,
     });
     return this.sequelize.transaction(async (transaction) => {
@@ -455,19 +454,17 @@ export class AccountingDocumentsService {
         order: [['lineNo', 'ASC']],
       });
 
-      const reversalDocumentNo =
-        input.reversalDocumentNo ??
-        (await nextDocumentNumber(
-          this.sequelize,
-          {
-            prefix: 'DOC',
-            table: 'atlas_accounting.accounting_document',
-            column: 'document_no',
-            date: input.reversalDate,
-            scope: { column: 'legal_entity_id', value: original.legalEntityId },
-          },
-          transaction,
-        ));
+      const reversalDocumentNo = await nextDocumentNumber(
+        this.sequelize,
+        {
+          prefix: 'DOC',
+          table: 'atlas_accounting.accounting_document',
+          column: 'document_no',
+          date: input.reversalDate,
+          scope: { column: 'legal_entity_id', value: original.legalEntityId },
+        },
+        transaction,
+      );
 
       const reversal = await this.createDraftInTransaction(
         {

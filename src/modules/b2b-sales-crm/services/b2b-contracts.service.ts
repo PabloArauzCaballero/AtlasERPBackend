@@ -57,18 +57,16 @@ export class B2BContractsService extends B2BSalesCrmUseCaseBase {
         {
           accountId: proposal.accountId,
           opportunityId: proposal.opportunityId,
-          contractNumber:
-            input.contractNumber ??
-            (await nextDocumentNumber(
-              this.repository.sequelize,
-              {
-                prefix: 'CTR',
-                table: 'atlas_sales.b2b_contracts',
-                column: 'contract_number',
-                date: input.startDate,
-              },
-              transaction,
-            )),
+          contractNumber: await nextDocumentNumber(
+            this.repository.sequelize,
+            {
+              prefix: 'CTR',
+              table: 'atlas_sales.b2b_contracts',
+              column: 'contract_number',
+              date: input.startDate,
+            },
+            transaction,
+          ),
           status: ContractStatus.PENDING_SIGNATURE,
           startDate: input.startDate,
           endDate: input.endDate ?? null,

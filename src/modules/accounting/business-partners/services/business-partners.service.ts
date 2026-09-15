@@ -47,23 +47,20 @@ export class BusinessPartnersService {
       layer: 'service',
       module: 'business-partners',
       action: 'create',
-      partnerNo: input.partnerNo,
       partnerType: input.partnerType,
     });
     const { defaultAccounts, ...partnerInput } = input;
     return this.sequelize.transaction(async (transaction) => {
-      const partnerNo =
-        partnerInput.partnerNo ??
-        (await nextDocumentNumber(
-          this.sequelize,
-          {
-            prefix: 'BP',
-            table: 'atlas_accounting.business_partner',
-            column: 'partner_no',
-            date: new Date(),
-          },
-          transaction,
-        ));
+      const partnerNo = await nextDocumentNumber(
+        this.sequelize,
+        {
+          prefix: 'BP',
+          table: 'atlas_accounting.business_partner',
+          column: 'partner_no',
+          date: new Date(),
+        },
+        transaction,
+      );
       const partner = await this.businessPartnerModel.create(
         { ...partnerInput, partnerNo },
         { transaction },

@@ -235,8 +235,7 @@ export const partnerAccountPurposeEnum = z.enum([
 ]);
 
 export const createBusinessPartnerSchema = z.object({
-  /* Si no viene, lo asigna el backend: BP-AAAA-NNNNNN. */
-  partnerNo: z.string().trim().min(1).max(40).optional(),
+  /* El número NO viaja: lo asigna el backend (BP-AAAA-NNNNNN). Si alguien lo manda se descarta, como en las facturas. */
   partnerType: partnerTypeEnum,
   legalName: z.string().min(1).max(200),
   tradeName: z.string().max(160).optional(),
@@ -267,8 +266,7 @@ export const addBusinessPartnerRoleSchema = z.object({
 });
 
 export const createContractHeaderSchema = z.object({
-  /* Si no viene, lo asigna el backend: CTA-AAAA-NNNNNN. */
-  contractNo: z.string().trim().min(1).max(40).optional(),
+  /* El número NO viaja: lo asigna el backend (CTA-AAAA-NNNNNN). */
   contractType: zodEnum(accountingContractTypeDomain),
   legalEntityId: uuid,
   counterpartyBpId: uuid,
@@ -360,8 +358,7 @@ export const bulkCreateAccountingDocumentsSchema = z
   });
 
 export const reverseAccountingDocumentSchema = z.object({
-  /* Si no viene, el asiento de reversión toma el siguiente número de la serie DOC. */
-  reversalDocumentNo: z.string().trim().min(1).max(40).optional(),
+  /* El asiento de reversión toma siempre el siguiente número de la serie DOC de su entidad legal. */
   reversalDate: dateLike,
   accountingPeriodId: uuid,
   reason: z.string().min(3).max(240),
@@ -419,8 +416,7 @@ export const issueArInvoiceSchema = z.object({
 export const recordReceiptSchema = z.object({
   legalEntityId: uuid,
   payerBpId: uuid,
-  /* Si no viene, lo asigna el backend por entidad legal: REC-AAAA-NNNNNN. */
-  receiptNo: z.string().trim().min(1).max(40).optional(),
+  /* El número NO viaja: lo asigna el backend por entidad legal (REC-AAAA-NNNNNN). */
   receiptDate: dateLike,
   amount: positiveMoney,
   currencyCode: currency,
@@ -497,7 +493,7 @@ const dateOnlyText = z
   .regex(/^\d{4}-\d{2}-\d{2}/, 'Fecha con formato AAAA-MM-DD.');
 
 export const updateReceiptSchema = z.object({
-  receiptNo: z.string().trim().min(1).max(40).optional(),
+  // Renumerar deja un hueco donde estaba y un duplicado donde va: el número no se edita.
   receiptDate: dateOnlyText.optional(),
   status: zodEnum(receiptStatusDomain).optional(),
   bankAccountId: uuid.nullable().optional(),
@@ -505,7 +501,7 @@ export const updateReceiptSchema = z.object({
 export type UpdateReceiptDto = z.infer<typeof updateReceiptSchema>;
 
 export const updateContractHeaderSchema = z.object({
-  contractNo: z.string().trim().min(1).max(40).optional(),
+  // El número de contrato es la referencia con la que lo citan los documentos: no se edita.
   contractType: zodEnum(accountingContractTypeDomain).optional(),
   counterpartyBpId: uuid.optional(),
   startDate: dateOnlyText.optional(),

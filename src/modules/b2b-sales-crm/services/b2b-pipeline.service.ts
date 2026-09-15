@@ -215,18 +215,16 @@ export class B2BPipelineService extends B2BSalesCrmUseCaseBase {
         {
           opportunityId: opportunity.id,
           accountId: opportunity.accountId,
-          proposalNumber:
-            input.proposalNumber ??
-            (await nextDocumentNumber(
-              this.repository.sequelize,
-              {
-                prefix: 'PROP',
-                table: 'atlas_sales.commercial_proposals',
-                column: 'proposal_number',
-                date: new Date(),
-              },
-              transaction,
-            )),
+          proposalNumber: await nextDocumentNumber(
+            this.repository.sequelize,
+            {
+              prefix: 'PROP',
+              table: 'atlas_sales.commercial_proposals',
+              column: 'proposal_number',
+              date: new Date(),
+            },
+            transaction,
+          ),
           status: mdrBelowMinimum ? ProposalStatus.PENDING_APPROVAL : ProposalStatus.DRAFT,
           validUntil: input.validUntil ?? null,
           totalEstimatedMonthlyRevenue: input.totalEstimatedMonthlyRevenue?.toFixed(2) ?? null,
@@ -387,18 +385,7 @@ export class B2BPipelineService extends B2BSalesCrmUseCaseBase {
       );
     }
 
-    if (input.proposalNumber && input.proposalNumber !== proposal.proposalNumber) {
-      const repeated = await this.repository.proposals.findOne({
-        where: { proposalNumber: input.proposalNumber, id: { [Op.ne]: proposal.id } },
-      });
-
-      if (repeated) {
-        throw new ConflictException('Ya existe otra propuesta con ese numero.');
-      }
-    }
-
     await proposal.update({
-      ...(input.proposalNumber !== undefined ? { proposalNumber: input.proposalNumber } : {}),
       ...(input.validUntil !== undefined ? { validUntil: input.validUntil } : {}),
       ...(input.totalEstimatedMonthlyRevenue !== undefined
         ? {
