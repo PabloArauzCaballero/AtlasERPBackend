@@ -3,7 +3,12 @@ import { CurrentUser } from '../../../../common/decorators/current-user.decorato
 import { Roles } from '../../../../common/decorators/roles.decorator';
 import { ZodValidationPipe } from '../../../../common/pipes/zod-validation.pipe';
 import { AuthUser } from '../../../../common/types/auth-context.types';
-import { RecordReceiptDto, recordReceiptSchema } from '../../shared/schemas/accounting.schemas';
+import {
+  RecordReceiptDto,
+  UpdateReceiptDto,
+  recordReceiptSchema,
+  updateReceiptSchema,
+} from '../../shared/schemas/accounting.schemas';
 import { ReceiptsService } from '../services/receipts.service';
 import { PinoLoggerService } from '../../../../common/logger/pino-logger.service';
 
@@ -23,7 +28,7 @@ export class ReceiptsController {
   @Patch(':id')
   update(
     @Param('id') id: string,
-    @Body() body: Record<string, unknown>,
+    @Body(new ZodValidationPipe(updateReceiptSchema)) body: UpdateReceiptDto,
     @CurrentUser() user: AuthUser,
   ) {
     return this.service.update(id, body, user);

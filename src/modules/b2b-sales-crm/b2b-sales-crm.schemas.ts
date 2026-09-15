@@ -1,4 +1,13 @@
 import { z } from 'zod';
+import { zodEnum } from '../../common/catalog/domain';
+import { paymentMethodDomain } from '../catalog/domains/accounting.domains';
+import {
+  branchStatusDomain,
+  contractBillingCycleDomain,
+  contractSettlementPolicyDomain,
+  riskTierDomain,
+} from '../catalog/domains/crm.domains';
+import { merchantUserRoleDomain } from '../catalog/domains/platform.domains';
 import { ONBOARDING_CASE_STATUSES, ONBOARDING_SCOPES } from './domain/onboarding-lifecycle';
 import {
   AccountLifecycleStatus,
@@ -101,7 +110,7 @@ export const createAccountSchema = z.object({
     .transform((tags) => [...new Set(tags.map((tag) => tag.toLowerCase()))]),
   ownerUserId: uuid.optional(),
   territoryId: uuid.optional(),
-  riskTier: z.string().trim().min(2).max(30).optional(),
+  riskTier: zodEnum(riskTierDomain).optional(),
   expectedMonthlyVolume: money.optional(),
   notes: z.string().trim().max(2000).optional(),
   primaryContact: z.object({
@@ -273,8 +282,8 @@ export const createContractFromProposalSchema = z
     contractNumber: z.string().trim().min(3).max(80),
     startDate: dateOnly,
     endDate: dateOnly.optional(),
-    billingCycle: z.string().trim().min(3).max(40).default('MONTHLY'),
-    settlementPolicy: z.string().trim().min(3).max(80).default('PER_CONTRACT'),
+    billingCycle: zodEnum(contractBillingCycleDomain).default('MONTHLY'),
+    settlementPolicy: zodEnum(contractSettlementPolicyDomain).default('PER_CONTRACT'),
     documentUrl: z.string().url().optional(),
   })
   .refine((input) => !input.endDate || input.endDate >= input.startDate, {
@@ -388,7 +397,7 @@ export const createMerchantUserSchema = z.object({
   branchId: uuid.optional(),
   email: z.string().email().max(180),
   fullName: z.string().trim().min(2).max(180),
-  roleCode: z.string().trim().min(2).max(80),
+  roleCode: zodEnum(merchantUserRoleDomain),
 });
 
 export const completeChecklistItemSchema = z.object({
@@ -446,7 +455,7 @@ export const registerPurchaseSchema = z
     downPaymentPaidAt: z.coerce.date().optional(),
     downPaymentEvidenceRef: z.string().trim().max(240).optional(),
     financedAmount: money,
-    riskTierAtOrigination: z.string().trim().max(60).optional(),
+    riskTierAtOrigination: zodEnum(riskTierDomain).optional(),
     cohortId: z.string().trim().max(80).optional(),
     productCategory: z.string().trim().max(120).optional(),
     mdrReceivableDueDate: dateOnly,
@@ -543,7 +552,7 @@ export const registerMerchantPaymentSchema = z
     amount: positiveMoney,
     currency: isoCurrency.default('BOB'),
     paidAt: z.coerce.date(),
-    paymentMethod: z.string().trim().max(80).optional(),
+    paymentMethod: zodEnum(paymentMethodDomain).optional(),
     externalRef: z.string().trim().max(180).optional(),
     allocations: z
       .array(
@@ -758,7 +767,8 @@ export const requestKybReviewSchema = z.object({
 
 export const listBranchesQuerySchema = z.object({
   accountId: uuid.optional(),
-  status: z.string().trim().min(2).max(30).optional(),
+  /* Cadena libre = filtro por un estado inexistente = lista vacía sin decir por qué. */
+  status: zodEnum(branchStatusDomain).optional(),
 });
 
 export const createCrmSegmentSchema = z

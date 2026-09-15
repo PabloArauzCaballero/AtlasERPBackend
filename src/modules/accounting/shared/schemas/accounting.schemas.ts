@@ -1,4 +1,17 @@
 import { z } from 'zod';
+import { zodEnum } from '../../../../common/catalog/domain';
+import {
+  accountSubClassificationDomain,
+  accountingContractStatusDomain,
+  accountingContractTypeDomain,
+  arInvoiceStatusDomain,
+  businessPartnerStatusDomain,
+  documentApprovalStatusDomain,
+  entityLinkRelationDomain,
+  partnerTypeDomain,
+  receiptStatusDomain,
+  siatStatusDomain,
+} from '../../../catalog/domains/accounting.domains';
 
 const uuid = z.string().uuid();
 const dateLike = z.coerce.date();
@@ -22,8 +35,13 @@ export const glAccountTypeEnum = z.enum([
   'EXPENSE',
   'CONTRA_ASSET',
 ]);
-export const partnerTypeEnum = z.enum(['PERSON', 'COMPANY', 'BANK', 'GROUP_ENTITY']);
+export const partnerTypeEnum = zodEnum(partnerTypeDomain);
 export const kybStatusEnum = z.enum(['PENDING', 'IN_REVIEW', 'APPROVED', 'REJECTED']);
+/*
+ * Un business partner puede estar BLOQUEADO (lo admitía la base y no el esquema) y ARCHIVADO (lo
+ * admitía el esquema y no la base: devolvía un 500). El dominio es la unión.
+ */
+export const businessPartnerStatusEnum = zodEnum(businessPartnerStatusDomain);
 
 export const statementTypeEnum = z.enum([
   'BALANCE_SHEET',
@@ -60,7 +78,7 @@ export const createGlAccountGroupSchema = z.object({
   name: z.string().min(1).max(160),
   statementType: statementTypeEnum,
   classification: accountClassificationEnum,
-  subClassification: z.string().min(1).max(40).optional(),
+  subClassification: zodEnum(accountSubClassificationDomain).optional(),
   sortOrder: z.coerce.number().int().min(0).default(0),
 });
 
@@ -70,7 +88,7 @@ export const updateGlAccountGroupSchema = z
     name: z.string().min(1).max(160).optional(),
     statementType: statementTypeEnum.optional(),
     classification: accountClassificationEnum.optional(),
-    subClassification: z.string().max(40).nullable().optional(),
+    subClassification: zodEnum(accountSubClassificationDomain).nullable().optional(),
     sortOrder: z.coerce.number().int().min(0).optional(),
     status: recordStatusEnum.optional(),
   })
@@ -88,7 +106,7 @@ export const listGlAccountGroupsQuerySchema = paginationQuerySchema.extend({
 export const createEntityLinkSchema = z.object({
   entityType: entityLinkTypeEnum,
   entityId: uuid,
-  relation: z.string().min(1).max(40).default('DEFAULT'),
+  relation: zodEnum(entityLinkRelationDomain).default('DEFAULT'),
   metadata: z.record(z.unknown()).default({}),
 });
 
@@ -118,7 +136,7 @@ export const listBusinessPartnersQuerySchema = paginationQuerySchema.extend({
   search: z.string().trim().min(1).max(120).optional(),
   partnerType: partnerTypeEnum.optional(),
   kybStatus: kybStatusEnum.optional(),
-  status: recordStatusEnum.optional(),
+  status: businessPartnerStatusEnum.optional(),
 });
 
 export const updateBusinessPartnerSchema = z
@@ -128,7 +146,7 @@ export const updateBusinessPartnerSchema = z
     taxId: z.string().max(40).nullable().optional(),
     countryCode: z.string().length(2).optional(),
     kybStatus: kybStatusEnum.optional(),
-    status: recordStatusEnum.optional(),
+    status: businessPartnerStatusEnum.optional(),
   })
   .refine((data) => Object.keys(data).length > 0, {
     message: 'Debe enviar al menos un campo para actualizar.',
@@ -247,7 +265,7 @@ export const addBusinessPartnerRoleSchema = z.object({
 
 export const createContractHeaderSchema = z.object({
   contractNo: z.string().min(1).max(40),
-  contractType: z.enum(['CUSTOMER_BILLING', 'SUPPLIER', 'LOAN', 'INTERCOMPANY', 'MERCHANT']),
+  contractType: zodEnum(accountingContractTypeDomain),
   legalEntityId: uuid,
   counterpartyBpId: uuid,
   startDate: dateLike,
@@ -280,6 +298,11 @@ export const journalLineSchema = z.object({
 
 export const createAccountingDocumentSchema = z.object({
   legalEntityId: uuid,
+  /*
+   * Sistema, tipo e id de origen son la CLAVE DE INTEGRACIÓN (y la de idempotencia de los lotes):
+   * quien importa los elige. No se cierran aquí; `GET /catalog/domains` publica los habituales para
+   * que el alta manual los ofrezca en un select.
+   */
   sourceSystem: z.string().min(1).max(30),
   sourceType: z.string().min(1).max(30),
   sourceId: z.string().min(1).max(80),
@@ -290,7 +313,8 @@ export const createAccountingDocumentSchema = z.object({
   accountingPeriodId: uuid,
   ledgerId: uuid,
   currencyCode: currency,
-  approvalStatus: z.string().max(20).default('NOT_REQUIRED'),
+  /* Era texto libre contra un CHECK de cuatro valores: un valor fuera daba 500. */
+  approvalStatus: zodEnum(documentApprovalStatusDomain).default('NOT_REQUIRED'),
   lines: z.array(journalLineSchema).min(2),
 });
 
@@ -374,7 +398,7 @@ export const issueArInvoiceSchema = z.object({
     .object({
       cuf: z.string().max(120).optional(),
       cufd: z.string().max(120).optional(),
-      siatStatus: z.string().max(30).default('PENDING'),
+      siatStatus: zodEnum(siatStatusDomain).default('PENDING'),
       xmlHash: z.string().max(64).optional(),
       graphicRepresentationUrl: z.string().max(240).optional(),
       contingencyFlag: z.boolean().default(false),
@@ -447,3 +471,43 @@ export type UpdateGlAccountGroupDto = z.infer<typeof updateGlAccountGroupSchema>
 export type ListGlAccountGroupsQueryDto = z.infer<typeof listGlAccountGroupsQuerySchema>;
 export type CreateEntityLinkDto = z.infer<typeof createEntityLinkSchema>;
 export type SetPartnerDefaultAccountDto = z.infer<typeof setPartnerDefaultAccountSchema>;
+
+/*
+ * Ediciones de recibo, contrato y factura AR.
+ *
+ * Los tres PATCH recibían `@Body() Record<string, unknown>` y sólo filtraban CLAVES, nunca valores:
+ * un estado fuera del CHECK llegaba a Postgres y volvía como 500 «error de base de datos», y en el
+ * contrato —que no tiene CHECK— se guardaba cualquier cadena. Las claves admitidas son las mismas
+ * que la lista blanca de cada servicio; las fechas siguen viajando como texto AAAA-MM-DD para que la
+ * fila devuelta no cambie de forma.
+ */
+const dateOnlyText = z
+  .string()
+  .trim()
+  .regex(/^\d{4}-\d{2}-\d{2}/, 'Fecha con formato AAAA-MM-DD.');
+
+export const updateReceiptSchema = z.object({
+  receiptNo: z.string().trim().min(1).max(40).optional(),
+  receiptDate: dateOnlyText.optional(),
+  status: zodEnum(receiptStatusDomain).optional(),
+  bankAccountId: uuid.nullable().optional(),
+});
+export type UpdateReceiptDto = z.infer<typeof updateReceiptSchema>;
+
+export const updateContractHeaderSchema = z.object({
+  contractNo: z.string().trim().min(1).max(40).optional(),
+  contractType: zodEnum(accountingContractTypeDomain).optional(),
+  counterpartyBpId: uuid.optional(),
+  startDate: dateOnlyText.optional(),
+  endDate: dateOnlyText.nullable().optional(),
+  currencyCode: z.string().trim().length(3).optional(),
+  status: zodEnum(accountingContractStatusDomain).optional(),
+});
+export type UpdateContractHeaderDto = z.infer<typeof updateContractHeaderSchema>;
+
+export const updateArInvoiceSchema = z.object({
+  invoiceDate: dateOnlyText.optional(),
+  dueDate: dateOnlyText.optional(),
+  status: zodEnum(arInvoiceStatusDomain).optional(),
+});
+export type UpdateArInvoiceDto = z.infer<typeof updateArInvoiceSchema>;

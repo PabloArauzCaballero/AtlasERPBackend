@@ -46,6 +46,8 @@ export const STARTUP_MIGRATION_FILES = [
   'src/database/migrations/20260908120000-onboarding-case-lifecycle.sql',
   'src/database/migrations/20260909100000-merchant-user-identity-rejection.sql',
   'src/database/migrations/20260914220000-onboarding-checklist-evidence.sql',
+  // Dominios alineados: amplía dos CHECK que el esquema ya superaba y cierra dos columnas libres.
+  'src/database/migrations/20260915230000-dominios-alineados.sql',
   // Ultima a proposito: reubica las tablas de ATLAS Ads cuando una instalacion antigua las
   // creo en `public`. Necesita que todas las migraciones que las alteran hayan corrido ya.
   'src/database/migrations/20260901000000-ads-en-atlas-accounting.sql',

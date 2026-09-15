@@ -26,6 +26,7 @@ import { DocumentsModule } from './modules/documents/documents.module';
 import { PortalModule } from './modules/portal/portal.module';
 import { BusinessActionLogsModule } from './modules/business-action-logs/business-action-logs.module';
 import { PlatformCatalogModule } from './modules/platform-catalog/platform-catalog.module';
+import { CatalogModule } from './modules/catalog/catalog.module';
 
 /**
  * ¿Está instalado `pino-pretty`?
@@ -100,6 +101,7 @@ function prettyDisponible(): boolean {
     // Espejo de introspección para el catálogo unificado del portal interno de ATLAS. Va al
     // final a propósito: lee el router ya montado y no participa en él.
     PlatformCatalogModule,
+    CatalogModule,
   ],
   providers: [
     HttpExceptionFilter,

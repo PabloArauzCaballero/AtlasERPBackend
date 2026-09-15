@@ -6,8 +6,10 @@ import { AuthUser } from '../../../../common/types/auth-context.types';
 import {
   CreateBillingEventDto,
   IssueArInvoiceDto,
+  UpdateArInvoiceDto,
   createBillingEventSchema,
   issueArInvoiceSchema,
+  updateArInvoiceSchema,
 } from '../../shared/schemas/accounting.schemas';
 import { BillingService } from '../services/billing.service';
 import { PinoLoggerService } from '../../../../common/logger/pino-logger.service';
@@ -39,7 +41,7 @@ export class BillingController {
   @Patch('ar-invoices/:id')
   updateInvoice(
     @Param('id') id: string,
-    @Body() body: Record<string, unknown>,
+    @Body(new ZodValidationPipe(updateArInvoiceSchema)) body: UpdateArInvoiceDto,
     @CurrentUser() user: AuthUser,
   ) {
     return this.service.updateInvoice(id, body, user);

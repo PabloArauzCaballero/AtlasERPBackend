@@ -1,4 +1,13 @@
 import { z } from 'zod';
+import { zodEnum } from '../../common/catalog/domain';
+import { paymentMethodDomain } from '../catalog/domains/accounting.domains';
+import {
+  adSurfaceDomain,
+  placementFormatDomain,
+  policyCategoryDomain,
+  taxRegimeDomain,
+} from '../catalog/domains/ads.domains';
+import { merchantCategoryDomain } from '../catalog/domains/crm.domains';
 import { audienceContextSchema } from './ads.segmentation.schemas';
 import {
   advertiserStatuses,
@@ -73,7 +82,7 @@ export const createAdvertiserSchema = z.object({
   legalName: z.string().trim().min(2).max(180),
   tradeName: z.string().trim().min(2).max(120),
   taxId: z.string().trim().min(3).max(40),
-  businessCategory: z.string().trim().min(2).max(80).optional(),
+  businessCategory: zodEnum(merchantCategoryDomain).optional(),
   country: z
     .string()
     .length(2)
@@ -99,7 +108,7 @@ export const createBillingProfileSchema = z.object({
     .transform((value) => value.toUpperCase())
     .default('BO'),
   city: z.string().trim().min(2).max(80).optional(),
-  taxRegime: z.string().trim().min(2).max(80).optional(),
+  taxRegime: zodEnum(taxRegimeDomain).optional(),
   sinCustomerCode: z.string().trim().min(2).max(80).optional(),
   isDefault: z.boolean().default(true),
 });
@@ -147,8 +156,8 @@ export const listInventoryQuerySchema = paginationQuerySchema.extend({
 
 export const createInventoryPlacementSchema = z.object({
   placementCode: z.string().trim().min(3).max(80),
-  surface: z.string().trim().min(2).max(80),
-  allowedFormats: z.array(z.string().trim().min(2).max(40)).min(1).max(10),
+  surface: zodEnum(adSurfaceDomain),
+  allowedFormats: z.array(zodEnum(placementFormatDomain)).min(1).max(10),
   floorPriceMicros: microsSchema.default(0),
   billingModel: z.enum(buyingModels).default('CPM'),
   status: z.enum(['ACTIVE', 'INACTIVE']).default('ACTIVE'),
@@ -164,7 +173,7 @@ export const listPoliciesQuerySchema = paginationQuerySchema.extend({
 
 export const createPolicyRuleSchema = z.object({
   policyCode: z.string().trim().min(3).max(100),
-  category: z.string().trim().min(2).max(80),
+  category: zodEnum(policyCategoryDomain),
   ruleType: z.enum(policyRuleTypes),
   severity: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']).default('MEDIUM'),
   description: z.string().trim().min(3).max(1000).optional(),
@@ -183,7 +192,7 @@ export const registerPaymentSchema = z.object({
   amountMicros: microsSchema.refine((value) => value > 0, 'El monto debe ser mayor a cero.'),
   currency: currencySchema.default('BOB'),
   paymentDate: dateStringSchema,
-  paymentMethod: z.string().trim().min(2).max(40),
+  paymentMethod: zodEnum(paymentMethodDomain),
   reference: z.string().trim().min(2).max(120).optional(),
 });
 
