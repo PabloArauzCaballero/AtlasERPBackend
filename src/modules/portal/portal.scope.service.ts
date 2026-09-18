@@ -212,8 +212,51 @@ export class PortalScopeService {
         [Op.or]: identityClauses,
       },
     });
+    if (memberships.length > 0) {
+      return [...new Set(memberships.map((membership) => membership.accountId))];
+    }
 
-    return [...new Set(memberships.map((membership) => membership.accountId))];
+    return this.activateInvitedMemberships(userId, identityClauses);
+  }
+
+  /**
+   * El propio inicio de sesión del comercio acusa sus credenciales.
+   *
+   * El alta deja la membresía `INVITED` con `identityRequestId` y espera a que Atlas la conceda;
+   * el acuse lo tiraba SÓLO un operador interno al abrir la cola de onboarding. Si el portal
+   * concedía después de esa apertura, la persona entraba con su contraseña nueva y todas las
+   * pantallas respondían «no está asociado a ningún comercio activo» hasta que alguien volviera
+   * a abrir la cola (medido en TEST el 2026-09-17: acuse 23:49, concesión 23:51, login 23:54).
+   *
+   * Que el usuario esté aquí con un token de Atlas para ese correo ES la prueba de que Atlas le
+   * dio identidad, así que la membresía se activa con el `sub` que trae el token. Sólo aplica a
+   * filas que pidieron identidad (`identityRequestId`) y siguen `INVITED` sin `userId`: una
+   * membresía nunca pedida o deshabilitada no se activa por entrar.
+   */
+  private async activateInvitedMemberships(
+    userId: string,
+    identityClauses: Record<string, unknown>[],
+  ): Promise<string[]> {
+    const invitadas = await this.merchantUserModel.findAll({
+      where: {
+        status: 'INVITED',
+        userId: null,
+        identityRequestId: { [Op.ne]: null },
+        [Op.or]: identityClauses,
+      },
+    });
+    if (invitadas.length === 0) return [];
+
+    const nuevoUserId = isUsableIdentityReference(userId) ? userId.trim() : null;
+    for (const membresia of invitadas) {
+      await membresia.update({ status: 'ACTIVE', ...(nuevoUserId ? { userId: nuevoUserId } : {}) });
+    }
+    this.logger.infoContext(
+      PortalScopeService.name,
+      'Membresías de comercio activadas por el primer acceso del usuario',
+      { userId, memberships: invitadas.length },
+    );
+    return [...new Set(invitadas.map((membership) => membership.accountId))];
   }
 
   private async findAdvertiserMemberships(

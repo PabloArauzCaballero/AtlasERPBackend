@@ -34,6 +34,35 @@ function buildService(): { service: PortalScopeService; stub: Stub } {
   return { service, stub };
 }
 
+
+describe('PortalScopeService · acuse por el propio acceso', () => {
+  it('activa las membresías INVITED con petición de identidad cuando no hay ninguna activa', async () => {
+    const { service, stub } = buildService();
+    const update = jest.fn().mockResolvedValue(undefined);
+    stub.merchantUserModel.findAll
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ accountId: ACCOUNT_A, status: 'INVITED', userId: null, update }]);
+
+    const scope = await service.resolveScope({ sub: MERCHANT_USER_ID, roles: ['MERCHANT_ADMIN'], email: 'nuevo@comercio.bo' });
+
+    expect(scope.accountIds).toEqual([ACCOUNT_A]);
+    expect(update).toHaveBeenCalledWith({ status: 'ACTIVE', userId: MERCHANT_USER_ID });
+    const segundaConsulta = stub.merchantUserModel.findAll.mock.calls[1]?.[0] as { where: Record<symbol | string, unknown> };
+    expect(segundaConsulta.where.status).toBe('INVITED');
+    expect(segundaConsulta.where.identityRequestId).toEqual({ [Op.ne]: null });
+  });
+
+  it('sigue cerrado si la membresía INVITED nunca pidió identidad', async () => {
+    const { service, stub } = buildService();
+    stub.merchantUserModel.findAll.mockResolvedValueOnce([]).mockResolvedValueOnce([]);
+
+    await expect(
+      service.resolveScope({ sub: MERCHANT_USER_ID, roles: ['MERCHANT_ADMIN'], email: 'nuevo@comercio.bo' }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(stub.merchantUserModel.findAll).toHaveBeenCalledTimes(2);
+  });
+});
+
 const merchantUser: AuthUser = {
   sub: MERCHANT_USER_ID,
   roles: ['MERCHANT_ADMIN'],
