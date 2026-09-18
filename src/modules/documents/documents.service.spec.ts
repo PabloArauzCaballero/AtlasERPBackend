@@ -19,25 +19,27 @@ const pdf = () =>
 describe('DocumentsService.generate · plantilla', () => {
   afterEach(() => jest.restoreAllMocks());
 
-  it('sin templateId pide el informe genérico; con blank-form pide el formulario', async () => {
+  it('sin templateId pide el informe genérico, y lo dice explícito al worker', async () => {
     const fetchMock = jest.spyOn(globalThis, 'fetch').mockImplementation(async () => pdf());
     const service = await servicio();
 
     await service.generate({ payload: { title: 'x', sections: [{ title: 's' }] } });
     await service.generate({
-      templateId: 'blank-form',
-      payload: {
-        formCode: 'ERP-X-Y',
-        formVersion: '1',
-        title: 'x',
-        sections: [{ title: 's', fields: [{ label: 'a', kind: 'text' }] }],
-      },
+      templateId: 'generic-result-report',
+      payload: { title: 'y', sections: [{ title: 's' }] },
     });
 
+    /*
+     * El `templateId` viaja SIEMPRE, también cuando la pantalla no lo puso: el worker elige
+     * plantilla por ese campo, y mandarlo vacío dejaría la elección a su valor por defecto.
+     */
     const cuerpos = fetchMock.mock.calls.map(
       ([, init]) => JSON.parse(String(init?.body)) as { templateId: string },
     );
-    expect(cuerpos.map((c) => c.templateId)).toEqual(['generic-result-report', 'blank-form']);
+    expect(cuerpos.map((c) => c.templateId)).toEqual([
+      'generic-result-report',
+      'generic-result-report',
+    ]);
     expect(String(fetchMock.mock.calls[0]?.[0])).toBe('http://pdf-worker.test:3100/pdf/generate');
   });
 

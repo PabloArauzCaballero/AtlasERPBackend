@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { blankFormPayloadSchema } from './blank-form.schema';
 
 /**
  * Lo que el ERP acepta imprimir.
@@ -35,7 +34,7 @@ const seccion = z.object({
 });
 
 /** Plantillas del worker que el ERP deja pedir. Cerrada: un `templateId` libre sería elegir plantilla ajena. */
-export const DOCUMENT_TEMPLATE_IDS = ['generic-result-report', 'blank-form'] as const;
+export const DOCUMENT_TEMPLATE_IDS = ['generic-result-report'] as const;
 export type DocumentTemplateId = (typeof DOCUMENT_TEMPLATE_IDS)[number];
 
 const filename = z.string().trim().min(1).max(120).optional();
@@ -68,8 +67,12 @@ export const genericReportPayloadSchema = z.object({
 });
 
 /**
- * Dos formas, una por plantilla. `templateId` ausente sigue siendo el informe genérico, para que
- * ninguna pantalla que ya imprime cambie de comportamiento.
+ * Una sola plantilla. `templateId` ausente sigue siendo el informe genérico, para que ninguna
+ * pantalla que ya imprime cambie de comportamiento.
+ *
+ * Hubo una segunda, `blank-form`, para los formularios en papel; se retiró el 2026-09-18 con esa
+ * función entera. Se deja la forma de unión —y no un objeto suelto— porque el contrato del worker
+ * admite más plantillas y volver a abrirla no debería obligar a rehacer este esquema.
  */
 export const generateDocumentSchema = z.union([
   z.object({
@@ -79,9 +82,9 @@ export const generateDocumentSchema = z.union([
     payload: genericReportPayloadSchema,
   }),
   z.object({
-    templateId: z.literal('blank-form'),
+    templateId: z.literal('generic-result-report'),
     filename,
-    payload: blankFormPayloadSchema,
+    payload: genericReportPayloadSchema,
   }),
 ]);
 

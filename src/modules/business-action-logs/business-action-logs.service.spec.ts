@@ -1,4 +1,3 @@
-import { paperEntryContext } from '../../common/middleware/paper-entry.context';
 import { BusinessActionLogsService } from './business-action-logs.service';
 import type { RecordBusinessActionLogInput } from './business-action-logs.types';
 
@@ -19,8 +18,14 @@ function servicio() {
   return { service, model };
 }
 
+/**
+ * Hasta el 2026-09-18 había un tercer origen: `ERP_PAPER`, que escribía la serie del formulario en
+ * papel del que se había transcrito el registro. Esa función se retiró entera del producto, así
+ * que aquí ya sólo quedan los dos que el ERP escribe hoy. Lo que sí se sigue probando es que un
+ * `sourceSystem` puesto por el servicio NO se pise, porque es lo que distingue a Ads de lo demás.
+ */
 describe('BusinessActionLogsService.record · origen del registro', () => {
-  it('sin contexto de papel: ATLAS y el resumen tal cual', async () => {
+  it('por defecto, ATLAS y el resumen tal cual', async () => {
     const { service, model } = servicio();
     await service.record(base);
     expect(model.create).toHaveBeenCalledWith(
@@ -32,45 +37,22 @@ describe('BusinessActionLogsService.record · origen del registro', () => {
     );
   });
 
-  it('dentro de una petición de papel: ERP_PAPER y la serie en input_summary.paper', async () => {
+  it('un sourceSystem explícito del servicio no se pisa', async () => {
     const { service, model } = servicio();
-    await paperEntryContext.run(
-      { serial: 'DOC-4F3A9C2E7B10', formCode: 'ERP-CRM-CUENTA-CREAR', formVersion: 'a91f3c2e' },
-      () => service.record(base),
-    );
+    await service.record({ ...base, sourceSystem: 'ADS', inputSummary: null });
     expect(model.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        sourceSystem: 'ERP_PAPER',
-        inputSummary: {
-          legalName: 'Comercio SRL',
-          paper: {
-            serial: 'DOC-4F3A9C2E7B10',
-            formCode: 'ERP-CRM-CUENTA-CREAR',
-            formVersion: 'a91f3c2e',
-          },
-        },
-      }),
-      expect.anything(),
-    );
-  });
-
-  it('un sourceSystem explícito del servicio no se pisa, pero la serie se anota igual', async () => {
-    const { service, model } = servicio();
-    await paperEntryContext.run({ serial: 'DOC-4F3A9C2E7B10' }, () =>
-      service.record({ ...base, sourceSystem: 'ADS', inputSummary: null }),
-    );
-    expect(model.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        sourceSystem: 'ADS',
-        inputSummary: { paper: { serial: 'DOC-4F3A9C2E7B10', formCode: null, formVersion: null } },
-      }),
+      expect.objectContaining({ sourceSystem: 'ADS', inputSummary: null }),
       expect.anything(),
     );
   });
 });
 
 describe('BusinessActionLogsService.list · filtro por origen', () => {
-  it('sourceSystem=ERP_PAPER acota la consulta a lo transcrito de papel', async () => {
+  /*
+   * El filtro sigue admitiendo `ERP_PAPER` a propósito: las filas escritas antes del 2026-09-18 lo
+   * llevan, y son historia que hay que poder encontrar. Lo que ya no existe es quien lo escriba.
+   */
+  it('sourceSystem=ERP_PAPER sigue acotando la consulta a lo que se transcribió en su día', async () => {
     const model = { findAndCountAll: jest.fn(async () => ({ rows: [], count: 0 })) };
     const service = new BusinessActionLogsService(
       model as never,

@@ -1,27 +1,9 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Header,
-  NotFoundException,
-  Param,
-  Post,
-  Res,
-  StreamableFile,
-} from '@nestjs/common';
-import { Throttle } from '@nestjs/throttler';
-import { Public } from '../../common/decorators/public.decorator';
+import { Body, Controller, Get, Header, Post, Res, StreamableFile } from '@nestjs/common';
 import type { Response } from 'express';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { DocumentsService } from './documents.service';
 import { generateDocumentSchema, type GenerateDocumentDto } from './documents.schemas';
-import {
-  PUBLIC_PAPER_FORMS,
-  findPublicPaperForm,
-  formVersionOf,
-  publicPaperFormPayload,
-} from './forms/public-forms.registry';
 
 /**
  * Impresión de documentos, para las dos caras del ERP.
@@ -84,49 +66,6 @@ export class DocumentsController {
     @Res({ passthrough: true }) res: Response,
   ): Promise<StreamableFile> {
     const documento = await this.service.generate(body);
-    return this.entregar(res, documento);
-  }
-
-  /**
-   * Formularios en papel que se pueden imprimir sin cuenta.
-   *
-   * Públicos y con límite de tasa propio: son para el comercio que todavía no existe en el
-   * sistema y quiere rellenar a mano su solicitud. Diez por minuto y por origen es más de lo
-   * que imprime una oficina y menos de lo que necesita alguien para ocupar el worker.
-   */
-  @Public()
-  @Throttle({ default: { limit: 30, ttl: 60_000 } })
-  @Get('forms')
-  listPublicForms(): { forms: Array<{ formCode: string; title: string; formVersion: string }> } {
-    return {
-      forms: PUBLIC_PAPER_FORMS.map((form) => ({
-        formCode: form.formCode,
-        title: form.title,
-        formVersion: formVersionOf(form.build()),
-      })),
-    };
-  }
-
-  @Public()
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
-  @Get('forms/:formCode')
-  @Header('Cache-Control', 'no-store')
-  async publicForm(
-    @Param('formCode') formCode: string,
-    @Res({ passthrough: true }) res: Response,
-  ): Promise<StreamableFile> {
-    const form = findPublicPaperForm(formCode);
-    if (!form) {
-      throw new NotFoundException({
-        code: 'PAPER_FORM_NOT_FOUND',
-        message: 'Ese formulario no existe o no se imprime sin sesión.',
-      });
-    }
-    const documento = await this.service.generate({
-      templateId: 'blank-form',
-      filename: `${form.formCode.toLowerCase()}.pdf`,
-      payload: publicPaperFormPayload(form),
-    });
     return this.entregar(res, documento);
   }
 

@@ -3,7 +3,6 @@ import { InjectModel } from '@nestjs/sequelize';
 import { Op, type WhereOptions } from 'sequelize';
 import { BusinessActionLogModel } from '../../database/models';
 import { PinoLoggerService } from '../../common/logging/pino-logger.service';
-import { paperEntryContext } from '../../common/middleware/paper-entry.context';
 import type { BusinessActionLogQueryDto } from './business-action-logs.schemas';
 import type { RecordBusinessActionLogInput } from './business-action-logs.types';
 
@@ -17,23 +16,13 @@ export class BusinessActionLogsService {
 
   async record(input: RecordBusinessActionLogInput): Promise<BusinessActionLogModel> {
     /*
-     * Si la petición declaró venir de un papel, la fila lo dice aunque el servicio que llama no
-     * sepa nada de papeles: `source_system` pasa a ERP_PAPER (salvo que el servicio fije uno
-     * propio) y la serie del formulario queda en `input_summary.paper`. Es lo que permite
-     * responder «¿de qué papel salió esta cuenta?» sin una columna nueva en cada tabla.
+     * Hasta el 2026-09-18 esto miraba además si la petición venía de un formulario en papel y, en
+     * ese caso, escribía `ERP_PAPER` con la serie del papel en `input_summary.paper`. Esa función
+     * se retiró del producto entera; las filas que ya lo dicen se conservan —son historia, y por
+     * eso `sourceSystem` sigue siendo texto libre y no un enum— pero ya nadie las escribe.
      */
-    const papel = paperEntryContext.get();
-    const sourceSystem = input.sourceSystem ?? (papel ? 'ERP_PAPER' : 'ATLAS');
-    const inputSummary = papel
-      ? {
-          ...(input.inputSummary ?? {}),
-          paper: {
-            serial: papel.serial,
-            formCode: papel.formCode ?? null,
-            formVersion: papel.formVersion ?? null,
-          },
-        }
-      : (input.inputSummary ?? null);
+    const sourceSystem = input.sourceSystem ?? 'ATLAS';
+    const inputSummary = input.inputSummary ?? null;
 
     this.logger.infoContext(BusinessActionLogsService.name, 'Recording business action log', {
       moduleCode: input.moduleCode,

@@ -15,7 +15,11 @@ export const businessActionLogQuerySchema = z
     aggregateId: z.string().trim().min(1).max(120).optional(),
     actorUserId: uuid.optional(),
     correlationId: z.string().trim().min(1).max(160).optional(),
-    /** De dónde nació el registro: ATLAS (tecleado), ERP_PAPER (transcrito de un papel)… */
+    /**
+     * De dónde nació el registro. Hoy sólo se escribe `ATLAS`; `ERP_PAPER` existe en filas
+     * anteriores al 2026-09-18, cuando el ERP admitía transcribir formularios en papel, y se
+     * sigue admitiendo COMO FILTRO para poder encontrarlas.
+     */
     sourceSystem: z.string().trim().min(2).max(80).optional(),
     from: dateOnly.optional(),
     to: dateOnly.optional(),
