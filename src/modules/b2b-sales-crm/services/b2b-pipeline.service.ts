@@ -128,24 +128,46 @@ export class B2BPipelineService extends B2BSalesCrmUseCaseBase {
     }));
   }
 
-  /** Los contratos, con el nombre del comercio: es por lo que se los busca. */
+  /**
+   * Los contratos, con el nombre del comercio y su VERSION VIGENTE.
+   *
+   * `currentVersionId` no es un extra: sin el, las reglas de comision de un contrato eran
+   * inalcanzables desde el ERP. Lo que cuelga de una regla MDR es la VERSION contractual
+   * (`mdr_rules.contract_version_id`), y una version nace con uuid propio, distinto del uuid del
+   * contrato. Como este listado es de donde la pantalla saca los contratos, entregaba el id del
+   * CONTRATO donde se esperaba el de la version: listar reglas devolvia `[]` —la pantalla decia
+   * «sin reglas» sin mentir a proposito— y crear una devolvia 404 «Version contractual no
+   * encontrada». Con el id correcto aqui, quien pinta la pantalla no tiene que saber nada de esto.
+   *
+   * Vigente = la de numero mas alto. La version se ordena en memoria y no en SQL porque un `order`
+   * sobre un `include` de tipo HasMany no sobrevive al agrupado que hace Sequelize.
+   */
   async listContracts(): Promise<Record<string, unknown>[]> {
     const contracts = await this.repository.contracts.findAll({
-      include: [this.repository.accounts],
+      include: [this.repository.accounts, this.repository.contractVersions],
       order: [['createdAt', 'DESC']],
       limit: 200,
     });
-    return contracts.map((contract) => ({
-      id: contract.id,
-      contractNumber: contract.contractNumber,
-      accountId: contract.accountId,
-      tradeName: contract.account?.tradeName ?? contract.account?.legalName ?? null,
-      status: contract.status,
-      startDate: contract.startDate,
-      endDate: contract.endDate,
-      billingCycle: contract.billingCycle,
-      signedAt: contract.signedAt,
-    }));
+    return contracts.map((contract) => {
+      const vigente = [...(contract.versions ?? [])].sort(
+        (a, b) => b.versionNumber - a.versionNumber,
+      )[0];
+      return {
+        id: contract.id,
+        contractNumber: contract.contractNumber,
+        accountId: contract.accountId,
+        tradeName: contract.account?.tradeName ?? contract.account?.legalName ?? null,
+        status: contract.status,
+        startDate: contract.startDate,
+        endDate: contract.endDate,
+        billingCycle: contract.billingCycle,
+        /* La tabla del ERP tiene columna «Liquidación» desde siempre; nunca se llenaba. */
+        settlementPolicy: contract.settlementPolicy,
+        signedAt: contract.signedAt,
+        currentVersionId: vigente?.id ?? null,
+        currentVersionNumber: vigente?.versionNumber ?? null,
+      };
+    });
   }
 
   async moveOpportunityStage(
