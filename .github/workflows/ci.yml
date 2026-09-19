@@ -63,6 +63,11 @@ jobs:
       # STARTUP_MIGRATION_FILES) describen el mismo conjunto y nada obligaba a que coincidieran.
       # No coincidian: produccion se saltaba una migracion y el arranque cubria 14 de 22. Es una
       # deriva que ningun entorno ve por si solo, porque cada uno es coherente con SU lista.
+      # La imagen se construye con `npm ci`, no con yarn: un `yarn add` deja `package-lock.json`
+      # desfasado y el despliegue muere con EUSAGE, sin que CI se entere. Pasó el 2026-09-19.
+      - name: Lockfile de npm en sintonía con package.json
+        run: yarn check:lockfiles
+
       - name: Listas de migraciones coherentes
         run: yarn check:migration-lists
 
