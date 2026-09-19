@@ -5,14 +5,11 @@
  */
 import type { IncomingMessage } from 'node:http';
 import type { RequestOptions } from 'node:https';
-import type { Span } from '@opentelemetry/api';
 import type { Instrumentation } from '@opentelemetry/instrumentation';
 import { ExpressInstrumentation, ExpressLayerType } from '@opentelemetry/instrumentation-express';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import { PgInstrumentation } from '@opentelemetry/instrumentation-pg';
 import { UndiciInstrumentation, type UndiciRequest } from '@opentelemetry/instrumentation-undici';
-import { ATTR_DB_QUERY_TEXT } from '@opentelemetry/semantic-conventions';
-import { redactSqlLiterals } from './sql-redaction';
 import { UNTRACED_HTTP_PATH_SUFFIXES } from './telemetry.constants';
 import type { TelemetryConfig } from './telemetry.types';
 
@@ -72,19 +69,12 @@ export function buildInstrumentations(config: TelemetryConfig): Instrumentation[
        */
       ignoreLayersType: [ExpressLayerType.MIDDLEWARE],
     }),
-    // `enhancedDatabaseReporting: false` deja fuera los valores de los parámetros LIGADOS, pero
-    // NO basta: Sequelize incrusta literales en el texto de algunas consultas y ese texto es
-    // `db.statement`. El hook lo reescribe sin contenido. Ver `sql-redaction.ts`.
-    new PgInstrumentation({
-      enhancedDatabaseReporting: false,
-      // Sobrescribe el MISMO atributo que fija la instrumentación (`db.query.text` desde
-      // `instrumentation-pg@0.74`; antes se llamaba `db.statement`). Si el nombre volviera a
-      // cambiar al subir de versión, la prueba E2E de fuga lo caza: busca el dato, no la clave.
-      requestHook: (span: Span, info: { query: { text?: string } }) => {
-        const text = info.query.text;
-        if (typeof text === 'string') span.setAttribute(ATTR_DB_QUERY_TEXT, redactSqlLiterals(text));
-      },
-    }),
+    // `enhancedDatabaseReporting: false` deja fuera los VALORES de los parámetros ligados. No
+    // basta: Sequelize incrusta literales en el texto de algunas consultas, y ese texto es un
+    // atributo del span. Los literales los borra `RedactingSpanProcessor`, que cubre LOS DOS
+    // nombres que las distintas versiones de esta instrumentación publican (`db.query.text` y
+    // `db.statement`) en vez de acertar con uno. Ver `sql-redaction.ts`.
+    new PgInstrumentation({ enhancedDatabaseReporting: false }),
     new UndiciInstrumentation({
       ignoreRequestHook: (request: UndiciRequest) => isUntracedPath(request.path),
     }),
