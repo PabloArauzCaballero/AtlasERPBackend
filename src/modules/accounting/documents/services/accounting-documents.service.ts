@@ -12,6 +12,10 @@ import {
   JournalEntryModel,
 } from '../../../../database/models';
 import { AuthUser } from '../../../../common/types/auth-context.types';
+import { outboxProducerAttributes } from '../../../../common/observability/messaging-attributes';
+import { MessagingTraceService } from '../../../../common/observability/messaging-trace.service';
+import { TracingService } from '../../../../common/observability/tracing.service';
+import { APP_ATTRIBUTES, SPAN_NAMES } from '../../../../observability/telemetry.constants';
 import {
   BulkCreateAccountingDocumentsDto,
   CreateAccountingDocumentDto,
@@ -44,6 +48,8 @@ export class AccountingDocumentsService {
     @InjectModel(DocumentAuditLogModel)
     private readonly auditLogModel: typeof DocumentAuditLogModel,
     @InjectModel(EventOutboxModel) private readonly eventOutboxModel: typeof EventOutboxModel,
+    private readonly messaging: MessagingTraceService,
+    private readonly tracing: TracingService,
   ) {}
 
   async createDraft(input: CreateAccountingDocumentDto, user: AuthUser) {
@@ -86,7 +92,28 @@ export class AccountingDocumentsService {
     return { ...input, documentNo };
   }
 
-  async createDraftInTransaction(
+  /**
+   * `accounting.document.draft` NO es un span redundante pese a existir el endpoint que lo llama:
+   * `createDraftBulk` lo invoca en bucle, y en un lote de cincuenta documentos es la única forma
+   * de ver CUÁL tardó o cuál falló. Ningún atributo lleva importes, razón social ni NIT.
+   */
+  createDraftInTransaction(
+    rawInput: CreateAccountingDocumentDto,
+    user: AuthUser,
+    transaction: Transaction,
+  ) {
+    return this.tracing.runInSpan(
+      SPAN_NAMES.accountingDocumentDraft,
+      {
+        [APP_ATTRIBUTES.module]: 'accounting',
+        [APP_ATTRIBUTES.operation]: 'draft',
+        [APP_ATTRIBUTES.entityType]: 'accounting_document',
+      },
+      () => this.createDraftInSpan(rawInput, user, transaction),
+    );
+  }
+
+  private async createDraftInSpan(
     rawInput: CreateAccountingDocumentDto,
     user: AuthUser,
     transaction: Transaction,
@@ -161,7 +188,7 @@ export class AccountingDocumentsService {
       { transaction },
     );
 
-    await this.eventOutboxModel.create(
+    await this.publicarEnOutbox(
       {
         topic: 'accounting.document.draft_created',
         aggregateType: 'accounting_document',
@@ -169,7 +196,7 @@ export class AccountingDocumentsService {
         eventKey: `accounting-document-draft-${document.id}`,
         payload: { accountingDocumentId: document.id, documentNo: input.documentNo },
       },
-      { transaction },
+      transaction,
     );
 
     await this.businessActionLogsService.record({
@@ -273,7 +300,20 @@ export class AccountingDocumentsService {
     );
   }
 
-  async postDocumentInTransaction(id: string, user: AuthUser, transaction: Transaction) {
+  postDocumentInTransaction(id: string, user: AuthUser, transaction: Transaction) {
+    return this.tracing.runInSpan(
+      SPAN_NAMES.accountingDocumentPost,
+      {
+        [APP_ATTRIBUTES.module]: 'accounting',
+        [APP_ATTRIBUTES.operation]: 'post',
+        [APP_ATTRIBUTES.entityType]: 'accounting_document',
+        [APP_ATTRIBUTES.entityId]: id,
+      },
+      () => this.postDocumentInSpan(id, user, transaction),
+    );
+  }
+
+  private async postDocumentInSpan(id: string, user: AuthUser, transaction: Transaction) {
     /*
      * `lock: UPDATE` no es una precaución: es lo que hace cierta la comprobación de abajo.
      *
@@ -367,7 +407,7 @@ export class AccountingDocumentsService {
       { transaction },
     );
 
-    await this.eventOutboxModel.create(
+    await this.publicarEnOutbox(
       {
         topic: 'accounting.document.posted',
         aggregateType: 'accounting_document',
@@ -375,7 +415,7 @@ export class AccountingDocumentsService {
         eventKey: `accounting-document-posted-${id}`,
         payload: { accountingDocumentId: id, hashSha256: hash },
       },
-      { transaction },
+      transaction,
     );
 
     this.logger.info('Documento contable publicado.', {
@@ -525,7 +565,7 @@ export class AccountingDocumentsService {
         { transaction },
       );
 
-      await this.eventOutboxModel.create(
+      await this.publicarEnOutbox(
         {
           topic: 'accounting.document.reversed',
           aggregateType: 'accounting_document',
@@ -533,7 +573,7 @@ export class AccountingDocumentsService {
           eventKey: `accounting-document-reversed-${original.id}`,
           payload: { accountingDocumentId: original.id, reversedById: postedReversal.document.id },
         },
-        { transaction },
+        transaction,
       );
 
       this.logger.info('Reverso contable publicado y documento original marcado como REVERSED.', {
@@ -596,4 +636,42 @@ export class AccountingDocumentsService {
 
     return { document, journal, lines };
   }
+
+  /**
+   * Escribe un hecho de dominio en el outbox, dentro de un span PRODUCTOR.
+   *
+   * El span marca el punto exacto en el que el trabajo deja de ser síncrono, y el portador de
+   * traza se inyecta DENTRO de él: así el span consumidor que abra el worker —segundos o minutos
+   * después, en otro proceso— cuelga de aquí y la traza queda entera.
+   *
+   * El portador va en la columna `trace_context` y NO en `payload`: ese campo es el contrato de
+   * dominio del evento y lo que saldrá hacia un broker. Ningún atributo del span lleva el
+   * contenido del documento; sólo su tipo y su identificador.
+   */
+  private publicarEnOutbox(
+    evento: {
+      topic: string;
+      aggregateType: string;
+      aggregateId: string;
+      eventKey: string;
+      payload: Record<string, unknown>;
+    },
+    transaction: Transaction,
+  ): Promise<unknown> {
+    return this.messaging.runAsProducer(
+      SPAN_NAMES.outboxPublish,
+      outboxProducerAttributes({
+        eventType: evento.topic,
+        aggregateType: evento.aggregateType,
+        aggregateId: evento.aggregateId,
+        producer: 'accounting',
+      }),
+      () =>
+        this.eventOutboxModel.create(
+          { ...evento, traceContext: this.messaging.withCarrier(null) },
+          { transaction },
+        ),
+    );
+  }
+
 }

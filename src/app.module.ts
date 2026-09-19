@@ -9,6 +9,8 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { ObservabilityModule } from './common/observability/observability.module';
+import { activeTraceLogFields } from './common/observability/trace-log-fields';
+import { TraceResponseInterceptor } from './common/observability/trace-response.interceptor';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { RequestContextMiddleware } from './common/middleware/request-context.middleware';
@@ -60,6 +62,19 @@ function prettyDisponible(): boolean {
     NestPinoLoggerModule.forRoot({
       pinoHttp: {
         level: env.LOG_LEVEL,
+        /*
+         * Correlación log ↔ traza.
+         *
+         * Va como `mixin` y no como `customProps` a propósito: `customProps` sólo alcanza a las
+         * líneas que emite el propio `pino-http` —una por petición—, mientras que el mixin se
+         * aplica a CADA línea, incluidas las que escribe un servicio a cuatro capas de
+         * profundidad, que son justo las que hacen falta para reconstruir qué pasó.
+         *
+         * Los identificadores salen SIEMPRE del contexto activo de OpenTelemetry, nunca de una
+         * cabecera del cliente. Sin traza activa no se emite ningún campo: uno inventado
+         * mandaría a soporte a buscar algo que no existe en Jaeger.
+         */
+        mixin: () => activeTraceLogFields(),
         redact: {
           paths: [
             'req.headers.authorization',
@@ -106,6 +121,7 @@ function prettyDisponible(): boolean {
     CatalogModule,
   ],
   providers: [
+    TraceResponseInterceptor,
     HttpExceptionFilter,
     LoggingInterceptor,
     ResponseInterceptor,

@@ -1,4 +1,13 @@
 import 'reflect-metadata';
+// Debe preceder a TODO import instrumentable (Nest, Express, Sequelize, pg, axios, undici): las
+// instrumentaciones de OpenTelemetry parchean esos módulos en el instante en que se requieren,
+// así que arrancar después produce cero spans y ningún error que lo explique. Es no-op salvo
+// OTEL_ENABLED=true. El nombre por defecto es POR PROCESO: si la API y el worker compartieran
+// uno, el grafo de dependencias de Jaeger mostraría un solo nodo hablando consigo mismo.
+import { startTracing, stopTracing } from './observability/tracing';
+
+startTracing('atlas-erp-api');
+
 import { json, urlencoded } from 'express';
 import * as compression from 'compression';
 import * as cookieParser from 'cookie-parser';
@@ -11,6 +20,7 @@ import { buildCorsOptions } from './config/cors.config';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
+import { TraceResponseInterceptor } from './common/observability/trace-response.interceptor';
 import { PinoLoggerService } from './common/logging/pino-logger.service';
 
 async function bootstrap(): Promise<void> {
@@ -33,9 +43,20 @@ async function bootstrap(): Promise<void> {
   app.use(urlencoded({ extended: true, limit: env.BODY_LIMIT }));
   app.enableCors(buildCorsOptions());
   app.enableShutdownHooks();
+  // Vacía el lote de spans pendiente al apagar. `stopTracing` nunca lanza: perder trazas no
+  // puede convertir un apagado limpio en una caída.
+  process.once('SIGTERM', () => void stopTracing());
+  process.once('SIGINT', () => void stopTracing());
 
   app.useGlobalFilters(app.get(HttpExceptionFilter));
-  app.useGlobalInterceptors(app.get(LoggingInterceptor), app.get(ResponseInterceptor));
+  // `TraceResponseInterceptor` va el PRIMERO —y por tanto el más externo— para fijar
+  // `x-trace-id` mientras las cabeceras siguen siendo escribibles: más adentro, una descarga de
+  // documento ya habría enviado la respuesta y escribir sobre ella lanzaría.
+  app.useGlobalInterceptors(
+    app.get(TraceResponseInterceptor),
+    app.get(LoggingInterceptor),
+    app.get(ResponseInterceptor),
+  );
 
   await app.listen(env.PORT);
 

@@ -1,8 +1,18 @@
+// Primero de todo, igual que en `main.ts`: este worker abre su propio `pg.Client` y sin el SDK
+// arrancado antes, esa conexión no queda instrumentada y sus consultas no aparecen en ninguna traza.
+import { startTracing, stopTracing } from '../../observability/tracing';
+
+startTracing('atlas-erp-worker-outbox');
+
 import { setTimeout as wait } from 'timers/promises';
 import { Client } from 'pg';
 import { env } from '../../config/env';
 import { resolveDbSslOptions } from '../../config/db-ssl';
 import { PinoLoggerService } from '../../common/logger/pino-logger.service';
+import { outboxConsumerAttributes } from '../../common/observability/messaging-attributes';
+import { MessagingTraceService } from '../../common/observability/messaging-trace.service';
+import { TracingService } from '../../common/observability/tracing.service';
+import { SPAN_NAMES } from '../../observability/telemetry.constants';
 
 interface OutboxRow {
   id: string;
@@ -11,9 +21,13 @@ interface OutboxRow {
   aggregate_id: string;
   event_key: string;
   payload: unknown;
+  /** Portador W3C que escribió la API. `null` en las filas anteriores a la columna. */
+  trace_context: Record<string, string> | null;
 }
 
 const logger = new PinoLoggerService();
+// Construido a mano: este worker no levanta el contenedor de NestJS, así que no hay inyección.
+const messaging = new MessagingTraceService(new TracingService());
 let isShuttingDown = false;
 
 async function main(): Promise<void> {
@@ -45,6 +59,8 @@ async function main(): Promise<void> {
     await wait(env.WORKER_SHUTDOWN_TIMEOUT_SECONDS * 1000, undefined, { ref: false }).catch(
       () => undefined,
     );
+    // Antes de cerrar la conexión: vacía el lote de spans pendiente. Nunca lanza.
+    await stopTracing();
     await client.end().catch((error: unknown) =>
       logger.error('Error cerrando conexión PostgreSQL.', {
         layer: 'worker',
@@ -76,7 +92,7 @@ async function processBatch(client: Client): Promise<number> {
   try {
     const result = await client.query<OutboxRow>(
       `
-        SELECT id, topic, aggregate_type, aggregate_id, event_key, payload
+        SELECT id, topic, aggregate_type, aggregate_id, event_key, payload, trace_context
         FROM atlas_accounting.event_outbox
         WHERE published_at IS NULL
         ORDER BY id ASC
@@ -87,11 +103,7 @@ async function processBatch(client: Client): Promise<number> {
     );
 
     for (const event of result.rows) {
-      await publishEvent(event);
-      await client.query(
-        'UPDATE atlas_accounting.event_outbox SET published_at = now() WHERE id = $1',
-        [event.id],
-      );
+      await dispatchEvent(client, event);
     }
 
     await client.query('COMMIT');
@@ -107,6 +119,33 @@ async function processBatch(client: Client): Promise<number> {
     await client.query('ROLLBACK');
     throw error;
   }
+}
+
+/**
+ * Despacha UNA fila dentro de un span CONSUMIDOR enlazado con quien la publicó.
+ *
+ * Es el único punto del ERP donde la traza cruza de un proceso a otro: el contexto murió con el
+ * commit de la API y aquí se RECONSTRUYE desde `trace_context`. Una fila escrita antes de que
+ * existiera esa columna trae `null` y abre su propia traza: se procesa igual, que es lo que
+ * importa.
+ */
+async function dispatchEvent(client: Client, event: OutboxRow): Promise<void> {
+  await messaging.runAsConsumer(
+    SPAN_NAMES.outboxDispatch,
+    event.trace_context,
+    outboxConsumerAttributes({
+      eventType: event.topic,
+      aggregateType: event.aggregate_type,
+      aggregateId: event.aggregate_id,
+    }),
+    async () => {
+      await publishEvent(event);
+      await client.query(
+        'UPDATE atlas_accounting.event_outbox SET published_at = now() WHERE id = $1',
+        [event.id],
+      );
+    },
+  );
 }
 
 async function publishEvent(event: OutboxRow): Promise<void> {

@@ -15,6 +15,8 @@ import {
 } from 'sequelize';
 import { env } from '../../config/env';
 import { PinoLoggerService } from '../logging/pino-logger.service';
+import { recordHttpFailure } from '../observability/trace-error';
+import { publishTraceIdHeader } from '../observability/trace-id-header';
 
 interface HttpExceptionPayload {
   code?: string;
@@ -37,6 +39,16 @@ export class HttpExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost): void {
     const response = host.switchToHttp().getResponse<Response>();
     const normalized = this.normalizeException(exception);
+
+    // La traza se marca ANTES de responder y sin tocar ni el estado ni el cuerpo: la
+    // observabilidad no cambia el contrato HTTP. Un 5xx marca el span como error; un 4xx sólo
+    // deja su código, porque el llamante se equivocó y no el servicio. Se usa el código ya
+    // NORMALIZADO, que es estable y de catálogo cerrado, nunca el mensaje de la excepción.
+    recordHttpFailure(normalized.status, exception, normalized.code);
+    // También aquí, y no sólo en el interceptor: los guards corren ANTES que los interceptores,
+    // así que un 401 o un 403 salta directo a este filtro y saldría sin `x-trace-id` — justo el
+    // caso en que soporte más la necesita.
+    publishTraceIdHeader(response);
 
     if (normalized.status >= 500) {
       this.logger.errorContext(

@@ -34,6 +34,17 @@ export class EventOutboxModel extends Model {
   @Column({ type: DataType.JSONB, field: 'payload', allowNull: false })
   declare payload: Record<string, unknown>;
 
+  /**
+   * Portador W3C del contexto de traza, escrito al publicar y leído por el worker al reclamar.
+   *
+   * Va FUERA de `payload` a propósito: ese campo es el contrato de dominio del evento y lo que
+   * saldrá hacia un broker. Aquí sólo viven `traceparent` y, si existe, `tracestate`; nunca un
+   * dato de negocio. `null` en las filas anteriores a la migración `20260918230000`, que el
+   * worker procesa igual abriendo su propia traza.
+   */
+  @Column({ type: DataType.JSONB, field: 'trace_context', allowNull: true })
+  declare traceContext: Record<string, string> | null;
+
   @Column({ type: DataType.DATE, field: 'published_at', allowNull: true })
   declare publishedAt: Date | null;
 

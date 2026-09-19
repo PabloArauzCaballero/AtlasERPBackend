@@ -51,6 +51,8 @@ export const STARTUP_MIGRATION_FILES = [
   // Ultima a proposito: reubica las tablas de ATLAS Ads cuando una instalacion antigua las
   // creo en `public`. Necesita que todas las migraciones que las alteran hayan corrido ya.
   'src/database/migrations/20260901000000-ads-en-atlas-accounting.sql',
+  // Portador del contexto de traza para el worker de outbox: columna aditiva, sin UPDATE.
+  'src/database/migrations/20260918230000-outbox-trace-context.sql',
 ] as const;
 
 export interface LegacySqlProbe {
