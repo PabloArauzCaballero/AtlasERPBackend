@@ -1,4 +1,5 @@
 import { describe, expect, it } from '@jest/globals';
+import { ExpressLayerType } from '@opentelemetry/instrumentation-express';
 import { buildInstrumentations } from '../telemetry.instrumentations';
 import { readTelemetryConfig } from '../telemetry.config';
 
@@ -96,6 +97,11 @@ describe('instrumentaciones automáticas', () => {
     const nombres = buildInstrumentations(config).map((i) => i.instrumentationName);
     expect(nombres.some((nombre) => nombre.includes('axios'))).toBe(false);
     expect(nombres.some((nombre) => nombre.includes('instrumentation-http'))).toBe(true);
+  });
+
+  it('express no abre un span por cada middleware', () => {
+    // Siete de los dieciocho spans de una petición eran middleware, cinco de ellos de 0,0 ms.
+    expect(configuracionDe('express').ignoreLayersType).toEqual([ExpressLayerType.MIDDLEWARE]);
   });
 
   it('pg no publica los valores de los parámetros ligados', () => {
