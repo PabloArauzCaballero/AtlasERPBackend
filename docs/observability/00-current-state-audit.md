@@ -11,29 +11,29 @@ lo que ya existe y sin duplicarlo.
 
 ## 1. Arquitectura detectada
 
-| Elemento | Valor real | Fuente |
-| --- | --- | --- |
-| Framework | NestJS 11 | `package.json` |
-| Módulos | **CommonJS** (`"module": "commonjs"`) — imports sin extensión | `tsconfig.json` |
-| Adaptador HTTP | Express | `main.ts` |
-| ORM | Sequelize 6 + `sequelize-typescript` | `package.json` |
-| Driver PostgreSQL | `pg` 8; el worker usa un `Client` crudo | `outbox.worker.ts` |
-| Redis | **No se usa** | — |
-| HTTP saliente | **Dos vías**: `@nestjs/axios` (`HttpService`) y `fetch` global en 3 servicios | `atlas-identity.client.ts`, `documents.service.ts` |
-| Logs | **Pino 9 vía `nestjs-pino`**, con `redact` ya configurado | `app.module.ts` |
-| Métricas | No hay `prom-client` | — |
-| Colas | Outbox en PostgreSQL (`atlas_accounting.event_outbox`) + worker propio | `outbox.worker.ts` |
-| Cron | `setInterval` en dos procesadores dentro de la API | `email-messaging.processor.ts`, `b2b-overdue-sweep.processor.ts` |
-| WebSockets | No | — |
-| Configuración | `env.ts` con zod | `src/config/env.ts` |
-| Gestor de paquetes | **Yarn** (`yarn.lock`) — hay además un `package-lock.json` desactualizado | — |
-| Prefijo global | `api/v1` | `env.API_GLOBAL_PREFIX` |
+| Elemento           | Valor real                                                                    | Fuente                                                           |
+| ------------------ | ----------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| Framework          | NestJS 11                                                                     | `package.json`                                                   |
+| Módulos            | **CommonJS** (`"module": "commonjs"`) — imports sin extensión                 | `tsconfig.json`                                                  |
+| Adaptador HTTP     | Express                                                                       | `main.ts`                                                        |
+| ORM                | Sequelize 6 + `sequelize-typescript`                                          | `package.json`                                                   |
+| Driver PostgreSQL  | `pg` 8; el worker usa un `Client` crudo                                       | `outbox.worker.ts`                                               |
+| Redis              | **No se usa**                                                                 | —                                                                |
+| HTTP saliente      | **Dos vías**: `@nestjs/axios` (`HttpService`) y `fetch` global en 3 servicios | `atlas-identity.client.ts`, `documents.service.ts`               |
+| Logs               | **Pino 9 vía `nestjs-pino`**, con `redact` ya configurado                     | `app.module.ts`                                                  |
+| Métricas           | No hay `prom-client`                                                          | —                                                                |
+| Colas              | Outbox en PostgreSQL (`atlas_accounting.event_outbox`) + worker propio        | `outbox.worker.ts`                                               |
+| Cron               | `setInterval` en dos procesadores dentro de la API                            | `email-messaging.processor.ts`, `b2b-overdue-sweep.processor.ts` |
+| WebSockets         | No                                                                            | —                                                                |
+| Configuración      | `env.ts` con zod                                                              | `src/config/env.ts`                                              |
+| Gestor de paquetes | **Yarn** (`yarn.lock`) — hay además un `package-lock.json` desactualizado     | —                                                                |
+| Prefijo global     | `api/v1`                                                                      | `env.API_GLOBAL_PREFIX`                                          |
 
 ### Procesos ejecutables
 
-| Proceso | Entrada | Qué es |
-| --- | --- | --- |
-| API | `src/main.ts` | `NestFactory.create`, controladores de negocio, sondas |
+| Proceso          | Entrada                               | Qué es                                                                          |
+| ---------------- | ------------------------------------- | ------------------------------------------------------------------------------- |
+| API              | `src/main.ts`                         | `NestFactory.create`, controladores de negocio, sondas                          |
 | Worker de outbox | `src/workers/outbox/outbox.worker.ts` | Proceso Node **suelto**: no usa Nest, abre su propio `pg.Client` y hace polling |
 
 El worker es un `while` con `FOR UPDATE SKIP LOCKED` y un `publishEvent` que hoy **sólo registra
@@ -58,13 +58,13 @@ El punteado es lo que hoy no se puede seguir.
 
 ## 2. Qué existe ya (y se conserva)
 
-| Pieza | Archivo | Veredicto |
-| --- | --- | --- |
-| Pino con `redact` de `authorization`, `cookie`, `password`, tokens | `app.module.ts` | **Se conserva tal cual**; sólo se le añaden los campos de traza |
-| `HttpAccessRegistryService` | `common/observability/` | Intacto: es un inventario de rutas, no telemetría |
-| `RequestContextMiddleware` | `common/middleware/` | Intacto: correlación de negocio, complementaria |
-| Separación API / worker | dos entrypoints | Ya correcta; cada uno recibirá su propio SDK y su nombre |
-| `HttpExceptionFilter` | `common/filters/` | Se le añade el marcado del span, nada más |
+| Pieza                                                              | Archivo                 | Veredicto                                                       |
+| ------------------------------------------------------------------ | ----------------------- | --------------------------------------------------------------- |
+| Pino con `redact` de `authorization`, `cookie`, `password`, tokens | `app.module.ts`         | **Se conserva tal cual**; sólo se le añaden los campos de traza |
+| `HttpAccessRegistryService`                                        | `common/observability/` | Intacto: es un inventario de rutas, no telemetría               |
+| `RequestContextMiddleware`                                         | `common/middleware/`    | Intacto: correlación de negocio, complementaria                 |
+| Separación API / worker                                            | dos entrypoints         | Ya correcta; cada uno recibirá su propio SDK y su nombre        |
+| `HttpExceptionFilter`                                              | `common/filters/`       | Se le añade el marcado del span, nada más                       |
 
 ## 3. Huecos a cerrar
 
@@ -80,14 +80,14 @@ El punteado es lo que hoy no se puede seguir.
 
 El ERP trata datos de comercios, facturación, contabilidad y campañas con destinatarios.
 
-| Vector | Riesgo | Mitigación prevista |
-| --- | --- | --- |
-| Cabeceras | `authorization`, `cookie` | No activar `headersToSpanAttributes` |
-| Parámetros SQL | Razón social, NIT, importes | `enhancedDatabaseReporting: false` |
-| **Literales incrustados por Sequelize** | El mismo problema medido en AtlasBackend | Redacción del texto de la consulta |
-| URLs salientes | Tokens en la cadena de consulta | Saneado antes de exportar |
-| Payload del outbox | Documento contable completo | El portador viaja en **columna aparte**, no en el payload |
-| Campañas | Correos de destinatarios | Ningún atributo de destinatario |
+| Vector                                  | Riesgo                                   | Mitigación prevista                                       |
+| --------------------------------------- | ---------------------------------------- | --------------------------------------------------------- |
+| Cabeceras                               | `authorization`, `cookie`                | No activar `headersToSpanAttributes`                      |
+| Parámetros SQL                          | Razón social, NIT, importes              | `enhancedDatabaseReporting: false`                        |
+| **Literales incrustados por Sequelize** | El mismo problema medido en AtlasBackend | Redacción del texto de la consulta                        |
+| URLs salientes                          | Tokens en la cadena de consulta          | Saneado antes de exportar                                 |
+| Payload del outbox                      | Documento contable completo              | El portador viaja en **columna aparte**, no en el payload |
+| Campañas                                | Correos de destinatarios                 | Ningún atributo de destinatario                           |
 
 ## 5. Endpoints excluidos del trazado
 
@@ -100,14 +100,14 @@ compara **sufijo**, no igualdad.
 
 ## 6. Riesgos de compatibilidad
 
-| Riesgo | Cómo se contiene |
-| --- | --- |
-| `max-lines` y `lint` sobre todo el repo | Se comprueba tras cada fase |
-| Gate `check:migration-lists` | La migración nueva se declara en las **tres** listas |
+| Riesgo                                                 | Cómo se contiene                                                      |
+| ------------------------------------------------------ | --------------------------------------------------------------------- |
+| `max-lines` y `lint` sobre todo el repo                | Se comprueba tras cada fase                                           |
+| Gate `check:migration-lists`                           | La migración nueva se declara en las **tres** listas                  |
 | `package-lock.json` desactualizado junto a `yarn.lock` | Se usa **yarn**; npm reescribiría el `yarn.lock` (regla del monorepo) |
-| Dos copias de `@opentelemetry/instrumentation` | Se fija toda la línea en 0.222, verificado en instalación limpia |
-| `noUncheckedIndexedAccess: true` | El código nuevo lo respeta |
-| Otras sesiones en el mismo árbol | Commit con `-- <rutas>` |
+| Dos copias de `@opentelemetry/instrumentation`         | Se fija toda la línea en 0.222, verificado en instalación limpia      |
+| `noUncheckedIndexedAccess: true`                       | El código nuevo lo respeta                                            |
+| Otras sesiones en el mismo árbol                       | Commit con `-- <rutas>`                                               |
 
 ## 7. Archivos que se van a modificar
 

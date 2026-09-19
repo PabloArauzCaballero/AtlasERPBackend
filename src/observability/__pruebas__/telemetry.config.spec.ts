@@ -9,42 +9,53 @@ describe('lectura de la configuración de telemetría', () => {
     expect(readTelemetryConfig(vacio).enabled).toBe(false);
   });
 
-  it.each(['true', '1', 'yes', 'on', 'TRUE'])('se habilita con una afirmación explícita (%s)', (valor) => {
-    expect(readTelemetryConfig({ OTEL_ENABLED: valor }).enabled).toBe(true);
-  });
+  it.each(['true', '1', 'yes', 'on', 'TRUE'])(
+    'se habilita con una afirmación explícita (%s)',
+    (valor) => {
+      expect(readTelemetryConfig({ OTEL_ENABLED: valor }).enabled).toBe(true);
+    },
+  );
 
   it.each(['false', '0', 'no', 'quizá', ' '])('sigue apagada con %p', (valor) => {
     expect(readTelemetryConfig({ OTEL_ENABLED: valor }).enabled).toBe(false);
   });
 
   it('usa el nombre por proceso cuando no hay OTEL_SERVICE_NAME', () => {
-    expect(readTelemetryConfig(vacio, 'atlas-erp-worker-outbox').serviceName).toBe('atlas-erp-worker-outbox');
+    expect(readTelemetryConfig(vacio, 'atlas-erp-worker-outbox').serviceName).toBe(
+      'atlas-erp-worker-outbox',
+    );
   });
 
   it('OTEL_SERVICE_NAME manda sobre el nombre del proceso', () => {
-    expect(readTelemetryConfig({ OTEL_SERVICE_NAME: 'otro' }, 'atlas-erp-api').serviceName).toBe('otro');
+    expect(readTelemetryConfig({ OTEL_SERVICE_NAME: 'otro' }, 'atlas-erp-api').serviceName).toBe(
+      'otro',
+    );
   });
 
   it('una cadena en blanco no cuenta como valor', () => {
-    expect(readTelemetryConfig({ OTEL_SERVICE_NAME: '   ' }, 'atlas-erp-api').serviceName).toBe('atlas-erp-api');
+    expect(readTelemetryConfig({ OTEL_SERVICE_NAME: '   ' }, 'atlas-erp-api').serviceName).toBe(
+      'atlas-erp-api',
+    );
   });
 
   describe('destino de trazas', () => {
     it('acepta la variable estándar con la ruta completa', () => {
-      const config = readTelemetryConfig({ OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: 'http://jaeger:4318/v1/traces' });
+      const config = readTelemetryConfig({
+        OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: 'http://jaeger:4318/v1/traces',
+      });
       expect(config.tracesEndpoint).toBe('http://jaeger:4318/v1/traces');
     });
 
     it('acepta la variable base que ya usaban los despliegues y le añade la ruta de señal', () => {
-      expect(readTelemetryConfig({ OTEL_EXPORTER_OTLP_ENDPOINT: 'http://jaeger:4318' }).tracesEndpoint).toBe(
-        'http://jaeger:4318/v1/traces',
-      );
+      expect(
+        readTelemetryConfig({ OTEL_EXPORTER_OTLP_ENDPOINT: 'http://jaeger:4318' }).tracesEndpoint,
+      ).toBe('http://jaeger:4318/v1/traces');
     });
 
     it('no duplica la barra final', () => {
-      expect(readTelemetryConfig({ OTEL_EXPORTER_OTLP_ENDPOINT: 'http://jaeger:4318//' }).tracesEndpoint).toBe(
-        'http://jaeger:4318/v1/traces',
-      );
+      expect(
+        readTelemetryConfig({ OTEL_EXPORTER_OTLP_ENDPOINT: 'http://jaeger:4318//' }).tracesEndpoint,
+      ).toBe('http://jaeger:4318/v1/traces');
     });
 
     it('la estándar gana sobre la base', () => {
@@ -62,7 +73,9 @@ describe('lectura de la configuración de telemetría', () => {
 
   describe('muestreo', () => {
     it('lee la proporción declarada', () => {
-      expect(readTelemetryConfig({ OTEL_TRACES_SAMPLER_ARG: '0.15' }).samplerRatio).toBeCloseTo(0.15);
+      expect(readTelemetryConfig({ OTEL_TRACES_SAMPLER_ARG: '0.15' }).samplerRatio).toBeCloseTo(
+        0.15,
+      );
     });
 
     it.each([
@@ -81,7 +94,9 @@ describe('lectura de la configuración de telemetría', () => {
     it('vale 10 s por defecto y se acota a [1000, 120000]', () => {
       expect(readTelemetryConfig(vacio).exportTimeoutMs).toBe(10_000);
       expect(readTelemetryConfig({ OTEL_EXPORT_TIMEOUT_MS: '1' }).exportTimeoutMs).toBe(1_000);
-      expect(readTelemetryConfig({ OTEL_EXPORT_TIMEOUT_MS: '999999' }).exportTimeoutMs).toBe(120_000);
+      expect(readTelemetryConfig({ OTEL_EXPORT_TIMEOUT_MS: '999999' }).exportTimeoutMs).toBe(
+        120_000,
+      );
       expect(readTelemetryConfig({ OTEL_EXPORT_TIMEOUT_MS: 'ya' }).exportTimeoutMs).toBe(10_000);
     });
   });
@@ -92,17 +107,27 @@ describe('lectura de la configuración de telemetría', () => {
     });
 
     it('respeta el orden declarado y normaliza espacios y mayúsculas', () => {
-      expect(readTelemetryConfig({ OTEL_PROPAGATORS: ' Baggage , TRACECONTEXT ' }).propagators).toEqual(['baggage', 'tracecontext']);
+      expect(
+        readTelemetryConfig({ OTEL_PROPAGATORS: ' Baggage , TRACECONTEXT ' }).propagators,
+      ).toEqual(['baggage', 'tracecontext']);
     });
 
     it('una lista vacía vuelve al valor por defecto en vez de dejar el proceso sin propagación', () => {
-      expect(readTelemetryConfig({ OTEL_PROPAGATORS: ' , , ' }).propagators).toEqual(['tracecontext', 'baggage']);
+      expect(readTelemetryConfig({ OTEL_PROPAGATORS: ' , , ' }).propagators).toEqual([
+        'tracecontext',
+        'baggage',
+      ]);
     });
   });
 
   it('el entorno de despliegue cae a NODE_ENV y luego a development', () => {
-    expect(readTelemetryConfig({ OTEL_DEPLOYMENT_ENVIRONMENT: 'staging', NODE_ENV: 'production' }).deploymentEnvironment).toBe('staging');
-    expect(readTelemetryConfig({ NODE_ENV: 'production' }).deploymentEnvironment).toBe('production');
+    expect(
+      readTelemetryConfig({ OTEL_DEPLOYMENT_ENVIRONMENT: 'staging', NODE_ENV: 'production' })
+        .deploymentEnvironment,
+    ).toBe('staging');
+    expect(readTelemetryConfig({ NODE_ENV: 'production' }).deploymentEnvironment).toBe(
+      'production',
+    );
     expect(readTelemetryConfig(vacio).deploymentEnvironment).toBe('development');
   });
 

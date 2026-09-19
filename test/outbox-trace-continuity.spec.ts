@@ -95,11 +95,15 @@ describeSiHayBase('continuidad de la traza a través del outbox del ERP', () => 
 
   it('el portador se persiste en trace_context y el payload NO se toca', async () => {
     const { eventKey } = await publicar('columna');
-    const { rows } = await client.query<{ trace_context: Record<string, string>; payload: unknown }>(
-      'SELECT trace_context, payload FROM atlas_accounting.event_outbox WHERE event_key = $1',
-      [eventKey],
+    const { rows } = await client.query<{
+      trace_context: Record<string, string>;
+      payload: unknown;
+    }>('SELECT trace_context, payload FROM atlas_accounting.event_outbox WHERE event_key = $1', [
+      eventKey,
+    ]);
+    expect(rows[0]?.trace_context.traceparent).toMatch(
+      /^00-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$/,
     );
-    expect(rows[0]?.trace_context.traceparent).toMatch(/^00-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$/);
     // El contrato de dominio del evento no cambia para transportar trazabilidad.
     expect(rows[0]?.payload).toEqual({});
   });

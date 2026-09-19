@@ -1,5 +1,9 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from '@jest/globals';
-import { TraceContextService, readActiveTraceId, readActiveTraceIds } from '../trace-context.service';
+import {
+  TraceContextService,
+  readActiveTraceId,
+  readActiveTraceIds,
+} from '../trace-context.service';
 import { TracingService } from '../tracing.service';
 import { installInMemoryTracing, type TracingHarness } from './support/in-memory-tracing';
 
@@ -34,7 +38,11 @@ describe('lectura del contexto de traza', () => {
   });
 
   it('SIN span activo devuelve vacío: nunca un identificador inventado', () => {
-    expect(readActiveTraceIds()).toEqual({ traceId: undefined, spanId: undefined, traceFlags: undefined });
+    expect(readActiveTraceIds()).toEqual({
+      traceId: undefined,
+      spanId: undefined,
+      traceFlags: undefined,
+    });
     expect(readActiveTraceId()).toBeUndefined();
   });
 

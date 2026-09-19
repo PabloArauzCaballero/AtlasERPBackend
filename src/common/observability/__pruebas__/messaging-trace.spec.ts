@@ -92,7 +92,9 @@ describe('propagación entre procesos', () => {
 
   it('un fallo del consumidor marca su span y relanza', async () => {
     const error = Object.assign(new Error('x'), { code: 'CONSUMER_ERROR' });
-    await expect(messaging.runAsConsumer('outbox.dispatch', null, {}, () => Promise.reject(error))).rejects.toBe(error);
+    await expect(
+      messaging.runAsConsumer('outbox.dispatch', null, {}, () => Promise.reject(error)),
+    ).rejects.toBe(error);
     expect(harness.spanNamed('outbox.dispatch')!.status.message).toBe('CONSUMER_ERROR');
   });
 });

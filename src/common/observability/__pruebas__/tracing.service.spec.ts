@@ -15,7 +15,11 @@ afterAll(() => harness.shutdown());
 
 describe('TracingService', () => {
   it('abre el span, ejecuta la operación, la finaliza y devuelve el resultado', async () => {
-    const resultado = await tracing.runInSpan('credit.evaluate', { 'app.module': 'credit' }, () => 'aprobado');
+    const resultado = await tracing.runInSpan(
+      'credit.evaluate',
+      { 'app.module': 'credit' },
+      () => 'aprobado',
+    );
     expect(resultado).toBe('aprobado');
     const span = harness.spanNamed('credit.evaluate');
     expect(span).toBeDefined();
@@ -39,8 +43,12 @@ describe('TracingService', () => {
   });
 
   it('ante una excepción la registra, marca el span y RELANZA el error original', async () => {
-    const original = Object.assign(new Error('detalle que no debe salir'), { code: 'CUSTOMER_NOT_FOUND' });
-    await expect(tracing.runInSpan('falla', {}, () => Promise.reject(original))).rejects.toBe(original);
+    const original = Object.assign(new Error('detalle que no debe salir'), {
+      code: 'CUSTOMER_NOT_FOUND',
+    });
+    await expect(tracing.runInSpan('falla', {}, () => Promise.reject(original))).rejects.toBe(
+      original,
+    );
     const span = harness.spanNamed('falla')!;
     expect(span.status.code).toBe(SpanStatusCode.ERROR);
     // La descripción es el CÓDIGO estable, nunca el mensaje: el mensaje puede llevar PII.
@@ -50,7 +58,9 @@ describe('TracingService', () => {
   });
 
   it('cierra el span aunque la operación lance', async () => {
-    await expect(tracing.runInSpan('cierra', {}, () => Promise.reject(new Error('x')))).rejects.toThrow();
+    await expect(
+      tracing.runInSpan('cierra', {}, () => Promise.reject(new Error('x'))),
+    ).rejects.toThrow();
     expect(harness.spanNamed('cierra')?.ended).toBe(true);
   });
 
@@ -69,7 +79,9 @@ describe('TracingService', () => {
     await tracing.runInSpan('peticion', {}, async () => {
       await tracing.runInRootSpan('job.run', {}, () => undefined);
     });
-    expect(harness.spanNamed('job.run')!.spanContext().traceId).not.toBe(harness.spanNamed('peticion')!.spanContext().traceId);
+    expect(harness.spanNamed('job.run')!.spanContext().traceId).not.toBe(
+      harness.spanNamed('peticion')!.spanContext().traceId,
+    );
   });
 
   it('admite tipo de span explícito', async () => {
@@ -101,7 +113,9 @@ describe('TracingService', () => {
 
   it('recordException marca un fallo que se gestionó sin propagarse', async () => {
     await tracing.runInSpan('absorbe', {}, () => {
-      tracing.recordException(Object.assign(new Error('adaptador caído'), { code: 'SMS_PROVIDER_DOWN', retryable: true }));
+      tracing.recordException(
+        Object.assign(new Error('adaptador caído'), { code: 'SMS_PROVIDER_DOWN', retryable: true }),
+      );
     });
     const span = harness.spanNamed('absorbe')!;
     expect(span.status.code).toBe(SpanStatusCode.ERROR);

@@ -17,10 +17,10 @@ cuánto tardó la consulta y el span del servidor cuánto la petición entera.
 
 ### `accounting.document.draft`
 
-| | |
-| --- | --- |
-| Archivo | `src/modules/accounting/documents/services/accounting-documents.service.ts` |
-| Tipo | INTERNAL |
+|           |                                                                                       |
+| --------- | ------------------------------------------------------------------------------------- |
+| Archivo   | `src/modules/accounting/documents/services/accounting-documents.service.ts`           |
+| Tipo      | INTERNAL                                                                              |
 | Atributos | `app.module=accounting`, `app.operation=draft`, `app.entity.type=accounting_document` |
 
 **Motivo de negocio.** Pese a existir un endpoint que lo llama, **no** es redundante:
@@ -31,10 +31,10 @@ ver cuál tardó o cuál falló; sin él, el lote es un bloque opaco de varios s
 
 ### `accounting.document.post`
 
-| | |
-| --- | --- |
-| Archivo | el mismo |
-| Tipo | INTERNAL |
+|           |                                                                        |
+| --------- | ---------------------------------------------------------------------- |
+| Archivo   | el mismo                                                               |
+| Tipo      | INTERNAL                                                               |
 | Atributos | `app.module`, `app.operation=post`, `app.entity.type`, `app.entity.id` |
 
 **Motivo de negocio.** Contabilizar toma un bloqueo de fila (`lock: UPDATE`) para que dos
@@ -47,10 +47,10 @@ soporte usa para encontrar la traza de un caso. Es opaco y no identifica a una p
 
 ### `outbox.publish`
 
-| | |
-| --- | --- |
-| Archivo | el mismo (`publicarEnOutbox`) |
-| Tipo | **PRODUCER** |
+|           |                                                                                                                                                                                                                 |
+| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Archivo   | el mismo (`publicarEnOutbox`)                                                                                                                                                                                   |
+| Tipo      | **PRODUCER**                                                                                                                                                                                                    |
 | Atributos | `messaging.system=atlas-erp-outbox`, `messaging.destination.name=atlas_accounting.event_outbox`, `messaging.operation.type=send`, `app.event.type`, `app.entity.type`, `app.entity.id`, `app.module=accounting` |
 
 **Motivo de negocio.** Marca el punto en el que el trabajo deja de ser síncrono. El portador de
@@ -63,10 +63,10 @@ que nada fallara.
 
 ### `outbox.dispatch`
 
-| | |
-| --- | --- |
-| Archivo | `src/workers/outbox/outbox.worker.ts` |
-| Tipo | **CONSUMER** |
+|           |                                                                     |
+| --------- | ------------------------------------------------------------------- |
+| Archivo   | `src/workers/outbox/outbox.worker.ts`                               |
+| Tipo      | **CONSUMER**                                                        |
 | Atributos | `messaging.*`, `app.event.type`, `app.entity.type`, `app.entity.id` |
 
 **Motivo de negocio.** Es el único punto del ERP donde la traza cruza de un proceso a otro. El
@@ -78,11 +78,11 @@ raíz: se procesa igual. No hay rama especial para ello; es la consecuencia natu
 
 ### `job.run`
 
-| | |
-| --- | --- |
-| Archivos | `ads/services/email-messaging.processor.ts`, `b2b-sales-crm/services/b2b-overdue-sweep.processor.ts` |
-| Tipo | INTERNAL, **traza raíz** (`root: true`) |
-| Atributos | `app.module`, `app.operation=run`, `app.job.name`, `app.job.outcome` |
+|           |                                                                                                      |
+| --------- | ---------------------------------------------------------------------------------------------------- |
+| Archivos  | `ads/services/email-messaging.processor.ts`, `b2b-sales-crm/services/b2b-overdue-sweep.processor.ts` |
+| Tipo      | INTERNAL, **traza raíz** (`root: true`)                                                              |
+| Atributos | `app.module`, `app.operation=run`, `app.job.name`, `app.job.outcome`                                 |
 
 **Motivo de negocio.** Los dos procesadores corren **dentro del proceso del API**, con
 `setInterval`. Sin traza raíz, su trabajo y sus consultas aparecerían como spans sueltos sin
@@ -94,12 +94,12 @@ se repite significa que el intervalo es más corto que la duración real del tra
 
 ## Riesgos de privacidad revisados
 
-| Atributo | Riesgo evaluado | Veredicto |
-| --- | --- | --- |
-| `app.entity.id` | Identificador de documento contable | Admitido: opaco, y sin él la traza no se ata a su caso |
-| `app.event.type` | Tipo del hecho publicado | Admitido: catálogo cerrado (`accounting.document.posted`, …) |
-| `app.job.name` | — | Admitido: dos valores |
-| `app.job.outcome` | — | Admitido: tres valores |
+| Atributo          | Riesgo evaluado                     | Veredicto                                                    |
+| ----------------- | ----------------------------------- | ------------------------------------------------------------ |
+| `app.entity.id`   | Identificador de documento contable | Admitido: opaco, y sin él la traza no se ata a su caso       |
+| `app.event.type`  | Tipo del hecho publicado            | Admitido: catálogo cerrado (`accounting.document.posted`, …) |
+| `app.job.name`    | —                                   | Admitido: dos valores                                        |
+| `app.job.outcome` | —                                   | Admitido: tres valores                                       |
 
 **Nada de lo que se publica lleva importes, razón social, NIT, número de documento ni correos
 de destinatarios de campaña.**

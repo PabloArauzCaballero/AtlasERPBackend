@@ -50,7 +50,8 @@ export function buildInstrumentations(config: TelemetryConfig): Instrumentation[
       // El exportador OTLP habla por el módulo `http`. Sin esta exclusión, exportar un lote de
       // spans genera un span, cuya exportación genera otro: un bucle que se retroalimenta y que
       // sólo se nota cuando el colector ya está saturado.
-      ignoreOutgoingRequestHook: (request: RequestOptions) => isExporterRequest(request, exporterTarget),
+      ignoreOutgoingRequestHook: (request: RequestOptions) =>
+        isExporterRequest(request, exporterTarget),
       // Deliberadamente SIN `headersToSpanAttributes`: capturar cabeceras traería
       // `authorization`, `cookie` y `x-api-key` al sistema de trazas.
     }),

@@ -7,8 +7,17 @@
  */
 import { context, propagation, trace } from '@opentelemetry/api';
 import { AsyncLocalStorageContextManager } from '@opentelemetry/context-async-hooks';
-import { CompositePropagator, W3CBaggagePropagator, W3CTraceContextPropagator } from '@opentelemetry/core';
-import { BasicTracerProvider, InMemorySpanExporter, SimpleSpanProcessor, type ReadableSpan } from '@opentelemetry/sdk-trace-base';
+import {
+  CompositePropagator,
+  W3CBaggagePropagator,
+  W3CTraceContextPropagator,
+} from '@opentelemetry/core';
+import {
+  BasicTracerProvider,
+  InMemorySpanExporter,
+  SimpleSpanProcessor,
+  type ReadableSpan,
+} from '@opentelemetry/sdk-trace-base';
 
 export type TracingHarness = {
   readonly exporter: InMemorySpanExporter;
@@ -25,7 +34,11 @@ export function installInMemoryTracing(): TracingHarness {
   // continuaciones asíncronas y toda relación padre-hijo se pierde en silencio.
   context.setGlobalContextManager(new AsyncLocalStorageContextManager().enable());
   trace.setGlobalTracerProvider(provider);
-  propagation.setGlobalPropagator(new CompositePropagator({ propagators: [new W3CTraceContextPropagator(), new W3CBaggagePropagator()] }));
+  propagation.setGlobalPropagator(
+    new CompositePropagator({
+      propagators: [new W3CTraceContextPropagator(), new W3CBaggagePropagator()],
+    }),
+  );
 
   return {
     exporter,

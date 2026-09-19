@@ -14,13 +14,20 @@ import type { TelemetryConfig } from './telemetry.types';
  *
  * El entorno se pasa como argumento para poder probar sin tocar el proceso.
  */
-export function readTelemetryConfig(environment: NodeJS.ProcessEnv = process.env, defaultServiceName = 'atlas-backend'): TelemetryConfig {
+export function readTelemetryConfig(
+  environment: NodeJS.ProcessEnv = process.env,
+  defaultServiceName = 'atlas-backend',
+): TelemetryConfig {
   return {
     enabled: readBoolean(environment.OTEL_ENABLED),
     serviceName: nonEmpty(environment.OTEL_SERVICE_NAME) ?? defaultServiceName,
     serviceNamespace: nonEmpty(environment.OTEL_SERVICE_NAMESPACE) ?? DEFAULT_SERVICE_NAMESPACE,
-    serviceVersion: nonEmpty(environment.OTEL_SERVICE_VERSION) ?? nonEmpty(environment.BUILD_VERSION) ?? '1.0.0',
-    deploymentEnvironment: nonEmpty(environment.OTEL_DEPLOYMENT_ENVIRONMENT) ?? nonEmpty(environment.NODE_ENV) ?? 'development',
+    serviceVersion:
+      nonEmpty(environment.OTEL_SERVICE_VERSION) ?? nonEmpty(environment.BUILD_VERSION) ?? '1.0.0',
+    deploymentEnvironment:
+      nonEmpty(environment.OTEL_DEPLOYMENT_ENVIRONMENT) ??
+      nonEmpty(environment.NODE_ENV) ??
+      'development',
     tracesEndpoint: readTracesEndpoint(environment),
     exportTimeoutMs: readInteger(environment.OTEL_EXPORT_TIMEOUT_MS, 10_000, 1_000, 120_000),
     samplerRatio: readRatio(environment.OTEL_TRACES_SAMPLER_ARG),
@@ -55,7 +62,12 @@ function readBoolean(value: string | undefined): boolean {
   return raw === 'true' || raw === '1' || raw === 'yes' || raw === 'on';
 }
 
-function readInteger(value: string | undefined, fallback: number, min: number, max: number): number {
+function readInteger(
+  value: string | undefined,
+  fallback: number,
+  min: number,
+  max: number,
+): number {
   const parsed = Number.parseInt(value ?? '', 10);
   if (!Number.isFinite(parsed)) return fallback;
   return Math.min(Math.max(parsed, min), max);

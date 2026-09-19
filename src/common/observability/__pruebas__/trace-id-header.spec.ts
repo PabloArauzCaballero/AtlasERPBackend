@@ -21,7 +21,10 @@ describe('cabecera x-trace-id', () => {
     await tracing.runInSpan('operacion', {}, () => {
       expect(publishTraceIdHeader(res)).toBe(true);
     });
-    expect(res.setHeader).toHaveBeenCalledWith('x-trace-id', harness.spanNamed('operacion')!.spanContext().traceId);
+    expect(res.setHeader).toHaveBeenCalledWith(
+      'x-trace-id',
+      harness.spanNamed('operacion')!.spanContext().traceId,
+    );
   });
 
   it('SIN traza no emite nada: una cabecera vacía mandaría a buscar algo que no existe', () => {

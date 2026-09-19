@@ -75,7 +75,9 @@ describe('cabecera x-trace-id', () => {
     const res = respuesta();
     await expect(
       tracing.runInSpan('peticion', {}, () =>
-        lastValueFrom(interceptor.intercept(contextoHttp(res), { handle: () => throwError(() => error) })),
+        lastValueFrom(
+          interceptor.intercept(contextoHttp(res), { handle: () => throwError(() => error) }),
+        ),
       ),
     ).rejects.toBe(error);
     // La cabecera se fija ANTES de ejecutar el manejador, así que un 5xx también la lleva.

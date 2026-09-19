@@ -4,7 +4,12 @@
  * @system traduce un evento de integración a atributos semánticos sin exponer su contenido.
  */
 import type { Attributes } from '@opentelemetry/api';
-import { APP_ATTRIBUTES, MESSAGING_ATTRIBUTES, MESSAGING_DESTINATION, MESSAGING_SYSTEM } from '../../observability/telemetry.constants';
+import {
+  APP_ATTRIBUTES,
+  MESSAGING_ATTRIBUTES,
+  MESSAGING_DESTINATION,
+  MESSAGING_SYSTEM,
+} from '../../observability/telemetry.constants';
 
 /**
  * Productor y consumidor tienen que coincidir literalmente en estos nombres o la traza se lee
@@ -51,6 +56,8 @@ function base(input: MessagingSpanInput): Attributes {
     [MESSAGING_ATTRIBUTES.destinationName]: MESSAGING_DESTINATION,
     [APP_ATTRIBUTES.eventType]: input.eventType,
     [APP_ATTRIBUTES.entityType]: input.aggregateType,
-    ...(input.aggregateId === null || input.aggregateId === undefined ? {} : { [APP_ATTRIBUTES.entityId]: input.aggregateId }),
+    ...(input.aggregateId === null || input.aggregateId === undefined
+      ? {}
+      : { [APP_ATTRIBUTES.entityId]: input.aggregateId }),
   };
 }

@@ -1,14 +1,18 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from '@jest/globals';
 import { context, propagation, trace } from '@opentelemetry/api';
 import { AsyncLocalStorageContextManager } from '@opentelemetry/context-async-hooks';
-import { BasicTracerProvider, InMemorySpanExporter, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-base';
+import {
+  BasicTracerProvider,
+  InMemorySpanExporter,
+  SimpleSpanProcessor,
+} from '@opentelemetry/sdk-trace-base';
 import { RedactingSpanProcessor, stripQuery } from '../redacting-span-processor';
 
 describe('stripQuery', () => {
   it('quita la cadena de consulta y conserva el resto', () => {
-    expect(stripQuery('https://minio:9000/atlas/carnet.jpg?X-Amz-Signature=abc&X-Amz-Credential=def')).toBe(
-      'https://minio:9000/atlas/carnet.jpg',
-    );
+    expect(
+      stripQuery('https://minio:9000/atlas/carnet.jpg?X-Amz-Signature=abc&X-Amz-Credential=def'),
+    ).toBe('https://minio:9000/atlas/carnet.jpg');
   });
 
   it('quita también el fragmento', () => {
@@ -64,11 +68,15 @@ describe('RedactingSpanProcessor', () => {
   });
 
   it('cubre también el nombre antiguo del atributo de URL', () => {
-    expect(spanCon({ 'http.url': 'http://a/b?identifier=ana@ejemplo.com' }).attributes['http.url']).toBe('http://a/b');
+    expect(
+      spanCon({ 'http.url': 'http://a/b?identifier=ana@ejemplo.com' }).attributes['http.url'],
+    ).toBe('http://a/b');
   });
 
   it('borra los parámetros de base de datos por si alguien enciende el reporte ampliado', () => {
-    expect(spanCon({ 'db.statement.parameters': "['7712345']" }).attributes['db.statement.parameters']).toBeUndefined();
+    expect(
+      spanCon({ 'db.statement.parameters': "['7712345']" }).attributes['db.statement.parameters'],
+    ).toBeUndefined();
   });
 
   it('redacta el SQL en LOS DOS nombres que puede publicar la instrumentación de pg', () => {
@@ -84,8 +92,16 @@ describe('RedactingSpanProcessor', () => {
   });
 
   it('no toca los atributos legítimos', () => {
-    const exportado = spanCon({ 'app.module': 'credit', 'server.address': 'minio', 'db.query.text': 'SELECT 1' });
-    expect(exportado.attributes).toMatchObject({ 'app.module': 'credit', 'server.address': 'minio', 'db.query.text': 'SELECT 1' });
+    const exportado = spanCon({
+      'app.module': 'credit',
+      'server.address': 'minio',
+      'db.query.text': 'SELECT 1',
+    });
+    expect(exportado.attributes).toMatchObject({
+      'app.module': 'credit',
+      'server.address': 'minio',
+      'db.query.text': 'SELECT 1',
+    });
   });
 
   it('un span sin ninguno de esos atributos pasa sin cambios', () => {

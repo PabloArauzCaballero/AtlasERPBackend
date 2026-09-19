@@ -32,51 +32,51 @@ Dos procesos, dos nombres: `atlas-erp-api` y `atlas-erp-worker-outbox`.
 
 ## 3. Archivos creados
 
-| Archivo | Responsabilidad |
-| --- | --- |
-| `src/observability/telemetry.{types,constants,config}.ts` | Contratos, nombres y lectura del entorno |
-| `src/observability/telemetry.instrumentations.ts` | Las cuatro instrumentaciones y sus exclusiones |
-| `src/observability/sql-redaction.ts` | Borra los literales que Sequelize incrusta |
-| `src/observability/redacting-span-processor.ts` | Quita la query de las URLs antes de exportar |
-| `src/observability/tracing.ts` | Arranque y cierre del SDK |
-| `src/common/observability/tracing.service.ts` | Fachada para el dominio |
-| `src/common/observability/trace-context.service.ts` | Lee `trace_id` / `span_id` activos |
-| `src/common/observability/trace-error.ts` | Registro uniforme de excepciones |
-| `src/common/observability/trace-id-header.ts` | Cabecera `x-trace-id`, compartida por interceptor y filtro |
-| `src/common/observability/trace-response.interceptor.ts` | Camino feliz de esa cabecera |
-| `src/common/observability/trace-log-fields.ts` | Campos de traza para el `mixin` de Pino |
-| `src/common/observability/messaging-trace.service.ts` | Inyección y extracción entre procesos |
-| `src/common/observability/messaging-attributes.ts` | Atributos de mensajería, definidos una vez |
-| `src/database/migrations/20260918230000-outbox-trace-context.sql` | Columna `trace_context jsonb` |
-| `docker-compose.jaeger.yml` | Jaeger local, capa sobre el compose principal |
-| `infra/otel-collector/otel-collector.config.yml` | Collector de producción |
-| `scripts/verify-jaeger.sh` + `scripts/emit-verification-span.ts` | Comprobación de punta a punta |
-| `docs/observability/*.md` | Ocho documentos |
-| 12 ficheros de prueba | 122 unitarias + 4 de integración |
+| Archivo                                                           | Responsabilidad                                            |
+| ----------------------------------------------------------------- | ---------------------------------------------------------- |
+| `src/observability/telemetry.{types,constants,config}.ts`         | Contratos, nombres y lectura del entorno                   |
+| `src/observability/telemetry.instrumentations.ts`                 | Las cuatro instrumentaciones y sus exclusiones             |
+| `src/observability/sql-redaction.ts`                              | Borra los literales que Sequelize incrusta                 |
+| `src/observability/redacting-span-processor.ts`                   | Quita la query de las URLs antes de exportar               |
+| `src/observability/tracing.ts`                                    | Arranque y cierre del SDK                                  |
+| `src/common/observability/tracing.service.ts`                     | Fachada para el dominio                                    |
+| `src/common/observability/trace-context.service.ts`               | Lee `trace_id` / `span_id` activos                         |
+| `src/common/observability/trace-error.ts`                         | Registro uniforme de excepciones                           |
+| `src/common/observability/trace-id-header.ts`                     | Cabecera `x-trace-id`, compartida por interceptor y filtro |
+| `src/common/observability/trace-response.interceptor.ts`          | Camino feliz de esa cabecera                               |
+| `src/common/observability/trace-log-fields.ts`                    | Campos de traza para el `mixin` de Pino                    |
+| `src/common/observability/messaging-trace.service.ts`             | Inyección y extracción entre procesos                      |
+| `src/common/observability/messaging-attributes.ts`                | Atributos de mensajería, definidos una vez                 |
+| `src/database/migrations/20260918230000-outbox-trace-context.sql` | Columna `trace_context jsonb`                              |
+| `docker-compose.jaeger.yml`                                       | Jaeger local, capa sobre el compose principal              |
+| `infra/otel-collector/otel-collector.config.yml`                  | Collector de producción                                    |
+| `scripts/verify-jaeger.sh` + `scripts/emit-verification-span.ts`  | Comprobación de punta a punta                              |
+| `docs/observability/*.md`                                         | Ocho documentos                                            |
+| 12 ficheros de prueba                                             | 122 unitarias + 4 de integración                           |
 
 ## 4. Archivos modificados
 
-| Archivo | Cambio |
-| --- | --- |
-| `src/main.ts` | `startTracing('atlas-erp-api')` como primera sentencia; cierre en SIGTERM/SIGINT; interceptor de traza el más externo |
-| `src/workers/outbox/outbox.worker.ts` | SDK propio, span CONSUMER enlazado, lectura de `trace_context`, cierre antes de soltar la conexión |
-| `src/app.module.ts` | `mixin` de Pino con los campos de traza; proveedor del interceptor |
-| `src/common/observability/observability.module.ts` | Registra y exporta la capa de trazado |
-| `src/common/filters/http-exception.filter.ts` | Marca el span y **emite `x-trace-id`** también aquí |
-| `src/database/models/event_outbox.model.ts` | Columna `traceContext` |
-| `src/database/startup-migrations.ts`, `package.json` | La migración nueva en las **tres** listas |
-| `accounting-documents.service.ts` | Dos spans de negocio; las tres publicaciones al outbox unificadas con span PRODUCER y portador |
-| `email-messaging.processor.ts`, `b2b-overdue-sweep.processor.ts` | Traza raíz por tanda |
-| `.env.example` | 13 variables documentadas |
+| Archivo                                                          | Cambio                                                                                                                |
+| ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `src/main.ts`                                                    | `startTracing('atlas-erp-api')` como primera sentencia; cierre en SIGTERM/SIGINT; interceptor de traza el más externo |
+| `src/workers/outbox/outbox.worker.ts`                            | SDK propio, span CONSUMER enlazado, lectura de `trace_context`, cierre antes de soltar la conexión                    |
+| `src/app.module.ts`                                              | `mixin` de Pino con los campos de traza; proveedor del interceptor                                                    |
+| `src/common/observability/observability.module.ts`               | Registra y exporta la capa de trazado                                                                                 |
+| `src/common/filters/http-exception.filter.ts`                    | Marca el span y **emite `x-trace-id`** también aquí                                                                   |
+| `src/database/models/event_outbox.model.ts`                      | Columna `traceContext`                                                                                                |
+| `src/database/startup-migrations.ts`, `package.json`             | La migración nueva en las **tres** listas                                                                             |
+| `accounting-documents.service.ts`                                | Dos spans de negocio; las tres publicaciones al outbox unificadas con span PRODUCER y portador                        |
+| `email-messaging.processor.ts`, `b2b-overdue-sweep.processor.ts` | Traza raíz por tanda                                                                                                  |
+| `.env.example`                                                   | 13 variables documentadas                                                                                             |
 
 ## 5. Instrumentaciones activas
 
-| Tecnología | Paquete | Qué cubre |
-| --- | --- | --- |
-| HTTP | `instrumentation-http@0.222` | Entrante y saliente — **incluido axios**, que emite por `http` |
-| Express | `instrumentation-express@0.70` | Enrutado (**sin** capas de middleware) |
-| PostgreSQL | `instrumentation-pg@0.74` | Sequelize y el `Client` crudo del worker, con el SQL redactado |
-| `fetch` | `instrumentation-undici@0.32` | Correo, documentos y la pasarela de soporte |
+| Tecnología | Paquete                        | Qué cubre                                                      |
+| ---------- | ------------------------------ | -------------------------------------------------------------- |
+| HTTP       | `instrumentation-http@0.222`   | Entrante y saliente — **incluido axios**, que emite por `http` |
+| Express    | `instrumentation-express@0.70` | Enrutado (**sin** capas de middleware)                         |
+| PostgreSQL | `instrumentation-pg@0.74`      | Sequelize y el `Client` crudo del worker, con el SQL redactado |
+| `fetch`    | `instrumentation-undici@0.32`  | Correo, documentos y la pasarela de soporte                    |
 
 **No se instrumenta Redis** (el ERP no lo usa), **ni axios**, **ni Sequelize**: los dos últimos
 emiten por `http` y `pg`, que ya están instrumentados, y añadirlos duplicaría cada llamada.
@@ -115,16 +115,16 @@ ninguna parte**, pese a que Sequelize lo incrusta en el `ILIKE`.
 
 ## 10. Pruebas realizadas
 
-| Comando | Resultado |
-| --- | --- |
-| `yarn type-check` | ✅ |
-| `yarn lint` | ✅ sin avisos |
-| `yarn check:migration-lists` | ✅ 28 archivos, mismo orden en las tres listas |
-| `yarn test` | ✅ **1133 pruebas, 60 suites** (eran 1011) |
-| Integración del outbox contra PostgreSQL real | ✅ 4 pruebas; **se SALTAN** sin base, no fingen pasar |
-| Migración contra PostgreSQL 16 | ✅ aplicada + idempotente en tres pasadas |
-| `yarn jaeger:verify` | ✅ cadena completa |
-| E2E manual contra Jaeger real | ✅ jerarquía correcta, sondas excluidas, sin fugas, log correlacionado |
+| Comando                                       | Resultado                                                              |
+| --------------------------------------------- | ---------------------------------------------------------------------- |
+| `yarn type-check`                             | ✅                                                                     |
+| `yarn lint`                                   | ✅ sin avisos                                                          |
+| `yarn check:migration-lists`                  | ✅ 28 archivos, mismo orden en las tres listas                         |
+| `yarn test`                                   | ✅ **1133 pruebas, 60 suites** (eran 1011)                             |
+| Integración del outbox contra PostgreSQL real | ✅ 4 pruebas; **se SALTAN** sin base, no fingen pasar                  |
+| Migración contra PostgreSQL 16                | ✅ aplicada + idempotente en tres pasadas                              |
+| `yarn jaeger:verify`                          | ✅ cadena completa                                                     |
+| E2E manual contra Jaeger real                 | ✅ jerarquía correcta, sondas excluidas, sin fugas, log correlacionado |
 
 La configuración del Collector se validó con el binario real
 (`otel/opentelemetry-collector-contrib:0.138.0 validate`).
@@ -150,39 +150,39 @@ empezar). Retención de 7 días. UI nunca publicada. Ver `03-production-topology
 
 ## 14. Riesgos restantes
 
-| Riesgo | Estado |
-| --- | --- |
-| **Sobrecarga sin medir bajo carga** | Abierto: el repositorio no tiene arnés de carga |
-| Subir `pg`, `express` o `undici` puede dejar su instrumentación muda sin un solo error | Mitigado con procedimiento en el runbook §1; **no hay gate automático** |
-| `publishEvent` del worker sigue siendo un stub que sólo registra en el log | Preexistente. Cuando se conecte un broker real, el `traceparent` debe pasar a las CABECERAS del mensaje: la columna es el transporte correcto mientras el transporte sea la propia tabla |
-| `package-lock.json` desactualizado junto a `yarn.lock` | Preexistente; se ha usado **yarn**, que es lo que el monorepo exige |
-| La instrumentación de HTTP saliente no se ejercitó contra un proveedor real | Abierto |
+| Riesgo                                                                                 | Estado                                                                                                                                                                                   |
+| -------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Sobrecarga sin medir bajo carga**                                                    | Abierto: el repositorio no tiene arnés de carga                                                                                                                                          |
+| Subir `pg`, `express` o `undici` puede dejar su instrumentación muda sin un solo error | Mitigado con procedimiento en el runbook §1; **no hay gate automático**                                                                                                                  |
+| `publishEvent` del worker sigue siendo un stub que sólo registra en el log             | Preexistente. Cuando se conecte un broker real, el `traceparent` debe pasar a las CABECERAS del mensaje: la columna es el transporte correcto mientras el transporte sea la propia tabla |
+| `package-lock.json` desactualizado junto a `yarn.lock`                                 | Preexistente; se ha usado **yarn**, que es lo que el monorepo exige                                                                                                                      |
+| La instrumentación de HTTP saliente no se ejercitó contra un proveedor real            | Abierto                                                                                                                                                                                  |
 
 ## 15. Matriz de cumplimiento
 
-| Requisito | Estado | Evidencia |
-| --- | ---: | --- |
-| Jaeger se levanta localmente | Cumplido | `docker-compose.jaeger.yml`, `yarn jaeger:up` |
-| Arranca con observabilidad encendida / apagada | Cumplido | E2E en `:3098` y `telemetry.config.spec.ts` |
-| Funciona con Jaeger caído | Cumplido | Exportación asíncrona; el proceso no cae |
-| Trazas HTTP | Cumplido | Traza real |
-| Controllers en el flujo | Cumplido | `request handler - …` |
-| Spans de negocio | Cumplido | `02-business-spans-catalog.md` |
-| PostgreSQL | Cumplido | `pg.query` con SQL redactado |
-| Sequelize instrumentado | Cumplido **por `pg`** | Decisión justificada en `01` |
-| Redis | **No aplica** | El ERP no usa Redis; se documenta en vez de instalar el paquete |
-| HTTP externo | Parcial | `http` y `undici` activos; **no ejercitado** con un proveedor real |
-| Errores marcados | Cumplido | 5xx marca el span; 4xx sólo deja su código |
-| Logs con `trace_id` | Cumplido | Verificado contra la cabecera de la misma petición |
-| `x-trace-id` en la respuesta | Cumplido **incluido el 401 de un guard** | Ver §16 |
-| API y worker en la misma traza | Cumplido | 4 pruebas contra PostgreSQL real |
-| Cron con traza raíz | Cumplido | Los dos procesadores |
-| Health checks excluidos | Cumplido | Verificado |
-| Sin tokens, contraseñas ni datos de negocio | Cumplido | Búsqueda directa sobre la traza real |
-| Pruebas unitarias / integración / E2E | Cumplido | 1133 / 4 / `jaeger:verify` |
-| Lint y build | Cumplido | Sin avisos |
-| Documentación, runbook y diseño de producción | Cumplido | Ocho documentos |
-| **Rendimiento medido** | **NO cumplido** | Declarado abierto |
+| Requisito                                      |                                   Estado | Evidencia                                                          |
+| ---------------------------------------------- | ---------------------------------------: | ------------------------------------------------------------------ |
+| Jaeger se levanta localmente                   |                                 Cumplido | `docker-compose.jaeger.yml`, `yarn jaeger:up`                      |
+| Arranca con observabilidad encendida / apagada |                                 Cumplido | E2E en `:3098` y `telemetry.config.spec.ts`                        |
+| Funciona con Jaeger caído                      |                                 Cumplido | Exportación asíncrona; el proceso no cae                           |
+| Trazas HTTP                                    |                                 Cumplido | Traza real                                                         |
+| Controllers en el flujo                        |                                 Cumplido | `request handler - …`                                              |
+| Spans de negocio                               |                                 Cumplido | `02-business-spans-catalog.md`                                     |
+| PostgreSQL                                     |                                 Cumplido | `pg.query` con SQL redactado                                       |
+| Sequelize instrumentado                        |                    Cumplido **por `pg`** | Decisión justificada en `01`                                       |
+| Redis                                          |                            **No aplica** | El ERP no usa Redis; se documenta en vez de instalar el paquete    |
+| HTTP externo                                   |                                  Parcial | `http` y `undici` activos; **no ejercitado** con un proveedor real |
+| Errores marcados                               |                                 Cumplido | 5xx marca el span; 4xx sólo deja su código                         |
+| Logs con `trace_id`                            |                                 Cumplido | Verificado contra la cabecera de la misma petición                 |
+| `x-trace-id` en la respuesta                   | Cumplido **incluido el 401 de un guard** | Ver §16                                                            |
+| API y worker en la misma traza                 |                                 Cumplido | 4 pruebas contra PostgreSQL real                                   |
+| Cron con traza raíz                            |                                 Cumplido | Los dos procesadores                                               |
+| Health checks excluidos                        |                                 Cumplido | Verificado                                                         |
+| Sin tokens, contraseñas ni datos de negocio    |                                 Cumplido | Búsqueda directa sobre la traza real                               |
+| Pruebas unitarias / integración / E2E          |                                 Cumplido | 1133 / 4 / `jaeger:verify`                                         |
+| Lint y build                                   |                                 Cumplido | Sin avisos                                                         |
+| Documentación, runbook y diseño de producción  |                                 Cumplido | Ocho documentos                                                    |
+| **Rendimiento medido**                         |                          **NO cumplido** | Declarado abierto                                                  |
 
 ## 16. Un hallazgo que sólo apareció ejecutándolo
 

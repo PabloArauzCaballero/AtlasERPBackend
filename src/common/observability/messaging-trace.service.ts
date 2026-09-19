@@ -4,7 +4,13 @@
  * @system inyecta y extrae cabeceras W3C en metadata_json para unir API y worker en una traza.
  */
 import { Injectable } from '@nestjs/common';
-import { type Attributes, type Context, SpanKind, context as otelContext, propagation } from '@opentelemetry/api';
+import {
+  type Attributes,
+  type Context,
+  SpanKind,
+  context as otelContext,
+  propagation,
+} from '@opentelemetry/api';
 import { TRACE_CARRIER_KEY } from '../../observability/telemetry.constants';
 import type { SpanOperation, TraceCarrier } from '../../observability/telemetry.types';
 import { TracingService } from './tracing.service';
@@ -52,7 +58,9 @@ export class MessagingTraceService {
    * Conserva la metadata existente y NO toca el objeto recibido: el sobre del evento tiene su
    * propio contrato validado y la trazabilidad no puede alterarlo.
    */
-  withCarrier(metadata: Readonly<Record<string, unknown>> | null | undefined): Record<string, unknown> | null {
+  withCarrier(
+    metadata: Readonly<Record<string, unknown>> | null | undefined,
+  ): Record<string, unknown> | null {
     const carrier = this.inject();
     const base = metadata ?? {};
     if (Object.keys(carrier).length === 0) return metadata === undefined ? null : { ...base };
@@ -71,8 +79,17 @@ export class MessagingTraceService {
    * la traza del productor; si no, `extract` devolvió el contexto activo —vacío en un worker— y se
    * abre una traza nueva.
    */
-  runAsConsumer<T>(name: string, carrier: unknown, attributes: Attributes, operation: SpanOperation<T>): Promise<T> {
-    return this.tracing.runInSpanWith(name, { attributes, kind: SpanKind.CONSUMER, parentContext: this.extract(carrier) }, operation);
+  runAsConsumer<T>(
+    name: string,
+    carrier: unknown,
+    attributes: Attributes,
+    operation: SpanOperation<T>,
+  ): Promise<T> {
+    return this.tracing.runInSpanWith(
+      name,
+      { attributes, kind: SpanKind.CONSUMER, parentContext: this.extract(carrier) },
+      operation,
+    );
   }
 }
 
@@ -86,6 +103,8 @@ function readCarrier(envelope: unknown): TraceCarrier | undefined {
   const record = envelope as Record<string, unknown>;
   const raw = TRACE_CARRIER_KEY in record ? record[TRACE_CARRIER_KEY] : record;
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return undefined;
-  const entries = Object.entries(raw).filter((entry): entry is [string, string] => typeof entry[1] === 'string');
+  const entries = Object.entries(raw).filter(
+    (entry): entry is [string, string] => typeof entry[1] === 'string',
+  );
   return entries.length === 0 ? undefined : Object.fromEntries(entries);
 }

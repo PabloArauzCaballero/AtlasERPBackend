@@ -29,7 +29,12 @@ import { TracingService } from './tracing.service';
  */
 @Global()
 @Module({
-  providers: [HttpAccessRegistryService, TracingService, TraceContextService, MessagingTraceService],
+  providers: [
+    HttpAccessRegistryService,
+    TracingService,
+    TraceContextService,
+    MessagingTraceService,
+  ],
   exports: [HttpAccessRegistryService, TracingService, TraceContextService, MessagingTraceService],
 })
 export class ObservabilityModule {}

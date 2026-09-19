@@ -34,20 +34,20 @@ Nunca, en ningún span, evento, atributo, nombre de span ni recurso:
 
 La política no es una promesa: cada prohibición tiene un mecanismo que la sostiene.
 
-| Riesgo | Mecanismo | Archivo |
-| --- | --- | --- |
-| Cabeceras con credenciales | **No** se activa `headersToSpanAttributes` | `telemetry.instrumentations.ts` |
-| Valores de parámetros SQL | `PgInstrumentation({ enhancedDatabaseReporting: false })` | ídem |
-| **Literales incrustados en el SQL** | `redactSqlLiterals` en el `requestHook` de `pg` | `sql-redaction.ts` |
-| **Credencial en una URL firmada de MinIO** | `RedactingSpanProcessor` borra `url.query` y recorta `url.full` | `redacting-span-processor.ts` |
-| Cuerpo de petición | Ninguna instrumentación de cuerpo está activa | ídem |
-| Mensaje de excepción como estado | `recordSpanError` usa un **código estable** | `trace-error.ts` |
-| Valor lanzado que no es `Error` | Se sustituye por su código antes de registrarlo | ídem |
-| Datos del outbox en la traza | Sólo tipo y agregado; el portador viaja en la columna `trace_context`, fuera del payload | `accounting-documents.service.ts` |
-| Nombres de span con identificadores | Los nombres son constantes, no plantillas | `telemetry.constants.ts` |
-| Cadena de consulta | `url.query` se borra en el Collector | `otel-collector.config.yml` |
-| Cualquier atributo nuevo que se cuele | `attributes/redact` en el Collector | ídem |
-| Sondas de salud con ruido | Exclusión en el proceso **y** filtro en el Collector | ambos |
+| Riesgo                                     | Mecanismo                                                                                | Archivo                           |
+| ------------------------------------------ | ---------------------------------------------------------------------------------------- | --------------------------------- |
+| Cabeceras con credenciales                 | **No** se activa `headersToSpanAttributes`                                               | `telemetry.instrumentations.ts`   |
+| Valores de parámetros SQL                  | `PgInstrumentation({ enhancedDatabaseReporting: false })`                                | ídem                              |
+| **Literales incrustados en el SQL**        | `redactSqlLiterals` en el `requestHook` de `pg`                                          | `sql-redaction.ts`                |
+| **Credencial en una URL firmada de MinIO** | `RedactingSpanProcessor` borra `url.query` y recorta `url.full`                          | `redacting-span-processor.ts`     |
+| Cuerpo de petición                         | Ninguna instrumentación de cuerpo está activa                                            | ídem                              |
+| Mensaje de excepción como estado           | `recordSpanError` usa un **código estable**                                              | `trace-error.ts`                  |
+| Valor lanzado que no es `Error`            | Se sustituye por su código antes de registrarlo                                          | ídem                              |
+| Datos del outbox en la traza               | Sólo tipo y agregado; el portador viaja en la columna `trace_context`, fuera del payload | `accounting-documents.service.ts` |
+| Nombres de span con identificadores        | Los nombres son constantes, no plantillas                                                | `telemetry.constants.ts`          |
+| Cadena de consulta                         | `url.query` se borra en el Collector                                                     | `otel-collector.config.yml`       |
+| Cualquier atributo nuevo que se cuele      | `attributes/redact` en el Collector                                                      | ídem                              |
+| Sondas de salud con ruido                  | Exclusión en el proceso **y** filtro en el Collector                                     | ambos                             |
 
 La fila de los literales del SQL no es teórica: se midió en este backend. Una búsqueda en
 `GET /api/v1/accounting/business-partners?search=…` genera
@@ -68,12 +68,12 @@ contenido: **la superficie de datos personales en los logs no cambia por haber a
 
 ## Retención y acceso
 
-| | |
-| --- | --- |
-| Retención en producción | 7 días (ver `03-production-topology.md`) |
-| Acceso a la UI | Sólo tras el proxy autenticado de consolas internas; nunca publicada |
-| Acceso al Collector | Sólo desde la red de aplicación |
-| Auditoría de lectura | **No la hay en Jaeger.** Es la razón por la que no puede contener datos personales: no se puede auditar quién los miró |
+|                         |                                                                                                                        |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Retención en producción | 7 días (ver `03-production-topology.md`)                                                                               |
+| Acceso a la UI          | Sólo tras el proxy autenticado de consolas internas; nunca publicada                                                   |
+| Acceso al Collector     | Sólo desde la red de aplicación                                                                                        |
+| Auditoría de lectura    | **No la hay en Jaeger.** Es la razón por la que no puede contener datos personales: no se puede auditar quién los miró |
 
 Esa última fila es el argumento central de todo el documento. La base de datos registra quién
 leyó qué; un backend de trazas, no. Lo que no puede auditarse, no puede contener PII.
@@ -94,11 +94,11 @@ Si se detecta un dato prohibido en una traza:
 
 ## Responsables
 
-| Rol | Responsabilidad |
-| --- | --- |
-| Quien escribe un span nuevo | Justificar cada atributo en `02-business-spans-catalog.md`, incluida su fila de privacidad |
-| Quien revisa el cambio | Rechazar cualquier atributo cuyo valor no pertenezca a un catálogo cerrado o no sea un identificador opaco |
-| Operación | Retención, acceso a la UI y aislamiento de red |
+| Rol                         | Responsabilidad                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Quien escribe un span nuevo | Justificar cada atributo en `02-business-spans-catalog.md`, incluida su fila de privacidad                 |
+| Quien revisa el cambio      | Rechazar cualquier atributo cuyo valor no pertenezca a un catálogo cerrado o no sea un identificador opaco |
+| Operación                   | Retención, acceso a la UI y aislamiento de red                                                             |
 
 ## Revisión
 

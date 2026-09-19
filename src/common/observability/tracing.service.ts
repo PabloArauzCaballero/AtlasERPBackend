@@ -55,18 +55,27 @@ export class TracingService {
    * Ante una excepción la registra, marca el span como error y RELANZA. La observabilidad no
    * altera el flujo de control ni convierte un fallo en un éxito.
    */
-  runInSpanWith<T>(name: string, configuration: RunInSpanConfiguration, operation: SpanOperation<T>): Promise<T> {
+  runInSpanWith<T>(
+    name: string,
+    configuration: RunInSpanConfiguration,
+    operation: SpanOperation<T>,
+  ): Promise<T> {
     const parent = configuration.parentContext ?? otelContext.active();
-    return this.tracer.startActiveSpan(name, toSpanOptions(configuration), parent, async (span: Span): Promise<T> => {
-      try {
-        return await operation(span);
-      } catch (error: unknown) {
-        recordSpanError(span, error);
-        throw error;
-      } finally {
-        span.end();
-      }
-    });
+    return this.tracer.startActiveSpan(
+      name,
+      toSpanOptions(configuration),
+      parent,
+      async (span: Span): Promise<T> => {
+        try {
+          return await operation(span);
+        } catch (error: unknown) {
+          recordSpanError(span, error);
+          throw error;
+        } finally {
+          span.end();
+        }
+      },
+    );
   }
 
   /**

@@ -2,10 +2,10 @@
 
 Dos ejes que responden preguntas distintas y no se sustituyen:
 
-| Eje | Responde | Dónde |
-| --- | --- | --- |
+| Eje                                 | Responde                                     | Dónde        |
+| ----------------------------------- | -------------------------------------------- | ------------ |
 | **Trazas** (OpenTelemetry → Jaeger) | «¿qué pasó en ESTA petición?», caso por caso | UI de Jaeger |
-| **Logs** (Pino) | «¿qué dijo el código mientras pasaba?» | stdout |
+| **Logs** (Pino)                     | «¿qué dijo el código mientras pasaba?»       | stdout       |
 
 Los dos se cruzan por el `trace_id`.
 
@@ -112,9 +112,9 @@ El catálogo completo y el porqué de cada uno: `02-business-spans-catalog.md`.
 ### Eventos y atributos
 
 ```ts
-this.tracing.addEvent('rules.completed');            // un hito DENTRO de la operación
-this.tracing.setAttribute('credit.decision', kind);  // un dato del span en curso
-this.tracing.recordException(error);                 // un fallo que se gestionó sin propagarse
+this.tracing.addEvent('rules.completed'); // un hito DENTRO de la operación
+this.tracing.setAttribute('credit.decision', kind); // un dato del span en curso
+this.tracing.recordException(error); // un fallo que se gestionó sin propagarse
 ```
 
 Un hito es un **evento**, no un span hijo: los spans hijos son para llamadas a otro componente.
@@ -140,7 +140,7 @@ Cada proceso arranca **su propio** SDK con **su propio** nombre, lo primero de t
 ```ts
 import { startTracing, stopTracing } from '../../observability/tracing';
 
-startTracing('atlas-erp-worker-outbox');   // ANTES de importar pg, Sequelize o cualquier otra cosa
+startTracing('atlas-erp-worker-outbox'); // ANTES de importar pg, Sequelize o cualquier otra cosa
 ```
 
 El worker de outbox **no levanta el contenedor de NestJS**, así que construye a mano lo que
@@ -194,27 +194,27 @@ Fuera de una traza no se emite ningún campo: **nunca un identificador inventado
 
 ## Problemas frecuentes
 
-| Síntoma | Causa más probable |
-| --- | --- |
-| No hay ninguna traza | `OTEL_ENABLED` no es `true` |
-| El servicio no aparece en Jaeger | Destino mal: revisa `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`. `yarn jaeger:verify` lo dice |
-| La traza existe pero está vacía por dentro | El SDK arrancó tarde. Tiene que ser lo PRIMERO del entrypoint; el propio arranque avisa por el canal de diagnóstico |
-| Faltan los spans de una biblioteca | Versión fuera del rango que soporta su instrumentación. Le pasó a AtlasBackend con ioredis 6: **cero spans, cero errores** |
-| Los logs no llevan `trace_id` | Se está ejecutando fuera del contexto de la petición |
-| El worker abre trazas sueltas | La fila no llevaba portador, o se escribió antes de esta propagación |
-| Las sondas de salud llenan Jaeger | No deberían: están excluidas. Si aparecen, revisa `UNTRACED_HTTP_PATH_SUFFIXES` |
-| Un 401 sale sin `x-trace-id` | No debería: los guards corren antes que los interceptores, y por eso la cabecera se emite TAMBIÉN desde el filtro de excepciones |
+| Síntoma                                    | Causa más probable                                                                                                               |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| No hay ninguna traza                       | `OTEL_ENABLED` no es `true`                                                                                                      |
+| El servicio no aparece en Jaeger           | Destino mal: revisa `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`. `yarn jaeger:verify` lo dice                                           |
+| La traza existe pero está vacía por dentro | El SDK arrancó tarde. Tiene que ser lo PRIMERO del entrypoint; el propio arranque avisa por el canal de diagnóstico              |
+| Faltan los spans de una biblioteca         | Versión fuera del rango que soporta su instrumentación. Le pasó a AtlasBackend con ioredis 6: **cero spans, cero errores**       |
+| Los logs no llevan `trace_id`              | Se está ejecutando fuera del contexto de la petición                                                                             |
+| El worker abre trazas sueltas              | La fila no llevaba portador, o se escribió antes de esta propagación                                                             |
+| Las sondas de salud llenan Jaeger          | No deberían: están excluidas. Si aparecen, revisa `UNTRACED_HTTP_PATH_SUFFIXES`                                                  |
+| Un 401 sale sin `x-trace-id`               | No debería: los guards corren antes que los interceptores, y por eso la cabecera se emite TAMBIÉN desde el filtro de excepciones |
 
 El diagnóstico completo, en `06-operational-runbook.md`.
 
 ## Los documentos
 
-| Archivo | Qué contiene |
-| --- | --- |
-| `00-current-state-audit.md` | Qué había antes y qué huecos tenía |
-| `01-architecture-design.md` | Decisiones y sus alternativas descartadas |
+| Archivo                        | Qué contiene                                              |
+| ------------------------------ | --------------------------------------------------------- |
+| `00-current-state-audit.md`    | Qué había antes y qué huecos tenía                        |
+| `01-architecture-design.md`    | Decisiones y sus alternativas descartadas                 |
 | `02-business-spans-catalog.md` | Cada span manual, sus atributos y su riesgo de privacidad |
-| `03-production-topology.md` | Collector, Jaeger, almacenamiento, retención, seguridad |
-| `04-data-privacy-policy.md` | Qué no puede registrarse y qué lo impide |
-| `05-performance-results.md` | Lo medido y lo que falta medir |
-| `06-operational-runbook.md` | Qué hacer cuando algo falla en producción |
+| `03-production-topology.md`    | Collector, Jaeger, almacenamiento, retención, seguridad   |
+| `04-data-privacy-policy.md`    | Qué no puede registrarse y qué lo impide                  |
+| `05-performance-results.md`    | Lo medido y lo que falta medir                            |
+| `06-operational-runbook.md`    | Qué hacer cuando algo falla en producción                 |

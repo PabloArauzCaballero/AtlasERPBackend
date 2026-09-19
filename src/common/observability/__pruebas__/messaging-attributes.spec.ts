@@ -18,11 +18,15 @@ describe('atributos de mensajería del outbox', () => {
   });
 
   it('publica el agregado cuando lo hay: es como soporte encuentra la traza de un caso', () => {
-    expect(outboxProducerAttributes({ ...evento, aggregateId: 'CRA-1' })['app.entity.id']).toBe('CRA-1');
+    expect(outboxProducerAttributes({ ...evento, aggregateId: 'CRA-1' })['app.entity.id']).toBe(
+      'CRA-1',
+    );
   });
 
   it('un agregado nulo se omite en vez de publicarse como cadena vacía', () => {
-    expect(Object.keys(outboxProducerAttributes({ ...evento, aggregateId: null }))).not.toContain('app.entity.id');
+    expect(Object.keys(outboxProducerAttributes({ ...evento, aggregateId: null }))).not.toContain(
+      'app.entity.id',
+    );
   });
 
   it('las claves opcionales se OMITEN en vez de declararse indefinidas', () => {

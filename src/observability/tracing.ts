@@ -4,12 +4,24 @@
  * @system inicializa trazas y telemetría antes del runtime, fuera del contenedor de NestJS.
  */
 import { DiagConsoleLogger, DiagLogLevel, diag } from '@opentelemetry/api';
-import { CompositePropagator, W3CBaggagePropagator, W3CTraceContextPropagator } from '@opentelemetry/core';
+import {
+  CompositePropagator,
+  W3CBaggagePropagator,
+  W3CTraceContextPropagator,
+} from '@opentelemetry/core';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { NodeSDK } from '@opentelemetry/sdk-node';
-import { BatchSpanProcessor, ParentBasedSampler, TraceIdRatioBasedSampler } from '@opentelemetry/sdk-trace-base';
-import { ATTR_SERVICE_NAME, ATTR_SERVICE_NAMESPACE, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions';
+import {
+  BatchSpanProcessor,
+  ParentBasedSampler,
+  TraceIdRatioBasedSampler,
+} from '@opentelemetry/sdk-trace-base';
+import {
+  ATTR_SERVICE_NAME,
+  ATTR_SERVICE_NAMESPACE,
+  ATTR_SERVICE_VERSION,
+} from '@opentelemetry/semantic-conventions';
 import { RedactingSpanProcessor } from './redacting-span-processor';
 import { readTelemetryConfig } from './telemetry.config';
 import { buildInstrumentations } from './telemetry.instrumentations';
@@ -63,7 +75,12 @@ export function startTracing(defaultServiceName?: string): boolean {
     // SDK crearía su propio lote y no habría dónde intercalar esto.
     spanProcessors: [
       new RedactingSpanProcessor(),
-      new BatchSpanProcessor(new OTLPTraceExporter({ url: config.tracesEndpoint, timeoutMillis: config.exportTimeoutMs })),
+      new BatchSpanProcessor(
+        new OTLPTraceExporter({
+          url: config.tracesEndpoint,
+          timeoutMillis: config.exportTimeoutMs,
+        }),
+      ),
     ],
     // Basado en el padre: si un servicio aguas arriba ya decidió muestrear una traza, se respeta
     // su decisión, porque media traza no sirve para nada. La proporción sólo gobierna las trazas
@@ -116,7 +133,9 @@ export function activeTelemetryConfig(): TelemetryConfig | undefined {
 function warnIfInstrumentedModulesAlreadyLoaded(): void {
   if (typeof require === 'undefined' || typeof require.cache !== 'object') return;
   const loaded = Object.keys(require.cache);
-  const late = INSTRUMENTED_MODULES.filter((marker) => loaded.some((path) => path.split('\\').join('/').includes(marker)));
+  const late = INSTRUMENTED_MODULES.filter((marker) =>
+    loaded.some((path) => path.split('\\').join('/').includes(marker)),
+  );
   if (late.length === 0) return;
   diag.warn(
     `El SDK arrancó DESPUÉS de cargar ${late.join(', ')}: esos módulos no quedarán instrumentados. ` +

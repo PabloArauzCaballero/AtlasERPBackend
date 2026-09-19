@@ -673,5 +673,4 @@ export class AccountingDocumentsService {
         ),
     );
   }
-
 }

@@ -32,18 +32,18 @@ flowchart LR
 
 ## Decisiones
 
-| Decisión | Elegido | Alternativa descartada | Por qué |
-| --- | --- | --- | --- |
-| Protocolo | **OTLP/HTTP** | gRPC | Un puerto TCP normal y sin `@grpc/grpc-js` en la imagen |
-| Instrumentaciones | **Cuatro, explícitas**: `http`, `express`, `pg`, `undici` | `auto-instrumentations-node` | Cuarenta parches para usar cuatro. `fs` y `dns` entierran la operación de negocio |
-| **Sin `ioredis`** | — | Instalarla igualmente | **El ERP no usa Redis.** Instrumentar lo que no existe es peso muerto |
-| **Sin instrumentación de axios** | `http` la cubre | `instrumentation-axios` de terceros | Axios en Node emite por el módulo `http`, ya instrumentado. Añadirla duplicaría cada llamada |
-| Sequelize | **No se instrumenta** | Paquete de terceros | El ORM emite por `pg`, ya instrumentado; duplicaría cada consulta |
-| Muestreo | `ParentBasedSampler(TraceIdRatioBased)` | Siempre-sí | Si un servicio aguas arriba decidió muestrear, se respeta. **Importa aquí**: el ERP recibe llamadas de AtlasBackend y del portal |
-| Propagadores | `tracecontext` + `baggage` | B3 | Sin consumidor heredado que lo exija |
-| Logs | **`mixin` de Pino** | Sustituir el logger | Pino ya está montado y con redacción; el mixin añade tres campos a CADA línea, no sólo a las de HTTP |
-| Portador entre procesos | **Columna nueva `trace_context jsonb`** | Clave reservada dentro de `payload` | Ver abajo |
-| Activación | Opt-in (`OTEL_ENABLED=false`) | Siempre encendido | Quien no mira trazas no paga parcheo ni conexiones |
+| Decisión                         | Elegido                                                   | Alternativa descartada              | Por qué                                                                                                                          |
+| -------------------------------- | --------------------------------------------------------- | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Protocolo                        | **OTLP/HTTP**                                             | gRPC                                | Un puerto TCP normal y sin `@grpc/grpc-js` en la imagen                                                                          |
+| Instrumentaciones                | **Cuatro, explícitas**: `http`, `express`, `pg`, `undici` | `auto-instrumentations-node`        | Cuarenta parches para usar cuatro. `fs` y `dns` entierran la operación de negocio                                                |
+| **Sin `ioredis`**                | —                                                         | Instalarla igualmente               | **El ERP no usa Redis.** Instrumentar lo que no existe es peso muerto                                                            |
+| **Sin instrumentación de axios** | `http` la cubre                                           | `instrumentation-axios` de terceros | Axios en Node emite por el módulo `http`, ya instrumentado. Añadirla duplicaría cada llamada                                     |
+| Sequelize                        | **No se instrumenta**                                     | Paquete de terceros                 | El ORM emite por `pg`, ya instrumentado; duplicaría cada consulta                                                                |
+| Muestreo                         | `ParentBasedSampler(TraceIdRatioBased)`                   | Siempre-sí                          | Si un servicio aguas arriba decidió muestrear, se respeta. **Importa aquí**: el ERP recibe llamadas de AtlasBackend y del portal |
+| Propagadores                     | `tracecontext` + `baggage`                                | B3                                  | Sin consumidor heredado que lo exija                                                                                             |
+| Logs                             | **`mixin` de Pino**                                       | Sustituir el logger                 | Pino ya está montado y con redacción; el mixin añade tres campos a CADA línea, no sólo a las de HTTP                             |
+| Portador entre procesos          | **Columna nueva `trace_context jsonb`**                   | Clave reservada dentro de `payload` | Ver abajo                                                                                                                        |
+| Activación                       | Opt-in (`OTEL_ENABLED=false`)                             | Siempre encendido                   | Quien no mira trazas no paga parcheo ni conexiones                                                                               |
 
 ### Por qué una columna y no una clave dentro del payload
 
@@ -61,9 +61,9 @@ quedarse a medias en un entorno.
 
 ## Identidad de los servicios
 
-| Proceso | `service.name` | Sobrescribible con |
-| --- | --- | --- |
-| `src/main.ts` | `atlas-erp-api` | `OTEL_SERVICE_NAME` |
+| Proceso                               | `service.name`            | Sobrescribible con  |
+| ------------------------------------- | ------------------------- | ------------------- |
+| `src/main.ts`                         | `atlas-erp-api`           | `OTEL_SERVICE_NAME` |
 | `src/workers/outbox/outbox.worker.ts` | `atlas-erp-worker-outbox` | `OTEL_SERVICE_NAME` |
 
 Recurso común: `service.namespace=atlas`, `service.version`, `deployment.environment.name`.
@@ -123,11 +123,11 @@ igual**.
 
 ## Muestreo
 
-| Entorno | Ratio |
-| --- | --- |
-| desarrollo | 1.0 |
-| pruebas | exportador en memoria |
-| staging | 0.25 – 1.0 |
+| Entorno    | Ratio                                   |
+| ---------- | --------------------------------------- |
+| desarrollo | 1.0                                     |
+| pruebas    | exportador en memoria                   |
+| staging    | 0.25 – 1.0                              |
 | producción | 0.05 – 0.20, **a ajustar con medición** |
 
 ## Estructura de archivos

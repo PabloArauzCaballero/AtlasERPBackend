@@ -18,15 +18,15 @@ Recorre cinco pasos y dice en cuál falla. Si pasa, el problema no está en la c
 
 Por orden, del más frecuente al menos:
 
-| # | Comprobar | Cómo | Si falla |
-| --- | --- | --- | --- |
-| 1 | ¿Está encendido? | `OTEL_ENABLED` en el entorno del proceso | Es opt-in: sin `true` no exporta |
-| 2 | ¿El destino es el correcto? | `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` | Dentro de Docker `http://jaeger:4318/v1/traces`; fuera, `localhost` |
-| 3 | ¿Se resuelve el nombre? | `getent hosts jaeger` desde el contenedor | Red equivocada en el compose |
-| 4 | ¿El puerto responde? | `curl -v telnet://jaeger:4318` | Puerto o cortafuegos |
-| 5 | ¿El muestreo lo descartó? | `OTEL_TRACES_SAMPLER_ARG` | Con 0.05 se pierden 19 de cada 20 |
-| 6 | ¿El Collector está vivo? | `curl <collector>:13133` | Ver §5 |
-| 7 | ¿Qué dice el propio SDK? | `OTEL_DIAG_LOG_LEVEL=DEBUG` y reiniciar | El exportador registra sus fallos ahí |
+| #   | Comprobar                   | Cómo                                      | Si falla                                                            |
+| --- | --------------------------- | ----------------------------------------- | ------------------------------------------------------------------- |
+| 1   | ¿Está encendido?            | `OTEL_ENABLED` en el entorno del proceso  | Es opt-in: sin `true` no exporta                                    |
+| 2   | ¿El destino es el correcto? | `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`      | Dentro de Docker `http://jaeger:4318/v1/traces`; fuera, `localhost` |
+| 3   | ¿Se resuelve el nombre?     | `getent hosts jaeger` desde el contenedor | Red equivocada en el compose                                        |
+| 4   | ¿El puerto responde?        | `curl -v telnet://jaeger:4318`            | Puerto o cortafuegos                                                |
+| 5   | ¿El muestreo lo descartó?   | `OTEL_TRACES_SAMPLER_ARG`                 | Con 0.05 se pierden 19 de cada 20                                   |
+| 6   | ¿El Collector está vivo?    | `curl <collector>:13133`                  | Ver §5                                                              |
+| 7   | ¿Qué dice el propio SDK?    | `OTEL_DIAG_LOG_LEVEL=DEBUG` y reiniciar   | El exportador registra sus fallos ahí                               |
 
 ### Caso especial: la traza existe pero está VACÍA por dentro
 
@@ -34,7 +34,7 @@ Sólo aparece el span del servidor, sin consultas ni llamadas. **Causa: el SDK a
 Las instrumentaciones parchean `http`, `express`, `pg` y `undici` en el instante en que esos
 módulos se requieren; arrancar después no produce error, produce silencio.
 
-El arranque lo avisa por el canal de diagnóstico: *«El SDK arrancó DESPUÉS de cargar …»*. Con
+El arranque lo avisa por el canal de diagnóstico: _«El SDK arrancó DESPUÉS de cargar …»_. Con
 `OTEL_DIAG_LOG_LEVEL=WARN` se ve.
 
 Arreglo: `startTracing(...)` tiene que ser lo primero del entrypoint, antes de cualquier
@@ -65,13 +65,13 @@ instancia y compara. Si la latencia no cambia, el problema está en otro sitio.
 
 Si sí cambia, por orden de impacto:
 
-| Palanca | Cómo | Efecto |
-| --- | --- | --- |
-| Bajar el muestreo | `OTEL_TRACES_SAMPLER_ARG=0.05` | El mayor, y el primero que hay que probar |
-| Revisar el lote del Collector | `send_batch_size`, `timeout` | Lotes pequeños = muchas peticiones de red |
-| Revisar la cola | `sending_queue.queue_size` | Una cola llena descarta, no bloquea |
-| Buscar cardinalidad | Atributos con un valor por petición | Engordan cada span |
-| Buscar spans de más | Un span por registro en algún bucle | Ver §6 |
+| Palanca                       | Cómo                                | Efecto                                    |
+| ----------------------------- | ----------------------------------- | ----------------------------------------- |
+| Bajar el muestreo             | `OTEL_TRACES_SAMPLER_ARG=0.05`      | El mayor, y el primero que hay que probar |
+| Revisar el lote del Collector | `send_batch_size`, `timeout`        | Lotes pequeños = muchas peticiones de red |
+| Revisar la cola               | `sending_queue.queue_size`          | Una cola llena descarta, no bloquea       |
+| Buscar cardinalidad           | Atributos con un valor por petición | Engordan cada span                        |
+| Buscar spans de más           | Un span por registro en algún bucle | Ver §6                                    |
 
 Lo que **no** se hace: retirar instrumentaciones. El coste crece con el número de spans
 exportados, no con el de parches instalados.
@@ -80,12 +80,12 @@ exportados, no con el de parches instalados.
 
 ## 3. Los logs no llevan `trace_id`
 
-| Comprobar | Detalle |
-| --- | --- |
-| ¿Hay traza activa? | Fuera de una petición —arranque, jobs sin span raíz— es `null` **a propósito** |
-| ¿La ruta está excluida? | `/api/v1/health` y `/api/v1/ready` no generan traza, luego tampoco `trace_id` |
-| ¿Es el worker de outbox? | Sólo tiene traza dentro de `runAsConsumer`; entre tandas no hay ninguna |
-| ¿La telemetría está encendida? | Sin SDK no hay span y el campo va a `null` |
+| Comprobar                      | Detalle                                                                        |
+| ------------------------------ | ------------------------------------------------------------------------------ |
+| ¿Hay traza activa?             | Fuera de una petición —arranque, jobs sin span raíz— es `null` **a propósito** |
+| ¿La ruta está excluida?        | `/api/v1/health` y `/api/v1/ready` no generan traza, luego tampoco `trace_id`  |
+| ¿Es el worker de outbox?       | Sólo tiene traza dentro de `runAsConsumer`; entre tandas no hay ninguna        |
+| ¿La telemetría está encendida? | Sin SDK no hay span y el campo va a `null`                                     |
 
 `null` es la respuesta correcta cuando no hay traza. Un identificador inventado sería peor:
 mandaría a soporte a buscar algo que no existe.
@@ -118,12 +118,12 @@ El trabajo aparece, pero como traza aparte en vez de continuar la de la API.
 
 ## 5. El Collector
 
-| Síntoma | Qué mirar | Acción |
-| --- | --- | --- |
-| Descarta spans | `otelcol_processor_dropped_spans` | Subir `queue_size`; si persiste, replicar |
-| No drena la cola | `otelcol_exporter_queue_size` creciendo | El problema está **detrás**: Jaeger o el almacenamiento |
-| Se reinicia solo | Memoria | `memory_limiter` está haciendo su trabajo; dale más memoria |
-| Rechaza conexiones | `OTEL_COLLECTOR_BIND_HOST` | Ligado a una interfaz que los procesos no alcanzan |
+| Síntoma            | Qué mirar                               | Acción                                                      |
+| ------------------ | --------------------------------------- | ----------------------------------------------------------- |
+| Descarta spans     | `otelcol_processor_dropped_spans`       | Subir `queue_size`; si persiste, replicar                   |
+| No drena la cola   | `otelcol_exporter_queue_size` creciendo | El problema está **detrás**: Jaeger o el almacenamiento     |
+| Se reinicia solo   | Memoria                                 | `memory_limiter` está haciendo su trabajo; dale más memoria |
+| Rechaza conexiones | `OTEL_COLLECTOR_BIND_HOST`              | Ligado a una interfaz que los procesos no alcanzan          |
 
 Una caída del Collector **no** tiene consecuencias sobre el negocio: la exportación es
 asíncrona y el proceso sigue atendiendo peticiones. Confirma eso antes de escalar el incidente.

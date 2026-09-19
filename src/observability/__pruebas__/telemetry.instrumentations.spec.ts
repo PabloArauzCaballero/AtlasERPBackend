@@ -9,15 +9,20 @@ const config = readTelemetryConfig({
 
 /** Se leen los hooks REALES de la instrumentación construida, no una copia de su lógica. */
 function configuracionDe(nombre: string): Record<string, unknown> {
-  const instrumentacion = buildInstrumentations(config).find((candidata) => candidata.instrumentationName.includes(nombre));
-  if (instrumentacion === undefined) throw new Error(`No se construyó la instrumentación ${nombre}`);
+  const instrumentacion = buildInstrumentations(config).find((candidata) =>
+    candidata.instrumentationName.includes(nombre),
+  );
+  if (instrumentacion === undefined)
+    throw new Error(`No se construyó la instrumentación ${nombre}`);
   return instrumentacion.getConfig() as unknown as Record<string, unknown>;
 }
 
 describe('instrumentaciones automáticas', () => {
   it('son exactamente cuatro, declaradas una a una', () => {
     const nombres = buildInstrumentations(config)
-      .map((instrumentacion) => instrumentacion.instrumentationName.replace('@opentelemetry/instrumentation-', ''))
+      .map((instrumentacion) =>
+        instrumentacion.instrumentationName.replace('@opentelemetry/instrumentation-', ''),
+      )
       .sort();
     // Si esta lista crece sin querer —por volver a `auto-instrumentations-node`, por ejemplo—
     // la traza se llena de spans de `fs` y `dns` y deja de poder leerse.
@@ -25,7 +30,9 @@ describe('instrumentaciones automáticas', () => {
   });
 
   describe('exclusión de sondas', () => {
-    const excluir = configuracionDe('http').ignoreIncomingRequestHook as (r: { url?: string }) => boolean;
+    const excluir = configuracionDe('http').ignoreIncomingRequestHook as (r: {
+      url?: string;
+    }) => boolean;
 
     it.each([
       ['/health', 'sin prefijo'],
@@ -38,9 +45,12 @@ describe('instrumentaciones automáticas', () => {
       expect(excluir({ url })).toBe(true);
     });
 
-    it.each(['/api/v1/auth/login', '/api/v1/customers', '/api/v1/health-checks-de-negocio'])('NO excluye %s', (url) => {
-      expect(excluir({ url })).toBe(false);
-    });
+    it.each(['/api/v1/auth/login', '/api/v1/customers', '/api/v1/health-checks-de-negocio'])(
+      'NO excluye %s',
+      (url) => {
+        expect(excluir({ url })).toBe(false);
+      },
+    );
 
     it('una petición sin URL no se excluye: ante la duda, se traza', () => {
       expect(excluir({})).toBe(false);
@@ -64,7 +74,9 @@ describe('instrumentaciones automáticas', () => {
 
     it('sin endpoint configurado no excluye nada', () => {
       const sinDestino = buildInstrumentations(readTelemetryConfig({ OTEL_ENABLED: 'true' }));
-      const hook = sinDestino.find((i) => i.instrumentationName.includes('http'))!.getConfig() as unknown as {
+      const hook = sinDestino
+        .find((i) => i.instrumentationName.includes('http'))!
+        .getConfig() as unknown as {
         ignoreOutgoingRequestHook: (r: unknown) => boolean;
       };
       expect(hook.ignoreOutgoingRequestHook({ hostname: 'localhost', port: 4318 })).toBe(false);
