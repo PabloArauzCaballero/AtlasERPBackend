@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
-import { Op, Transaction, WhereOptions } from 'sequelize';
+import { Op, QueryTypes, Transaction, WhereOptions } from 'sequelize';
+import { Sequelize } from 'sequelize-typescript';
 import {
   AccountingPeriodModel,
   BankAccountModel,
@@ -39,6 +40,7 @@ function diaDe(fecha: Date | string): string {
 @Injectable()
 export class AccountingDefaultsService {
   constructor(
+    private readonly sequelize: Sequelize,
     private readonly logger: PinoLoggerService,
     @InjectModel(LedgerModel) private readonly ledgerModel: typeof LedgerModel,
     @InjectModel(FiscalYearModel) private readonly fiscalYearModel: typeof FiscalYearModel,
@@ -155,6 +157,75 @@ export class AccountingDefaultsService {
   }
 
   /**
+   * La cuenta de control de cuentas por cobrar de una factura o un cobro.
+   *
+   * Tres escalones, y ninguno adivina:
+   *
+   * 1. lo que venga explícito;
+   * 2. la cuenta que el socio tiene en su ficha (`AR_CONTROL`), que es donde debe estar;
+   * 3. **la que esta empresa ya venía usando** en sus facturas por cobrar contabilizadas.
+   *
+   * El tercero existe porque la ficha se auto-provisiona VACÍA: en dev, los tres socios tenían su
+   * hueco de `AR_CONTROL` a null y las ocho facturas emitidas usaban todas la misma cuenta, la que
+   * elegía a mano quien facturaba. Sin este escalón, quitar el campo del formulario habría dejado
+   * la emisión bloqueada en toda instalación existente —y en cada cliente nuevo— hasta que alguien
+   * rellenara una ficha que nadie sabía que existía.
+   *
+   * No es adivinar: es leer lo que dicen los libros de ESA empresa, y sólo vale si dicen UNA cosa.
+   * Con dos cuentas distintas en el histórico se rechaza, porque ahí sí hay una decisión que tomar.
+   */
+  async resolveArControlAccountId(
+    legalEntityId: string,
+    businessPartnerId: string,
+    provided: string | undefined,
+    transaction?: Transaction,
+  ): Promise<string> {
+    try {
+      return await this.resolvePartnerAccountId(
+        businessPartnerId,
+        'AR_CONTROL',
+        provided,
+        transaction,
+      );
+    } catch (error) {
+      const usadas = await this.arControlAccountsUsedBy(legalEntityId, transaction);
+      if (usadas.length !== 1) throw error;
+      this.logger.info('Cuenta de control AR deducida del histórico de la empresa.', {
+        layer: 'service',
+        module: 'accounting-defaults',
+        action: 'resolveArControlAccountId',
+        legalEntityId,
+        businessPartnerId,
+        glAccountId: usadas[0],
+      });
+      return usadas[0]!;
+    }
+  }
+
+  /** Las cuentas al DEBE de las facturas por cobrar ya contabilizadas de una empresa. */
+  private async arControlAccountsUsedBy(
+    legalEntityId: string,
+    transaction?: Transaction,
+  ): Promise<string[]> {
+    const filas = await this.sequelize.query<{ gl_account_id: string }>(
+      `SELECT DISTINCT l.gl_account_id
+         FROM atlas_accounting.journal_entry_line l
+         JOIN atlas_accounting.journal_entry j ON j.id = l.journal_entry_id
+         JOIN atlas_accounting.accounting_document d ON d.id = j.accounting_document_id
+        WHERE d.legal_entity_id = :legalEntityId
+          AND l.reference_type = 'AR_INVOICE'
+          AND l.debit > 0
+        LIMIT 3`,
+      {
+        replacements: { legalEntityId },
+        type: QueryTypes.SELECT,
+        ...(transaction ? { transaction } : {}),
+      },
+    );
+    return filas.map((fila) => fila.gl_account_id);
+  }
+
+  /**
    * El impuesto de una venta: qué código aplica y a qué cuenta de pasivo va.
    *
    * `tax_code.output_gl_account_id` es exactamente eso —la cuenta del IVA que se debe— y se
@@ -179,20 +250,41 @@ export class AccountingDefaultsService {
       order: [['effectiveFrom', 'DESC']],
       ...(transaction ? { transaction } : {}),
     });
-    const elegido = providedTaxCodeId
-      ? vigentes.find((fila) => fila.id === providedTaxCodeId)
-      : vigentes.find((fila) => fila.outputGlAccountId);
-    if (elegido?.outputGlAccountId) {
+    if (providedTaxCodeId) {
+      const pedido = vigentes.find((fila) => fila.id === providedTaxCodeId);
+      const cuenta = providedAccountId ?? pedido?.outputGlAccountId;
+      if (pedido && cuenta) return { taxCodeId: pedido.id, taxLiabilityAccountId: cuenta };
+      throw new BadRequestException({
+        code: 'TAX_CODE_NOT_RESOLVED',
+        message: pedido
+          ? 'El código tributario indicado no tiene cuenta de impuesto por pagar configurada.'
+          : 'El código tributario indicado no está vigente en la fecha de la factura.',
+        details: { fecha: dia, taxCodeId: providedTaxCodeId },
+      });
+    }
+    /*
+     * De una VENTA sale IVA débito fiscal, y sólo eso.
+     *
+     * El catálogo boliviano de dev tiene once códigos vigentes y siete de ellos traen cuenta de
+     * salida —IT, IUE, RC-IVA, las retenciones—: coger «el primero que tenga cuenta» habría
+     * mandado el impuesto de una factura a la cuenta de retención de IUE, y el asiento cuadra
+     * igual. Se filtra por tipo y, si quedan dos, NO se elige.
+     */
+    const candidatos = vigentes.filter(
+      (fila) => fila.taxType === 'IVA' && Boolean(fila.outputGlAccountId),
+    );
+    if (candidatos.length === 1) {
       return {
-        taxCodeId: elegido.id,
-        taxLiabilityAccountId: providedAccountId ?? elegido.outputGlAccountId,
+        taxCodeId: candidatos[0]!.id,
+        taxLiabilityAccountId: candidatos[0]!.outputGlAccountId!,
       };
     }
     throw new BadRequestException({
       code: 'TAX_CODE_NOT_RESOLVED',
-      message:
-        'No hay ningún código tributario vigente con su cuenta de impuesto por pagar configurada. Revisa Impuestos del plan de cuentas o emite la factura sin impuesto.',
-      details: { fecha: dia, vigentes: vigentes.length },
+      message: candidatos.length
+        ? 'Hay más de un código de IVA de venta vigente con cuenta de impuesto configurada, así que el sistema no elige por ti: indica cuál aplica.'
+        : 'No hay ningún código de IVA de venta vigente con su cuenta de impuesto por pagar configurada. Revisa Impuestos del plan de cuentas o emite la factura sin impuesto.',
+      details: { fecha: dia, vigentes: vigentes.length, candidatos: candidatos.length },
     });
   }
 

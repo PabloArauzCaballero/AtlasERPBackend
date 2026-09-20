@@ -329,9 +329,9 @@ export class BillingService {
     transaction: Transaction,
   ): Promise<ResolvedArInvoice> {
     const [arAccountId, accountingPeriodId, ledgerId] = await Promise.all([
-      this.accountingDefaultsService.resolvePartnerAccountId(
+      this.accountingDefaultsService.resolveArControlAccountId(
+        input.legalEntityId,
         input.customerBpId,
-        'AR_CONTROL',
         input.arAccountId,
         transaction,
       ),

@@ -18,6 +18,8 @@ const registro = <T>(filas: T[]) => ({
 const logger = { info: jest.fn(), warn: jest.fn(), debug: jest.fn(), error: jest.fn() };
 
 interface Dobles {
+  /** Lo que devuelve la consulta del histórico de cuentas al debe de facturas AR. */
+  historicoAr?: Array<{ gl_account_id: string }>;
   ledgers?: unknown[];
   aniosFiscales?: unknown[];
   periodos?: unknown[];
@@ -27,7 +29,9 @@ interface Dobles {
 }
 
 function crear(dobles: Dobles = {}) {
+  const sequelize = { query: jest.fn().mockResolvedValue(dobles.historicoAr ?? []) };
   return new AccountingDefaultsService(
+    sequelize as never,
     logger as never,
     registro(dobles.ledgers ?? []) as never,
     registro(dobles.aniosFiscales ?? []) as never,
@@ -147,9 +151,46 @@ describe('AccountingDefaultsService', () => {
     });
   });
 
+  describe('la cuenta de control AR, con el histórico como último recurso', () => {
+    it('caso válido: la de la ficha del socio manda sobre el histórico', async () => {
+      const servicio = crear({
+        cuentasDePartner: [{ glAccountId: CUENTA }],
+        historicoAr: [{ gl_account_id: 'otra' }],
+      });
+      await expect(servicio.resolveArControlAccountId(EMPRESA, SOCIO, undefined)).resolves.toBe(
+        CUENTA,
+      );
+    });
+
+    it('caso límite: sin ficha, la ÚNICA cuenta que esa empresa ya venía usando', async () => {
+      const servicio = crear({ cuentasDePartner: [], historicoAr: [{ gl_account_id: CUENTA }] });
+      await expect(servicio.resolveArControlAccountId(EMPRESA, SOCIO, undefined)).resolves.toBe(
+        CUENTA,
+      );
+    });
+
+    it('caso error: con dos cuentas en el histórico hay una decisión que tomar, y no la toma', async () => {
+      const servicio = crear({
+        cuentasDePartner: [],
+        historicoAr: [{ gl_account_id: 'una' }, { gl_account_id: 'otra' }],
+      });
+      await expect(
+        servicio.resolveArControlAccountId(EMPRESA, SOCIO, undefined),
+      ).rejects.toMatchObject({ response: { code: 'PARTNER_DEFAULT_ACCOUNT_NOT_SET' } });
+    });
+
+    it('caso error: sin ficha y sin histórico, tampoco inventa', async () => {
+      const servicio = crear({ cuentasDePartner: [], historicoAr: [] });
+      await expect(servicio.resolveArControlAccountId(EMPRESA, SOCIO, undefined)).rejects.toThrow(
+        /Cuentas por defecto/,
+      );
+    });
+  });
+
   describe('el impuesto de una venta', () => {
     const iva = {
       id: 'iva',
+      taxType: 'IVA',
       outputGlAccountId: CUENTA,
       effectiveFrom: '2026-01-01',
       effectiveTo: null,
@@ -177,6 +218,32 @@ describe('AccountingDefaultsService', () => {
       await expect(
         servicio.resolveOutputTax('2026-09-19', undefined, undefined),
       ).rejects.toMatchObject({ response: { code: 'TAX_CODE_NOT_RESOLVED' } });
+    });
+
+    it('caso error: el IVA de una venta NO sale de un código de retención con cuenta', async () => {
+      /*
+       * El catálogo boliviano de dev trae IT, IUE, RC-IVA y cuatro retenciones, todos con cuenta de
+       * salida configurada. «El primero vigente que tenga cuenta» mandaba el impuesto de la factura
+       * a la cuenta de retención de IUE, y el asiento cuadraba exactamente igual.
+       */
+      const servicio = crear({
+        codigosTributarios: [
+          { ...iva, id: 'ret-iue', taxType: 'RET_IUE', effectiveFrom: '2026-06-01' },
+          { ...iva, id: 'it', taxType: 'IT', effectiveFrom: '2026-05-01' },
+        ],
+      });
+      await expect(
+        servicio.resolveOutputTax('2026-09-19', undefined, undefined),
+      ).rejects.toMatchObject({ response: { code: 'TAX_CODE_NOT_RESOLVED' } });
+    });
+
+    it('caso límite: con dos IVA de venta vigentes NO elige', async () => {
+      const servicio = crear({
+        codigosTributarios: [iva, { ...iva, id: 'iva-2', effectiveFrom: '2026-07-01' }],
+      });
+      await expect(servicio.resolveOutputTax('2026-09-19', undefined, undefined)).rejects.toThrow(
+        /indica cuál aplica/,
+      );
     });
   });
 

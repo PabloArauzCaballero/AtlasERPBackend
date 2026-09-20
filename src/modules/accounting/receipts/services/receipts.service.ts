@@ -209,9 +209,9 @@ export class ReceiptsService {
           input.bankGlAccountId,
           transaction,
         ),
-        this.accountingDefaultsService.resolvePartnerAccountId(
+        this.accountingDefaultsService.resolveArControlAccountId(
+          input.legalEntityId,
           input.payerBpId,
-          'AR_CONTROL',
           input.arControlGlAccountId,
           transaction,
         ),
