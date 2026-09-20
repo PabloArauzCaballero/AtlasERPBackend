@@ -31,6 +31,265 @@ paths:
           description: Ready
       tags:
         - CRM / Ventas B2B
+  # --- Campañas de notificación (pasarela hacia AtlasBackend) ------------------------------------
+  # Estaban en el código y no aquí, y el gate de flujos las bloqueaba. Requieren sesión interna con
+  # rol de escritura; la pasarela sólo reenvía y AtlasBackend es quien manda.
+  /admin/notification-campaigns:
+    get:
+      summary: Listar campañas de notificación
+      tags:
+        - Publicidad externa
+      responses:
+        '200':
+          description: Listado de campañas
+    post:
+      summary: Crear una campaña de notificación
+      tags:
+        - Publicidad externa
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Campaña creada
+  /admin/notification-campaigns/{campaignId}:
+    get:
+      summary: Ver una campaña
+      tags:
+        - Publicidad externa
+      parameters:
+        - name: campaignId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Campaña
+    patch:
+      summary: Editar una campaña en borrador
+      tags:
+        - Publicidad externa
+      parameters:
+        - name: campaignId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Campaña actualizada
+  /admin/notification-campaigns/{campaignId}/messages:
+    get:
+      summary: Mensajes de una campaña
+      tags:
+        - Publicidad externa
+      parameters:
+        - name: campaignId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Mensajes
+  /admin/notification-campaigns/{campaignId}/{action}:
+    post:
+      summary: Acción sobre una campaña (aprobar, programar, enviar, cancelar…)
+      tags:
+        - Publicidad externa
+      parameters:
+        - name: campaignId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: action
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Acción aplicada
+  /admin/notification-campaigns/audience/estimate:
+    post:
+      summary: Estimar la audiencia de una campaña
+      tags:
+        - Publicidad externa
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Estimación de audiencia
+  /admin/notification-campaigns/segments:
+    get:
+      summary: Listar segmentos de audiencia
+      tags:
+        - Publicidad externa
+      responses:
+        '200':
+          description: Segmentos
+    post:
+      summary: Crear un segmento de audiencia
+      tags:
+        - Publicidad externa
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Segmento creado
+  /admin/notification-campaigns/segments/{segmentId}:
+    patch:
+      summary: Editar un segmento de audiencia
+      tags:
+        - Publicidad externa
+      parameters:
+        - name: segmentId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Segmento actualizado
+  # --- Recuperar contraseña («olvidé mi contraseña»), públicas por diseño ------------------------
+  # Van documentadas porque son ESCRITURAS sin sesión: el gate de consistencia de flujos bloquea
+  # cualquier ruta de escritura que exista en el código y no en el contrato, y con razón.
+  # Rutas separadas por población a propósito: a quién se le cambia la contraseña lo decide la
+  # RUTA y no un campo del cuerpo, para que desde un portal no se pueda sondear qué correos
+  # pertenecen a la otra población.
+  /auth/password-reset/request:
+    post:
+      summary: Pedir código para recuperar la contraseña (personal interno)
+      description: >-
+        Envía al correo de la cuenta un código de un solo uso. La respuesta es idéntica exista o no
+        la cuenta, para no permitir enumeración. No sustituye al segundo factor: entrar después
+        sigue pidiendo el PIN del correo.
+      tags:
+        - Portal del comercio
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  maxLength: 180
+      responses:
+        '201':
+          description: Solicitud registrada (si la cuenta existe, el código fue enviado).
+  /auth/password-reset/confirm:
+    post:
+      summary: Fijar la contraseña nueva con el código (personal interno)
+      description: >-
+        Al confirmarse, AtlasBackend revoca todas las sesiones del actor.
+      tags:
+        - Portal del comercio
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, code, newPassword]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  maxLength: 180
+                code:
+                  type: string
+                  pattern: '^[0-9]{6}$'
+                newPassword:
+                  type: string
+                  minLength: 10
+                  maxLength: 128
+      responses:
+        '201':
+          description: Contraseña actualizada.
+        '401':
+          description: Código inválido o expirado.
+  /auth/merchant/password-reset/request:
+    post:
+      summary: Pedir código para recuperar la contraseña (comercio afiliado)
+      tags:
+        - Portal del comercio
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  maxLength: 180
+      responses:
+        '201':
+          description: Solicitud registrada (si la cuenta existe, el código fue enviado).
+  /auth/merchant/password-reset/confirm:
+    post:
+      summary: Fijar la contraseña nueva con el código (comercio afiliado)
+      tags:
+        - Portal del comercio
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, code, newPassword]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  maxLength: 180
+                code:
+                  type: string
+                  pattern: '^[0-9]{6}$'
+                newPassword:
+                  type: string
+                  minLength: 10
+                  maxLength: 128
+      responses:
+        '201':
+          description: Contraseña actualizada.
+        '401':
+          description: Código inválido o expirado.
   /b2b/accounts:
     post:
       summary: Crear cuenta B2B lead con contacto principal
