@@ -315,4 +315,20 @@ export class AuthGatewayService {
   }): Promise<{ passwordChanged: boolean }> {
     return this.identityClient.confirmMerchantPasswordReset(body);
   }
+
+  /**
+   * Lo mismo para el personal interno. Población distinta arriba, mismas garantías: respuesta
+   * genérica exista o no la cuenta, código de un solo uso y revocación de todas las sesiones.
+   */
+  requestInternalPasswordReset(email: string): Promise<{ requested: boolean }> {
+    return this.identityClient.requestInternalPasswordReset(email);
+  }
+
+  confirmInternalPasswordReset(body: {
+    email: string;
+    code: string;
+    newPassword: string;
+  }): Promise<{ passwordChanged: boolean }> {
+    return this.identityClient.confirmInternalPasswordReset(body);
+  }
 }

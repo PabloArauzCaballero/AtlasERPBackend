@@ -12,7 +12,7 @@ import { AuthGatewayController } from '../src/modules/auth-gateway/auth-gateway.
 import { AuthGatewayService } from '../src/modules/auth-gateway/auth-gateway.service';
 
 /**
- * Contrato HTTP de las nueve rutas públicas de sesión del ERP.
+ * Contrato HTTP de las once rutas públicas de sesión del ERP.
  *
  * Son `@Public` por diseño —un login no puede exigir sesión—, y por eso Flow Intelligence las marca
  * como escrituras sin protección y sin ninguna prueba que las nombre. Lo que las protege no es un
@@ -21,7 +21,7 @@ import { AuthGatewayService } from '../src/modules/auth-gateway/auth-gateway.ser
  * llama a AtlasBackend: aquí se prueba la frontera HTTP, no la identidad de arriba.
  *
  * Qué afirma:
- * - Las nueve rutas públicas se alcanzan sin token, y las dos de cambio de contraseña NO.
+ * - Las once rutas públicas se alcanzan sin token, y las dos de cambio de contraseña NO.
  * - Un cuerpo inválido se rechaza con 400 antes de llamar a AtlasBackend.
  * - Una sesión deja las dos cookies upstream `HttpOnly; SameSite=Lax` con su `Path`, y el cuerpo
  *   nunca lleva los tokens de AtlasBackend.
@@ -49,6 +49,10 @@ const PUBLIC_WRITES = [
   // puede entrar—, y por eso entra en este contrato en vez de quedar fuera de toda prueba.
   '/api/v1/auth/merchant/password-reset/request',
   '/api/v1/auth/merchant/password-reset/confirm',
+  // Y las mismas dos para el personal interno: rutas distintas a propósito, para que desde un
+  // portal no se pueda sondear qué correos pertenecen a la otra población.
+  '/api/v1/auth/password-reset/request',
+  '/api/v1/auth/password-reset/confirm',
 ] as const;
 
 const session = {
@@ -76,6 +80,12 @@ const validBodies: Record<(typeof PUBLIC_WRITES)[number], object> = {
     email: 'comercio@atlas.test',
     code: '123456',
     newPassword: 'ClaveDelComercio1',
+  },
+  '/api/v1/auth/password-reset/request': { email: 'persona@atlas.test' },
+  '/api/v1/auth/password-reset/confirm': {
+    email: 'persona@atlas.test',
+    code: '123456',
+    newPassword: 'ClaveDelPersonal1',
   },
 };
 
@@ -130,6 +140,8 @@ function fullService() {
     confirmPasswordChange: jest.fn(),
     requestMerchantPasswordReset: jest.fn().mockResolvedValue({ requested: true }),
     confirmMerchantPasswordReset: jest.fn().mockResolvedValue({ passwordChanged: true }),
+    requestInternalPasswordReset: jest.fn().mockResolvedValue({ requested: true }),
+    confirmInternalPasswordReset: jest.fn().mockResolvedValue({ passwordChanged: true }),
   };
 }
 
@@ -190,6 +202,16 @@ describe('Contrato HTTP de las rutas públicas de sesión del ERP', () => {
       '/api/v1/auth/merchant/password-reset/confirm',
       { email: 'comercio@atlas.test', code: '123456', newPassword: 'corta123' },
       'confirmMerchantPasswordReset',
+    ],
+    [
+      '/api/v1/auth/password-reset/request',
+      { email: 'no-es-un-correo' },
+      'requestInternalPasswordReset',
+    ],
+    [
+      '/api/v1/auth/password-reset/confirm',
+      { email: 'persona@atlas.test', code: '1234', newPassword: 'ClaveDelPersonal1' },
+      'confirmInternalPasswordReset',
     ],
   ] as const)(
     'POST /%s con cuerpo inválido es 400 y no llama arriba',

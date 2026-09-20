@@ -329,8 +329,27 @@ export class AtlasIdentityClient {
    * El `x-tenant-id` lo pone `baseHeaders`, igual que en el login del comercio.
    */
   requestMerchantPasswordReset(email: string): Promise<{ requested: boolean }> {
+    return this.requestPasswordReset('merchant_user', email);
+  }
+
+  /**
+   * Lo mismo para el PERSONAL INTERNO. Cambia el tipo de actor y nada más: son tablas de identidad
+   * distintas arriba, pero el flujo de código de un solo uso es el mismo y no hay razón para que
+   * una población tenga una salida y la otra no.
+   *
+   * Recuperar la contraseña NO salta el segundo factor: el personal interno sigue necesitando el
+   * PIN del correo para iniciar sesión después.
+   */
+  requestInternalPasswordReset(email: string): Promise<{ requested: boolean }> {
+    return this.requestPasswordReset('internal_user', email);
+  }
+
+  private requestPasswordReset(
+    actorType: 'merchant_user' | 'internal_user',
+    email: string,
+  ): Promise<{ requested: boolean }> {
     return this.request('post', 'auth/password-reset/request', {
-      body: { actorType: 'merchant_user', identifier: email },
+      body: { actorType, identifier: email },
     });
   }
 
@@ -340,9 +359,24 @@ export class AtlasIdentityClient {
     code: string;
     newPassword: string;
   }): Promise<{ passwordChanged: boolean }> {
+    return this.confirmPasswordReset('merchant_user', body);
+  }
+
+  confirmInternalPasswordReset(body: {
+    email: string;
+    code: string;
+    newPassword: string;
+  }): Promise<{ passwordChanged: boolean }> {
+    return this.confirmPasswordReset('internal_user', body);
+  }
+
+  private confirmPasswordReset(
+    actorType: 'merchant_user' | 'internal_user',
+    body: { email: string; code: string; newPassword: string },
+  ): Promise<{ passwordChanged: boolean }> {
     return this.request('post', 'auth/password-reset/confirm', {
       body: {
-        actorType: 'merchant_user',
+        actorType,
         identifier: body.email,
         code: body.code,
         newPassword: body.newPassword,

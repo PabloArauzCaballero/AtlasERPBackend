@@ -15,6 +15,8 @@ import {
   merchantLoginSchema,
   merchantPasswordResetConfirmSchema,
   merchantPasswordResetRequestSchema,
+  passwordResetConfirmSchema,
+  passwordResetRequestSchema,
   passwordChangeConfirmSchema,
   passwordChangeRequestSchema,
   replaceInternalUserRolesSchema,
@@ -29,6 +31,8 @@ import type {
   MerchantLoginDto,
   MerchantPasswordResetConfirmDto,
   MerchantPasswordResetRequestDto,
+  PasswordResetConfirmDto,
+  PasswordResetRequestDto,
   PasswordChangeConfirmDto,
   PasswordChangeRequestDto,
   ReplaceInternalUserRolesDto,
@@ -207,6 +211,35 @@ export class AuthGatewayController {
    * La respuesta es siempre la misma exista o no la cuenta —la decide AtlasBackend— para que el
    * portal no sirva de comprobador de qué correos son de un comercio afiliado.
    */
+  /**
+   * «Olvidé mi contraseña» del PERSONAL INTERNO. Ruta separada de la del comercio a propósito: a
+   * quién se le cambia la contraseña lo decide la ruta y no el cuerpo, así que desde el portal del
+   * comercio no se puede sondear qué correos son de personal de Atlas, ni al revés.
+   *
+   * No sustituye al segundo factor: tras poner la contraseña nueva, entrar sigue pidiendo el PIN
+   * que llega al correo.
+   */
+  @Public()
+  @Post('password-reset/request')
+  async requestPasswordReset(
+    @Body(new ZodValidationPipe(passwordResetRequestSchema)) body: PasswordResetRequestDto,
+  ) {
+    return this.service.requestInternalPasswordReset(body.email);
+  }
+
+  @Public()
+  @Post('password-reset/confirm')
+  async confirmPasswordReset(
+    @Body(new ZodValidationPipe(passwordResetConfirmSchema)) body: PasswordResetConfirmDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.service.confirmInternalPasswordReset(body);
+    // Igual que en el canal del comercio: arriba quedaron revocadas TODAS las sesiones, así que
+    // dejar cookies upstream puestas sólo daría un 401 inexplicable en la siguiente llamada.
+    this.clearUpstreamCookies(res);
+    return result;
+  }
+
   @Public()
   @Post('merchant/password-reset/request')
   async requestMerchantPasswordReset(

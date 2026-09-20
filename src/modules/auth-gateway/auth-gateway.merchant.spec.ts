@@ -138,6 +138,8 @@ describe('Identidad del comercio en el gateway', () => {
       const identityClient = {
         requestMerchantPasswordReset: jest.fn().mockResolvedValue({ requested: true }),
         confirmMerchantPasswordReset: jest.fn().mockResolvedValue({ passwordChanged: true }),
+        requestInternalPasswordReset: jest.fn().mockResolvedValue({ requested: true }),
+        confirmInternalPasswordReset: jest.fn().mockResolvedValue({ passwordChanged: true }),
       };
       return {
         service: new AuthGatewayService(
@@ -186,6 +188,42 @@ describe('Identidad del comercio en el gateway', () => {
       expect(
         merchantPasswordResetConfirmSchema.safeParse({ ...base, newPassword: 'corta123' }).success,
       ).toBe(false);
+    });
+
+    /**
+     * Las dos poblaciones no se tocan: cada ruta llama a SU método del cliente de identidad. Si
+     * una acabara llamando a la del otro, el portal del comercio serviría para sondear qué correos
+     * son de personal de Atlas, que es justo lo que las rutas separadas impiden.
+     */
+    it('el canal interno y el del comercio no se cruzan', async () => {
+      const { service, identityClient } = build();
+
+      await service.requestInternalPasswordReset('persona@atlas.internal');
+      expect(identityClient.requestInternalPasswordReset).toHaveBeenCalledWith(
+        'persona@atlas.internal',
+      );
+      expect(identityClient.requestMerchantPasswordReset).not.toHaveBeenCalled();
+
+      await service.requestMerchantPasswordReset('comercio@alfa.test');
+      expect(identityClient.requestMerchantPasswordReset).toHaveBeenCalledWith(
+        'comercio@alfa.test',
+      );
+      expect(identityClient.requestInternalPasswordReset).toHaveBeenCalledTimes(1);
+    });
+
+    it('el personal interno confirma con código y contraseña nueva', async () => {
+      const { service, identityClient } = build();
+      const body = {
+        email: 'persona@atlas.internal',
+        code: '123456',
+        newPassword: 'ClaveLarga123',
+      };
+
+      await expect(service.confirmInternalPasswordReset(body)).resolves.toEqual({
+        passwordChanged: true,
+      });
+      expect(identityClient.confirmInternalPasswordReset).toHaveBeenCalledWith(body);
+      expect(identityClient.confirmMerchantPasswordReset).not.toHaveBeenCalled();
     });
 
     it('exige un correo con formato válido para pedir el código', () => {

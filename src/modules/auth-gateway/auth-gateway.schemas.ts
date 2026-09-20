@@ -91,20 +91,29 @@ export const merchantLoginSchema = z.object({
 export type MerchantLoginDto = z.infer<typeof merchantLoginSchema>;
 
 /**
- * «Olvidé mi contraseña» del comercio. Aquí SÍ viaja el correo, al contrario que en el cambio de
- * contraseña de arriba: quien la pide no tiene sesión, así que no hay de dónde deducir quién es.
+ * «Olvidé mi contraseña». Aquí SÍ viaja el correo, al contrario que en el cambio de contraseña de
+ * arriba: quien la pide no tiene sesión, así que no hay de dónde deducir quién es.
+ *
+ * El mismo par de esquemas sirve a las dos poblaciones —comercio y personal interno—: el contrato
+ * es idéntico y a quién se le cambia la contraseña lo decide la RUTA, no el cuerpo. Que el cliente
+ * pudiera elegir el tipo de actor en el cuerpo sería un modo de probar correos contra la población
+ * que quisiera.
  */
-export const merchantPasswordResetRequestSchema = z.object({
+export const passwordResetRequestSchema = z.object({
   email: z.string().trim().email().max(180),
 });
-export type MerchantPasswordResetRequestDto = z.infer<typeof merchantPasswordResetRequestSchema>;
+export type PasswordResetRequestDto = z.infer<typeof passwordResetRequestSchema>;
+
+/** Nombres anteriores, conservados para no tocar los llamantes del canal del comercio. */
+export const merchantPasswordResetRequestSchema = passwordResetRequestSchema;
+export type MerchantPasswordResetRequestDto = PasswordResetRequestDto;
 
 /**
  * El mínimo de 10 caracteres es el mismo que aplica AtlasBackend al confirmar. Se repite aquí para
  * que el portal diga qué falta ANTES de gastar el código de un solo uso: si la contraseña no pasa
  * upstream, el código ya se consumió y el comercio tendría que pedir otro.
  */
-export const merchantPasswordResetConfirmSchema = z.object({
+export const passwordResetConfirmSchema = z.object({
   email: z.string().trim().email().max(180),
   code: z
     .string()
@@ -112,4 +121,7 @@ export const merchantPasswordResetConfirmSchema = z.object({
     .regex(/^\d{6}$/, 'El código debe tener exactamente 6 dígitos.'),
   newPassword: z.string().min(10, 'La contraseña debe tener al menos 10 caracteres.').max(128),
 });
-export type MerchantPasswordResetConfirmDto = z.infer<typeof merchantPasswordResetConfirmSchema>;
+export type PasswordResetConfirmDto = z.infer<typeof passwordResetConfirmSchema>;
+
+export const merchantPasswordResetConfirmSchema = passwordResetConfirmSchema;
+export type MerchantPasswordResetConfirmDto = PasswordResetConfirmDto;
