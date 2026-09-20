@@ -2,6 +2,10 @@ import { UnauthorizedException } from '@nestjs/common';
 import { AuthGatewayService } from './auth-gateway.service';
 import { parseSetCookies } from './atlas-identity.client';
 import { mapAtlasRolesToBusinessRoles, mapMerchantRoles } from './role-mapping';
+import {
+  merchantPasswordResetConfirmSchema,
+  merchantPasswordResetRequestSchema,
+} from './auth-gateway.schemas';
 
 /**
  * El portal del comercio dependía de una identidad que no existía: `MERCHANT_ADMIN` se fabricaba
@@ -121,6 +125,76 @@ describe('Identidad del comercio en el gateway', () => {
       const { service, identityClient } = build();
       await expect(service.merchantLogout(undefined, false)).resolves.toEqual({ loggedOut: true });
       expect(identityClient.merchantLogout).not.toHaveBeenCalled();
+    });
+  });
+
+  /**
+   * «Olvidé mi contraseña» del comercio. El comercio no tenía ninguna salida si perdía su
+   * contraseña: el único cambio posible exigía sesión abierta y la contraseña actual, así que un
+   * comercio bloqueado sólo podía llamar a soporte para que le fabricaran otra.
+   */
+  describe('recuperación de contraseña del comercio', () => {
+    function build() {
+      const identityClient = {
+        requestMerchantPasswordReset: jest.fn().mockResolvedValue({ requested: true }),
+        confirmMerchantPasswordReset: jest.fn().mockResolvedValue({ passwordChanged: true }),
+      };
+      return {
+        service: new AuthGatewayService(
+          identityClient as never,
+          { issue: jest.fn() } as never,
+          { resolveId: jest.fn() } as never,
+        ),
+        identityClient,
+      };
+    }
+
+    it('pide el código sin sesión y devuelve la respuesta genérica', async () => {
+      const { service, identityClient } = build();
+
+      await expect(service.requestMerchantPasswordReset('comercio@alfa.test')).resolves.toEqual({
+        requested: true,
+      });
+      expect(identityClient.requestMerchantPasswordReset).toHaveBeenCalledWith(
+        'comercio@alfa.test',
+      );
+    });
+
+    it('confirma con código y contraseña nueva', async () => {
+      const { service, identityClient } = build();
+      const body = { email: 'comercio@alfa.test', code: '123456', newPassword: 'ContraseñaLarga1' };
+
+      await expect(service.confirmMerchantPasswordReset(body)).resolves.toEqual({
+        passwordChanged: true,
+      });
+      expect(identityClient.confirmMerchantPasswordReset).toHaveBeenCalledWith(body);
+    });
+
+    /**
+     * El portal valida antes de gastar el código: upstream, un código correcto con una contraseña
+     * débil ya consumió el intento y obliga a pedir otro correo.
+     */
+    it('rechaza códigos que no son de seis dígitos y contraseñas cortas', () => {
+      const base = { email: 'comercio@alfa.test', code: '123456', newPassword: 'ContraseñaLarga1' };
+      expect(merchantPasswordResetConfirmSchema.safeParse(base).success).toBe(true);
+      expect(merchantPasswordResetConfirmSchema.safeParse({ ...base, code: '12345' }).success).toBe(
+        false,
+      );
+      expect(
+        merchantPasswordResetConfirmSchema.safeParse({ ...base, code: 'abcdef' }).success,
+      ).toBe(false);
+      expect(
+        merchantPasswordResetConfirmSchema.safeParse({ ...base, newPassword: 'corta123' }).success,
+      ).toBe(false);
+    });
+
+    it('exige un correo con formato válido para pedir el código', () => {
+      expect(merchantPasswordResetRequestSchema.safeParse({ email: 'no-es-correo' }).success).toBe(
+        false,
+      );
+      expect(
+        merchantPasswordResetRequestSchema.safeParse({ email: ' comercio@alfa.test ' }).success,
+      ).toBe(true);
     });
   });
 

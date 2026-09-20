@@ -89,3 +89,27 @@ export const merchantLoginSchema = z.object({
   password: z.string().min(1).max(128),
 });
 export type MerchantLoginDto = z.infer<typeof merchantLoginSchema>;
+
+/**
+ * «Olvidé mi contraseña» del comercio. Aquí SÍ viaja el correo, al contrario que en el cambio de
+ * contraseña de arriba: quien la pide no tiene sesión, así que no hay de dónde deducir quién es.
+ */
+export const merchantPasswordResetRequestSchema = z.object({
+  email: z.string().trim().email().max(180),
+});
+export type MerchantPasswordResetRequestDto = z.infer<typeof merchantPasswordResetRequestSchema>;
+
+/**
+ * El mínimo de 10 caracteres es el mismo que aplica AtlasBackend al confirmar. Se repite aquí para
+ * que el portal diga qué falta ANTES de gastar el código de un solo uso: si la contraseña no pasa
+ * upstream, el código ya se consumió y el comercio tendría que pedir otro.
+ */
+export const merchantPasswordResetConfirmSchema = z.object({
+  email: z.string().trim().email().max(180),
+  code: z
+    .string()
+    .trim()
+    .regex(/^\d{6}$/, 'El código debe tener exactamente 6 dígitos.'),
+  newPassword: z.string().min(10, 'La contraseña debe tener al menos 10 caracteres.').max(128),
+});
+export type MerchantPasswordResetConfirmDto = z.infer<typeof merchantPasswordResetConfirmSchema>;

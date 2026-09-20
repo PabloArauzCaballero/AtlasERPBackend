@@ -319,6 +319,38 @@ export class AtlasIdentityClient {
   }
 
   /**
+   * Recuperación de contraseña del comercio que NO puede entrar («olvidé mi contraseña»).
+   *
+   * Va al plano genérico `auth/password-reset/*` de AtlasBackend con `actorType: 'merchant_user'`,
+   * no a `merchant/auth/*`: allí el flujo de código de un solo uso ya existe con su anti-enumeración,
+   * su cooldown por destino y su revocación de sesiones. Duplicarlo en el plano del comercio sólo
+   * crearía una segunda copia de esas reglas que habría que mantener sincronizada.
+   *
+   * El `x-tenant-id` lo pone `baseHeaders`, igual que en el login del comercio.
+   */
+  requestMerchantPasswordReset(email: string): Promise<{ requested: boolean }> {
+    return this.request('post', 'auth/password-reset/request', {
+      body: { actorType: 'merchant_user', identifier: email },
+    });
+  }
+
+  /** Segundo paso: el código del correo y la contraseña nueva. Revoca upstream toda sesión previa. */
+  confirmMerchantPasswordReset(body: {
+    email: string;
+    code: string;
+    newPassword: string;
+  }): Promise<{ passwordChanged: boolean }> {
+    return this.request('post', 'auth/password-reset/confirm', {
+      body: {
+        actorType: 'merchant_user',
+        identifier: body.email,
+        code: body.code,
+        newPassword: body.newPassword,
+      },
+    });
+  }
+
+  /**
    * Sin tokens no hay sesión: fallar aquí y no más adelante evita emitir un token de este backend
    * respaldado por una sesión upstream que no existe.
    */

@@ -295,4 +295,24 @@ export class AuthGatewayService {
     if (!upstreamRefreshToken) return { loggedOut: true };
     return this.identityClient.merchantLogout(upstreamRefreshToken, allDevices);
   }
+
+  /**
+   * «Olvidé mi contraseña» del comercio, en dos pasos y SIN sesión.
+   *
+   * No pasa por `callWithRetry` como el resto del canal del comercio: ese ayudante reintenta con el
+   * token upstream refrescado, y aquí no hay ninguno que refrescar. Tampoco traduce la respuesta:
+   * AtlasBackend contesta lo mismo exista o no la cuenta, y cualquier matiz que añadiera este
+   * backend —«ese correo no está registrado»— convertiría el portal en un buscador de comercios.
+   */
+  requestMerchantPasswordReset(email: string): Promise<{ requested: boolean }> {
+    return this.identityClient.requestMerchantPasswordReset(email);
+  }
+
+  confirmMerchantPasswordReset(body: {
+    email: string;
+    code: string;
+    newPassword: string;
+  }): Promise<{ passwordChanged: boolean }> {
+    return this.identityClient.confirmMerchantPasswordReset(body);
+  }
 }

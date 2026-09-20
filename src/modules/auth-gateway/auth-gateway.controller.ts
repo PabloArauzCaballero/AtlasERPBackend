@@ -13,6 +13,8 @@ import {
   loginSchema,
   logoutSchema,
   merchantLoginSchema,
+  merchantPasswordResetConfirmSchema,
+  merchantPasswordResetRequestSchema,
   passwordChangeConfirmSchema,
   passwordChangeRequestSchema,
   replaceInternalUserRolesSchema,
@@ -25,6 +27,8 @@ import type {
   LoginPinDto,
   LogoutDto,
   MerchantLoginDto,
+  MerchantPasswordResetConfirmDto,
+  MerchantPasswordResetRequestDto,
   PasswordChangeConfirmDto,
   PasswordChangeRequestDto,
   ReplaceInternalUserRolesDto,
@@ -194,6 +198,40 @@ export class AuthGatewayController {
     const { result, refreshedTokens } = await this.service.merchantMe(this.readUpstreamTokens(req));
     this.reapplyRefreshedCookies(res, refreshedTokens);
     return { user: result };
+  }
+
+  /**
+   * «Olvidé mi contraseña» del comercio: público y en dos pasos, porque quien lo pide no puede
+   * entrar. Distinto de `password/change/*`, que exige sesión y la contraseña actual.
+   *
+   * La respuesta es siempre la misma exista o no la cuenta —la decide AtlasBackend— para que el
+   * portal no sirva de comprobador de qué correos son de un comercio afiliado.
+   */
+  @Public()
+  @Post('merchant/password-reset/request')
+  async requestMerchantPasswordReset(
+    @Body(new ZodValidationPipe(merchantPasswordResetRequestSchema))
+    body: MerchantPasswordResetRequestDto,
+  ) {
+    return this.service.requestMerchantPasswordReset(body.email);
+  }
+
+  /**
+   * Segundo paso. No emite sesión a propósito: al confirmar, AtlasBackend revoca TODAS las sesiones
+   * del comercio, así que devolver una aquí sería devolver una ya muerta. El portal manda al login.
+   */
+  @Public()
+  @Post('merchant/password-reset/confirm')
+  async confirmMerchantPasswordReset(
+    @Body(new ZodValidationPipe(merchantPasswordResetConfirmSchema))
+    body: MerchantPasswordResetConfirmDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.service.confirmMerchantPasswordReset(body);
+    // Por si el navegador arrastraba cookies upstream de una sesión anterior del comercio: acaban
+    // de quedar revocadas y dejarlas puestas sólo daría un 401 inexplicable en la próxima llamada.
+    this.clearUpstreamCookies(res);
+    return result;
   }
 
   @Public()
