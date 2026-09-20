@@ -22,11 +22,25 @@ import {
   CreateBillingEventDto,
   IssueArInvoiceDto,
 } from '../../shared/schemas/accounting.schemas';
+import { AccountingDefaultsService } from '../../shared/services/accounting-defaults.service';
 import { AccountingDocumentsService } from '../../documents/services/accounting-documents.service';
 import { LegalEntityAccessService } from '../../../../common/services/legal-entity-access.service';
 import { BusinessPartnerRoleValidationService } from '../../business-partners/services/business-partner-role-validation.service';
 import { PinoLoggerService } from '../../../../common/logger/pino-logger.service';
 import { nextDocumentNumber } from '../../../../common/numbering/document-numbering';
+
+/**
+ * La factura con lo que el sistema ya sabía resuelto.
+ *
+ * Es el mismo DTO con cuatro identificadores dejados de pedir a quien factura: la cuenta de
+ * control del cliente, el período, el libro y —cuando hay impuesto— el código tributario con su
+ * cuenta de pasivo. A partir de aquí el resto del servicio trabaja igual que antes.
+ */
+type ResolvedArInvoice = IssueArInvoiceDto & {
+  arAccountId: string;
+  accountingPeriodId: string;
+  ledgerId: string;
+};
 
 /**
  * Gestiona eventos facturables y emisión AR manteniendo separadas factura comercial,
@@ -37,6 +51,7 @@ export class BillingService {
   constructor(
     private readonly sequelize: Sequelize,
     private readonly accountingDocumentsService: AccountingDocumentsService,
+    private readonly accountingDefaultsService: AccountingDefaultsService,
     private readonly businessPartnerRoleValidationService: BusinessPartnerRoleValidationService,
     private readonly legalEntityAccessService: LegalEntityAccessService,
     private readonly logger: PinoLoggerService,
@@ -187,17 +202,18 @@ export class BillingService {
     });
   }
 
-  issueInvoice(input: IssueArInvoiceDto, user: AuthUser) {
+  issueInvoice(rawInput: IssueArInvoiceDto, user: AuthUser) {
     this.logger.info('Emitiendo factura AR.', {
       layer: 'service',
       module: 'billing',
       action: 'issueInvoice',
-      legalEntityId: input.legalEntityId,
-      customerBpId: input.customerBpId,
+      legalEntityId: rawInput.legalEntityId,
+      customerBpId: rawInput.customerBpId,
       userId: user.sub,
     });
     return this.sequelize.transaction(async (transaction) => {
-      this.legalEntityAccessService.assertCanAccessLegalEntity(user, input.legalEntityId);
+      this.legalEntityAccessService.assertCanAccessLegalEntity(user, rawInput.legalEntityId);
+      const input = await this.resolveInvoiceDefaults(rawInput, transaction);
       await this.assertInvoiceInputsAreSapSafe(input, transaction);
       const grossAmount = Number(input.netAmount) + Number(input.taxAmount);
 
@@ -302,8 +318,59 @@ export class BillingService {
     });
   }
 
-  private async assertInvoiceInputsAreSapSafe(
+  /**
+   * Lo que el alta dejó de preguntar.
+   *
+   * El impuesto sólo se resuelve si lo hay: informar cuenta fiscal en una factura sin impuesto es
+   * un error que el propio servicio rechaza más abajo, y deducirla «por si acaso» lo provocaría.
+   */
+  private async resolveInvoiceDefaults(
     input: IssueArInvoiceDto,
+    transaction: Transaction,
+  ): Promise<ResolvedArInvoice> {
+    const [arAccountId, accountingPeriodId, ledgerId] = await Promise.all([
+      this.accountingDefaultsService.resolvePartnerAccountId(
+        input.customerBpId,
+        'AR_CONTROL',
+        input.arAccountId,
+        transaction,
+      ),
+      this.accountingDefaultsService.resolveOpenPeriodId(
+        input.legalEntityId,
+        input.invoiceDate,
+        input.accountingPeriodId,
+        transaction,
+      ),
+      this.accountingDefaultsService.resolveLedgerId(
+        input.legalEntityId,
+        input.ledgerId,
+        transaction,
+      ),
+    ]);
+
+    const impuesto =
+      Number(input.taxAmount) > 0
+        ? await this.accountingDefaultsService.resolveOutputTax(
+            input.invoiceDate,
+            input.taxCodeId,
+            input.taxLiabilityAccountId,
+            transaction,
+          )
+        : null;
+
+    return {
+      ...input,
+      arAccountId,
+      accountingPeriodId,
+      ledgerId,
+      ...(impuesto
+        ? { taxCodeId: impuesto.taxCodeId, taxLiabilityAccountId: impuesto.taxLiabilityAccountId }
+        : {}),
+    };
+  }
+
+  private async assertInvoiceInputsAreSapSafe(
+    input: ResolvedArInvoice,
     transaction: Transaction,
   ): Promise<void> {
     this.logger.debug('Validando factura AR con reglas SAP-like.', {
@@ -373,7 +440,7 @@ export class BillingService {
   }
 
   private buildInvoiceJournalLines(
-    input: IssueArInvoiceDto,
+    input: ResolvedArInvoice,
     grossAmount: number,
     invoiceId: string,
     invoiceNo: string,

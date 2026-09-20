@@ -32,6 +32,18 @@ interface ValidatedAccountingContext {
  * entidad legal, ledger, período fiscal, cuentas activas, cuentas de control y dimensiones
  * obligatorias. Es deliberadamente explícita para que sea auditable.
  */
+/**
+ * El documento tal y como llega a la validación: con el período y el libro YA resueltos.
+ *
+ * El esquema los admite vacíos desde el 2026-09-19 —la fecha dice el período y la entidad dice el
+ * libro—, pero aquí ya no pueden faltar: `AccountingDocumentsService` los deduce antes de llamar.
+ */
+export type PostableAccountingDocument = CreateAccountingDocumentDto & {
+  accountingPeriodId: string;
+  ledgerId: string;
+  postingDate: Date;
+};
+
 @Injectable()
 export class SapPostingValidationService {
   constructor(
@@ -62,7 +74,7 @@ export class SapPostingValidationService {
    * @returns Contexto financiero validado.
    */
   async assertDocumentCanBePosted(
-    input: CreateAccountingDocumentDto,
+    input: PostableAccountingDocument,
     transaction: Transaction,
   ): Promise<ValidatedAccountingContext> {
     this.logger.debug('Validando documento antes de contabilización SAP-like.', {

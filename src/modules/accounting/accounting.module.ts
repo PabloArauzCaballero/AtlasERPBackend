@@ -23,6 +23,7 @@ import { PeriodGuardService } from './posting/services/period-guard.service';
 import { SapPostingValidationService } from './posting/services/sap-posting-validation.service';
 import { ReceiptsService } from './receipts/services/receipts.service';
 import { PostingRuleSnapshotService } from './posting/services/posting-rule-snapshot.service';
+import { AccountingDefaultsService } from './shared/services/accounting-defaults.service';
 import { LegalEntityAccessService } from '../../common/services/legal-entity-access.service';
 import { BusinessActionLogsModule } from '../business-action-logs/business-action-logs.module';
 
@@ -44,6 +45,7 @@ import { SupplierPaymentTermsService } from './supplier-payment-terms/supplier-p
   ],
   providers: [
     AccountGroupsService,
+    AccountingDefaultsService,
     AccountingDocumentsService,
     BusinessPartnerRoleValidationService,
     BillingService,

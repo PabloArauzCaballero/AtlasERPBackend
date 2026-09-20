@@ -26,8 +26,21 @@ import { PeriodGuardService } from '../../posting/services/period-guard.service'
 import { SapPostingValidationService } from '../../posting/services/sap-posting-validation.service';
 import { LegalEntityAccessService } from '../../../../common/services/legal-entity-access.service';
 import { PostingRuleSnapshotService } from '../../posting/services/posting-rule-snapshot.service';
+import { AccountingDefaultsService } from '../../shared/services/accounting-defaults.service';
 import { PinoLoggerService } from '../../../../common/logger/pino-logger.service';
 import { BusinessActionLogsService } from '../../../business-action-logs/business-action-logs.service';
+
+/**
+ * El documento con todo lo que el sistema ya sabía resuelto: número, referencia de origen, fecha
+ * de contabilización, período y libro.
+ */
+type ResolvedAccountingDocument = CreateAccountingDocumentDto & {
+  documentNo: string;
+  sourceId: string;
+  postingDate: Date;
+  accountingPeriodId: string;
+  ledgerId: string;
+};
 
 @Injectable()
 export class AccountingDocumentsService {
@@ -38,6 +51,7 @@ export class AccountingDocumentsService {
     private readonly sapPostingValidationService: SapPostingValidationService,
     private readonly legalEntityAccessService: LegalEntityAccessService,
     private readonly postingRuleSnapshotService: PostingRuleSnapshotService,
+    private readonly accountingDefaultsService: AccountingDefaultsService,
     private readonly logger: PinoLoggerService,
     private readonly businessActionLogsService: BusinessActionLogsService,
     @InjectModel(AccountingDocumentModel)
@@ -73,6 +87,38 @@ export class AccountingDocumentsService {
    * recibo, puente del CRM) siguen mandando su propio número derivado (`AR-…`, `RCPT-…`,
    * `MINV-…`) y no pasan por aquí.
    */
+  /**
+   * El período y el libro, deducidos cuando no vienen.
+   *
+   * El período lo determina la FECHA de contabilización y el libro la entidad legal: no son una
+   * decisión de quien registra el asiento, y ofrecerlos en dos desplegables con todos los
+   * períodos y libros de todas las empresas era invitar a contabilizar contra el período de otra.
+   * Lo explícito sigue mandando, así que ningún integrador se entera del cambio.
+   */
+  private async withResolvedDefaults(
+    input: CreateAccountingDocumentDto & { documentNo: string },
+    transaction: Transaction,
+  ): Promise<ResolvedAccountingDocument> {
+    /* En un asiento manual la fecha del documento y la de contabilización son la misma. */
+    const postingDate = input.postingDate ?? input.documentDate;
+    /* La referencia de origen de un asiento tecleado aquí es su propio número. */
+    const sourceId = input.sourceId ?? `${input.sourceType}-${input.documentNo}`;
+    const [accountingPeriodId, ledgerId] = await Promise.all([
+      this.accountingDefaultsService.resolveOpenPeriodId(
+        input.legalEntityId,
+        postingDate,
+        input.accountingPeriodId,
+        transaction,
+      ),
+      this.accountingDefaultsService.resolveLedgerId(
+        input.legalEntityId,
+        input.ledgerId,
+        transaction,
+      ),
+    ]);
+    return { ...input, sourceId, postingDate, accountingPeriodId, ledgerId };
+  }
+
   private async withDocumentNumber(
     input: CreateAccountingDocumentDto,
     transaction: Transaction,
@@ -118,7 +164,8 @@ export class AccountingDocumentsService {
     user: AuthUser,
     transaction: Transaction,
   ) {
-    const input = await this.withDocumentNumber(rawInput, transaction);
+    const numerado = await this.withDocumentNumber(rawInput, transaction);
+    const input = await this.withResolvedDefaults(numerado, transaction);
     this.legalEntityAccessService.assertCanAccessLegalEntity(user, input.legalEntityId);
     this.doubleEntryValidator.validate(input.lines);
     await this.sapPostingValidationService.assertDocumentCanBePosted(input, transaction);
@@ -516,7 +563,8 @@ export class AccountingDocumentsService {
           documentNo: reversalDocumentNo,
           documentDate: input.reversalDate,
           postingDate: input.reversalDate,
-          accountingPeriodId: input.accountingPeriodId,
+          /* Sin período explícito lo deduce `withResolvedDefaults` de la fecha de reversión. */
+          ...(input.accountingPeriodId ? { accountingPeriodId: input.accountingPeriodId } : {}),
           ledgerId: original.ledgerId,
           currencyCode: original.currencyCode,
           approvalStatus: 'NOT_REQUIRED',

@@ -304,17 +304,27 @@ export const createAccountingDocumentSchema = z.object({
    * Sistema, tipo e id de origen son la CLAVE DE INTEGRACIÓN (y la de idempotencia de los lotes):
    * quien importa los elige. No se cierran aquí; `GET /catalog/domains` publica los habituales para
    * que el alta manual los ofrezca en un select.
+   *
+   * En un asiento tecleado a mano no hay «sistema de origen»: es este. Por eso desde el 2026-09-19
+   * traen valor por defecto y el id se genera del número del documento —la pantalla pedía los tres
+   * y proponía `MANUAL-<marca de tiempo>`, que es exactamente lo que el backend puede poner solo—.
    */
-  sourceSystem: z.string().min(1).max(30),
-  sourceType: z.string().min(1).max(30),
-  sourceId: z.string().min(1).max(80),
+  sourceSystem: z.string().min(1).max(30).default('ATLAS_ERP'),
+  sourceType: z.string().min(1).max(30).default('MANUAL'),
+  sourceId: z.string().min(1).max(80).optional(),
   documentType: z.string().min(1).max(30),
   /* Si no viene, lo asigna el backend por entidad legal: DOC-AAAA-NNNNNN. */
   documentNo: z.string().trim().min(1).max(40).optional(),
   documentDate: dateLike,
-  postingDate: dateLike,
-  accountingPeriodId: uuid,
-  ledgerId: uuid,
+  /* Sin fecha de contabilización se usa la del documento: en un asiento manual son la misma. */
+  postingDate: dateLike.optional(),
+  /*
+   * El período lo dice la fecha de contabilización y el libro la entidad legal: opcionales desde
+   * el 2026-09-19 y deducidos por `AccountingDefaultsService` cuando no vienen. Se siguen
+   * aceptando —una importación que ya los trae no cambia— y lo explícito manda sobre lo deducido.
+   */
+  accountingPeriodId: uuid.optional(),
+  ledgerId: uuid.optional(),
   currencyCode: currency,
   /* Era texto libre contra un CHECK de cuatro valores: un valor fuera daba 500. */
   approvalStatus: zodEnum(documentApprovalStatusDomain).default('NOT_REQUIRED'),
@@ -345,22 +355,31 @@ export const bulkCreateAccountingDocumentsSchema = z
       }
       if (documentNo) documentNos.add(documentNo);
 
-      const sourceKey = `${item.sourceSystem}:${item.sourceType}:${item.sourceId}`.toUpperCase();
-      if (sourceKeys.has(sourceKey)) {
+      /* Sin id de origen no hay clave que repetir: la genera el backend, distinta por documento. */
+      const sourceKey = item.sourceId
+        ? `${item.sourceSystem}:${item.sourceType}:${item.sourceId}`.toUpperCase()
+        : null;
+      if (sourceKey && sourceKeys.has(sourceKey)) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['items', index, 'sourceId'],
           message: 'No se permiten claves de origen duplicadas dentro del mismo batch.',
         });
       }
-      sourceKeys.add(sourceKey);
+      if (sourceKey) sourceKeys.add(sourceKey);
     });
   });
 
 export const reverseAccountingDocumentSchema = z.object({
   /* El asiento de reversión toma siempre el siguiente número de la serie DOC de su entidad legal. */
   reversalDate: dateLike,
-  accountingPeriodId: uuid,
+  /*
+   * El período sale de la fecha de reversión, como en cualquier otro asiento.
+   *
+   * Pedirlo era pedir dos veces lo mismo con la posibilidad de contradecirse: una reversión
+   * fechada en septiembre contra el período de julio se aceptaba sin rechistar.
+   */
+  accountingPeriodId: uuid.optional(),
   reason: z.string().min(3).max(240),
 });
 
@@ -392,14 +411,25 @@ export const issueArInvoiceSchema = z.object({
   currencyCode: currency,
   netAmount: positiveMoney,
   taxAmount: z.coerce.number().min(0).multipleOf(0.01).default(0),
-  arAccountId: uuid,
+  /*
+   * Los identificadores que el sistema ya sabe son OPCIONALES desde el 2026-09-19.
+   *
+   * La cuenta de control del cliente está en su ficha, el período lo dice la fecha, el libro lo
+   * dice la entidad legal y la cuenta del impuesto la trae el código tributario. Pedirlos a quien
+   * factura alargaba el alta a dieciocho campos y permitía elegir el equivocado sin aviso: un
+   * asiento contra el período de julio de otra empresa cuadra exactamente igual que el bueno.
+   * Se siguen ACEPTANDO —quien integra por API y sabe cuál quiere, manda el suyo— y lo que llega
+   * explícito gana sobre lo deducido (`AccountingDefaultsService`).
+   */
+  arAccountId: uuid.optional(),
+  /* La cuenta de ingreso NO se deduce: qué se está vendiendo es la única decisión contable real. */
   revenueAccountId: uuid,
   taxLiabilityAccountId: uuid.optional(),
   taxCodeId: uuid.optional(),
   billingEventId: uuid.optional(),
   description: z.string().min(1).max(240),
-  accountingPeriodId: uuid,
-  ledgerId: uuid,
+  accountingPeriodId: uuid.optional(),
+  ledgerId: uuid.optional(),
   electronicTaxDocument: z
     .object({
       cuf: z.string().max(120).optional(),
@@ -421,10 +451,12 @@ export const recordReceiptSchema = z.object({
   amount: positiveMoney,
   currencyCode: currency,
   bankAccountId: uuid.optional(),
-  bankGlAccountId: uuid,
-  arControlGlAccountId: uuid,
-  accountingPeriodId: uuid,
-  ledgerId: uuid,
+  /* Deducibles, como en la factura: banco de la propia cuenta bancaria, control AR de la ficha
+     del pagador, período de la fecha y libro de la entidad. Ver `AccountingDefaultsService`. */
+  bankGlAccountId: uuid.optional(),
+  arControlGlAccountId: uuid.optional(),
+  accountingPeriodId: uuid.optional(),
+  ledgerId: uuid.optional(),
   allocations: z
     .array(
       z.object({

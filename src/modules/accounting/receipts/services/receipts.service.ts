@@ -11,10 +11,22 @@ import { Sequelize } from 'sequelize-typescript';
 import { ArInvoiceModel, ReceiptAllocationModel, ReceiptModel } from '../../../../database/models';
 import { AuthUser } from '../../../../common/types/auth-context.types';
 import { RecordReceiptDto } from '../../shared/schemas/accounting.schemas';
+import { AccountingDefaultsService } from '../../shared/services/accounting-defaults.service';
 import { AccountingDocumentsService } from '../../documents/services/accounting-documents.service';
 import { BusinessPartnerRoleValidationService } from '../../business-partners/services/business-partner-role-validation.service';
 import { LegalEntityAccessService } from '../../../../common/services/legal-entity-access.service';
 import { PinoLoggerService } from '../../../../common/logger/pino-logger.service';
+
+/**
+ * El recibo con lo que el sistema ya sabía resuelto: la cuenta contable del banco, la de control
+ * de cuentas por cobrar del pagador, el período de la fecha y el libro de la entidad.
+ */
+type ResolvedReceipt = RecordReceiptDto & {
+  bankGlAccountId: string;
+  arControlGlAccountId: string;
+  accountingPeriodId: string;
+  ledgerId: string;
+};
 
 /**
  * Registra cobros y aplica asignaciones AR con validación de saldos abiertos.
@@ -24,6 +36,7 @@ export class ReceiptsService {
   constructor(
     private readonly sequelize: Sequelize,
     private readonly accountingDocumentsService: AccountingDocumentsService,
+    private readonly accountingDefaultsService: AccountingDefaultsService,
     private readonly businessPartnerRoleValidationService: BusinessPartnerRoleValidationService,
     private readonly legalEntityAccessService: LegalEntityAccessService,
     private readonly logger: PinoLoggerService,
@@ -68,18 +81,19 @@ export class ReceiptsService {
     return { id, deleted: true };
   }
 
-  record(input: RecordReceiptDto, user: AuthUser) {
+  record(rawInput: RecordReceiptDto, user: AuthUser) {
     this.logger.info('Registrando recibo AR.', {
       layer: 'service',
       module: 'receipts',
       action: 'record',
-      legalEntityId: input.legalEntityId,
-      payerBpId: input.payerBpId,
-      allocationCount: input.allocations.length,
+      legalEntityId: rawInput.legalEntityId,
+      payerBpId: rawInput.payerBpId,
+      allocationCount: rawInput.allocations.length,
       userId: user.sub,
     });
     return this.sequelize.transaction(async (transaction) => {
-      this.legalEntityAccessService.assertCanAccessLegalEntity(user, input.legalEntityId);
+      this.legalEntityAccessService.assertCanAccessLegalEntity(user, rawInput.legalEntityId);
+      const input = await this.resolveReceiptDefaults(rawInput, transaction);
       await this.assertReceiptCanBeRecorded(input, transaction);
 
       // La serie es por entidad legal, como la declara única la tabla (legal_entity_id, receipt_no).
@@ -182,8 +196,43 @@ export class ReceiptsService {
     });
   }
 
-  private async assertReceiptCanBeRecorded(
+  /** Lo que el alta del recibo dejó de preguntar; lo explícito sigue mandando. */
+  private async resolveReceiptDefaults(
     input: RecordReceiptDto,
+    transaction: Transaction,
+  ): Promise<ResolvedReceipt> {
+    const [bankGlAccountId, arControlGlAccountId, accountingPeriodId, ledgerId] = await Promise.all(
+      [
+        this.accountingDefaultsService.resolveBankGlAccountId(
+          input.legalEntityId,
+          input.bankAccountId,
+          input.bankGlAccountId,
+          transaction,
+        ),
+        this.accountingDefaultsService.resolvePartnerAccountId(
+          input.payerBpId,
+          'AR_CONTROL',
+          input.arControlGlAccountId,
+          transaction,
+        ),
+        this.accountingDefaultsService.resolveOpenPeriodId(
+          input.legalEntityId,
+          input.receiptDate,
+          input.accountingPeriodId,
+          transaction,
+        ),
+        this.accountingDefaultsService.resolveLedgerId(
+          input.legalEntityId,
+          input.ledgerId,
+          transaction,
+        ),
+      ],
+    );
+    return { ...input, bankGlAccountId, arControlGlAccountId, accountingPeriodId, ledgerId };
+  }
+
+  private async assertReceiptCanBeRecorded(
+    input: ResolvedReceipt,
     transaction: Transaction,
   ): Promise<void> {
     this.logger.debug('Validando recibo AR.', {
@@ -227,7 +276,7 @@ export class ReceiptsService {
   }
 
   private async assertInvoiceHasOpenBalance(
-    input: RecordReceiptDto,
+    input: ResolvedReceipt,
     arInvoiceId: string,
     allocatedAmount: number,
     transaction: Transaction,
@@ -281,7 +330,7 @@ export class ReceiptsService {
   }
 
   private async updateInvoiceStatusesAfterAllocation(
-    input: RecordReceiptDto,
+    input: ResolvedReceipt,
     transaction: Transaction,
   ): Promise<void> {
     this.logger.debug('Actualizando estados de facturas AR tras asignación.', {

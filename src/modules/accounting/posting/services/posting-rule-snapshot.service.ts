@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Op, Transaction } from 'sequelize';
 import { PostingRuleVersionModel } from '../../../../database/models';
-import { CreateAccountingDocumentDto } from '../../shared/schemas/accounting.schemas';
+import { PostableAccountingDocument } from './sap-posting-validation.service';
 import { PinoLoggerService } from '../../../../common/logger/pino-logger.service';
 
 /**
@@ -21,7 +21,7 @@ export class PostingRuleSnapshotService {
   ) {}
 
   async findApplicableRuleId(
-    input: CreateAccountingDocumentDto,
+    input: PostableAccountingDocument,
     transaction: Transaction,
   ): Promise<string | null> {
     this.logger.debug('Buscando regla de contabilización vigente.', {
