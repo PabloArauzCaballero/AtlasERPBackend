@@ -1,26 +1,27 @@
 FROM node:22-alpine AS dependencies
 WORKDIR /app
-COPY package*.json ./
-RUN npm ci --ignore-scripts
+COPY package.json yarn.lock ./
+RUN corepack enable && corepack yarn install --frozen-lockfile --ignore-scripts --non-interactive
 
 FROM node:22-alpine AS build
 WORKDIR /app
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
-RUN npm run type-check && npm run build
+RUN corepack yarn type-check && corepack yarn build
 
 FROM node:22-alpine AS production
 WORKDIR /app
 ENV NODE_ENV=production
 
-COPY package*.json ./
+COPY package.json yarn.lock ./
 # `--upgrade libcrypto3 libssl3`: la base fija una version de OpenSSL con dos altos que Alpine ya
 # corrigio (CVE-2026-14456, en 3.5.8-r0); no llegan solos porque la etiqueta esta clavada. Se
 # actualizan ESOS paquetes, nunca `apk upgrade` a secas, que cambiaria la base entre dos builds del
 # mismo commit.
 RUN apk add --no-cache --upgrade libcrypto3 libssl3
 
-RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
+RUN corepack enable && corepack yarn install --production=true --frozen-lockfile --ignore-scripts --non-interactive \
+  && corepack cache clean
 
 # npm FUERA de la imagen que se despliega, YA instaladas las dependencias.
 #

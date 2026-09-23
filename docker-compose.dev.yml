@@ -65,7 +65,7 @@ services:
     <<: *build
     env_file: ['${ATLAS_ENV_DIR:-/opt/atlas/env}/erp.env']
     command: >
-      sh -c "npm run db:migrate:prod &&
+      sh -c "node --run db:migrate:prod &&
              node dist/scripts/db/seed-pull.js pull --if-empty"
     networks: [atlas_vps]
     restart: 'no'

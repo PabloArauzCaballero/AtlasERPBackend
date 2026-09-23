@@ -16,8 +16,11 @@ El proyecto usa NestJS, TypeScript, Sequelize, PostgreSQL, Zod, JWT y Pino. La i
 
 ## Instalación
 
+Usar Node 22 (`.nvmrc`) y Yarn 1.22.22 mediante Corepack. El único lockfile
+versionado es `yarn.lock`.
+
 ```bash
-npm install
+corepack yarn install --frozen-lockfile
 ```
 
 ## Variables de entorno críticas
@@ -36,7 +39,7 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000
 ## Ejecución local
 
 ```bash
-npm run start:dev
+corepack yarn start:dev
 ```
 
 Health checks:
@@ -51,30 +54,29 @@ GET /api/v1/ready
 Ejecuta las migraciones en orden:
 
 ```bash
-npm run db:migrate
-npm run db:seed
+corepack yarn db:migrate
+corepack yarn db:seed
 ```
 
 También puedes ejecutar por módulo:
 
 ```bash
-npm run db:migrate:crm
-npm run db:migrate:accounting
-npm run db:migrate:ads
-npm run db:seed:crm
-npm run db:seed:accounting
-npm run db:seed:ads
+corepack yarn db:migrate:crm
+corepack yarn db:migrate:accounting
+corepack yarn db:migrate:ads
+corepack yarn db:seed:crm
+corepack yarn db:seed:accounting
+corepack yarn db:seed:ads
 ```
 
 ## Validación
 
 ```bash
-npm run type-check
-npm run lint
-npm test
-npm run test:e2e
-npm run build
-npm audit --omit=dev
+corepack yarn type-check
+corepack yarn lint
+corepack yarn test
+corepack yarn test:e2e
+corepack yarn build
 ```
 
 Estado verificado en esta entrega:
@@ -91,11 +93,11 @@ Estado verificado en esta entrega:
 Los smoke tests requieren PostgreSQL migrado, API corriendo y JWT válido.
 
 ```bash
-npm run smoke:b2b
-npm run smoke:accounting
-npm run smoke:ads
-npm run smoke:portal
-npm run smoke:all
+corepack yarn smoke:b2b
+corepack yarn smoke:accounting
+corepack yarn smoke:ads
+corepack yarn smoke:portal
+corepack yarn smoke:all
 ```
 
 ## Worker contable outbox
@@ -105,13 +107,13 @@ El worker contable es un proceso persistente separado del HTTP API.
 Desarrollo:
 
 ```bash
-npm run dev:worker:outbox
+corepack yarn dev:worker:outbox
 ```
 
 Producción después de build:
 
 ```bash
-npm run worker:outbox
+corepack yarn worker:outbox
 ```
 
 ## Estructura principal
