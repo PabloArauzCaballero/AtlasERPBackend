@@ -112,6 +112,9 @@ services:
     restart: 'no'
 
   api:
+    environment:
+      APP_COMMIT_SHA: '${SOURCE_COMMIT:-}'
+      APP_VERSION: '1.0.0'
     # Alias ESTABLE en la red compartida: es como lo encuentran los otros bloques.
     # El nombre del contenedor lleva una marca de tiempo y cambia en cada despliegue;
     # este alias no.
