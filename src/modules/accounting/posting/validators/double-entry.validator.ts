@@ -8,6 +8,7 @@ export interface JournalLineAmount {
 }
 
 const CENT_AMOUNT = /^\d+(?:\.\d{1,2})?$/;
+const MAX_LINE_CENTS = 999_999_999_999_999_999n; // numeric(18,2)
 
 function cents(value: number | string): bigint | null {
   if (
@@ -17,7 +18,9 @@ function cents(value: number | string): bigint | null {
     return null;
   }
   const text = String(value);
-  return CENT_AMOUNT.test(text) ? toMinorUnits(text) : null;
+  if (!CENT_AMOUNT.test(text)) return null;
+  const amount = toMinorUnits(text);
+  return amount <= MAX_LINE_CENTS ? amount : null;
 }
 
 @Injectable()

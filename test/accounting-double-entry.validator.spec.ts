@@ -62,4 +62,13 @@ describe('DoubleEntryValidator', () => {
       ).toThrow(BadRequestException);
     },
   );
+
+  it('rejects an amount above the numeric(18,2) limit', () => {
+    expect(() =>
+      validator.validate([
+        { debit: '10000000000000000.00', credit: 0 },
+        { debit: 0, credit: '10000000000000000.00' },
+      ]),
+    ).toThrow(BadRequestException);
+  });
 });
