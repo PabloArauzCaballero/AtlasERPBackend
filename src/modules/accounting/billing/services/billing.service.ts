@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
-import { Transaction } from 'sequelize';
+import { Op, Transaction, type WhereOptions } from 'sequelize';
 import { Sequelize } from 'sequelize-typescript';
 import {
   ArInvoiceLineModel,
@@ -67,9 +67,23 @@ export class BillingService {
     @InjectModel(LegalEntityModel) private readonly legalEntityModel: typeof LegalEntityModel,
   ) {}
 
-  /** Listado de eventos de facturación (para poblar el select del frontend). */
-  listEvents() {
-    return this.billingEventModel.findAll({ order: [['eventTime', 'DESC']], limit: 200 });
+  /**
+   * Listado de eventos de facturación (para poblar el select del frontend).
+   *
+   * Un evento es de la entidad legal de su contrato. Se devolvían los de todas: el contable de A
+   * veía importes y referencias facturables de B (P-13). ADMIN sigue viendo todos.
+   */
+  async listEvents(user: AuthUser) {
+    const allowed = this.legalEntityAccessService.accessibleLegalEntityIds(user);
+    let where: WhereOptions = {};
+    if (allowed !== null) {
+      const contracts = await this.contractHeaderModel.findAll({
+        attributes: ['id'],
+        where: { legalEntityId: { [Op.in]: [...allowed] } } as WhereOptions,
+      });
+      where = { contractId: { [Op.in]: contracts.map((contract) => contract.id) } } as WhereOptions;
+    }
+    return this.billingEventModel.findAll({ where, order: [['eventTime', 'DESC']], limit: 200 });
   }
 
   async listInvoices(user: AuthUser) {

@@ -1,5 +1,7 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { CurrentUser } from '../../../../common/decorators/current-user.decorator';
 import { Roles } from '../../../../common/decorators/roles.decorator';
+import type { AuthUser } from '../../../../common/types/auth-context.types';
 import { ZodValidationPipe } from '../../../../common/pipes/zod-validation.pipe';
 import {
   CreateEntityLinkDto,
@@ -90,12 +92,16 @@ export class AccountGroupsController {
   createJournalLink(
     @Param(new ZodValidationPipe(idParamsSchema)) params: IdParamsDto,
     @Body(new ZodValidationPipe(createEntityLinkSchema)) body: CreateEntityLinkDto,
+    @CurrentUser() user: AuthUser,
   ) {
-    return this.service.createJournalLink(params.id, body);
+    return this.service.createJournalLink(params.id, body, user);
   }
 
   @Get('journal-entries/:id/links')
-  listJournalLinks(@Param(new ZodValidationPipe(idParamsSchema)) params: IdParamsDto) {
-    return this.service.listJournalLinks(params.id);
+  listJournalLinks(
+    @Param(new ZodValidationPipe(idParamsSchema)) params: IdParamsDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.service.listJournalLinks(params.id, user);
   }
 }

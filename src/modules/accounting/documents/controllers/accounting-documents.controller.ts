@@ -94,13 +94,17 @@ export class AccountingDocumentsController {
   }
 
   @Get(':id')
-  getDocument(@Param(new ZodValidationPipe(idParamsSchema)) params: { id: string }) {
+  getDocument(
+    @Param(new ZodValidationPipe(idParamsSchema)) params: { id: string },
+    @CurrentUser() user: AuthUser,
+  ) {
     this.logger.debug('Endpoint getDocument recibido.', {
       layer: 'controller',
       module: 'accounting-documents',
       action: 'getDocument',
       accountingDocumentId: params.id,
+      userId: user.sub,
     });
-    return this.service.getDocument(params.id);
+    return this.service.getDocumentForUser(params.id, user);
   }
 }
