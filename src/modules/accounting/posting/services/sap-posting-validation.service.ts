@@ -281,7 +281,7 @@ export class SapPostingValidationService {
 
       this.assertRequiredDimensions(line, account, lineNumber);
       this.assertControlAccountHasSubledgerReference(input, line, account, lineNumber);
-      await this.assertDimensionReferencesExist(line, lineNumber, transaction);
+      await this.assertDimensionReferencesExist(line, lineNumber, input.legalEntityId, transaction);
     }
   }
 
@@ -355,9 +355,15 @@ export class SapPostingValidationService {
     }
   }
 
+  /**
+   * Centro de costo y de beneficio son dimensiones DE UNA entidad legal (`legal_entity_id NOT
+   * NULL`). Comprobar sólo que existan y estén activos dejaba imputar el asiento de A a un centro
+   * de B —un id ajeno dentro del cuerpo— y el costo aparecía en la otra sociedad (P-13).
+   */
   private async assertDimensionReferencesExist(
     line: PostableAccountingDocument['lines'][number],
     lineNumber: number,
+    legalEntityId: string,
     transaction: Transaction,
   ): Promise<void> {
     if (line.partnerId) {
@@ -378,6 +384,12 @@ export class SapPostingValidationService {
           message: `El centro de costo de la línea ${lineNumber} no existe o no está activo.`,
         });
       }
+      if (costCenter.legalEntityId !== legalEntityId) {
+        throw new ConflictException({
+          code: 'LINE_COST_CENTER_LEGAL_ENTITY_MISMATCH',
+          message: `El centro de costo de la línea ${lineNumber} pertenece a otra entidad legal.`,
+        });
+      }
     }
 
     if (line.profitCenterId) {
@@ -388,6 +400,12 @@ export class SapPostingValidationService {
         throw new ConflictException({
           code: 'LINE_PROFIT_CENTER_NOT_ACTIVE',
           message: `El profit center de la línea ${lineNumber} no existe o no está activo.`,
+        });
+      }
+      if (profitCenter.legalEntityId !== legalEntityId) {
+        throw new ConflictException({
+          code: 'LINE_PROFIT_CENTER_LEGAL_ENTITY_MISMATCH',
+          message: `El profit center de la línea ${lineNumber} pertenece a otra entidad legal.`,
         });
       }
     }

@@ -4,6 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import { env } from '../../config/env';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import { PinoLoggerService } from '../logging/pino-logger.service';
+import { redactUrlQuery } from '../logging/redact-url';
 import type { AuthUser, RequestWithAuthUser } from '../types/auth-context.types';
 
 interface JwtPayload {
@@ -17,6 +18,9 @@ interface JwtPayload {
   legal_entity_ids?: string[];
   tokenType?: string;
 }
+
+/** Único vocabulario de roles que puede traer un token del plano interno (servicio a servicio). */
+const SERVICE_PLANE_ROLE_PREFIX = 'ADS_';
 
 /** Si la peticion trae credencial, se la respeta: el bypass local es para las que no la traen. */
 function hasAuthorizationHeader(header: string | string[] | undefined): boolean {
@@ -44,7 +48,7 @@ export class JwtAuthGuard implements CanActivate {
 
     if (isPublic) {
       this.logger.debugContext(JwtAuthGuard.name, 'Public endpoint bypassed JWT guard', {
-        path: request.url,
+        path: redactUrlQuery(request.url),
         method: request.method,
       });
       return true;
@@ -74,7 +78,7 @@ export class JwtAuthGuard implements CanActivate {
     ) {
       request.user = this.buildLocalTestingUser();
       this.logger.warnContext(JwtAuthGuard.name, 'JWT guard bypassed by local testing env flag', {
-        path: request.url,
+        path: redactUrlQuery(request.url),
         method: request.method,
         userId: request.user.sub,
         roles: request.user.roles,
@@ -85,18 +89,19 @@ export class JwtAuthGuard implements CanActivate {
     const token = this.extractBearerToken(request.headers.authorization);
 
     try {
-      const payload = this.verifyToken(token);
+      const { payload, plane } = this.verifyToken(token);
       request.user = this.toAuthUser(payload);
+      if (plane === 'internal') this.assertServicePlaneRoles(request.user);
       this.logger.debugContext(JwtAuthGuard.name, 'JWT token accepted', {
         userId: request.user.sub,
         roles: this.extractComparableRoles(request.user),
-        path: request.url,
+        path: redactUrlQuery(request.url),
         method: request.method,
       });
       return true;
     } catch (error) {
       this.logger.warnContext(JwtAuthGuard.name, 'JWT token rejected', {
-        path: request.url,
+        path: redactUrlQuery(request.url),
         method: request.method,
         errorName: error instanceof Error ? error.name : 'UnknownError',
       });
@@ -146,26 +151,42 @@ export class JwtAuthGuard implements CanActivate {
    * comportamiento por omisión deja de ser el seguro y este parámetro es lo que evita que
    * el cambio pase inadvertido.
    */
-  private verifyToken(token: string): JwtPayload {
+  private verifyToken(token: string): { payload: JwtPayload; plane: 'access' | 'internal' } {
     try {
-      return this.accessJwtService.verify<JwtPayload>(token, {
+      const payload = this.accessJwtService.verify<JwtPayload>(token, {
         secret: env.JWT_ACCESS_SECRET,
         algorithms: ['HS256'],
         issuer: env.JWT_ACCESS_ISSUER,
         audience: env.JWT_ACCESS_AUDIENCE,
       });
+      return { payload, plane: 'access' };
     } catch (accessTokenError) {
       try {
-        return this.internalJwtService.verify<JwtPayload>(token, {
+        const payload = this.internalJwtService.verify<JwtPayload>(token, {
           secret: env.JWT_INTERNAL_SECRET,
           algorithms: ['HS256'],
           issuer: env.JWT_INTERNAL_ISSUER,
           audience: env.JWT_INTERNAL_AUDIENCE,
         });
+        return { payload, plane: 'internal' };
       } catch {
         throw accessTokenError;
       }
     }
+  }
+
+  /**
+   * El plano interno es el de los clientes TÉCNICOS (servidor de anuncios, rastreador de eventos) y
+   * su vocabulario es el de ads (`docs/architecture/architecture.md`, «Roles incluidos»). Pero el
+   * guard aceptaba cualquier rol que el token declarase: quien tuviera `JWT_INTERNAL_SECRET` —un
+   * servicio— se firmaba `ADMIN` o `FINANCE` y operaba la contabilidad y el portal como una
+   * persona (P-13). Un token de servicio con un rol fuera de `ADS_*` se rechaza entero, no se
+   * recorta: un emisor que pide lo que no le toca está mal configurado y tiene que verse.
+   */
+  private assertServicePlaneRoles(user: AuthUser): void {
+    const roles = this.extractComparableRoles(user).map((role) => role.toUpperCase());
+    if (roles.every((role) => role.startsWith(SERVICE_PLANE_ROLE_PREFIX))) return;
+    throw new UnauthorizedException('Token de servicio con roles fuera de su plano.');
   }
 
   private toAuthUser(payload: JwtPayload): AuthUser {

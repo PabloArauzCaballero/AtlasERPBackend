@@ -294,16 +294,27 @@ export class B2BSalesCrmService {
     return this.onboardingService.listBranches(filtro);
   }
 
-  createBranch(input: CreateBranchDto): Promise<Record<string, unknown>> {
-    return this.onboardingService.createBranch(input);
+  createBranch(
+    input: CreateBranchDto,
+    allowedAccountIds: readonly string[] | null = null,
+  ): Promise<Record<string, unknown>> {
+    return this.onboardingService.createBranch(input, allowedAccountIds);
   }
 
-  updateBranch(branchId: string, input: UpdateBranchDto): Promise<Record<string, unknown>> {
-    return this.onboardingService.updateBranch(branchId, input);
+  updateBranch(
+    branchId: string,
+    input: UpdateBranchDto,
+    allowedAccountIds: readonly string[] | null = null,
+  ): Promise<Record<string, unknown>> {
+    return this.onboardingService.updateBranch(branchId, input, allowedAccountIds);
   }
 
-  setBranchStatus(branchId: string, input: SetBranchStatusDto): Promise<Record<string, unknown>> {
-    return this.onboardingService.setBranchStatus(branchId, input);
+  setBranchStatus(
+    branchId: string,
+    input: SetBranchStatusDto,
+    allowedAccountIds: readonly string[] | null = null,
+  ): Promise<Record<string, unknown>> {
+    return this.onboardingService.setBranchStatus(branchId, input, allowedAccountIds);
   }
 
   createMerchantUser(

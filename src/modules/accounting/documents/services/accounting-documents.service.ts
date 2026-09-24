@@ -703,6 +703,20 @@ export class AccountingDocumentsService {
     });
   }
 
+  /**
+   * El documento para quien lo pide por HTTP: existe (404 si no) Y es de una entidad legal de su
+   * token (403 si no).
+   *
+   * `getDocument` a secas no mira al usuario —lo usan flujos internos que ya autorizaron la
+   * operación dentro de su transacción—, y el controlador lo llamaba directamente: cualquier
+   * contable o CFO leía el asiento de otra entidad con sólo conocer su id (P-13).
+   */
+  async getDocumentForUser(id: string, user: AuthUser) {
+    const result = await this.getDocument(id);
+    this.legalEntityAccessService.assertCanAccessLegalEntity(user, result.document.legalEntityId);
+    return result;
+  }
+
   async getDocument(id: string, transaction?: Transaction) {
     this.logger.debug('Consulta de documento contable.', {
       layer: 'service',

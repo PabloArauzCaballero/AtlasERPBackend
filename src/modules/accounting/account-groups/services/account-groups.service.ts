@@ -2,11 +2,15 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectModel } from '@nestjs/sequelize';
 import { WhereOptions } from 'sequelize';
 import {
+  AccountingDocumentModel,
   GlAccountEntityLinkModel,
   GlAccountGroupModel,
   GlAccountModel,
   JournalEntryEntityLinkModel,
+  JournalEntryModel,
 } from '../../../../database/models';
+import { LegalEntityAccessService } from '../../../../common/services/legal-entity-access.service';
+import type { AuthUser } from '../../../../common/types/auth-context.types';
 import {
   CreateEntityLinkDto,
   CreateGlAccountGroupDto,
@@ -42,6 +46,10 @@ export class AccountGroupsService {
     private readonly accountLinkModel: typeof GlAccountEntityLinkModel,
     @InjectModel(JournalEntryEntityLinkModel)
     private readonly journalLinkModel: typeof JournalEntryEntityLinkModel,
+    @InjectModel(JournalEntryModel) private readonly journalEntryModel: typeof JournalEntryModel,
+    @InjectModel(AccountingDocumentModel)
+    private readonly accountingDocumentModel: typeof AccountingDocumentModel,
+    private readonly legalEntityAccess: LegalEntityAccessService,
   ) {}
 
   async createGroup(input: CreateGlAccountGroupDto): Promise<GlAccountGroupModel> {
@@ -191,14 +199,35 @@ export class AccountGroupsService {
 
   // ---- Vínculos multientidad de asientos ----
 
-  createJournalLink(journalEntryId: string, input: CreateEntityLinkDto) {
-    return this.journalLinkModel.create({ ...input, journalEntryId });
+  /*
+   * Un asiento es de la entidad legal de su documento. Estas dos rutas recibían sólo el id del
+   * asiento y no miraban a quién pertenecía: un contable de A leía y escribía los vínculos de los
+   * asientos de B (P-13). Un id inexistente es 404, no una lista vacía ni un 500 de clave foránea.
+   */
+  async createJournalLink(journalEntryId: string, input: CreateEntityLinkDto, user: AuthUser) {
+    await this.assertJournalEntryAccess(journalEntryId, user);
+    return this.journalLinkModel.create({ ...input, journalEntryId, createdBy: user.sub });
   }
 
-  listJournalLinks(journalEntryId: string) {
+  async listJournalLinks(journalEntryId: string, user: AuthUser) {
+    await this.assertJournalEntryAccess(journalEntryId, user);
     return this.journalLinkModel.findAll({
       where: { journalEntryId } as WhereOptions,
       order: [['createdAt', 'DESC']],
     });
+  }
+
+  private async assertJournalEntryAccess(journalEntryId: string, user: AuthUser): Promise<void> {
+    const journal = await this.journalEntryModel.findByPk(journalEntryId);
+    const document = journal
+      ? await this.accountingDocumentModel.findByPk(journal.accountingDocumentId)
+      : null;
+    if (!journal || !document) {
+      throw new NotFoundException({
+        code: 'JOURNAL_ENTRY_NOT_FOUND',
+        message: 'El asiento informado no existe.',
+      });
+    }
+    this.legalEntityAccess.assertCanAccessLegalEntity(user, document.legalEntityId);
   }
 }

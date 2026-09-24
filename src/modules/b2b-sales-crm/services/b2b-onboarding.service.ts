@@ -334,12 +334,17 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
   }
 
   /** Edita una sucursal existente. No cambia de comercio: eso movería ventas de cuenta. */
-  async updateBranch(branchId: string, input: UpdateBranchDto): Promise<Record<string, unknown>> {
+  async updateBranch(
+    branchId: string,
+    input: UpdateBranchDto,
+    allowedAccountIds: readonly string[] | null = null,
+  ): Promise<Record<string, unknown>> {
     this.logger.infoContext(B2BOnboardingService.name, 'B2B CRM use case started', {
       useCase: 'updateBranch',
     });
     const branch = await this.repository.branches.findByPk(branchId);
     if (!branch) throw new NotFoundException('Sucursal no encontrada.');
+    this.assertBranchAccount(branch.accountId, allowedAccountIds);
 
     await branch.update({
       ...(input.name !== undefined ? { name: input.name } : {}),
@@ -361,12 +366,14 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
   async setBranchStatus(
     branchId: string,
     input: SetBranchStatusDto,
+    allowedAccountIds: readonly string[] | null = null,
   ): Promise<Record<string, unknown>> {
     this.logger.infoContext(B2BOnboardingService.name, 'B2B CRM use case started', {
       useCase: 'setBranchStatus',
     });
     const branch = await this.repository.branches.findByPk(branchId);
     if (!branch) throw new NotFoundException('Sucursal no encontrada.');
+    this.assertBranchAccount(branch.accountId, allowedAccountIds);
 
     const activa = input.status === 'ACTIVE';
     await branch.update({
@@ -422,10 +429,28 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
     return branches.map((branch) => this.describeBranch(branch));
   }
 
-  async createBranch(input: CreateBranchDto): Promise<Record<string, unknown>> {
+  /**
+   * `allowedAccountIds` es el alcance del llamador: `null` para staff (opera cualquier comercio) y
+   * las cuentas de sus membresías para un comercio. Estas rutas aceptan `MERCHANT_ADMIN` y no
+   * miraban de quién era la sucursal: el comercio B renombraba, cerraba o abría sucursales del A
+   * (P-13).
+   */
+  private assertBranchAccount(accountId: string, allowedAccountIds: readonly string[] | null) {
+    if (allowedAccountIds === null || allowedAccountIds.includes(accountId)) return;
+    throw new ForbiddenException({
+      code: 'MERCHANT_ACCOUNT_FORBIDDEN',
+      message: 'No tienes permiso para operar esta cuenta de comercio.',
+    });
+  }
+
+  async createBranch(
+    input: CreateBranchDto,
+    allowedAccountIds: readonly string[] | null = null,
+  ): Promise<Record<string, unknown>> {
     this.logger.infoContext(B2BOnboardingService.name, 'B2B CRM use case started', {
       useCase: 'createBranch',
     });
+    this.assertBranchAccount(input.accountId, allowedAccountIds);
     const account = await this.repository.accounts.findByPk(input.accountId);
 
     if (!account) {
