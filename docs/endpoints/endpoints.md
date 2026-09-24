@@ -499,6 +499,25 @@ Cierra período si no hay documentos `DRAFT`.
 
 Reabre período con motivo documentado.
 
+## Outbox contable (operación)
+
+Roles: `ADMIN`, `CFO`, `FINANCE`. Ver `src/workers/outbox/README.md`.
+
+### GET /api/v1/accounting/outbox/status
+
+Conteos por estado (`PENDING`, `PUBLISHED`, `DEAD`, `LEGACY_LOG_ONLY`), eventos en vuelo, edad del
+pendiente más antiguo, intentos máximos y `transportConfigured` (sin transporte nada se publica).
+
+### GET /api/v1/accounting/outbox/events/dead?limit=50
+
+Eventos agotados o rechazados, con su último error redactado.
+
+### POST /api/v1/accounting/outbox/events/:eventKey/replay
+
+Cuerpo `{ "reason": "…" }` (10–500 caracteres). Devuelve a `PENDING` un evento `DEAD` o
+`LEGACY_LOG_ONLY` y lo registra en `business_action_logs`. `404 OUTBOX_EVENT_NOT_FOUND`,
+`409 OUTBOX_EVENT_NOT_REPLAYABLE` si está `PENDING` o `PUBLISHED`.
+
 ## Endurecimiento transversal aplicado a endpoints contables
 
 Todos los endpoints protegidos del módulo contable quedan bajo JWT Bearer y roles. Además, las operaciones que generan posting aplican las siguientes validaciones antes de persistir:

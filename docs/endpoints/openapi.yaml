@@ -931,6 +931,69 @@ paths:
           description: Período ya abierto
       tags:
         - Contabilidad
+  /accounting/outbox/status:
+    get:
+      summary: Estado de la cola del outbox contable
+      description: Conteos por estado, eventos en vuelo, edad del pendiente más antiguo y si
+        hay transporte configurado. Roles ADMIN, CFO, FINANCE.
+      responses:
+        '200':
+          description: Estado de la cola
+        '403':
+          description: Rol no autorizado
+      tags:
+        - Contabilidad
+  /accounting/outbox/events/dead:
+    get:
+      summary: Eventos del outbox agotados
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+      responses:
+        '200':
+          description: Eventos DEAD con su último error redactado
+        '403':
+          description: Rol no autorizado
+      tags:
+        - Contabilidad
+  /accounting/outbox/events/{eventKey}/replay:
+    post:
+      summary: Reenviar un evento agotado (replay autorizado)
+      description: Devuelve a PENDING un evento DEAD o LEGACY_LOG_ONLY y lo audita.
+      parameters:
+        - in: path
+          name: eventKey
+          required: true
+          schema:
+            type: string
+            maxLength: 160
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  type: string
+                  minLength: 10
+                  maxLength: 500
+      responses:
+        '201':
+          description: Evento devuelto a PENDING
+        '404':
+          description: No existe un evento con esa clave
+        '409':
+          description: El evento está PENDING o PUBLISHED
+      tags:
+        - Contabilidad
   /admin/ads/dashboard:
     get:
       summary: Dashboard administrativo de Ads

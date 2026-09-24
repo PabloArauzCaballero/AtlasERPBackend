@@ -23,6 +23,7 @@ import { PartnerOnboardingGatewayModule } from './modules/partner-onboarding-gat
 import { NotificationCampaignsGatewayModule } from './modules/notification-campaigns-gateway/notification-campaigns-gateway.module';
 import { B2BSalesCrmModule } from './modules/b2b-sales-crm/b2b-sales-crm.module';
 import { AccountingModule } from './modules/accounting/accounting.module';
+import { OutboxOperationsModule } from './modules/accounting/outbox/outbox-operations.module';
 import { AdsModule } from './modules/ads/ads.module';
 import { FilesModule } from './modules/files/files.module';
 import { DocumentsModule } from './modules/documents/documents.module';
@@ -110,6 +111,7 @@ function prettyDisponible(): boolean {
     NotificationCampaignsGatewayModule,
     B2BSalesCrmModule,
     AccountingModule,
+    OutboxOperationsModule,
     AdsModule,
     FilesModule,
     DocumentsModule,

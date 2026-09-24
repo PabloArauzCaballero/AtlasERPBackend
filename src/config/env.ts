@@ -8,6 +8,10 @@ const commaSeparatedList = (value: string): string[] =>
     .map((entry) => entry.trim())
     .filter(Boolean);
 
+/** Una variable declarada vacía en el `.env` (`X=`) cuenta como no declarada. */
+const emptyAsUndefined = (value: unknown): unknown =>
+  typeof value === 'string' && value.trim() === '' ? undefined : value;
+
 const localTestingDefaultRoles = [
   'ADMIN',
   'AUDITOR',
@@ -201,6 +205,20 @@ const envSchema = z
     OUTBOX_WORKER_BATCH_SIZE: z.coerce.number().int().positive().max(100).default(25),
     WORKER_SHUTDOWN_TIMEOUT_SECONDS: z.coerce.number().int().positive().default(30),
 
+    /*
+     * Entrega del outbox (P-03). El worker envía cada evento por HTTP firmado (HMAC-SHA256) a
+     * `OUTBOX_DELIVERY_URL` y SÓLO un 2xx del receptor cuenta como publicado. Sin URL el worker
+     * no finge entrega: deja los eventos PENDING y lo dice en cada ciclo. Ver
+     * `src/workers/outbox/README.md` para el contrato de cabeceras y firma.
+     */
+    OUTBOX_DELIVERY_URL: z.preprocess(emptyAsUndefined, z.string().trim().url().optional()),
+    OUTBOX_DELIVERY_SIGNING_SECRET: z.preprocess(emptyAsUndefined, z.string().min(32).optional()),
+    OUTBOX_DELIVERY_TIMEOUT_MS: z.coerce.number().int().positive().default(10_000),
+    OUTBOX_LEASE_MS: z.coerce.number().int().positive().default(60_000),
+    OUTBOX_MAX_ATTEMPTS: z.coerce.number().int().positive().max(100).default(12),
+    OUTBOX_RETRY_BASE_MS: z.coerce.number().int().positive().default(5_000),
+    OUTBOX_RETRY_MAX_MS: z.coerce.number().int().positive().default(3_600_000),
+
     /* Pasada que marca OVERDUE las cuotas BNPL vencidas; corre dentro del API (ver B2BOverdueSweepProcessor). */
     BNPL_OVERDUE_SWEEP_ENABLED: z
       .enum(['true', 'false'])
@@ -262,6 +280,31 @@ const envSchema = z
           'DB_SSL_REJECT_UNAUTHORIZED no puede ser false en producción: el cifrado sin ' +
           'validar el certificado no protege frente a un intermediario. Declara la CA en ' +
           'DB_SSL_CA o DB_SSL_CA_FILE si el certificado no lo firma una autoridad pública.',
+      });
+    }
+    // Una URL de entrega sin secreto obligaría a enviar sin firma: el receptor no podría
+    // distinguir al ERP de cualquiera que conozca la URL.
+    if (value.OUTBOX_DELIVERY_URL && !value.OUTBOX_DELIVERY_SIGNING_SECRET) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['OUTBOX_DELIVERY_SIGNING_SECRET'],
+        message: 'OUTBOX_DELIVERY_SIGNING_SECRET es obligatorio si se declara OUTBOX_DELIVERY_URL.',
+      });
+    }
+    // El lease tiene que sobrevivir a la llamada más larga posible; si caducara antes, otro
+    // worker reservaría el mismo evento mientras el primero sigue esperando la respuesta.
+    if (value.OUTBOX_LEASE_MS < value.OUTBOX_DELIVERY_TIMEOUT_MS * 2) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['OUTBOX_LEASE_MS'],
+        message: 'OUTBOX_LEASE_MS debe ser al menos el doble de OUTBOX_DELIVERY_TIMEOUT_MS.',
+      });
+    }
+    if (value.OUTBOX_RETRY_MAX_MS < value.OUTBOX_RETRY_BASE_MS) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['OUTBOX_RETRY_MAX_MS'],
+        message: 'OUTBOX_RETRY_MAX_MS no puede ser menor que OUTBOX_RETRY_BASE_MS.',
       });
     }
     if (

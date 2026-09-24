@@ -1,0 +1,225 @@
+[
+  {
+    "requirementId": "B05",
+    "packageId": "P-03",
+    "repository": "AtlasERPBackend",
+    "title": "El outbox ERP entrega de verdad: published_at sólo tras ACK duradero del receptor",
+    "releaseIncluded": true,
+    "ownerRole": "E",
+    "acceptance": "Caída antes de enviar, después del ACK y antes de marcar publicado, timeout, dos workers y reinicio no pierden eventos ni duplican el efecto. Diez reenvíos del mismo evento generan un solo efecto. El backlog converge tras recuperar el consumidor. published_at nunca se asigna por escribir un log.",
+    "tests": [
+      {
+        "file": "test/outbox-delivery.integration.spec.ts",
+        "name": "sin transporte configurado no marca publicado ni reserva nada"
+      },
+      {
+        "file": "test/outbox-delivery.integration.spec.ts",
+        "name": "published_at no puede asignarse sin ACK: la base rechaza la marca de un evento PENDING"
+      },
+      {
+        "file": "test/outbox-delivery.integration.spec.ts",
+        "name": "publica sólo con ACK 2xx del receptor firmado y conserva la traza"
+      },
+      {
+        "file": "test/outbox-delivery.integration.spec.ts",
+        "name": "caída antes de enviar: el lease caduca y otro worker lo entrega una sola vez"
+      },
+      {
+        "file": "test/outbox-delivery.integration.spec.ts",
+        "name": "ACK recibido y caída antes de marcar publicado: la reentrega se deduplica en la inbox"
+      },
+      {
+        "file": "test/outbox-delivery.integration.spec.ts",
+        "name": "timeout: queda PENDING con backoff y error redactado, y la reentrega no duplica el efecto"
+      },
+      {
+        "file": "test/outbox-delivery.integration.spec.ts",
+        "name": "dos workers concurrentes no reservan el mismo evento"
+      },
+      {
+        "file": "test/outbox-delivery.integration.spec.ts",
+        "name": "reinicio: un worker nuevo retoma lo que el anterior dejó en vuelo"
+      },
+      {
+        "file": "test/outbox-delivery.integration.spec.ts",
+        "name": "diez reenvíos del mismo evento producen un solo efecto"
+      },
+      {
+        "file": "test/outbox-delivery.integration.spec.ts",
+        "name": "orden invertido: una versión vieja no revierte el estado nuevo en el consumidor"
+      },
+      {
+        "file": "test/outbox-delivery.integration.spec.ts",
+        "name": "backlog converge tras recuperar el receptor"
+      },
+      {
+        "file": "test/outbox-delivery.integration.spec.ts",
+        "name": "la migración etiqueta LEGACY_LOG_ONLY lo que el worker antiguo marcó sin entregar"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  },
+  {
+    "requirementId": "UC_Outbox",
+    "packageId": "P-03",
+    "repository": "AtlasERPBackend",
+    "title": "Registrar outbox financiero con estado de entrega, lease y versión por agregado",
+    "releaseIncluded": true,
+    "ownerRole": "E",
+    "acceptance": "Los productores existentes siguen insertando en la misma transacción de negocio; la base asigna estado PENDING y aggregate_version monótona aun con transacciones concurrentes.",
+    "tests": [
+      {
+        "file": "test/outbox-delivery.integration.spec.ts",
+        "name": "la versión de agregado la asigna la base aunque dos transacciones emitan a la vez"
+      },
+      {
+        "file": "test/outbox-delivery.integration.spec.ts",
+        "name": "el modelo Sequelize de los productores sigue insertando: PENDING y versión asignada"
+      },
+      {
+        "file": "test/outbox-delivery.integration.spec.ts",
+        "name": "el relay entrega en orden por agregado y no adelanta a una versión muerta"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  },
+  {
+    "requirementId": "UC_PublicarEvento",
+    "packageId": "P-03",
+    "repository": "AtlasERPBackend",
+    "title": "Publicar evento contable por HTTP firmado con ACK 2xx",
+    "releaseIncluded": true,
+    "ownerRole": "E",
+    "acceptance": "El adaptador firma con HMAC-SHA256, distingue 2xx (ACK), transitorios (5xx/408/429/401/403/404/red/timeout) y definitivos (400/410/413/415/422), y el relay sólo marca PUBLISHED con ACK.",
+    "tests": [
+      {
+        "file": "test/outbox-http-publisher.spec.ts",
+        "name": "2xx es ACK y envía firma, clave, intento y sólo las cabeceras W3C de traza"
+      },
+      {
+        "file": "test/outbox-http-publisher.spec.ts",
+        "name": "el receptor verifica la firma con el secreto y el cuerpo crudo"
+      },
+      {
+        "file": "test/outbox-http-publisher.spec.ts",
+        "name": "rechaza cuerpo alterado, otro secreto, firma ausente o fuera de ventana"
+      },
+      {
+        "file": "test/outbox-http-publisher.spec.ts",
+        "name": "un receptor que no contesta a tiempo es RETRY por timeout, no ACK"
+      },
+      {
+        "file": "test/outbox-http-publisher.spec.ts",
+        "name": "un receptor caído (conexión rechazada) es RETRY sin filtrar el secreto"
+      },
+      {
+        "file": "test/outbox-delivery.integration.spec.ts",
+        "name": "publica sólo con ACK 2xx del receptor firmado y conserva la traza"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": "Integración productiva: ningún servicio expone todavía el receptor (OUTBOX_DELIVERY_URL) ni el worker está desplegado como proceso en Coolify; hasta entonces los eventos quedan PENDING (visible en /accounting/outbox/status)."
+  },
+  {
+    "requirementId": "UC_ConsumirEvento",
+    "packageId": "P-03",
+    "repository": "AtlasERPBackend",
+    "title": "Consumir evento con inbox idempotente y orden por agregado",
+    "releaseIncluded": true,
+    "ownerRole": "E",
+    "acceptance": "Registrar la clave del evento en una inbox con unicidad y aplicar el efecto en la misma transacción; una versión vieja no revierte un estado nuevo.",
+    "tests": [
+      {
+        "file": "test/outbox-delivery.integration.spec.ts",
+        "name": "diez reenvíos del mismo evento producen un solo efecto"
+      },
+      {
+        "file": "test/outbox-delivery.integration.spec.ts",
+        "name": "ACK recibido y caída antes de marcar publicado: la reentrega se deduplica en la inbox"
+      },
+      {
+        "file": "test/outbox-delivery.integration.spec.ts",
+        "name": "orden invertido: una versión vieja no revierte el estado nuevo en el consumidor"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": "El ERP no consume hoy eventos de otros servicios (no hay webhooks ni colas entrantes): el helper consumeOnce está probado contra PostgreSQL, pero falta el consumidor real que lo use (AtlasBackend/Engine como receptor del outbox ERP)."
+  },
+  {
+    "requirementId": "UC_ReintentoEvento",
+    "packageId": "P-03",
+    "repository": "AtlasERPBackend",
+    "title": "Reintentar evento fallido con backoff, agotamiento visible y replay autorizado",
+    "releaseIncluded": true,
+    "ownerRole": "E",
+    "acceptance": "Fallos transitorios reintentan con backoff exponencial con tope; agotados o rechazados pasan a DEAD visible; sólo un replay autorizado (ADMIN/CFO/FINANCE, con motivo auditado) los devuelve a PENDING.",
+    "tests": [
+      {
+        "file": "test/outbox-delivery.integration.spec.ts",
+        "name": "agotado: pasa a DEAD visible y el replay autorizado lo reentrega"
+      },
+      {
+        "file": "test/outbox-delivery.integration.spec.ts",
+        "name": "un 4xx definitivo (422) va a DEAD sin agotar reintentos"
+      },
+      {
+        "file": "test/outbox-http-publisher.spec.ts",
+        "name": "backoff exponencial con tope"
+      },
+      {
+        "file": "test/outbox-http-publisher.spec.ts",
+        "name": "sólo administración y finanzas"
+      },
+      {
+        "file": "test/outbox-http-publisher.spec.ts",
+        "name": "el replay exige un motivo revisable"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  },
+  {
+    "requirementId": "UC_MonitorearEventos",
+    "packageId": "P-03",
+    "repository": "AtlasERPBackend",
+    "title": "Monitorear cola de eventos: pendientes, edad, intentos y DEAD",
+    "releaseIncluded": true,
+    "ownerRole": "E",
+    "acceptance": "El estado de la cola expone conteos por estado, edad del pendiente más antiguo, intentos máximos y si hay transporte; sin transporte nada se marca publicado.",
+    "tests": [
+      {
+        "file": "test/outbox-delivery.integration.spec.ts",
+        "name": "backlog converge tras recuperar el receptor"
+      },
+      {
+        "file": "test/outbox-delivery.integration.spec.ts",
+        "name": "agotado: pasa a DEAD visible y el replay autorizado lo reentrega"
+      },
+      {
+        "file": "test/outbox-delivery.integration.spec.ts",
+        "name": "sin transporte configurado no marca publicado ni reserva nada"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": "Falta el SLO acordado de edad máxima de pendientes y la alerta que lo vigile (decisión de operación; ver docs/compliance/decisions.md P-03)."
+  },
+  {
+    "requirementId": "UC_Idempotencia",
+    "packageId": "P-03",
+    "repository": "AtlasERPBackend",
+    "title": "Garantizar idempotencia del efecto ante entrega al menos una vez",
+    "releaseIncluded": true,
+    "ownerRole": "E",
+    "acceptance": "La misma clave de evento aplicada diez veces (en serie y concurrente) produce un solo efecto.",
+    "tests": [
+      {
+        "file": "test/outbox-delivery.integration.spec.ts",
+        "name": "diez reenvíos del mismo evento producen un solo efecto"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  }
+]

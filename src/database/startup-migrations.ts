@@ -53,6 +53,8 @@ export const STARTUP_MIGRATION_FILES = [
   'src/database/migrations/20260901000000-ads-en-atlas-accounting.sql',
   // Portador del contexto de traza para el worker de outbox: columna aditiva, sin UPDATE.
   'src/database/migrations/20260918230000-outbox-trace-context.sql',
+  // Entrega real del outbox (lease, reintentos, DEAD, versión de agregado) e inbox del consumidor.
+  'src/database/migrations/20260924100000-outbox-entrega-real.sql',
 ] as const;
 
 export interface LegacySqlProbe {
