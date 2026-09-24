@@ -97,10 +97,15 @@ export function findUnknownCommands(
 
 function trackedMarkdown(root: string): string[] {
   const output = execFileSync('git', ['ls-files', '-z', '--', '*.md'], { cwd: root });
-  return output
-    .toString('utf8')
-    .split('\0')
-    .filter((path) => path.length > 0 && !path.startsWith('node_modules/'));
+  return (
+    output
+      .toString('utf8')
+      .split('\0')
+      .filter((path) => path.length > 0 && !path.startsWith('node_modules/'))
+      // `contracts/` es una copia byte a byte del contrato que publica AtlasBackend (ver su
+      // ORIGIN.json): sus comandos son los de ese repo y no se puede editar sin romper la sincronía.
+      .filter((path) => !path.startsWith('contracts/'))
+  );
 }
 
 function main(): void {
