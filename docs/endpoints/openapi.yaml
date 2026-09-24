@@ -562,9 +562,12 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CrmCreateBranchRequest'
+      description: Un MERCHANT_ADMIN sólo opera cuentas de sus membresías activas (P-13).
       responses:
         '201':
           description: Sucursal creada
+        '403':
+          description: Cuenta de comercio fuera del alcance del usuario
   /b2b/onboarding/merchant-users:
     post:
       summary: Crear usuario de comercio
@@ -1002,11 +1005,14 @@ paths:
   /accounting/documents/{id}:
     get:
       summary: Obtener documento contable con journal y líneas
+      description: Valida alcance por entidad legal del documento (P-13).
       parameters:
         - $ref: '#/components/parameters/AccountingId'
       responses:
         '200':
           description: Documento encontrado
+        '403':
+          description: Entidad legal no autorizada
         '404':
           description: Documento no existe
       tags:
