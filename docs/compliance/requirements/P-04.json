@@ -149,5 +149,58 @@
     ],
     "requiresDatabase": true,
     "blockedBy": null
+  },
+  {
+    "requirementId": "B08-resolucion-cola",
+    "packageId": "P-04",
+    "repository": "AtlasERPBackend",
+    "title": "La cola de revisión de cobertura se resuelve con doble criterio y auditoría (confirmar, rechazar o descartar)",
+    "releaseIncluded": true,
+    "ownerRole": "E",
+    "acceptance": "Un usuario de finanzas (no quien abrió el elemento) resuelve un elemento abierto: confirmar el aviso REPORTED lo deja CONFIRMED con actor/fecha/nota, descuenta del saldo y, si cubre la cuota, la deja PAID_TO_MERCHANT; rechazarlo con motivo lo deja REJECTED y la cuota vuelve a ser elegible; un contrato no activo se descarta con motivo; nunca se confirma un aviso sobre una cuota con cobertura viva; dos resoluciones concurrentes dejan una sola; rol sin permiso recibe 403; el elemento cerrado conserva estado, desenlace, actor, motivo y fecha y no se borra ni se edita.",
+    "tests": [
+      {
+        "file": "test/coverage-review-resolution.integration.spec.ts",
+        "name": "confirmar el aviso deja el pago CONFIRMED"
+      },
+      {
+        "file": "test/coverage-review-resolution.integration.spec.ts",
+        "name": "confirmar un aviso parcial descuenta del saldo"
+      },
+      {
+        "file": "test/coverage-review-resolution.integration.spec.ts",
+        "name": "rechazar el aviso con motivo deja la cuota elegible"
+      },
+      {
+        "file": "test/coverage-review-resolution.integration.spec.ts",
+        "name": "dos resoluciones concurrentes del mismo elemento"
+      },
+      {
+        "file": "test/coverage-review-resolution.integration.spec.ts",
+        "name": "quien pidió la cobertura no resuelve su propia revisión"
+      },
+      {
+        "file": "test/coverage-review-resolution.integration.spec.ts",
+        "name": "descarta con motivo una cobertura en revisión por contrato no activo"
+      },
+      {
+        "file": "test/coverage-review-resolution.integration.spec.ts",
+        "name": "no confirma un aviso sobre una cuota ya cubierta"
+      },
+      {
+        "file": "test/coverage-review-resolution.integration.spec.ts",
+        "name": "un elemento cerrado no se borra ni se edita"
+      },
+      {
+        "file": "test/coverage-review-resolution.integration.spec.ts",
+        "name": "rol sin permiso recibe 403 al resolver"
+      },
+      {
+        "file": "test/coverage-review-resolution.integration.spec.ts",
+        "name": "el motivo es obligatorio en toda resolución"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
   }
 ]

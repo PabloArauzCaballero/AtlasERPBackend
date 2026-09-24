@@ -326,10 +326,40 @@ Crea CxP ATLAS→comercio por una cuota impaga específica, por su SALDO (import
 
 Revierte una CxP aún no liquidada (queda CANCELLED con motivo y actor; la cuota puede reabrirse).
 
+## GET /api/v1/b2b/coverage/payables
+
+Coberturas con el estado de su liquidación. Campos añadidos (2026-09-24, aditivos): `currency`,
+`settlementId`, `settlementStatus` (`PENDING_APPROVAL`/`CONFIRMED`/null), `settlementReference`,
+`settlementAmount`, `settlementCurrency`, `settlementRegisteredAt`, `settlementRegisteredByUserId` y
+`settlementRegisteredByMe` (la registró quien pregunta: la pantalla no le ofrece aprobarla).
+
+## GET /api/v1/b2b/coverage/recoveries
+
+Recuperaciones; añade `currency`, `installmentId` y `merchantPayableId`.
+
 ## GET /api/v1/b2b/coverage/review-queue
 
 Cola de revisión: avisos REPORTED que superaron `BNPL_PAYMENT_NOTICE_REVIEW_HOURS` (72 h por defecto)
-y coberturas que no se aprueban solas.
+y coberturas que no se aprueban solas. Cada fila trae la cuota, los avisos pendientes y
+`allowedActions` para quien pregunta. `?status=RESOLVED|ALL` muestra lo cerrado (nunca se borra).
+
+## POST /api/v1/b2b/coverage/review-queue/:reviewItemId/resolve
+
+### Responsabilidad
+
+Cierra un elemento de la cola con `action` (`CONFIRM_NOTICE`, `REJECT_NOTICE`, `DISMISS`), `note`
+obligatoria y `noticeId` si la cuota tiene varios avisos pendientes.
+
+### Reglas aplicadas (P-04, 2026-09-24)
+
+- Sólo FINANCE/ADMIN; quien abrió el elemento no lo resuelve (403 `FOUR_EYES_REQUIRED`).
+- Lock sobre la cuota: dos resoluciones simultáneas dejan una; la otra recibe 409
+  `REVIEW_ITEM_ALREADY_RESOLVED`.
+- Confirmar: aviso CONFIRMED (con actor, fecha y nota), saldo actualizado; si queda cubierta, cuota
+  PAID_TO_MERCHANT. Con cobertura viva: 409 `COVERAGE_IN_PLACE`.
+- Rechazar: aviso REJECTED; la cuota vencida vuelve a ser cubrible (OVERDUE).
+- Descartar: sólo contrato no activo o aviso ya decidido (409 `REVIEW_ACTION_NOT_ALLOWED`).
+- El elemento cerrado guarda estado, desenlace, actor, motivo y fecha; no se edita ni se borra.
 
 ## PATCH /api/v1/b2b/coverage/payables/:payableId/paid
 
@@ -362,7 +392,12 @@ Aplica recuperación parcial o total contra la CxC del consumidor como movimient
 
 ## POST /api/v1/b2b/coverage/recoveries/:recoveryId/movements/:movementId/reverse
 
-Reverso/devolución: movimiento compensatorio; los movimientos son de sólo inserción.
+Reverso/devolución: movimiento compensatorio; los movimientos son de sólo inserción. Exige
+`reversalReference` única y `reason`. Revertir dos veces el mismo cobro → 409 `ALREADY_REVERSED`.
+
+## GET /api/v1/b2b/coverage/recoveries/:recoveryId/movements
+
+Cobros y reversos de una recuperación, en orden de registro (FINANCE, COLLECTIONS, ADMIN).
 
 ## POST /api/v1/b2b/reconciliation/runs
 

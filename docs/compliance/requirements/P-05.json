@@ -221,5 +221,26 @@
     ],
     "requiresDatabase": true,
     "blockedBy": "El lado operativo está cubierto; el asiento contable de la recuperación no se genera en este paquete (caso «Integración excluida»; depende del consumidor contable de b2b.recovery.payment_applied, P-03/P-06)."
+  },
+  {
+    "requirementId": "B07-listados-liquidacion",
+    "packageId": "P-05",
+    "repository": "AtlasERPBackend",
+    "title": "Los listados de cobertura y recuperación exponen estado de la liquidación, quién la registró y moneda",
+    "releaseIncluded": true,
+    "ownerRole": "E",
+    "acceptance": "GET /b2b/coverage/payables añade (sin quitar campos) settlementStatus, settlementReference, settlementRegisteredByUserId, settlementRegisteredByMe (relativo a quien pregunta) y currency; GET /b2b/coverage/recoveries añade currency. La pantalla ofrece aprobar/rechazar sólo con una liquidación PENDING_APPROVAL y nunca a quien la registró.",
+    "tests": [
+      {
+        "file": "test/coverage-review-resolution.integration.spec.ts",
+        "name": "las coberturas traen el estado de la liquidación"
+      },
+      {
+        "file": "test/coverage-review-resolution.integration.spec.ts",
+        "name": "las recuperaciones traen su moneda"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
   }
 ]

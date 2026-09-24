@@ -626,12 +626,98 @@ paths:
   /b2b/coverage/review-queue:
     get:
       summary: Cola de revisión de cobertura (avisos de pago sin verificar, coberturas que no se aprueban solas)
+      description: |
+        Cada elemento trae la cuota, sus avisos de pago pendientes (`pendingNotices`), si lo abrió
+        quien pregunta (`openedByMe`) y las acciones que admite PARA QUIEN PREGUNTA
+        (`allowedActions`: `CONFIRM_NOTICE`, `REJECT_NOTICE`, `DISMISS`; vacío si lo abrió él o si
+        está cerrado). Los elementos cerrados no se borran: `status=RESOLVED|ALL` los muestra con
+        desenlace (`resolution`), actor, motivo y fecha.
+      tags:
+        - Coverage
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [OPEN, RESOLVED, ALL]
+            default: OPEN
+      responses:
+        '200':
+          description: Elementos (abiertos, del más antiguo al más reciente, por defecto)
+  /b2b/coverage/review-queue/{reviewItemId}/resolve:
+    post:
+      summary: Resolver un elemento de la cola (confirmar o rechazar el aviso de pago, o descartar)
+      description: |
+        Sólo FINANCE o ADMIN, y nunca quien abrió el elemento (403 `FOUR_EYES_REQUIRED`). Bajo lock
+        de la cuota: `CONFIRM_NOTICE` deja el aviso CONFIRMED y descuenta del saldo (si lo cubre, la
+        cuota queda PAID_TO_MERCHANT); `REJECT_NOTICE` lo deja REJECTED y la cuota vencida vuelve a
+        ser cubrible; `DISMISS` cierra sin tocar pagos (contrato no activo, o aviso ya decidido). El
+        motivo (`note`) es obligatorio y queda en el elemento y en el aviso. Un elemento cerrado no se
+        edita ni se borra.
+      tags:
+        - Coverage
+      parameters:
+        - name: reviewItemId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action, note]
+              additionalProperties: false
+              properties:
+                action:
+                  type: string
+                  enum: [CONFIRM_NOTICE, REJECT_NOTICE, DISMISS]
+                noticeId:
+                  type: string
+                  format: uuid
+                  description: Obligatorio sólo si la cuota tiene más de un aviso pendiente.
+                note:
+                  type: string
+                  minLength: 3
+                  maxLength: 240
+      responses:
+        '200':
+          description: 'Elemento resuelto: `outcome` (`NOTICE_CONFIRMED`, `NOTICE_REJECTED`, `DISMISSED`), elementos cerrados, decisión del aviso y saldo de la cuota'
+        '403':
+          description: Rol sin permiso, o `FOUR_EYES_REQUIRED` (quien abrió el elemento)
+        '404':
+          description: Elemento o cuota inexistente
+        '409':
+          description: '`REVIEW_ITEM_ALREADY_RESOLVED`, `REVIEW_ACTION_NOT_ALLOWED`, `NO_PENDING_NOTICE`, `NOTICE_NOT_PENDING` o `COVERAGE_IN_PLACE` (la cuota ya tiene cobertura de Atlas)'
+        '422':
+          description: '`NOTICE_ID_REQUIRED`: varios avisos pendientes y no se indicó cuál'
+  /b2b/coverage/recoveries:
+    get:
+      summary: CxC de recuperación contra el consumidor
+      description: Incluye `currency` (añadido 2026-09-24), `installmentId` y `merchantPayableId`.
       tags:
         - Coverage
       responses:
         '200':
-          description: Elementos abiertos, del más antiguo al más reciente
+          description: Recuperaciones (hasta 200)
   /b2b/coverage/payables:
+    get:
+      summary: Coberturas (CxP ATLAS→comercio) con el estado de su liquidación
+      description: |
+        Campos AÑADIDOS el 2026-09-24 (los anteriores no cambian): `currency`, y de la liquidación
+        viva (no rechazada) `settlementId`, `settlementStatus` (`PENDING_APPROVAL`, `CONFIRMED` o
+        null), `settlementReference`, `settlementAmount`, `settlementCurrency`,
+        `settlementRegisteredAt`, `settlementRegisteredByUserId` (uuid opaco del registrador) y
+        `settlementRegisteredByMe` (true si la registró quien pregunta: no puede aprobarla).
+      tags:
+        - Coverage
+      responses:
+        '200':
+          description: Coberturas (hasta 200)
     post:
       summary: Programar cobertura ATLAS a comercio (sólo cuota vencida, impaga y sin cobertura viva, por su saldo)
       tags:
