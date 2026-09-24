@@ -120,7 +120,7 @@
       }
     ],
     "requiresDatabase": true,
-    "blockedBy": "Integración productiva: ningún servicio expone todavía el receptor (OUTBOX_DELIVERY_URL) ni el worker está desplegado como proceso en Coolify; hasta entonces los eventos quedan PENDING (visible en /accounting/outbox/status)."
+    "blockedBy": "Integración productiva: el receptor ya existe en AtlasBackend (P-14, POST /api/v1/internal/integration/erp/events) y el worker está en docker-compose.coolify.yml (servicio worker-outbox), verificado en E2E local; falta que el orquestador configure OUTBOX_DELIVERY_URL/OUTBOX_DELIVERY_SIGNING_SECRET en Coolify y despliegue."
   },
   {
     "requirementId": "UC_ConsumirEvento",
@@ -142,10 +142,18 @@
       {
         "file": "test/outbox-delivery.integration.spec.ts",
         "name": "orden invertido: una versión vieja no revierte el estado nuevo en el consumidor"
+      },
+      {
+        "file": "test/core-events.integration.spec.ts",
+        "name": "diez reenvíos de payment.confirmed confirman el aviso una sola vez y saldan la cuota"
+      },
+      {
+        "file": "test/core-events.integration.spec.ts",
+        "name": "desorden: la confirmación llega antes que el aviso; el aviso tardío no la revierte"
       }
     ],
     "requiresDatabase": true,
-    "blockedBy": "El ERP no consume hoy eventos de otros servicios (no hay webhooks ni colas entrantes): el helper consumeOnce está probado contra PostgreSQL, pero falta el consumidor real que lo use (AtlasBackend/Engine como receptor del outbox ERP)."
+    "blockedBy": null
   },
   {
     "requirementId": "UC_ReintentoEvento",

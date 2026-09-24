@@ -30,6 +30,7 @@ import {
 } from '../b2b-sales-crm.mapper';
 import { B2BSalesCrmRepository } from '../repositories/b2b-sales-crm.repository';
 import { B2BSalesCrmUseCaseBase } from './b2b-sales-crm-use-case.base';
+import { linkCoreInstallment } from './core-installment-link.support';
 import type { BillingProductModel } from '../models/b2b-sales-crm.models';
 import {
   fromMinorUnits,
@@ -131,7 +132,7 @@ export class B2BBnplBillingService extends B2BSalesCrmUseCaseBase {
       );
 
       for (const [index, installment] of input.installments.entries()) {
-        await this.repository.installments.create(
+        const created = await this.repository.installments.create(
           {
             purchaseId: purchase.id,
             installmentNumber: installment.installmentNumber,
@@ -141,6 +142,20 @@ export class B2BBnplBillingService extends B2BSalesCrmUseCaseBase {
           },
           { transaction },
         );
+        if (input.coreLoanRef && installment.coreInstallmentId) {
+          await linkCoreInstallment(
+            this.repository.sequelize,
+            {
+              erpPurchaseId: purchase.id,
+              erpInstallmentId: created.id,
+              coreTenantId: input.coreLoanRef.tenantId,
+              coreLoanId: input.coreLoanRef.loanId,
+              coreInstallmentId: installment.coreInstallmentId,
+              corePartnerProfileId: input.coreLoanRef.partnerProfileId ?? null,
+            },
+            transaction,
+          );
+        }
       }
 
       const mdrProduct = await this.findProductBySourceType(TermType.MDR, transaction);

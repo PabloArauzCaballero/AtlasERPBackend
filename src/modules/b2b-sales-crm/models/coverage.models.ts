@@ -22,6 +22,8 @@ export const CoverageReviewReason = {
   PAYMENT_NOTICE_UNRESOLVED: 'PAYMENT_NOTICE_UNRESOLVED',
   COVERAGE_WITH_PENDING_NOTICE: 'COVERAGE_WITH_PENDING_NOTICE',
   CONTRACT_NOT_ACTIVE: 'CONTRACT_NOT_ACTIVE',
+  /* El comercio confirmó en Core el pago de una cuota con cobertura viva (P-14): doble beneficio. */
+  LATE_PAYMENT_WITH_COVERAGE: 'LATE_PAYMENT_WITH_COVERAGE',
 } as const;
 export type CoverageReviewReason = (typeof CoverageReviewReason)[keyof typeof CoverageReviewReason];
 

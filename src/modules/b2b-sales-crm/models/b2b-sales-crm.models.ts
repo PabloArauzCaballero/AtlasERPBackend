@@ -1023,6 +1023,13 @@ export class ConsumerPaymentToMerchantModel extends Model {
   @Column({ type: DataType.STRING(240), field: 'decision_note' })
   declare decisionNote: string | null;
 
+  /* Aviso que llegó de Core (P-14, migración 20260924500000): tenant y aviso de origen. */
+  @Column({ type: DataType.STRING(20), field: 'core_tenant_id' })
+  declare coreTenantId: string | null;
+
+  @Column({ type: DataType.STRING(20), field: 'core_claim_id' })
+  declare coreClaimId: string | null;
+
   @BelongsTo(() => BNPLPurchaseModel)
   declare purchase?: BNPLPurchaseModel;
 

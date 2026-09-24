@@ -1,0 +1,164 @@
+[
+  {
+    "requirementId": "B20",
+    "packageId": "P-14",
+    "repository": "AtlasERPBackend",
+    "title": "Core→ERP: payment.confirmed confirma el aviso una sola vez aunque llegue diez veces",
+    "releaseIncluded": true,
+    "ownerRole": "I",
+    "acceptance": "Diez entregas (secuenciales y simultáneas) del mismo payment.confirmed producen un aviso CONFIRMED, una fila en la inbox y la cuota PAID_TO_MERCHANT; el resto son DUPLICATE.",
+    "tests": [
+      {
+        "file": "test/core-events.integration.spec.ts",
+        "name": "diez reenvíos de payment.confirmed confirman el aviso una sola vez y saldan la cuota"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  },
+  {
+    "requirementId": "B20",
+    "packageId": "P-14",
+    "repository": "AtlasERPBackend",
+    "title": "Duplicados y desorden no revierten una decisión; payment.rejected rechaza con la transición de la cola",
+    "releaseIncluded": true,
+    "ownerRole": "I",
+    "acceptance": "La confirmación que llega antes que el aviso lo crea y confirma; el aviso tardío no la revierte; payment.rejected deja el aviso REJECTED y la cuota vencida en mora; una decisión contraria a la aplicada queda como excepción sin tocar el aviso.",
+    "tests": [
+      {
+        "file": "test/core-events.integration.spec.ts",
+        "name": "desorden: la confirmación llega antes que el aviso; el aviso tardío no la revierte"
+      },
+      {
+        "file": "test/core-events.integration.spec.ts",
+        "name": "payment.rejected deja el aviso REJECTED y la cuota vencida vuelve a estar en mora"
+      },
+      {
+        "file": "test/core-events.integration.spec.ts",
+        "name": "una decisión contraria a la ya aplicada no se aplica: queda como excepción y se acusa"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  },
+  {
+    "requirementId": "B20",
+    "packageId": "P-14",
+    "repository": "AtlasERPBackend",
+    "title": "Pago tardío concurrente con cobertura: sin doble beneficio, a la cola de revisión",
+    "releaseIncluded": true,
+    "ownerRole": "R",
+    "acceptance": "Con CxP viva o cuota cubierta, payment.confirmed NO confirma el aviso: abre LATE_PAYMENT_WITH_COVERAGE con el aviso de Core; la cola exige cancelar la cobertura antes de confirmar o permite rechazar.",
+    "tests": [
+      {
+        "file": "test/core-events.integration.spec.ts",
+        "name": "pago tardío con cobertura viva: NO confirma (sin doble beneficio) y abre LATE_PAYMENT_WITH_COVERAGE"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  },
+  {
+    "requirementId": "B20",
+    "packageId": "P-14",
+    "repository": "AtlasERPBackend",
+    "title": "Identidad común préstamo/compra/cuota/comercio con mapeo explícito; nada se adivina",
+    "releaseIncluded": true,
+    "ownerRole": "I",
+    "acceptance": "El alta de compra acepta coreLoanRef con coreInstallmentId por cuota (todo o nada, sin repetir); una cuota de Core no se liga a dos del ERP (409); un evento de una cuota sin mapeo, de otro préstamo o en otra moneda queda como excepción visible sin efecto.",
+    "tests": [
+      {
+        "file": "test/core-events.spec.ts",
+        "name": "coreLoanRef exige coreInstallmentId en cada cuota, sin repetir, y viceversa"
+      },
+      {
+        "file": "test/core-events.integration.spec.ts",
+        "name": "dos cuotas del ERP no pueden ligarse a la misma cuota de Core (409)"
+      },
+      {
+        "file": "test/core-events.integration.spec.ts",
+        "name": "una cuota sin mapeo a Core se acusa como excepción UNLINKED_INSTALLMENT, sin tocar nada"
+      },
+      {
+        "file": "test/core-events.integration.spec.ts",
+        "name": "un préstamo distinto del mapeado o una moneda distinta no se aplican"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  },
+  {
+    "requirementId": "B20",
+    "packageId": "P-14",
+    "repository": "AtlasERPBackend",
+    "title": "Receptor S2S de Core firmado (HMAC por sentido, ventana anti-replay) y contrato estricto",
+    "releaseIncluded": true,
+    "ownerRole": "I",
+    "acceptance": "Sin firma válida y reciente 401; sin secreto 503; payload fuera de contrato o tópico desconocido 422 sin recibo en la inbox.",
+    "tests": [
+      {
+        "file": "test/core-events.spec.ts",
+        "name": "acepta una firma válida y reciente sobre el cuerpo crudo"
+      },
+      {
+        "file": "test/core-events.spec.ts",
+        "name": "rechaza firma ausente, de otro secreto, sobre otro cuerpo o fuera de ventana (401)"
+      },
+      {
+        "file": "test/core-events.spec.ts",
+        "name": "sin secreto responde 503 (cerrada, nunca abierta) y sin cuerpo crudo 400"
+      },
+      {
+        "file": "test/core-events.integration.spec.ts",
+        "name": "un payload fuera de contrato es 422 y no deja recibo en la inbox"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  },
+  {
+    "requirementId": "P-14",
+    "packageId": "P-14",
+    "repository": "AtlasERPBackend",
+    "title": "Conformidad del ERP con atlas-integration-v1 (copia versionada, consumidor y productor)",
+    "releaseIncluded": true,
+    "ownerRole": "I",
+    "acceptance": "La copia del contrato cita su commit de origen y no se editó a mano; el receptor acepta exactamente los fixtures válidos de Core; lo que el ERP escribe al liquidar y recuperar cumple el esquema con coreRef; la firma del outbox coincide con los vectores.",
+    "tests": [
+      {
+        "file": "test/contracts/atlas-integration-v1.contract.spec.ts",
+        "name": "ORIGIN.json cita el repositorio y el commit de Core y la CHECKSUMS.sha256 que se copió"
+      },
+      {
+        "file": "test/contracts/atlas-integration-v1.contract.spec.ts",
+        "name": "CHECKSUMS.sha256 describe exactamente los archivos de la copia (nadie la editó a mano)"
+      },
+      {
+        "file": "test/contracts/atlas-integration-v1.contract.spec.ts",
+        "name": "el receptor acepta exactamente los fixtures válidos de Core y rechaza los inválidos"
+      },
+      {
+        "file": "test/contracts/atlas-integration-v1.contract.spec.ts",
+        "name": "el outbox del ERP firma y verifica igual que los vectores del contrato"
+      },
+      {
+        "file": "test/core-events.integration.spec.ts",
+        "name": "lo que el ERP produce al liquidar y recuperar cumple el contrato y lleva coreRef"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  },
+  {
+    "requirementId": "B20",
+    "packageId": "P-14",
+    "repository": "AtlasERPBackend",
+    "title": "worker-outbox desplegado y receptor de Core configurado en los entornos",
+    "releaseIncluded": true,
+    "ownerRole": "S",
+    "acceptance": "El servicio worker-outbox corre en Coolify con OUTBOX_DELIVERY_URL hacia AtlasBackend y el receptor de Core tiene CORE_EVENTS_SIGNING_SECRET; /accounting/outbox/status muestra transportConfigured=true y la cola converge.",
+    "tests": [],
+    "requiresDatabase": true,
+    "blockedBy": "El servicio está en docker-compose.coolify.yml y se probó en E2E local, pero configurar secretos/URL en Coolify y desplegar lo hace el orquestador (no se toca Coolify desde aquí)."
+  }
+]

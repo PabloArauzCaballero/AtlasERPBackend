@@ -44,6 +44,7 @@ import {
   mapUniqueViolation,
   writeOutboxEvent,
 } from './coverage-ledger.support';
+import { findCoreRef } from './core-installment-link.support';
 import { toReviewItemResponse } from './coverage-review.service';
 
 /** Quién actúa: el `sub` del token, uuid del usuario interno. */
@@ -432,6 +433,8 @@ export class B2BCoverageService extends B2BSalesCrmUseCaseBase {
             currency: settlement.currency,
             paidAt: settlement.paidAt,
             recoveryId: recovery.id,
+            // P-14: identidad de la cuota en Core, o null si la compra no está ligada a un préstamo.
+            coreRef: await findCoreRef(this.repository.sequelize, installment.id, transaction),
           },
         },
         transaction,
@@ -782,12 +785,17 @@ export class B2BCoverageService extends B2BSalesCrmUseCaseBase {
     );
   }
 
-  private writeMovementEvent(
+  private async writeMovementEvent(
     topic: string,
     recovery: ConsumerRecoveryReceivableModel,
     movement: ConsumerRecoveryMovementModel,
     transaction: Transaction,
   ): Promise<void> {
+    const coreRef = await findCoreRef(
+      this.repository.sequelize,
+      recovery.installmentId,
+      transaction,
+    );
     return writeOutboxEvent(
       this.repository.sequelize,
       this.messaging,
@@ -807,6 +815,7 @@ export class B2BCoverageService extends B2BSalesCrmUseCaseBase {
           currency: movement.currency,
           amountRecovered: recovery.amountRecovered,
           recoveryStatus: recovery.recoveryStatus,
+          coreRef,
         },
       },
       transaction,

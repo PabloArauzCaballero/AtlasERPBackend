@@ -30,6 +30,11 @@ import {
 } from './domain/crm-segments';
 
 const uuid = z.string().uuid();
+/** Identificador numérico de Core (BIGINT) como texto: tenant, préstamo, cuota, comercio. */
+const coreId = z
+  .string()
+  .trim()
+  .regex(/^[1-9][0-9]{0,18}$/);
 const money = z.coerce.number().finite().min(0);
 const positiveMoney = z.coerce.number().finite().positive();
 const percent = z.coerce.number().finite().min(0).max(100);
@@ -473,17 +478,53 @@ export const registerPurchaseSchema = z
     cohortId: z.string().trim().max(80).optional(),
     productCategory: z.string().trim().max(120).optional(),
     mdrReceivableDueDate: dateOnly,
+    /*
+     * Identidad común con Core (P-14, contracts/atlas-integration-v1 compra-cuota): el préstamo de
+     * Core que financia esta compra. Opcional para no romper el alta manual; si viene, CADA cuota
+     * trae su `coreInstallmentId` y el ERP guarda el mapeo explícito en `core_installment_links`.
+     * Sin él, los avisos de pago de Core de esa cuota quedan como excepción de integración.
+     */
+    coreLoanRef: z
+      .object({ tenantId: coreId, loanId: coreId, partnerProfileId: coreId.optional() })
+      .strict()
+      .optional(),
     installments: z
       .array(
         z.object({
           installmentNumber: z.coerce.number().int().positive(),
           dueDate: dateOnly,
           amount: positiveMoney,
+          coreInstallmentId: coreId.optional(),
         }),
       )
       .min(1),
   })
   .superRefine((input, context) => {
+    const linked = input.installments.filter((installment) => installment.coreInstallmentId);
+    if (input.coreLoanRef && linked.length !== input.installments.length) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['installments'],
+        message: 'Con coreLoanRef, cada cuota debe traer su coreInstallmentId.',
+      });
+    }
+    if (!input.coreLoanRef && linked.length > 0) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['coreLoanRef'],
+        message: 'coreInstallmentId exige coreLoanRef (tenant y préstamo de Core).',
+      });
+    }
+    if (
+      new Set(linked.map((installment) => installment.coreInstallmentId)).size !== linked.length
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['installments'],
+        message: 'Dos cuotas no pueden apuntar a la misma cuota de Core.',
+      });
+    }
+
     /*
      * La misma regla que aplica el servicio (`domain/merchant-billing-math`), en céntimos exactos:
      * financiado = compra − inicial y suma de cuotas = financiado, sin tolerancia (P-07).
