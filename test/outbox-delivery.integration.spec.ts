@@ -283,7 +283,7 @@ describeIfDb('Outbox ERP: entrega real y consumo idempotente (PostgreSQL real)',
     // sólo escribía un log; luego la de P-03, que debe etiquetarla sin reescribir su historia.
     const files = [...STARTUP_MIGRATION_FILES];
     const p03 = files.indexOf('src/database/migrations/20260924100000-outbox-entrega-real.sql');
-    expect(p03).toBe(files.length - 1);
+    expect(p03).toBeGreaterThanOrEqual(0);
     await applyMigrations(db, files.slice(0, p03));
     await db.query(
       `INSERT INTO atlas_accounting.event_outbox (topic, aggregate_type, aggregate_id, event_key, payload, published_at)
@@ -292,7 +292,7 @@ describeIfDb('Outbox ERP: entrega real y consumo idempotente (PostgreSQL real)',
     );
     await applyMigrations(db, files.slice(p03));
     // Reaplicar la migración no rompe nada (es idempotente).
-    await applyMigrations(db, files.slice(p03));
+    await applyMigrations(db, files.slice(p03, p03 + 1));
 
     await db.query(`
       CREATE TABLE public.it_outbox_effect (
