@@ -10,6 +10,8 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { ObservabilityModule } from './common/observability/observability.module';
 import { activeTraceLogFields } from './common/observability/trace-log-fields';
+import { redactUrlQuery } from './common/logging/redact-url';
+import { SENSITIVE_LOG_PATHS } from './common/logging/root-pino-logger';
 import { TraceResponseInterceptor } from './common/observability/trace-response.interceptor';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
@@ -78,21 +80,26 @@ function prettyDisponible(): boolean {
         mixin: () => activeTraceLogFields(),
         redact: {
           paths: [
-            'req.headers.authorization',
-            'req.headers.cookie',
-            'res.headers["set-cookie"]',
-            'req.body.password',
-            'req.body.token',
-            'req.body.accessToken',
-            'req.body.refreshToken',
-            'authorization',
-            'cookie',
-            'password',
-            'token',
-            'accessToken',
-            'refreshToken',
+            ...new Set([
+              ...SENSITIVE_LOG_PATHS,
+              'req.body.password',
+              'req.body.token',
+              'req.body.accessToken',
+              'req.body.refreshToken',
+              'password',
+              'token',
+              'accessToken',
+              'refreshToken',
+            ]),
           ],
           censor: '[REDACTED]',
+        },
+        /*
+         * La URL sin los VALORES de la consulta: `?search=` lleva nombres y documentos de personas y
+         * algún cliente pone tokens en la URL. `req.query` ya se censura entero arriba (P-13).
+         */
+        serializers: {
+          req: (req: { url?: string }) => ({ ...req, url: redactUrlQuery(req.url) }),
         },
         ...(env.NODE_ENV === 'development' && prettyDisponible()
           ? { transport: { target: 'pino-pretty' } }
