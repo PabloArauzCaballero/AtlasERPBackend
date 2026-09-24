@@ -10,14 +10,17 @@ Esta carpeta contiene el SQL canónico del módulo.
 ## Orden de ejecución
 
 ```bash
-yarn db:schema
+yarn db:migrate:accounting
 ```
 
-El script ejecuta ambos archivos en orden. Para datos de referencia:
+El guion ejecuta los archivos de contabilidad en orden (001…006 y la columna de traza del outbox).
+Para datos de referencia:
 
 ```bash
-yarn db:seed
+yarn db:seed:pull
 ```
+
+(Corregido el 2026-09-24: `db:schema` y `db:seed` ya no existen.)
 
 ## Reglas importantes
 

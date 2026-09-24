@@ -55,8 +55,11 @@ Ejecuta las migraciones en orden:
 
 ```bash
 corepack yarn db:migrate
-corepack yarn db:seed
+corepack yarn db:seed:pull
 ```
+
+Los datos de semilla viven fuera del repositorio desde el 2026-09; ver `docs/base-de-datos/semillas.md`. En
+despliegue las migraciones las aplica el servicio `migrate` con `db:migrate:prod` (tras `build`).
 
 También puedes ejecutar por módulo:
 
@@ -64,10 +67,12 @@ También puedes ejecutar por módulo:
 corepack yarn db:migrate:crm
 corepack yarn db:migrate:accounting
 corepack yarn db:migrate:ads
-corepack yarn db:seed:crm
-corepack yarn db:seed:accounting
-corepack yarn db:seed:ads
+corepack yarn db:migrate:audit
+corepack yarn db:migrate:portal
 ```
+
+La contabilidad va primero: `db:migrate:crm` incluye una migración que altera `atlas_accounting`.
+No hay semillas por módulo: `db:seed:pull` trae el conjunto publicado entero.
 
 ## Validación
 

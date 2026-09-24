@@ -70,7 +70,7 @@ apagó una campaña deja de ser una inferencia.
 
 - `src/database/seeders/20260818000000-seed-portal-test-fixtures.sql`: comercios Alfa y Beta con
   sucursales, facturas, cobros, anunciantes y campañas, más un usuario con membresía `SUSPENDED`
-  para ejercer el camino fail-closed (`npm run db:seed:test-fixtures`).
+  para ejercer el camino fail-closed (hoy se traen con `npm run db:seed:pull`: el seeder SQL se movió a la base de semillas).
 - `scripts/dev/create-test-jwt.ts`: emite los JWT de esos usuarios (`npm run dev:jwt`). Bloqueado en
   producción.
 - `scripts/smoke/portal.smoke.ts`: `npm run smoke:portal`, incorporado a `smoke:all`.
