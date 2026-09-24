@@ -53,7 +53,11 @@ import {
   setBranchStatusSchema,
   updateBranchSchema,
 } from '../b2b-sales-crm.schemas';
+import { PortalScopeService } from '../../portal/portal.scope.service';
 import { B2BSalesCrmService } from '../services/b2b-sales-crm.service';
+
+/** Los roles de las rutas de sucursal que operan CUALQUIER comercio; el resto es el propio comercio. */
+const BRANCH_STAFF_ROLES = ['OPERATIONS', 'ADMIN'] as const;
 
 /**
  * Cookie del token de identidad upstream. Es la MISMA que emite el gateway de autenticación; aquí
@@ -63,7 +67,10 @@ const UPSTREAM_ACCESS_COOKIE = 'atlas_upstream_at';
 
 @Controller('b2b/onboarding')
 export class OnboardingController {
-  constructor(private readonly service: B2BSalesCrmService) {}
+  constructor(
+    private readonly service: B2BSalesCrmService,
+    private readonly scope: PortalScopeService,
+  ) {}
 
   /**
    * El token con el que este backend habla con AtlasBackend en nombre de quien llama.
@@ -154,20 +161,24 @@ export class OnboardingController {
    */
   @Roles('OPERATIONS', 'ADMIN', 'MERCHANT_ADMIN')
   @Patch('branches/:branchId')
-  updateBranch(
+  async updateBranch(
     @Param(new ZodValidationPipe(branchIdParamsSchema)) params: BranchIdParamsDto,
     @Body(new ZodValidationPipe(updateBranchSchema)) body: UpdateBranchDto,
+    @CurrentUser() user: AuthUser,
   ): Promise<Record<string, unknown>> {
-    return this.service.updateBranch(params.branchId, body);
+    const allowed = await this.scope.restrictToOwnAccounts(user, BRANCH_STAFF_ROLES);
+    return this.service.updateBranch(params.branchId, body, allowed);
   }
 
   @Roles('OPERATIONS', 'ADMIN', 'MERCHANT_ADMIN')
   @Patch('branches/:branchId/status')
-  setBranchStatus(
+  async setBranchStatus(
     @Param(new ZodValidationPipe(branchIdParamsSchema)) params: BranchIdParamsDto,
     @Body(new ZodValidationPipe(setBranchStatusSchema)) body: SetBranchStatusDto,
+    @CurrentUser() user: AuthUser,
   ): Promise<Record<string, unknown>> {
-    return this.service.setBranchStatus(params.branchId, body);
+    const allowed = await this.scope.restrictToOwnAccounts(user, BRANCH_STAFF_ROLES);
+    return this.service.setBranchStatus(params.branchId, body, allowed);
   }
 
   /** Las sucursales, para poder elegir dónde se origina una venta a plazos. */
@@ -182,10 +193,12 @@ export class OnboardingController {
   /* Faltaba el `@Roles`: sin él, cualquier sesión del ERP podía abrir sucursales a cualquier comercio. */
   @Roles('OPERATIONS', 'ADMIN', 'MERCHANT_ADMIN')
   @Post('branches')
-  createBranch(
+  async createBranch(
     @Body(new ZodValidationPipe(createBranchSchema)) body: CreateBranchDto,
+    @CurrentUser() user: AuthUser,
   ): Promise<Record<string, unknown>> {
-    return this.service.createBranch(body);
+    const allowed = await this.scope.restrictToOwnAccounts(user, BRANCH_STAFF_ROLES);
+    return this.service.createBranch(body, allowed);
   }
 
   /*
