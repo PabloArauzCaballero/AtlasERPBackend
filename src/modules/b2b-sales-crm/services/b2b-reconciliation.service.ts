@@ -14,6 +14,7 @@ import { toInvoiceResponse, toReconciliationRunResponse } from '../b2b-sales-crm
 import { MerchantInvoiceLineModel } from '../models/b2b-sales-crm.models';
 import { B2BSalesCrmRepository } from '../repositories/b2b-sales-crm.repository';
 import { B2BSalesCrmUseCaseBase } from './b2b-sales-crm-use-case.base';
+import { fromMinorUnits, sumMinor, toMinorUnits } from '../../../common/money/decimal-amount.util';
 
 @Injectable()
 export class B2BReconciliationService extends B2BSalesCrmUseCaseBase {
@@ -65,14 +66,15 @@ export class B2BReconciliationService extends B2BSalesCrmUseCaseBase {
       limit: 200,
     });
 
-    const total = rows.reduce((suma, fila) => suma + Number(fila.amountOriginal), 0);
-    const abierto = rows.reduce((suma, fila) => suma + Number(fila.amountOpen), 0);
+    /* Céntimos exactos (P-07): la suma en `number` de 200 comisiones ya no cuadraba al céntimo. */
+    const total = sumMinor(rows.map((fila) => toMinorUnits(fila.amountOriginal)));
+    const abierto = sumMinor(rows.map((fila) => toMinorUnits(fila.amountOpen)));
 
     return {
       summary: {
-        chargedTotal: total.toFixed(2),
-        owedToAtlas: abierto.toFixed(2),
-        settled: (total - abierto).toFixed(2),
+        chargedTotal: fromMinorUnits(total),
+        owedToAtlas: fromMinorUnits(abierto),
+        settled: fromMinorUnits(total - abierto),
         salesCharged: rows.length,
       },
       commissions: rows.map((fila) => ({

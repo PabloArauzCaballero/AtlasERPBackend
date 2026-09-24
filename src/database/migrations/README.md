@@ -50,3 +50,9 @@ comercio en AtlasBackend, sin el cual no hay a quién pedirle la verificación.
 
 `atlas_sales.merchant_users.identity_rejection_reason`: el motivo con el que Atlas rechazó el acceso
 pedido. El acuse lo recibía y lo tiraba; ahora la fila de la cola lo enseña sin volver a preguntar.
+
+## 20260924300100-p07-mdr-de-la-compra.sql
+
+P-07. Instantánea del MDR cobrado en cada compra BNPL (`mdr_rate_percent`, `mdr_amount`, `mdr_rule_id`,
+`mdr_pricing_source`): las reglas MDR se editan en sitio y sin ella la comisión no se reconstruía.
+Columnas NULLABLE; las compras anteriores quedan en NULL. El `down` conserva los datos.

@@ -20,6 +20,7 @@ import {
 } from './b2b-sales-crm.enums';
 import { checkAttributesAllowed, definitionSchemaFor } from '../../common/segmentation/rule-schema';
 import type { SegmentDefinition } from '../../common/segmentation/rule-engine';
+import { allocationsMatchPayment, purchaseSplitViolations } from './domain/merchant-billing-math';
 import {
   ATTRIBUTES_BY_SUBJECT,
   CRM_SEGMENT_ATTRIBUTES,
@@ -36,6 +37,19 @@ const isoCurrency = z
   .trim()
   .length(3)
   .transform((value) => value.toUpperCase());
+
+/** Sin excepción: un importe ilegible ya lo rechaza su propio campo, aquí sólo se compara. */
+function allocationsMatchPaymentSafely(
+  amount: number,
+  allocations: ReadonlyArray<{ amountApplied: number }>,
+  currency: string,
+): boolean {
+  try {
+    return allocationsMatchPayment(amount, allocations, currency);
+  } catch {
+    return false;
+  }
+}
 
 function isRealDateOnly(value: string): boolean {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
@@ -469,38 +483,20 @@ export const registerPurchaseSchema = z
       .min(1),
   })
   .superRefine((input, context) => {
-    const roundMoney = (value: number): number => Math.round((value + Number.EPSILON) * 100) / 100;
-    const expectedDownPayment = roundMoney(input.purchaseAmount * 0.6);
-    const expectedFinancedAmount = roundMoney(input.purchaseAmount - expectedDownPayment);
-    const installmentsTotal = roundMoney(
-      input.installments.reduce((sum, installment) => sum + installment.amount, 0),
-    );
+    /*
+     * La misma regla que aplica el servicio (`domain/merchant-billing-math`), en céntimos exactos:
+     * financiado = compra − inicial y suma de cuotas = financiado, sin tolerancia (P-07).
+     */
+    for (const violation of purchaseSplitViolations(input)) {
+      if (violation.code === 'DUPLICATED_INSTALLMENT_NUMBER') continue;
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: [violation.path],
+        message: violation.message,
+      });
+    }
+
     const installmentNumbers = new Set<number>();
-
-    if (Math.abs(input.downPaymentAmount - expectedDownPayment) > 0.01) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['downPaymentAmount'],
-        message: 'El pago inicial debe representar 60% de la compra.',
-      });
-    }
-
-    if (Math.abs(input.financedAmount - expectedFinancedAmount) > 0.01) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['financedAmount'],
-        message: 'El monto financiado debe representar el 40% restante.',
-      });
-    }
-
-    if (Math.abs(installmentsTotal - input.financedAmount) > 0.01) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['installments'],
-        message: 'La suma de cuotas debe coincidir con el monto financiado.',
-      });
-    }
-
     input.installments.forEach((installment, index) => {
       if (installmentNumbers.has(installment.installmentNumber)) {
         context.addIssue({
@@ -563,12 +559,7 @@ export const registerMerchantPaymentSchema = z
       .min(1),
   })
   .superRefine((input, context) => {
-    const roundMoney = (value: number): number => Math.round((value + Number.EPSILON) * 100) / 100;
-    const allocationTotal = roundMoney(
-      input.allocations.reduce((sum, allocation) => sum + allocation.amountApplied, 0),
-    );
-
-    if (Math.abs(allocationTotal - input.amount) > 0.01) {
+    if (!allocationsMatchPaymentSafely(input.amount, input.allocations, input.currency)) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['allocations'],
