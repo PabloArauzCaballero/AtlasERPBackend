@@ -71,6 +71,9 @@ El diseño deja `event_outbox` listo. La fase siguiente debe implementar un work
 2. `ZodValidationPipe` valida body, params o query.
 3. El service abre transacción Sequelize.
 4. `DoubleEntryValidator` verifica que cada línea tenga débito o crédito y que el asiento cuadre.
+   Suma centavos enteros y exige igualdad exacta: rechaza importes negativos, no finitos,
+   con fracciones de centavo o números JavaScript mayores al entero seguro. Admite cadenas
+   decimales para conservar los valores grandes de `numeric(18,2)`.
 5. `SapPostingValidationService` valida período, ledger, entidad legal, cuentas y dimensiones.
 6. Se crea `accounting_document` en DRAFT.
 7. Se crea `journal_entry` en DRAFT.
