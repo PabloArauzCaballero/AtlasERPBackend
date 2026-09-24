@@ -53,6 +53,8 @@ export const STARTUP_MIGRATION_FILES = [
   'src/database/migrations/20260901000000-ads-en-atlas-accounting.sql',
   // Portador del contexto de traza para el worker de outbox: columna aditiva, sin UPDATE.
   'src/database/migrations/20260918230000-outbox-trace-context.sql',
+  // P-06: un documento contable por factura de comercio y un asiento por documento (índices).
+  'src/database/migrations/20260924300000-p06-origen-contable-unico.sql',
   // P-07: instantánea de la tasa MDR aplicada en cada compra (columnas aditivas).
   'src/database/migrations/20260924300100-p07-mdr-de-la-compra.sql',
 ] as const;
