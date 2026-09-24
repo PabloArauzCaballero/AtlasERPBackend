@@ -14,10 +14,10 @@
 
 ## Flujo de migración recomendado
 
-1. Ejecutar `npm run db:migrate:crm`.
-2. Ejecutar `npm run db:migrate:accounting`.
+1. Ejecutar `npm run db:migrate:accounting` (va primero: `db:migrate:crm` altera `atlas_accounting`).
+2. Ejecutar `npm run db:migrate:crm`.
 3. Ejecutar `npm run db:migrate:ads`.
-4. Ejecutar `npm run db:seed` solo después de validar que las migraciones terminaron correctamente.
+4. Ejecutar `npm run db:seed:pull` solo después de validar que las migraciones terminaron correctamente (ver `docs/base-de-datos/semillas.md`).
 
 ## Flujo de worker outbox contable
 

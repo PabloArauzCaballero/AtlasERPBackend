@@ -6,8 +6,12 @@ Copie el contenido del ZIP sobre la raíz de `atlas-integrated-backend`, conserv
 
 ```bash
 npm run db:migrate
-ALLOW_DEMO_SEEDS=true npm run db:seed
+npm run db:seed:pull
 ```
+
+> Corregido el 2026-09-24: `db:seed` ya no existe. Las semillas se traen de la base publicada con
+> `db:seed:pull` (ver `docs/base-de-datos/semillas.md`); `scripts/db/seed-all-tables.ts` sigue exigiendo
+> `ALLOW_DEMO_SEEDS=true` y no tiene guion en `package.json`.
 
 El proceso ejecuta los seeds explícitos existentes y después completa todas las tablas vacías de los esquemas administrados.
 

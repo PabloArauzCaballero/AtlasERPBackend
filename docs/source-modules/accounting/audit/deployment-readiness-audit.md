@@ -8,24 +8,24 @@ Estado actual: **apto para revisión técnica de despliegue**. En este ciclo se 
 
 ## 2. Hallazgos principales de auditoría
 
-| Hallazgo                                                                         | Riesgo                                                                      | Corrección aplicada                                                                                                          |
-| -------------------------------------------------------------------------------- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| El modelo tenía validación de doble partida en service, pero no en base de datos | Un bypass al API podía insertar líneas descuadradas                         | Se agregó trigger diferido `trg_journal_balanced` en `002_hardening_atlas_accounting.sql`                                    |
-| La inmutabilidad dependía principalmente de la capa de servicio                  | Un acceso directo a DB podía alterar asientos publicados                    | Se agregaron triggers de bloqueo para documentos/asientos/líneas publicados y bitácora                                       |
-| El cierre solo bloqueaba documentos DRAFT                                        | Podía cerrar con conciliaciones bancarias abiertas                          | Se agregó `ClosingControlService` con bloqueo por documentos DRAFT, conciliaciones abiertas y líneas bancarias unmatched     |
-| Ledger, entidad legal y período se validaban parcialmente                        | Riesgo de asientos en ledger/período incorrecto                             | Se agregó `SapPostingValidationService` y trigger `fn_assert_accounting_document_context`                                    |
-| Las cuentas GL no exigían dimensiones SAP-like desde DB                          | Se podían omitir partner, centro de costo, profit center o tax code         | Se agregó validación en service y trigger `fn_assert_journal_line_dimensions`                                                |
-| Facturación AR no validaba suficientemente BP/contrato/impuestos                 | Riesgo de facturas contra contraparte o contrato incorrecto                 | Se validan roles BP, contrato, impuesto y trazabilidad SIAT aceptada                                                         |
-| Recibos no verificaban que las asignaciones sumaran el monto ni saldos abiertos  | Riesgo de sobrepago o diferencias AR                                        | Se valida suma exacta, factura abierta, saldo disponible y actualización de estado                                           |
-| Faltaba ruta operativa versionada para preparar DB                               | Riesgo de despliegue manual inconsistente y re-ejecución de SQL estructural | Se agregó runner de migraciones con `db:migrate`, `db:migrate:status`, `db:rollback`, `db:seed` y `db:prepare`               |
-| Variables de entorno aceptaban secretos débiles en producción                    | Riesgo de configuración insegura                                            | `env.ts` ahora rechaza secreto por defecto, wildcard CORS y DB sin SSL en producción                                         |
-| `start:prod`/Docker podían apuntar a ruta de build incorrecta                    | El contenedor podía compilar pero no arrancar                               | Se agregó `tsconfig.build.json`; `dist/main.js` y `dist/workers/...` quedan en rutas estables                                |
-| El outbox no tenía consumidor                                                    | Crecimiento indefinido de eventos y deuda operativa                         | Se agregó worker persistente `worker:outbox` con `FOR UPDATE SKIP LOCKED`                                                    |
-| Existía riesgo de doble reversión                                                | Estados financieros duplicados o distorsionados                             | Se agregó lock transaccional, índice único parcial y transición controlada `POSTED -> REVERSED`                              |
-| El cierre no verificaba entidad legal del período                                | Cierre multi-entidad incorrecto                                             | Se agregó validación en service y trigger `trg_close_run_context`                                                            |
-| Las asignaciones AR podían sufrir carrera concurrente                            | Sobrepago por requests simultáneos                                          | Se agregaron locks de factura y trigger de saldo abierto                                                                     |
-| Dependencias productivas tenían vulnerabilidades                                 | Riesgo de seguridad y bloqueo de auditoría                                  | Se actualizó NestJS y se agregó override seguro de `uuid`; `npm audit --omit=dev` queda en cero                              |
-| `posting_rule_version` no participaba en el flujo                                | Cambios futuros de reglas podían perder trazabilidad                        | Se agregó `PostingRuleSnapshotService` y `accounting_document.policy_snapshot_id` se llena con la regla activa cuando existe |
+| Hallazgo                                                                         | Riesgo                                                                      | Corrección aplicada                                                                                                                  |
+| -------------------------------------------------------------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| El modelo tenía validación de doble partida en service, pero no en base de datos | Un bypass al API podía insertar líneas descuadradas                         | Se agregó trigger diferido `trg_journal_balanced` en `002_hardening_atlas_accounting.sql`                                            |
+| La inmutabilidad dependía principalmente de la capa de servicio                  | Un acceso directo a DB podía alterar asientos publicados                    | Se agregaron triggers de bloqueo para documentos/asientos/líneas publicados y bitácora                                               |
+| El cierre solo bloqueaba documentos DRAFT                                        | Podía cerrar con conciliaciones bancarias abiertas                          | Se agregó `ClosingControlService` con bloqueo por documentos DRAFT, conciliaciones abiertas y líneas bancarias unmatched             |
+| Ledger, entidad legal y período se validaban parcialmente                        | Riesgo de asientos en ledger/período incorrecto                             | Se agregó `SapPostingValidationService` y trigger `fn_assert_accounting_document_context`                                            |
+| Las cuentas GL no exigían dimensiones SAP-like desde DB                          | Se podían omitir partner, centro de costo, profit center o tax code         | Se agregó validación en service y trigger `fn_assert_journal_line_dimensions`                                                        |
+| Facturación AR no validaba suficientemente BP/contrato/impuestos                 | Riesgo de facturas contra contraparte o contrato incorrecto                 | Se validan roles BP, contrato, impuesto y trazabilidad SIAT aceptada                                                                 |
+| Recibos no verificaban que las asignaciones sumaran el monto ni saldos abiertos  | Riesgo de sobrepago o diferencias AR                                        | Se valida suma exacta, factura abierta, saldo disponible y actualización de estado                                                   |
+| Faltaba ruta operativa versionada para preparar DB                               | Riesgo de despliegue manual inconsistente y re-ejecución de SQL estructural | Se agregó runner de migraciones con `db:migrate`, `db:migrate:status`, `db:rollback`, `db:seed` y `db:prepare`                       |
+| Variables de entorno aceptaban secretos débiles en producción                    | Riesgo de configuración insegura                                            | `env.ts` ahora rechaza secreto por defecto, wildcard CORS y DB sin SSL en producción                                                 |
+| `start:prod`/Docker podían apuntar a ruta de build incorrecta                    | El contenedor podía compilar pero no arrancar                               | Se agregó `tsconfig.build.json`; `dist/src/main.js` y `dist/src/workers/...` quedan en rutas estables (ruta corregida el 2026-09-24) |
+| El outbox no tenía consumidor                                                    | Crecimiento indefinido de eventos y deuda operativa                         | Se agregó worker persistente `worker:outbox` con `FOR UPDATE SKIP LOCKED`                                                            |
+| Existía riesgo de doble reversión                                                | Estados financieros duplicados o distorsionados                             | Se agregó lock transaccional, índice único parcial y transición controlada `POSTED -> REVERSED`                                      |
+| El cierre no verificaba entidad legal del período                                | Cierre multi-entidad incorrecto                                             | Se agregó validación en service y trigger `trg_close_run_context`                                                                    |
+| Las asignaciones AR podían sufrir carrera concurrente                            | Sobrepago por requests simultáneos                                          | Se agregaron locks de factura y trigger de saldo abierto                                                                             |
+| Dependencias productivas tenían vulnerabilidades                                 | Riesgo de seguridad y bloqueo de auditoría                                  | Se actualizó NestJS y se agregó override seguro de `uuid`; `npm audit --omit=dev` queda en cero                                      |
+| `posting_rule_version` no participaba en el flujo                                | Cambios futuros de reglas podían perder trazabilidad                        | Se agregó `PostingRuleSnapshotService` y `accounting_document.policy_snapshot_id` se llena con la regla activa cuando existe         |
 
 ## 3. Endurecimiento SAP-like aplicado
 
@@ -93,11 +93,14 @@ Si el documento fiscal electrónico llega como `ACCEPTED`, se exige CUF, CUFD, h
 Ejecutar en el ambiente destino:
 
 ```bash
-yarn install
-yarn db:prepare
+yarn install --frozen-lockfile
+yarn build
+yarn db:migrate:prod
 yarn check:deploy
 yarn start:prod
 ```
+
+> Corregido el 2026-09-24: `db:prepare` no existe; migrar es `db:migrate:prod` tras `build`.
 
 Para validar disponibilidad:
 
