@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Optional } from '@nestjs/common';
+import { InjectModel } from '@nestjs/sequelize';
 import { Op, Transaction, WhereOptions } from 'sequelize';
 import { PinoLoggerService } from '../../../common/logging/pino-logger.service';
 import type { AuthUser } from '../../../common/types/auth-context.types';
@@ -12,13 +13,21 @@ import {
 import type { RunReconciliationDto } from '../b2b-sales-crm.dtos';
 import { toInvoiceResponse, toReconciliationRunResponse } from '../b2b-sales-crm.mapper';
 import { MerchantInvoiceLineModel } from '../models/b2b-sales-crm.models';
+import { MerchantPayableSettlementModel, SettlementStatus } from '../models/coverage.models';
 import { B2BSalesCrmRepository } from '../repositories/b2b-sales-crm.repository';
 import { B2BSalesCrmUseCaseBase } from './b2b-sales-crm-use-case.base';
 import { fromMinorUnits, sumMinor, toMinorUnits } from '../../../common/money/decimal-amount.util';
 
 @Injectable()
 export class B2BReconciliationService extends B2BSalesCrmUseCaseBase {
-  constructor(repository: B2BSalesCrmRepository, logger: PinoLoggerService) {
+  constructor(
+    repository: B2BSalesCrmRepository,
+    logger: PinoLoggerService,
+    /* Opcional para los usos sin Nest (pruebas de aritmética): sin él, el listado no trae liquidación. */
+    @Optional()
+    @InjectModel(MerchantPayableSettlementModel)
+    private readonly settlements?: typeof MerchantPayableSettlementModel,
+  ) {
     super(repository, logger);
   }
 
@@ -136,28 +145,66 @@ export class B2BReconciliationService extends B2BSalesCrmUseCaseBase {
     };
   }
 
-  async listPayables(): Promise<Record<string, unknown>[]> {
+  /**
+   * Coberturas (CxP ATLAS→comercio) con el estado de su liquidación.
+   *
+   * La pantalla tenía que ADIVINAR si había un pago esperando la segunda firma y quién lo había
+   * registrado: sólo recordaba lo que había hecho la propia sesión, así que ofrecía «Aprobar» en
+   * coberturas sin pago registrado y a quien lo había registrado en otra pestaña. Ahora cada fila
+   * trae la liquidación viva (no rechazada) y, para quien pregunta, si la registró él
+   * (`settlementRegisteredByMe`); el uuid del registrador va aparte, como dato opaco de auditoría.
+   * Campos AÑADIDOS: los que ya había no cambian.
+   */
+  async listPayables(viewerUserId?: string): Promise<Record<string, unknown>[]> {
     const rows = await this.repository.payables.findAll({ order: [['id', 'DESC']], limit: 200 });
+    const live = new Map<string, MerchantPayableSettlementModel>();
+    if (this.settlements && rows.length > 0) {
+      const settlements = await this.settlements.findAll({
+        where: {
+          merchantPayableId: { [Op.in]: rows.map((row) => row.id) },
+          status: { [Op.ne]: SettlementStatus.REJECTED },
+        },
+      });
+      for (const settlement of settlements) live.set(settlement.merchantPayableId, settlement);
+    }
     /* `reason` y `paidAt` faltaban y la tabla los pintaba vacíos: son dos de sus cinco columnas. */
-    return rows.map((row) => ({
-      id: row.id,
-      accountId: row.accountId,
-      installmentId: row.installmentId,
-      amount: row.amount,
-      status: row.status,
-      reason: row.reason,
-      scheduledPaymentDate: row.scheduledPaymentDate,
-      paidAt: row.paidAt,
-    }));
+    return rows.map((row) => {
+      const settlement = live.get(row.id) ?? null;
+      return {
+        id: row.id,
+        accountId: row.accountId,
+        installmentId: row.installmentId,
+        amount: row.amount,
+        currency: row.currency,
+        status: row.status,
+        reason: row.reason,
+        scheduledPaymentDate: row.scheduledPaymentDate,
+        paidAt: row.paidAt,
+        settlementId: settlement?.id ?? null,
+        settlementStatus: settlement?.status ?? null,
+        settlementReference: settlement?.settlementReference ?? null,
+        settlementAmount: settlement?.amount ?? null,
+        settlementCurrency: settlement?.currency ?? null,
+        settlementRegisteredAt: settlement?.registeredAt ?? null,
+        settlementRegisteredByUserId: settlement?.registeredByUserId ?? null,
+        settlementRegisteredByMe: Boolean(
+          settlement && viewerUserId && settlement.registeredByUserId === viewerUserId,
+        ),
+      };
+    });
   }
 
+  /** `currency` y los enlaces a cuota/cobertura se AÑADEN: la pantalla fijaba BOB a ciegas. */
   async listRecoveries(): Promise<Record<string, unknown>[]> {
     const rows = await this.repository.recoveries.findAll({ order: [['id', 'DESC']], limit: 200 });
     return rows.map((row) => ({
       id: row.id,
       consumerId: row.consumerId,
+      installmentId: row.installmentId,
+      merchantPayableId: row.merchantPayableId,
       amountCoveredByAtlas: row.amountCoveredByAtlas,
       amountRecovered: row.amountRecovered,
+      currency: row.currency,
       recoveryStatus: row.recoveryStatus,
       daysPastDue: row.daysPastDue,
     }));

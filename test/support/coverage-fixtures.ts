@@ -15,6 +15,8 @@ import { atlasSalesModels } from '../../src/modules/b2b-sales-crm/models/b2b-sal
 import { B2BSalesCrmRepository } from '../../src/modules/b2b-sales-crm/repositories/b2b-sales-crm.repository';
 import { B2BCoverageService } from '../../src/modules/b2b-sales-crm/services/b2b-coverage.service';
 import { B2BOverdueSweepService } from '../../src/modules/b2b-sales-crm/services/b2b-overdue-sweep.service';
+import { B2BCoverageReviewService } from '../../src/modules/b2b-sales-crm/services/coverage-review.service';
+import { B2BReconciliationService } from '../../src/modules/b2b-sales-crm/services/b2b-reconciliation.service';
 
 const silentLogger = {
   infoContext: () => undefined,
@@ -28,6 +30,8 @@ export interface CoverageHarness {
   sequelize: Sequelize;
   coverage: B2BCoverageService;
   sweep: B2BOverdueSweepService;
+  review: B2BCoverageReviewService;
+  reconciliation: B2BReconciliationService;
   messaging: { withCarrier: jest.Mock };
   close: () => Promise<void>;
 }
@@ -52,6 +56,8 @@ export async function buildCoverageHarness(databaseUrl: string): Promise<Coverag
       B2BSalesCrmRepository,
       B2BCoverageService,
       B2BOverdueSweepService,
+      B2BCoverageReviewService,
+      B2BReconciliationService,
       { provide: PinoLoggerService, useValue: silentLogger },
       { provide: MessagingTraceService, useValue: messaging },
     ],
@@ -63,6 +69,8 @@ export async function buildCoverageHarness(databaseUrl: string): Promise<Coverag
     sequelize,
     coverage: moduleRef.get(B2BCoverageService),
     sweep: moduleRef.get(B2BOverdueSweepService),
+    review: moduleRef.get(B2BCoverageReviewService),
+    reconciliation: moduleRef.get(B2BReconciliationService),
     messaging,
     close: async () => {
       await moduleRef.close();

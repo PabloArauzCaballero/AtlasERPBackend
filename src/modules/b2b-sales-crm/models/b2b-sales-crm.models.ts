@@ -1013,6 +1013,16 @@ export class ConsumerPaymentToMerchantModel extends Model {
   @Column({ type: DataType.DATE, field: 'created_at' })
   declare createdAt: Date;
 
+  /* Quién confirmó o rechazó el aviso desde la cola de revisión (migración 20260924400000). */
+  @Column({ type: DataType.UUID, field: 'decided_by_user_id' })
+  declare decidedByUserId: string | null;
+
+  @Column({ type: DataType.DATE, field: 'decided_at' })
+  declare decidedAt: Date | null;
+
+  @Column({ type: DataType.STRING(240), field: 'decision_note' })
+  declare decisionNote: string | null;
+
   @BelongsTo(() => BNPLPurchaseModel)
   declare purchase?: BNPLPurchaseModel;
 

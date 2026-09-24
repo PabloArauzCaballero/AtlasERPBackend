@@ -25,6 +25,16 @@ export const CoverageReviewReason = {
 } as const;
 export type CoverageReviewReason = (typeof CoverageReviewReason)[keyof typeof CoverageReviewReason];
 
+/** Cómo se cerró un elemento de la cola (migración 20260924400000). */
+export const CoverageReviewResolution = {
+  COVERAGE_SCHEDULED: 'COVERAGE_SCHEDULED',
+  NOTICE_CONFIRMED: 'NOTICE_CONFIRMED',
+  NOTICE_REJECTED: 'NOTICE_REJECTED',
+  DISMISSED: 'DISMISSED',
+} as const;
+export type CoverageReviewResolution =
+  (typeof CoverageReviewResolution)[keyof typeof CoverageReviewResolution];
+
 /** Liquidación externa de una CxP ATLAS→comercio. Nace pendiente; la confirma otra persona. */
 @Table({ schema: SALES_SCHEMA, tableName: 'merchant_payable_settlements', timestamps: false })
 export class MerchantPayableSettlementModel extends Model {
@@ -155,6 +165,9 @@ export class CoverageReviewItemModel extends Model {
 
   @Column({ type: DataType.STRING(240), field: 'resolution_note' })
   declare resolutionNote: string | null;
+
+  @Column(DataType.STRING(30))
+  declare resolution: CoverageReviewResolution | null;
 }
 
 export const coverageModels = [

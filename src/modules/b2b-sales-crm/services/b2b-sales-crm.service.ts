@@ -5,6 +5,8 @@ import type {
   CancelPayableDto,
   DecidePayableSettlementDto,
   RejectPayableSettlementDto,
+  ResolveCoverageReviewItemDto,
+  ReviewQueueQueryDto,
   ReverseRecoveryMovementDto,
   CompleteChecklistItemDto,
   ChecklistEvidenceUploadUrlDto,
@@ -50,6 +52,7 @@ import type { OverdueSweepResult } from './b2b-overdue-sweep.service';
 import { B2BOnboardingService } from './b2b-onboarding.service';
 import { B2BPipelineService } from './b2b-pipeline.service';
 import { B2BReconciliationService } from './b2b-reconciliation.service';
+import { B2BCoverageReviewService } from './coverage-review.service';
 
 @Injectable()
 export class B2BSalesCrmService {
@@ -62,6 +65,7 @@ export class B2BSalesCrmService {
     private readonly coverageService: B2BCoverageService,
     private readonly overdueSweepService: B2BOverdueSweepService,
     private readonly reconciliationService: B2BReconciliationService,
+    private readonly coverageReviewService: B2BCoverageReviewService,
   ) {}
 
   createAccount(input: CreateAccountDto, user: AuthUser): Promise<Record<string, unknown>> {
@@ -179,8 +183,8 @@ export class B2BSalesCrmService {
     return this.reconciliationService.getMerchantInvoice(id);
   }
 
-  listPayables(): Promise<Record<string, unknown>[]> {
-    return this.reconciliationService.listPayables();
+  listPayables(user?: AuthUser): Promise<Record<string, unknown>[]> {
+    return this.reconciliationService.listPayables(user?.sub);
   }
 
   listRecoveries(): Promise<Record<string, unknown>[]> {
@@ -414,8 +418,21 @@ export class B2BSalesCrmService {
     return this.coverageService.cancelPayable(payableId, input, { userId: user.sub });
   }
 
-  listCoverageReviewQueue(): Promise<Record<string, unknown>[]> {
-    return this.coverageService.listReviewQueue();
+  listCoverageReviewQueue(
+    user: AuthUser,
+    query?: ReviewQueueQueryDto,
+  ): Promise<Record<string, unknown>[]> {
+    return this.coverageReviewService.listReviewQueue({ userId: user.sub }, query);
+  }
+
+  resolveCoverageReviewItem(
+    reviewItemId: string,
+    input: ResolveCoverageReviewItemDto,
+    user: AuthUser,
+  ): Promise<Record<string, unknown>> {
+    return this.coverageReviewService.resolveReviewItem(reviewItemId, input, {
+      userId: user.sub,
+    });
   }
 
   markPayablePaid(
