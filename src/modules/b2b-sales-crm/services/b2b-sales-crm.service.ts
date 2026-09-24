@@ -2,6 +2,10 @@ import { Injectable } from '@nestjs/common';
 import type { AuthUser } from '../../../common/types/auth-context.types';
 import type {
   ApplyRecoveryPaymentDto,
+  CancelPayableDto,
+  DecidePayableSettlementDto,
+  RejectPayableSettlementDto,
+  ReverseRecoveryMovementDto,
   CompleteChecklistItemDto,
   ChecklistEvidenceUploadUrlDto,
   AttachChecklistEvidenceDto,
@@ -387,19 +391,67 @@ export class B2BSalesCrmService {
     return this.overdueSweepService.sweep();
   }
 
-  scheduleCoverage(input: ScheduleCoverageDto): Promise<Record<string, unknown>> {
-    return this.coverageService.scheduleCoverage(input);
+  scheduleCoverage(input: ScheduleCoverageDto, user: AuthUser): Promise<Record<string, unknown>> {
+    return this.coverageService.scheduleCoverage(input, { userId: user.sub });
   }
 
-  markPayablePaid(payableId: string, input: MarkPayablePaidDto): Promise<Record<string, unknown>> {
-    return this.coverageService.markPayablePaid(payableId, input);
+  cancelPayable(
+    payableId: string,
+    input: CancelPayableDto,
+    user: AuthUser,
+  ): Promise<Record<string, unknown>> {
+    return this.coverageService.cancelPayable(payableId, input, { userId: user.sub });
+  }
+
+  listCoverageReviewQueue(): Promise<Record<string, unknown>[]> {
+    return this.coverageService.listReviewQueue();
+  }
+
+  markPayablePaid(
+    payableId: string,
+    input: MarkPayablePaidDto,
+    user: AuthUser,
+  ): Promise<Record<string, unknown>> {
+    return this.coverageService.markPayablePaid(payableId, input, { userId: user.sub });
+  }
+
+  approvePayableSettlement(
+    payableId: string,
+    input: DecidePayableSettlementDto,
+    user: AuthUser,
+  ): Promise<Record<string, unknown>> {
+    return this.coverageService.approvePayableSettlement(payableId, input, { userId: user.sub });
+  }
+
+  rejectPayableSettlement(
+    payableId: string,
+    input: RejectPayableSettlementDto,
+    user: AuthUser,
+  ): Promise<Record<string, unknown>> {
+    return this.coverageService.rejectPayableSettlement(payableId, input, { userId: user.sub });
   }
 
   applyRecoveryPayment(
     recoveryId: string,
     input: ApplyRecoveryPaymentDto,
+    user: AuthUser,
   ): Promise<Record<string, unknown>> {
-    return this.coverageService.applyRecoveryPayment(recoveryId, input);
+    return this.coverageService.applyRecoveryPayment(recoveryId, input, { userId: user.sub });
+  }
+
+  reverseRecoveryMovement(
+    recoveryId: string,
+    movementId: string,
+    input: ReverseRecoveryMovementDto,
+    user: AuthUser,
+  ): Promise<Record<string, unknown>> {
+    return this.coverageService.reverseRecoveryMovement(recoveryId, movementId, input, {
+      userId: user.sub,
+    });
+  }
+
+  listRecoveryMovements(recoveryId: string): Promise<Record<string, unknown>[]> {
+    return this.coverageService.listRecoveryMovements(recoveryId);
   }
 
   runReconciliation(input: RunReconciliationDto, user: AuthUser): Promise<Record<string, unknown>> {

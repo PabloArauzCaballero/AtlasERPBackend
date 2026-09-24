@@ -207,6 +207,12 @@ const envSchema = z
       .default('true')
       .transform((value) => value === 'true'),
     BNPL_OVERDUE_SWEEP_INTERVAL_MS: z.coerce.number().int().positive().default(3_600_000),
+    /*
+     * Horas que un aviso de pago REPORTED (sin confirmar) puede esperar antes de ir a la cola de
+     * revisión de cobertura. Mientras tanto la cuota NO se da por pagada. 72 h por defecto: decisión
+     * conservadora pendiente de ratificar por Riesgo/Finanzas (docs/compliance/decisions.md, P-04).
+     */
+    BNPL_PAYMENT_NOTICE_REVIEW_HOURS: z.coerce.number().int().positive().max(720).default(72),
   })
   .superRefine((value, context) => {
     const globalPrefixes = [
