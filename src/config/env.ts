@@ -206,6 +206,15 @@ const envSchema = z
     WORKER_SHUTDOWN_TIMEOUT_SECONDS: z.coerce.number().int().positive().default(30),
 
     /*
+     * Límite global de peticiones por cliente (ThrottlerGuard, ventana de 60 s). Antes estaba
+     * fijo en el código (120); se expone para que el banco de carga (P-16) mida la capacidad de
+     * las rutas financieras sin chocar con él. El valor por omisión NO cambia. El rastreador es la
+     * IP de la petición y la API no declara `trust proxy`: detrás de un proxy todos los usuarios
+     * comparten ese cupo (ver docs/operations/erp-benchmark-2026-09-24.md).
+     */
+    HTTP_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().max(1_000_000).default(120),
+
+    /*
      * Entrega del outbox (P-03). El worker envía cada evento por HTTP firmado (HMAC-SHA256) a
      * `OUTBOX_DELIVERY_URL` y SÓLO un 2xx del receptor cuenta como publicado. Sin URL el worker
      * no finge entrega: deja los eventos PENDING y lo dice en cada ciclo. Ver

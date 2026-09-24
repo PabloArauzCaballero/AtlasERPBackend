@@ -41,6 +41,8 @@
     "clean:build-state": "node scripts/clean-build-state.cjs",
     "audit:frontend-contract": "node scripts/audit/frontend-backend-contract-audit.mjs",
     "smoke:batch": "tsx scripts/smoke/batch-endpoints.smoke.ts",
+    "perf:financial": "tsx scripts/perf/financial-load.ts",
+    "ops:restore-drill": "bash scripts/ops/restore-drill.sh",
     "db:metadata:export": "tsx scripts/db/export-entity-inventory.ts",
     "db:seed:pull": "tsx scripts/db/seed-pull.ts pull",
     "db:seed:status": "tsx scripts/db/seed-pull.ts status",
