@@ -64,6 +64,7 @@ export const STARTUP_MIGRATION_FILES = [
   'src/database/migrations/20260924300100-p07-mdr-de-la-compra.sql',
   // Cobertura: la cola de revisión se resuelve (desenlace, actor, motivo) y su historia no se borra.
   'src/database/migrations/20260924400000-cobertura-resolucion-cola.sql',
+  'src/database/migrations/20260924500000-eventos-core-erp.sql',
 ] as const;
 
 export interface LegacySqlProbe {

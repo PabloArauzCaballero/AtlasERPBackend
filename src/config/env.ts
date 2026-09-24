@@ -214,6 +214,14 @@ const envSchema = z
     OUTBOX_DELIVERY_URL: z.preprocess(emptyAsUndefined, z.string().trim().url().optional()),
     OUTBOX_DELIVERY_SIGNING_SECRET: z.preprocess(emptyAsUndefined, z.string().min(32).optional()),
     OUTBOX_DELIVERY_TIMEOUT_MS: z.coerce.number().int().positive().default(10_000),
+    /*
+     * Core -> ERP (P-14): el receptor `POST /integration/core/events` verifica la firma de los
+     * `payment.*` de Core con este secreto (el `ERP_EVENTS_DELIVERY_SECRET` de Core). Mismo esquema
+     * que el outbox: `x-atlas-signature: t=…,v1=…` sobre el cuerpo crudo. Sin él la ruta responde 503
+     * y Core reintenta: cerrada, nunca abierta.
+     */
+    CORE_EVENTS_SIGNING_SECRET: z.preprocess(emptyAsUndefined, z.string().min(32).optional()),
+    CORE_EVENTS_SIGNATURE_TOLERANCE_SECONDS: z.coerce.number().int().min(30).max(3600).default(300),
     OUTBOX_LEASE_MS: z.coerce.number().int().positive().default(60_000),
     OUTBOX_MAX_ATTEMPTS: z.coerce.number().int().positive().max(100).default(12),
     OUTBOX_RETRY_BASE_MS: z.coerce.number().int().positive().default(5_000),

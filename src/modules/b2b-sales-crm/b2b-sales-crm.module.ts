@@ -45,6 +45,9 @@ import { AccountingModule } from '../accounting/accounting.module';
 import { PortalModule } from '../portal/portal.module';
 import { AuthGatewayModule } from '../auth-gateway/auth-gateway.module';
 import { PartnerOnboardingGatewayModule } from '../partner-onboarding-gateway/partner-onboarding-gateway.module';
+import { CoreEventsController } from './controllers/core-events.controller';
+import { CorePaymentEventsService } from './integration/core-payment-events.service';
+import { CoreSignatureGuard } from './integration/core-signature.guard';
 
 @Module({
   imports: [
@@ -73,6 +76,8 @@ import { PartnerOnboardingGatewayModule } from '../partner-onboarding-gateway/pa
     ReconciliationController,
     CreditRatingController,
     CrmSegmentsController,
+    // P-14: receptor firmado de payment.* de Core.
+    CoreEventsController,
   ],
   providers: [
     B2BSalesCrmRepository,
@@ -96,6 +101,8 @@ import { PartnerOnboardingGatewayModule } from '../partner-onboarding-gateway/pa
     CreditRatingRepository,
     B2BCreditRatingService,
     B2BCreditRatingQueryService,
+    CorePaymentEventsService,
+    CoreSignatureGuard,
     JwtAuthGuard,
     RolesGuard,
   ],

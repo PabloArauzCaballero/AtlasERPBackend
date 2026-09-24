@@ -10,8 +10,6 @@ import { Op } from 'sequelize';
 import type { Transaction, WhereOptions } from 'sequelize';
 import { PinoLoggerService } from '../../../common/logging/pino-logger.service';
 import { fromMinorUnits, toMinorUnits } from '../../../common/money/decimal-amount.util';
-import { businessDate, isPastDue } from '../../../common/time/business-date';
-import { InstallmentStatus, PayableStatus } from '../b2b-sales-crm.enums';
 import type { ResolveCoverageReviewItemDto, ReviewQueueQueryDto } from '../b2b-sales-crm.dtos';
 import { PaymentNoticeStatus } from '../domain/coverage-eligibility';
 import type {
@@ -24,12 +22,16 @@ import {
   CoverageReviewResolution,
 } from '../models/coverage.models';
 import { B2BSalesCrmRepository } from '../repositories/b2b-sales-crm.repository';
+import { applyNoticeDecision, confirmedMinorOf, hasLiveCoverage } from './notice-decision.support';
 import type { CoverageActor } from './b2b-coverage.service';
 
 /** Razones que hablan de un aviso de pago REPORTED; se cierran decidiendo el aviso. */
 const NOTICE_REASONS = new Set<string>([
   CoverageReviewReason.PAYMENT_NOTICE_UNRESOLVED,
   CoverageReviewReason.COVERAGE_WITH_PENDING_NOTICE,
+  // P-14: el comercio confirmó en Core el pago de una cuota con cobertura viva. Se resuelve igual:
+  // cancelando la cobertura y confirmando el aviso, o rechazándolo (el cobro va como recuperación).
+  CoverageReviewReason.LATE_PAYMENT_WITH_COVERAGE,
 ]);
 
 type ReviewAction = ResolveCoverageReviewItemDto['action'];
@@ -220,46 +222,25 @@ export class B2BCoverageReviewService {
     const notice = pickNotice(pending, input.noticeId);
 
     const confirming = input.action === 'CONFIRM_NOTICE';
-    if (confirming) {
-      const livePayable = await this.repository.payables.findOne({
-        where: { installmentId: installment.id, status: { [Op.ne]: PayableStatus.CANCELLED } },
-        transaction,
+    if (confirming && (await hasLiveCoverage(this.repository, installment, transaction))) {
+      throw new ConflictException({
+        code: 'COVERAGE_IN_PLACE',
+        message:
+          'La cuota ya tiene una cobertura de Atlas: cancélela antes de confirmar el aviso, o registre el cobro como recuperación.',
       });
-      if (livePayable || installment.status === InstallmentStatus.COVERED_BY_ATLAS) {
-        throw new ConflictException({
-          code: 'COVERAGE_IN_PLACE',
-          message:
-            'La cuota ya tiene una cobertura de Atlas: cancélela antes de confirmar el aviso, o registre el cobro como recuperación.',
-        });
-      }
     }
 
-    await notice.update(
-      {
-        status: confirming ? PaymentNoticeStatus.CONFIRMED : PaymentNoticeStatus.REJECTED,
-        decidedByUserId: actor.userId,
-        decidedAt: now,
-        decisionNote: input.note,
-      },
-      { transaction },
-    );
-
-    const confirmedMinor = await this.confirmedMinor(installment.id, transaction);
-    const stillPending = pending.length - 1;
-    if (confirming && confirmedMinor >= toMinorUnits(installment.amount)) {
-      await installment.update(
-        { status: InstallmentStatus.PAID_TO_MERCHANT, paidToMerchantAt: notice.paidAt },
-        { transaction },
-      );
-    } else if (
-      !confirming &&
-      stillPending === 0 &&
-      installment.status === InstallmentStatus.SCHEDULED &&
-      isPastDue(installment.dueDate, businessDate(now))
-    ) {
-      // El aviso era lo único que frenaba la mora: sin él, la cuota vencida está en mora.
-      await installment.update({ status: InstallmentStatus.OVERDUE }, { transaction });
-    }
+    // La MISMA transición que aplica un `payment.confirmed/rejected` de Core (P-14).
+    const { confirmedMinor, stillPending } = await applyNoticeDecision(this.repository, {
+      installment,
+      notice,
+      pendingCount: pending.length,
+      confirming,
+      decidedByUserId: actor.userId,
+      note: input.note,
+      now,
+      transaction,
+    });
 
     // Mientras quede otro aviso pendiente de la misma cuota, la revisión sigue abierta.
     const resolution = confirming
@@ -312,22 +293,13 @@ export class B2BCoverageReviewService {
     );
   }
 
-  private async confirmedMinor(installmentId: string, transaction: Transaction): Promise<bigint> {
-    const confirmed = await this.repository.consumerPaymentsToMerchant.findAll({
-      attributes: ['amount'],
-      where: { installmentId, status: PaymentNoticeStatus.CONFIRMED },
-      transaction,
-    });
-    return confirmed.reduce((sum, row) => sum + toMinorUnits(row.amount), 0n);
-  }
-
   private async installmentState(
     installment: BNPLInstallmentModel,
     transaction: Transaction,
     knownConfirmedMinor?: bigint,
   ): Promise<Record<string, unknown>> {
     const confirmedMinor =
-      knownConfirmedMinor ?? (await this.confirmedMinor(installment.id, transaction));
+      knownConfirmedMinor ?? (await confirmedMinorOf(this.repository, installment.id, transaction));
     const balance = toMinorUnits(installment.amount) - confirmedMinor;
     return {
       id: installment.id,
