@@ -213,46 +213,37 @@ describeWithDatabase('Asientos contables por HTTP autenticado sobre base migrada
   });
 
   /*
-   * DEFECTO CONOCIDO (registrado en docs/compliance/requirements/B-brechas.json, ERP-D01).
-   *
-   * `journal_entry.journal_no` es UNIQUE en toda la base, pero el servicio lo deriva del número del
-   * documento (`<documentNo>-JRN`), y la serie DOC-AAAA-NNNNNN es POR entidad legal. La segunda
-   * entidad que registra su primer asiento sin número choca con el de la primera: 409
-   * UNIQUE_CONSTRAINT_ERROR sobre `journal_no`. Arreglarlo exige decidir la numeración de asientos
-   * (global o por entidad), que es del responsable contable, así que aquí sólo se deja la prueba
-   * que lo reproduce. `it.failing` pasa mientras el defecto exista: el día que se corrija, este
-   * test se pondrá ROJO para obligar a convertirlo en una prueba normal.
+   * ERP-D01 (docs/compliance/requirements/B-brechas.json). `journal_no` era UNIQUE en toda la base
+   * pero se deriva de la serie DOC, que es POR entidad legal: la segunda entidad chocaba con 409.
+   * La migración 20260924300000 (P-06) sustituye esa unicidad global por un asiento por documento.
    */
-  it.failing(
-    'DEFECTO CONOCIDO: dos entidades pueden registrar su primer asiento sin número',
-    async () => {
-      const entities: string[] = [];
-      for (const label of ['A', 'B']) {
-        const seeded = await seedStructure(db, `${label}${uniqueSuffix()}`, today);
-        entities.push(seeded.legalEntityId);
-        const token = tokenFor({
-          sub: 'e2e00000-0000-4000-8000-000000000002',
-          roles: ['ACCOUNTANT'],
-          legalEntityIds: [seeded.legalEntityId],
-        });
-        const body = {
-          legalEntityId: seeded.legalEntityId,
-          documentType: 'JE',
-          documentDate: today,
-          lines: [
-            { glAccountId: seeded.cashAccountId, debit: 1, credit: 0 },
-            { glAccountId: seeded.revenueAccountId, debit: 0, credit: 1 },
-          ],
-        };
-        const response = await request(app.getHttpServer())
-          .post(documentsPath())
-          .set('Authorization', `Bearer ${token}`)
-          .send(body);
-        expect(response.status).toBe(201);
-      }
-      expect(entities).toHaveLength(2);
-    },
-  );
+  it('dos entidades pueden registrar su primer asiento sin número', async () => {
+    const entities: string[] = [];
+    for (const label of ['A', 'B']) {
+      const seeded = await seedStructure(db, `${label}${uniqueSuffix()}`, today);
+      entities.push(seeded.legalEntityId);
+      const token = tokenFor({
+        sub: 'e2e00000-0000-4000-8000-000000000002',
+        roles: ['ACCOUNTANT'],
+        legalEntityIds: [seeded.legalEntityId],
+      });
+      const body = {
+        legalEntityId: seeded.legalEntityId,
+        documentType: 'JE',
+        documentDate: today,
+        lines: [
+          { glAccountId: seeded.cashAccountId, debit: 1, credit: 0 },
+          { glAccountId: seeded.revenueAccountId, debit: 0, credit: 1 },
+        ],
+      };
+      const response = await request(app.getHttpServer())
+        .post(documentsPath())
+        .set('Authorization', `Bearer ${token}`)
+        .send(body);
+      expect(response.status).toBe(201);
+    }
+    expect(entities).toHaveLength(2);
+  });
 });
 
 async function countDocuments(db: Client, legalEntityId: string): Promise<number> {

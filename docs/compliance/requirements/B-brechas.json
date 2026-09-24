@@ -42,10 +42,15 @@
     "title": "Numeración de asientos: journal_no es único global pero se deriva de una serie por entidad legal",
     "releaseIncluded": true,
     "ownerRole": "E",
-    "acceptance": "Dos entidades legales pueden registrar su primer asiento sin número (hoy la segunda recibe 409 sobre journal_no). Reproducido por el test it.failing de test/accounting-documents-db.e2e-spec.ts.",
-    "tests": [],
+    "acceptance": "Dos entidades legales pueden registrar su primer asiento sin número; la unicidad global de journal_no se sustituye por un asiento por documento (migración 20260924300000).",
+    "tests": [
+      {
+        "file": "test/accounting-documents-db.e2e-spec.ts",
+        "name": "dos entidades pueden registrar su primer asiento sin número"
+      }
+    ],
     "requiresDatabase": true,
-    "blockedBy": "Decisión contable pendiente (E/R): numeración de asientos global o por entidad legal. La corrección depende de ella (migración de la restricción o cambio de formato)."
+    "blockedBy": null
   },
   {
     "requirementId": "ERP-D02",
