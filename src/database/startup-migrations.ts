@@ -55,6 +55,9 @@ export const STARTUP_MIGRATION_FILES = [
   'src/database/migrations/20260918230000-outbox-trace-context.sql',
   // Entrega real del outbox (lease, reintentos, DEAD, versión de agregado) e inbox del consumidor.
   'src/database/migrations/20260924100000-outbox-entrega-real.sql',
+  // Cobertura BNPL: elegibilidad trazable, liquidación con doble control y recuperación por
+  // movimientos. Después de contabilidad porque la liquidación referencia `erp_file`.
+  'src/database/migrations/20260924200000-cobertura-elegibilidad-liquidacion.sql',
   // P-06: un documento contable por factura de comercio y un asiento por documento (índices).
   'src/database/migrations/20260924300000-p06-origen-contable-unico.sql',
   // P-07: instantánea de la tasa MDR aplicada en cada compra (columnas aditivas).

@@ -623,34 +623,205 @@ paths:
       responses:
         '201':
           description: Pago registrado
-  /b2b/coverage/payables:
-    post:
-      summary: Programar cobertura ATLAS a comercio
+  /b2b/coverage/review-queue:
+    get:
+      summary: Cola de revisión de cobertura (avisos de pago sin verificar, coberturas que no se aprueban solas)
       tags:
         - Coverage
       responses:
+        '200':
+          description: Elementos abiertos, del más antiguo al más reciente
+  /b2b/coverage/payables:
+    post:
+      summary: Programar cobertura ATLAS a comercio (sólo cuota vencida, impaga y sin cobertura viva, por su saldo)
+      tags:
+        - Coverage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrmScheduleCoverageRequest'
+      responses:
         '201':
-          description: CxP creada
-  /b2b/coverage/payables/{payableId}/paid:
+          description: CxP creada por el saldo cubrible (`outcome=SCHEDULED`), con actor, versión contractual, fecha de negocio y evidencia de elegibilidad
+        '202':
+          description: 'La cobertura pasa a revisión (`outcome=REVIEW_REQUIRED`): aviso de pago sin confirmar o contrato no activo. No crea CxP.'
+        '409':
+          description: 'Nada que cubrir, sin mutar nada: `NOT_DUE`, `ALREADY_PAID`, `CANCELLED`, `ALREADY_COVERED`, `STATUS_NOT_ELIGIBLE`'
+  /b2b/coverage/payables/{payableId}/cancel:
     patch:
-      summary: Marcar CxP como pagada y crear recuperación consumidor
+      summary: Cancelar (revertir) una CxP aún no liquidada; la fila se conserva y la cuota puede reabrirse
       tags:
         - Coverage
       parameters:
         - $ref: '#/components/parameters/CrmPayableIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              additionalProperties: false
+              properties:
+                reason:
+                  type: string
+                  minLength: 3
+                  maxLength: 240
       responses:
         '200':
-          description: CxP pagada
+          description: CxP cancelada (repetir devuelve `replayed=true`)
+        '409':
+          description: CxP ya liquidada o con liquidación registrada
+  /b2b/coverage/payables/{payableId}/paid:
+    patch:
+      summary: Registrar la liquidación de la CxP al comercio (primera firma)
+      description: |
+        CAMBIO DE CONTRATO (2026-09-24, corrección de seguridad P-05). Antes bastaba `paidAt` y la
+        CxP quedaba PAID y nacía la CxC de recuperación. Ahora el cuerpo exige referencia única,
+        importe (= CxP), moneda (= CxP), comercio beneficiario (= CxP), fecha y archivo de evidencia
+        activo; el registro queda `PENDING_APPROVAL` y NO crea la recuperación. Un cuerpo con sólo
+        `paidAt` responde 400 `VALIDATION_ERROR`. Repetir el mismo registro devuelve `replayed=true`.
+      tags:
+        - Coverage
+      parameters:
+        - $ref: '#/components/parameters/CrmPayableIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrmRegisterPayableSettlementRequest'
+      responses:
+        '202':
+          description: Liquidación registrada, pendiente de la segunda firma
+        '400':
+          description: Cuerpo incompleto (p. ej. el contrato anterior con sólo `paidAt`)
+        '409':
+          description: Referencia ya usada, CxP cancelada, pagada o con otra liquidación
+        '422':
+          description: 'La liquidación no corresponde a la CxP (`SETTLEMENT_MISMATCH`): importe, moneda, beneficiario, fecha futura o evidencia inexistente'
+  /b2b/coverage/payables/{payableId}/settlement/approve:
+    patch:
+      summary: Confirmar la liquidación (segunda firma, otra persona); nace la CxC de recuperación
+      description: En una transacción, CxP → PAID, cuota → COVERED_BY_ATLAS, CxC de recuperación por el importe liquidado y evento `b2b.coverage.settled` en el outbox. Repetir devuelve `replayed=true` sin duplicar.
+      tags:
+        - Coverage
+      parameters:
+        - $ref: '#/components/parameters/CrmPayableIdPath'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                note:
+                  type: string
+                  minLength: 3
+                  maxLength: 240
+      responses:
+        '200':
+          description: Liquidación confirmada y recuperación creada
+        '403':
+          description: '`FOUR_EYES_REQUIRED`: quien registró no puede confirmar'
+        '409':
+          description: No hay liquidación registrada
+  /b2b/coverage/payables/{payableId}/settlement/reject:
+    patch:
+      summary: Rechazar una liquidación pendiente (otra persona); la CxP sigue pendiente
+      tags:
+        - Coverage
+      parameters:
+        - $ref: '#/components/parameters/CrmPayableIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [note]
+              additionalProperties: false
+              properties:
+                note:
+                  type: string
+                  minLength: 3
+                  maxLength: 240
+      responses:
+        '200':
+          description: Liquidación rechazada
+        '403':
+          description: '`FOUR_EYES_REQUIRED`'
   /b2b/coverage/recoveries/{recoveryId}/apply-payment:
     patch:
-      summary: Aplicar recuperación de consumidor
+      summary: Aplicar un cobro de recuperación (movimiento con referencia única)
+      description: |
+        CAMBIO DE CONTRATO (2026-09-24, P-05): exige `paymentReference`. Repetir la misma referencia
+        con el mismo importe devuelve el mismo resultado (`replayed=true`) sin volver a sumar; con
+        otro importe, 409. Exceder el importe cubierto responde 409 `RECOVERY_OVERPAYMENT`.
+      tags:
+        - Coverage
+      parameters:
+        - $ref: '#/components/parameters/CrmRecoveryIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrmApplyRecoveryPaymentRequest'
+      responses:
+        '200':
+          description: Recuperación aplicada (o repetición estable)
+        '409':
+          description: Sobrepago, referencia reutilizada o recuperación castigada
+        '422':
+          description: Moneda distinta de la recuperación
+  /b2b/coverage/recoveries/{recoveryId}/movements:
+    get:
+      summary: Movimientos (cobros y reversos) de una CxC de recuperación
       tags:
         - Coverage
       parameters:
         - $ref: '#/components/parameters/CrmRecoveryIdPath'
       responses:
         '200':
-          description: Recuperación aplicada
+          description: Movimientos en orden de registro
+  /b2b/coverage/recoveries/{recoveryId}/movements/{movementId}/reverse:
+    post:
+      summary: Revertir un cobro con un movimiento compensatorio (el original se conserva)
+      tags:
+        - Coverage
+      parameters:
+        - $ref: '#/components/parameters/CrmRecoveryIdPath'
+        - name: movementId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reversalReference, reason]
+              additionalProperties: false
+              properties:
+                reversalReference:
+                  type: string
+                  minLength: 3
+                  maxLength: 120
+                reason:
+                  type: string
+                  minLength: 3
+                  maxLength: 240
+      responses:
+        '201':
+          description: Reverso registrado (repetir la misma referencia devuelve `replayed=true`)
+        '409':
+          description: El cobro ya fue revertido o la referencia ya se usó
   /b2b/reconciliation/runs:
     post:
       summary: Ejecutar conciliación por periodo
@@ -1680,6 +1851,71 @@ components:
         - CONTRACTING
         - CLOSED_WON
         - CLOSED_LOST
+    CrmScheduleCoverageRequest:
+      type: object
+      required: [installmentId, scheduledPaymentDate]
+      properties:
+        installmentId:
+          type: string
+          format: uuid
+        scheduledPaymentDate:
+          type: string
+          format: date
+        reason:
+          type: string
+          maxLength: 80
+          default: CUSTOMER_INSTALLMENT_DEFAULT_COVERAGE
+    CrmMoneyAmount:
+      type: string
+      pattern: '^\d{1,16}(\.\d{1,2})?$'
+      description: Importe exacto como cadena decimal (máx. 2 decimales). Un número JSON se acepta sólo si su representación decimal es exacta.
+      example: '300.00'
+    CrmRegisterPayableSettlementRequest:
+      type: object
+      additionalProperties: false
+      required:
+        [settlementReference, amount, currency, beneficiaryAccountId, paidAt, evidenceFileId]
+      properties:
+        settlementReference:
+          type: string
+          minLength: 3
+          maxLength: 120
+          description: Referencia única del pago al comercio (p. ej. número de transferencia)
+        amount:
+          $ref: '#/components/schemas/CrmMoneyAmount'
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+          example: BOB
+        beneficiaryAccountId:
+          type: string
+          format: uuid
+          description: Comercio que recibió el pago; debe ser el de la CxP
+        paidAt:
+          type: string
+          format: date-time
+        evidenceFileId:
+          type: string
+          format: uuid
+          description: Archivo activo del ERP (`erp_file`) con el comprobante
+    CrmApplyRecoveryPaymentRequest:
+      type: object
+      additionalProperties: false
+      required: [amount, paymentReference]
+      properties:
+        amount:
+          $ref: '#/components/schemas/CrmMoneyAmount'
+        paymentReference:
+          type: string
+          minLength: 3
+          maxLength: 120
+        currency:
+          type: string
+          default: BOB
+        receivedAt:
+          type: string
+          format: date-time
     CrmCreateAccountRequest:
       type: object
       required:

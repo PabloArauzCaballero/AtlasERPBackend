@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { parseExactPositiveAmount } from '../../common/money/exact-amount-input.util';
 import { zodEnum } from '../../common/catalog/domain';
 import { paymentMethodDomain } from '../catalog/domains/accounting.domains';
 import {
@@ -583,13 +584,80 @@ export const scheduleCoverageSchema = z.object({
   reason: z.string().trim().max(80).default('CUSTOMER_INSTALLMENT_DEFAULT_COVERAGE'),
 });
 
-export const markPayablePaidSchema = z.object({
-  paidAt: z.coerce.date(),
+/**
+ * Importe de dinero EXACTO (cadena preferida): positivo, sin notación científica y con 2 decimales
+ * como mucho. Sale como cadena canónica (`"300.00"`); nunca pasa por `number`.
+ */
+const exactMoney = z.union([z.string(), z.number()]).transform((value, context) => {
+  const parsed = parseExactPositiveAmount(value);
+  if (parsed === null) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Importe inválido: positivo, con 2 decimales como máximo (p. ej. "300.00").',
+    });
+    return z.NEVER;
+  }
+  return parsed;
 });
 
-export const applyRecoveryPaymentSchema = z.object({
-  amount: positiveMoney,
-});
+const externalReference = z
+  .string()
+  .trim()
+  .min(3)
+  .max(120)
+  .regex(/^[A-Za-z0-9][A-Za-z0-9._:/-]*$/, 'Referencia con caracteres no permitidos.');
+
+/**
+ * Registro de la liquidación de una CxP al comercio (P-05).
+ *
+ * CAMBIO DE CONTRATO deliberado (corrección de seguridad, 2026-09-24): antes bastaba `paidAt`, y
+ * una fecha daba por pagado al comercio y hacía nacer la CxC contra el consumidor. Ahora el cuerpo
+ * exige la referencia única del pago, el importe, la moneda, el comercio beneficiario, la fecha y
+ * el archivo de evidencia; el cliente que siga mandando sólo `paidAt` recibe 400 VALIDATION_ERROR.
+ * El registro queda PENDIENTE: la confirma otra persona con `/settlement/approve`.
+ */
+export const markPayablePaidSchema = z
+  .object({
+    settlementReference: externalReference,
+    amount: exactMoney,
+    currency: isoCurrency,
+    beneficiaryAccountId: uuid,
+    paidAt: z.coerce.date(),
+    evidenceFileId: uuid,
+  })
+  .strict();
+
+export const decidePayableSettlementSchema = z
+  .object({ note: z.string().trim().min(3).max(240).optional() })
+  .strict();
+
+export const rejectPayableSettlementSchema = z
+  .object({ note: z.string().trim().min(3).max(240) })
+  .strict();
+
+export const cancelPayableSchema = z.object({ reason: z.string().trim().min(3).max(240) }).strict();
+
+/**
+ * Cobro de recuperación contra el consumidor. `paymentReference` identifica el cobro: repetirlo
+ * devuelve el mismo resultado sin volver a sumar. Antes bastaba `amount` y cada repetición sumaba.
+ */
+export const applyRecoveryPaymentSchema = z
+  .object({
+    amount: exactMoney,
+    paymentReference: externalReference,
+    currency: isoCurrency.default('BOB'),
+    receivedAt: z.coerce.date().optional(),
+  })
+  .strict();
+
+export const reverseRecoveryMovementSchema = z
+  .object({
+    reversalReference: externalReference,
+    reason: z.string().trim().min(3).max(240),
+  })
+  .strict();
+
+export const recoveryMovementParamsSchema = z.object({ recoveryId: uuid, movementId: uuid });
 
 export const runReconciliationSchema = z
   .object({

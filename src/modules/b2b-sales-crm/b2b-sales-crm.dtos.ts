@@ -2,6 +2,11 @@ import type { z } from 'zod';
 import type {
   accountIdParamsSchema,
   applyRecoveryPaymentSchema,
+  cancelPayableSchema,
+  decidePayableSettlementSchema,
+  recoveryMovementParamsSchema,
+  rejectPayableSettlementSchema,
+  reverseRecoveryMovementSchema,
   createAccountTagSchema,
   updateAccountTagSchema,
   createCrmSegmentSchema,
@@ -101,6 +106,11 @@ export type RegisterMerchantPaymentDto = z.infer<typeof registerMerchantPaymentS
 export type ScheduleCoverageDto = z.infer<typeof scheduleCoverageSchema>;
 export type MarkPayablePaidDto = z.infer<typeof markPayablePaidSchema>;
 export type ApplyRecoveryPaymentDto = z.infer<typeof applyRecoveryPaymentSchema>;
+export type DecidePayableSettlementDto = z.infer<typeof decidePayableSettlementSchema>;
+export type RejectPayableSettlementDto = z.infer<typeof rejectPayableSettlementSchema>;
+export type CancelPayableDto = z.infer<typeof cancelPayableSchema>;
+export type ReverseRecoveryMovementDto = z.infer<typeof reverseRecoveryMovementSchema>;
+export type RecoveryMovementParamsDto = z.infer<typeof recoveryMovementParamsSchema>;
 export type RunReconciliationDto = z.infer<typeof runReconciliationSchema>;
 export type CreateActivityDto = z.infer<typeof createActivitySchema>;
 export type UpdateActivityDto = z.infer<typeof updateActivitySchema>;
