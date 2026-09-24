@@ -1,0 +1,200 @@
+[
+  {
+    "requirementId": "B16-MIGRACION",
+    "packageId": "P-12",
+    "repository": "AtlasERPBackend",
+    "title": "Base efímera migrada desde cero con el migrador de despliegue, y de forma idempotente",
+    "releaseIncluded": true,
+    "ownerRole": "S",
+    "acceptance": "yarn db:migrate:prod aplica todas las migraciones sobre una base vacía y una segunda ejecución no cambia nada; una migración faltante o rota pone rojo el gate.",
+    "tests": [],
+    "commands": [
+      {
+        "name": "migrate-fresh"
+      },
+      {
+        "name": "migrate-idempotent"
+      },
+      {
+        "name": "migrate-dev"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  },
+  {
+    "requirementId": "B16-ACTUALIZACION",
+    "packageId": "P-12",
+    "repository": "AtlasERPBackend",
+    "title": "Ruta de actualización desde la versión promovida (origin/test) y desde origin/main",
+    "releaseIncluded": true,
+    "ownerRole": "S",
+    "acceptance": "Migrar con los migradores de la versión previa y luego a HEAD deja un esquema idéntico al de una instalación nueva.",
+    "tests": [],
+    "commands": [
+      {
+        "name": "upgrade-path"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  },
+  {
+    "requirementId": "B16-INVARIANTES",
+    "packageId": "P-12",
+    "repository": "AtlasERPBackend",
+    "title": "Controles financieros de la base probados con SQL directo contra PostgreSQL migrado",
+    "releaseIncluded": true,
+    "ownerRole": "E",
+    "acceptance": "Doble partida, inmutabilidad de POSTED, período cerrado, duplicación de origen y concurrencia de recibos/reversos: cada violación produce el error esperado.",
+    "tests": [
+      {
+        "file": "test/accounting-db-invariants.integration.spec.ts",
+        "name": "Invariantes contables en PostgreSQL (accounting-db-invariants) doble partida acepta un asiento cuadrado"
+      },
+      {
+        "file": "test/accounting-db-invariants.integration.spec.ts",
+        "name": "Invariantes contables en PostgreSQL (accounting-db-invariants) doble partida rechaza al confirmar un asiento descuadrado (UNBALANCED_JOURNAL)"
+      },
+      {
+        "file": "test/accounting-db-invariants.integration.spec.ts",
+        "name": "Invariantes contables en PostgreSQL (accounting-db-invariants) doble partida rechaza descuadrar un asiento ya cuadrado borrando una línea"
+      },
+      {
+        "file": "test/accounting-db-invariants.integration.spec.ts",
+        "name": "Invariantes contables en PostgreSQL (accounting-db-invariants) doble partida rechaza una línea con débito y crédito a la vez (CHECK de línea)"
+      },
+      {
+        "file": "test/accounting-db-invariants.integration.spec.ts",
+        "name": "Invariantes contables en PostgreSQL (accounting-db-invariants) inmutabilidad de lo publicado (POSTED) rechaza modificar un documento POSTED"
+      },
+      {
+        "file": "test/accounting-db-invariants.integration.spec.ts",
+        "name": "Invariantes contables en PostgreSQL (accounting-db-invariants) inmutabilidad de lo publicado (POSTED) rechaza volver a DRAFT un documento POSTED"
+      },
+      {
+        "file": "test/accounting-db-invariants.integration.spec.ts",
+        "name": "Invariantes contables en PostgreSQL (accounting-db-invariants) inmutabilidad de lo publicado (POSTED) rechaza alterar el hash de un asiento POSTED"
+      },
+      {
+        "file": "test/accounting-db-invariants.integration.spec.ts",
+        "name": "Invariantes contables en PostgreSQL (accounting-db-invariants) inmutabilidad de lo publicado (POSTED) rechaza cambiar importes de líneas de un asiento POSTED"
+      },
+      {
+        "file": "test/accounting-db-invariants.integration.spec.ts",
+        "name": "Invariantes contables en PostgreSQL (accounting-db-invariants) inmutabilidad de lo publicado (POSTED) rechaza borrar líneas de un asiento POSTED"
+      },
+      {
+        "file": "test/accounting-db-invariants.integration.spec.ts",
+        "name": "Invariantes contables en PostgreSQL (accounting-db-invariants) inmutabilidad de lo publicado (POSTED) rechaza modificar o borrar la bitácora de auditoría del documento"
+      },
+      {
+        "file": "test/accounting-db-invariants.integration.spec.ts",
+        "name": "Invariantes contables en PostgreSQL (accounting-db-invariants) inmutabilidad de lo publicado (POSTED) permite la única transición válida: POSTED -> REVERSED enlazando el reverso"
+      },
+      {
+        "file": "test/accounting-db-invariants.integration.spec.ts",
+        "name": "Invariantes contables en PostgreSQL (accounting-db-invariants) período cerrado y contexto rechaza contabilizar en un período cerrado (ACCOUNTING_PERIOD_CLOSED)"
+      },
+      {
+        "file": "test/accounting-db-invariants.integration.spec.ts",
+        "name": "Invariantes contables en PostgreSQL (accounting-db-invariants) período cerrado y contexto rechaza una fecha de contabilización fuera del período (POSTING_DATE_OUTSIDE_PERIOD)"
+      },
+      {
+        "file": "test/accounting-db-invariants.integration.spec.ts",
+        "name": "Invariantes contables en PostgreSQL (accounting-db-invariants) duplicación de origen rechaza dos documentos con la misma clave de origen en el mismo libro"
+      },
+      {
+        "file": "test/accounting-db-invariants.integration.spec.ts",
+        "name": "Invariantes contables en PostgreSQL (accounting-db-invariants) duplicación de origen rechaza el mismo evento facturable externo dos veces para un contrato"
+      },
+      {
+        "file": "test/accounting-db-invariants.integration.spec.ts",
+        "name": "Invariantes contables en PostgreSQL (accounting-db-invariants) concurrencia de reversos y recibos rechaza un segundo reverso activo del mismo documento"
+      },
+      {
+        "file": "test/accounting-db-invariants.integration.spec.ts",
+        "name": "Invariantes contables en PostgreSQL (accounting-db-invariants) concurrencia de reversos y recibos dos recibos concurrentes no aplican más que el saldo de la factura"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  },
+  {
+    "requirementId": "B16-AUTOPRUEBA",
+    "packageId": "P-12",
+    "repository": "AtlasERPBackend",
+    "title": "El gate contable se pone rojo si falta el control que vigila (mutaciones)",
+    "releaseIncluded": true,
+    "ownerRole": "Q",
+    "acceptance": "Quitar cada trigger/índice contable hace fallar exactamente sus pruebas en accounting-db-invariants.",
+    "tests": [],
+    "commands": [
+      {
+        "name": "gate-self-test"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  },
+  {
+    "requirementId": "B16-E2E",
+    "packageId": "P-12",
+    "repository": "AtlasERPBackend",
+    "title": "E2E autenticados que leen y escriben tablas migradas",
+    "releaseIncluded": true,
+    "ownerRole": "Q",
+    "acceptance": "Con la API completa y JWT reales: sin token 401, rol sin permiso 403, entidad fuera de alcance 403 sin escribir, borrador descuadrado rechazado, ciclo borrador→POSTED→REVERSED reflejado en la base, lectura acotada a la entidad del token.",
+    "tests": [
+      {
+        "file": "test/accounting-documents-db.e2e-spec.ts",
+        "name": "Asientos contables por HTTP autenticado sobre base migrada (e2e) rechaza sin token (401) y no escribe nada"
+      },
+      {
+        "file": "test/accounting-documents-db.e2e-spec.ts",
+        "name": "Asientos contables por HTTP autenticado sobre base migrada (e2e) rechaza un rol sin permiso contable (403)"
+      },
+      {
+        "file": "test/accounting-documents-db.e2e-spec.ts",
+        "name": "Asientos contables por HTTP autenticado sobre base migrada (e2e) rechaza operar sobre una entidad legal fuera del alcance del token (403)"
+      },
+      {
+        "file": "test/accounting-documents-db.e2e-spec.ts",
+        "name": "Asientos contables por HTTP autenticado sobre base migrada (e2e) rechaza un borrador descuadrado sin escribirlo"
+      },
+      {
+        "file": "test/accounting-documents-db.e2e-spec.ts",
+        "name": "Asientos contables por HTTP autenticado sobre base migrada (e2e) crea, publica y revierte un asiento; la base refleja cada paso"
+      },
+      {
+        "file": "test/accounting-documents-db.e2e-spec.ts",
+        "name": "Asientos contables por HTTP autenticado sobre base migrada (e2e) lee por HTTP lo que la base tiene para la entidad del token"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  },
+  {
+    "requirementId": "B16-SUMINISTRO",
+    "packageId": "P-12",
+    "repository": "AtlasERPBackend",
+    "title": "Auditoría de dependencias, SAST e imagen escaneada con artefactos",
+    "releaseIncluded": true,
+    "ownerRole": "S",
+    "acceptance": "Los jobs dependency-audit, codeql e image-scan terminan en verde para el SHA candidato y publican sus resultados.",
+    "tests": [],
+    "commands": [
+      {
+        "name": "job:dependency-audit"
+      },
+      {
+        "name": "job:codeql"
+      },
+      {
+        "name": "job:image-scan"
+      }
+    ],
+    "requiresDatabase": false,
+    "blockedBy": null
+  }
+]
