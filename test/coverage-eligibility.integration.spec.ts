@@ -155,7 +155,7 @@ describeWithDatabase('P-04 elegibilidad de cobertura (PostgreSQL real)', () => {
     // Ni CxP (no hay aprobación implícita) ni cuota «pagada»; una sola revisión abierta.
     const after = await snapshot(p, installmentId);
     expect(after).toMatchObject({ payables: 0, reviews: 1, installment: { status: 'SCHEDULED' } });
-    const queue = await h.coverage.listReviewQueue();
+    const queue = await h.review.listReviewQueue();
     expect(queue.some((item) => item.installmentId === installmentId)).toBe(true);
   });
 

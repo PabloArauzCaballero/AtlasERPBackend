@@ -1,4 +1,4 @@
-import { Get, Body, Controller, HttpCode, Param, Patch, Post, Res } from '@nestjs/common';
+import { Get, Body, Controller, HttpCode, Param, Patch, Post, Query, Res } from '@nestjs/common';
 import type { Response } from 'express';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { Roles } from '../../../common/decorators/roles.decorator';
@@ -13,7 +13,10 @@ import type {
   RecoveryIdParamsDto,
   RecoveryMovementParamsDto,
   RejectPayableSettlementDto,
+  ResolveCoverageReviewItemDto,
   ReverseRecoveryMovementDto,
+  ReviewItemIdParamsDto,
+  ReviewQueueQueryDto,
   ScheduleCoverageDto,
 } from '../b2b-sales-crm.dtos';
 import {
@@ -25,7 +28,10 @@ import {
   recoveryIdParamsSchema,
   recoveryMovementParamsSchema,
   rejectPayableSettlementSchema,
+  resolveCoverageReviewItemSchema,
   reverseRecoveryMovementSchema,
+  reviewItemIdParamsSchema,
+  reviewQueueQuerySchema,
   scheduleCoverageSchema,
 } from '../b2b-sales-crm.schemas';
 import { B2BSalesCrmService } from '../services/b2b-sales-crm.service';
@@ -47,8 +53,8 @@ export class CoverageController {
 
   @Roles('FINANCE', 'OPERATIONS', 'ADMIN')
   @Get('payables')
-  listPayables(): Promise<Record<string, unknown>[]> {
-    return this.service.listPayables();
+  listPayables(@CurrentUser() user: AuthUser): Promise<Record<string, unknown>[]> {
+    return this.service.listPayables(user);
   }
 
   @Roles('FINANCE', 'OPERATIONS', 'ADMIN')
@@ -57,11 +63,35 @@ export class CoverageController {
     return this.service.listRecoveries();
   }
 
-  /** Cola de revisión: avisos de pago sin verificar a tiempo y coberturas que no se aprueban solas. */
+  /**
+   * Cola de revisión: avisos de pago sin verificar a tiempo y coberturas que no se aprueban solas.
+   * `?status=RESOLVED|ALL` muestra también lo cerrado (nunca se borra). Cada fila dice qué acciones
+   * admite para quien pregunta (`allowedActions`).
+   */
   @Roles('FINANCE', 'OPERATIONS', 'ADMIN')
   @Get('review-queue')
-  listReviewQueue(): Promise<Record<string, unknown>[]> {
-    return this.service.listCoverageReviewQueue();
+  listReviewQueue(
+    @Query(new ZodValidationPipe(reviewQueueQuerySchema)) query: ReviewQueueQueryDto,
+    @CurrentUser() user: AuthUser,
+  ): Promise<Record<string, unknown>[]> {
+    return this.service.listCoverageReviewQueue(user, query);
+  }
+
+  /**
+   * Resolver un elemento de la cola: confirmar o rechazar el aviso de pago, o descartar (contrato no
+   * activo). Sólo finanzas; quien abrió el elemento no lo resuelve (403 `FOUR_EYES_REQUIRED`); un
+   * elemento ya cerrado responde 409 `REVIEW_ITEM_ALREADY_RESOLVED`.
+   */
+  @Roles('FINANCE', 'ADMIN')
+  @Post('review-queue/:reviewItemId/resolve')
+  @HttpCode(200)
+  resolveReviewItem(
+    @Param(new ZodValidationPipe(reviewItemIdParamsSchema)) params: ReviewItemIdParamsDto,
+    @Body(new ZodValidationPipe(resolveCoverageReviewItemSchema))
+    body: ResolveCoverageReviewItemDto,
+    @CurrentUser() user: AuthUser,
+  ): Promise<Record<string, unknown>> {
+    return this.service.resolveCoverageReviewItem(params.reviewItemId, body, user);
   }
 
   @Roles('FINANCE', 'COLLECTIONS', 'ADMIN')

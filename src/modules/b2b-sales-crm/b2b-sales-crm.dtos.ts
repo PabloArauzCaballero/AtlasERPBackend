@@ -6,6 +6,9 @@ import type {
   decidePayableSettlementSchema,
   recoveryMovementParamsSchema,
   rejectPayableSettlementSchema,
+  resolveCoverageReviewItemSchema,
+  reviewItemIdParamsSchema,
+  reviewQueueQuerySchema,
   reverseRecoveryMovementSchema,
   createAccountTagSchema,
   updateAccountTagSchema,
@@ -111,6 +114,9 @@ export type RejectPayableSettlementDto = z.infer<typeof rejectPayableSettlementS
 export type CancelPayableDto = z.infer<typeof cancelPayableSchema>;
 export type ReverseRecoveryMovementDto = z.infer<typeof reverseRecoveryMovementSchema>;
 export type RecoveryMovementParamsDto = z.infer<typeof recoveryMovementParamsSchema>;
+export type ResolveCoverageReviewItemDto = z.infer<typeof resolveCoverageReviewItemSchema>;
+export type ReviewItemIdParamsDto = z.infer<typeof reviewItemIdParamsSchema>;
+export type ReviewQueueQueryDto = z.infer<typeof reviewQueueQuerySchema>;
 export type RunReconciliationDto = z.infer<typeof runReconciliationSchema>;
 export type CreateActivityDto = z.infer<typeof createActivitySchema>;
 export type UpdateActivityDto = z.infer<typeof updateActivitySchema>;

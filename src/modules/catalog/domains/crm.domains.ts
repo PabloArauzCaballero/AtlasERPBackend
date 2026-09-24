@@ -192,6 +192,40 @@ export const approvalDecisionDomain = defineDomain(
   }),
 );
 
+/* Cómo se resuelve un elemento de la cola de revisión de cobertura (P-04). */
+export const coverageReviewActionDomain = defineDomain(
+  'crm.coverageReviewAction',
+  'Decisión sobre una cuota que el sistema mandó a revisión antes de cubrirla.',
+  labelled(['CONFIRM_NOTICE', 'REJECT_NOTICE', 'DISMISS'] as const, {
+    CONFIRM_NOTICE: {
+      label: 'Confirmar el pago del cliente',
+      help: 'Se comprobó que el comercio recibió el pago avisado: descuenta de lo que falta pagar.',
+    },
+    REJECT_NOTICE: {
+      label: 'Rechazar el aviso de pago',
+      help: 'El pago avisado no se sostiene: la cuota sigue impaga y se puede cubrir.',
+    },
+    DISMISS: {
+      label: 'Descartar la revisión',
+      help: 'Se cierra sin tocar pagos, con un motivo (por ejemplo, contrato suspendido).',
+    },
+  }),
+);
+
+/* Qué parte de la cola se lista: la abierta, la cerrada o toda. */
+export const coverageReviewQueueFilterDomain = defineDomain(
+  'crm.coverageReviewQueueFilter',
+  'Qué elementos de la cola de revisión se muestran.',
+  labelled(['OPEN', 'RESOLVED', 'ALL'] as const, {
+    OPEN: { label: 'Por resolver', help: 'Lo que todavía espera una decisión.' },
+    RESOLVED: {
+      label: 'Resueltos',
+      help: 'Lo ya decidido, con quién lo decidió, cuándo y por qué.',
+    },
+    ALL: { label: 'Todos', help: 'Abiertos y resueltos juntos.' },
+  }),
+);
+
 export const termTypeDomain = defineDomain(
   'crm.termType',
   'Clase de término comercial de una propuesta o contrato.',
@@ -1036,6 +1070,8 @@ export const CRM_DOMAINS = [
   opportunityTypeDomain,
   proposalStatusDomain,
   approvalDecisionDomain,
+  coverageReviewActionDomain,
+  coverageReviewQueueFilterDomain,
   termTypeDomain,
   billingTimingDomain,
   contractBillingCycleDomain,

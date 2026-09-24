@@ -659,6 +659,32 @@ export const reverseRecoveryMovementSchema = z
 
 export const recoveryMovementParamsSchema = z.object({ recoveryId: uuid, movementId: uuid });
 
+/**
+ * Resolución de un elemento de la cola de revisión de cobertura (P-04).
+ *
+ * - `CONFIRM_NOTICE`: el aviso de pago REPORTED se verificó; queda CONFIRMED y descuenta del saldo.
+ * - `REJECT_NOTICE`: el aviso no se sostiene; queda REJECTED y la cuota vuelve a ser cubrible.
+ * - `DISMISS`: descartar sin tocar pagos (contrato no activo, o aviso ya decidido por otra vía).
+ *
+ * `note` es obligatoria en los tres casos: es el motivo que queda en la historia del elemento.
+ * `noticeId` sólo hace falta si la cuota tiene más de un aviso pendiente.
+ */
+export const coverageReviewActionSchema = z.enum(['CONFIRM_NOTICE', 'REJECT_NOTICE', 'DISMISS']);
+
+export const resolveCoverageReviewItemSchema = z
+  .object({
+    action: coverageReviewActionSchema,
+    noticeId: uuid.optional(),
+    note: z.string().trim().min(3).max(240),
+  })
+  .strict();
+
+export const reviewItemIdParamsSchema = z.object({ reviewItemId: uuid });
+
+export const reviewQueueQuerySchema = z
+  .object({ status: z.enum(['OPEN', 'RESOLVED', 'ALL']).default('OPEN') })
+  .strict();
+
 export const runReconciliationSchema = z
   .object({
     periodStart: dateOnly,

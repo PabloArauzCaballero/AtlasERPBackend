@@ -31,6 +31,7 @@ import type {
 import {
   ConsumerRecoveryMovementModel,
   CoverageReviewItemModel,
+  CoverageReviewResolution,
   MerchantPayableSettlementModel,
   RecoveryMovementType,
   SettlementStatus,
@@ -43,6 +44,7 @@ import {
   mapUniqueViolation,
   writeOutboxEvent,
 } from './coverage-ledger.support';
+import { toReviewItemResponse } from './coverage-review.service';
 
 /** Quién actúa: el `sub` del token, uuid del usuario interno. */
 export interface CoverageActor {
@@ -197,6 +199,7 @@ export class B2BCoverageService extends B2BSalesCrmUseCaseBase {
         await this.reviewItems.update(
           {
             status: 'RESOLVED',
+            resolution: CoverageReviewResolution.COVERAGE_SCHEDULED,
             resolvedAt: now,
             resolvedByUserId: actor.userId,
             resolutionNote: `Cobertura programada (CxP ${payable.id}).`,
@@ -246,15 +249,6 @@ export class B2BCoverageService extends B2BSalesCrmUseCaseBase {
       );
       return { outcome: 'CANCELLED', replayed: false, ...toCoveragePayableResponse(payable) };
     });
-  }
-
-  async listReviewQueue(): Promise<Record<string, unknown>[]> {
-    const rows = await this.reviewItems.findAll({
-      where: { status: 'OPEN' },
-      order: [['openedAt', 'ASC']],
-      limit: 200,
-    });
-    return rows.map(toReviewItemResponse);
   }
 
   // ------------------------------------------------------------------------------------------
@@ -899,16 +893,5 @@ function toRecoveryResult(
     recoveryStatus: recovery.recoveryStatus,
     replayed,
     movement: toMovementResponse(movement),
-  };
-}
-
-function toReviewItemResponse(item: CoverageReviewItemModel): Record<string, unknown> {
-  return {
-    id: item.id,
-    installmentId: item.installmentId,
-    reason: item.reason,
-    status: item.status,
-    details: item.details,
-    openedAt: item.openedAt,
   };
 }
