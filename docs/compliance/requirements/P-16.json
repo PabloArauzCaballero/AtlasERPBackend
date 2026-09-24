@@ -1,0 +1,34 @@
+[
+  {
+    "requirementId": "B19-CARGA",
+    "packageId": "P-16",
+    "repository": "AtlasERPBackend",
+    "title": "Carga de las rutas financieras nuevas sin duplicar CxP, CxC, cobros ni asientos",
+    "releaseIncluded": true,
+    "ownerRole": "S",
+    "acceptance": "Cobertura (con duplicado simultáneo), liquidación con doble control, recuperación (con repetición del cobro), puente factura→mayor (dos llamadas simultáneas) y contabilización, medidos contra la API compilada y PostgreSQL migrado: p50/p95/p99 por paso, throughput, errores técnicos separados de 409/429, RSS; tras la carga y tras una caída de Postgres la conciliación da 0 (CxP vivas por cuota, CxC por CxP, cobros por referencia, recuperado = movimientos, documentos por factura, asientos descuadrados, event_key del outbox). Resultados en docs/operations/erp-benchmark-2026-09-24.md.",
+    "tests": [],
+    "commands": [
+      {
+        "name": "perf-financial",
+        "runner": "script",
+        "command": "yarn build && PG_CONTAINER=<contenedor> bash scripts/perf/financial-bench.sh"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  },
+  {
+    "requirementId": "B19-SLO",
+    "packageId": "P-16",
+    "repository": "AtlasERPBackend",
+    "title": "SLO de las rutas financieras acordado y alcanzado en el entorno objetivo",
+    "releaseIncluded": true,
+    "ownerRole": "S",
+    "acceptance": "Carga esperada y SLO por operación acordados (S + R) y medidos en el entorno objetivo, con alertas entregadas al responsable y el límite por IP revisado detrás del proxy.",
+    "tests": [],
+    "commands": [],
+    "requiresDatabase": true,
+    "blockedBy": "Requiere acuerdo de carga/SLO (S + R) y el entorno objetivo; en local sólo se midió un Mac de desarrollo compartido. El límite global de 120 peticiones/min por IP sin trust proxy necesita decisión de S (ver decisions.md, P-16)."
+  }
+]

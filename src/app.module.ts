@@ -110,7 +110,7 @@ function prettyDisponible(): boolean {
       secret: env.JWT_INTERNAL_SECRET,
       signOptions: { issuer: env.JWT_INTERNAL_ISSUER, audience: env.JWT_INTERNAL_AUDIENCE },
     }),
-    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]),
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: env.HTTP_RATE_LIMIT_PER_MINUTE }]),
     DatabaseModule,
     HealthModule,
     AuthGatewayModule,
