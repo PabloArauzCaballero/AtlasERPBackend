@@ -19,7 +19,6 @@ alternativa descartada y el rol que debe ratificarla.
 Pendiente de ratificar fuera de este paquete: SLO de edad máxima de un evento PENDING y la alerta
 que lo vigile (UC_MonitorearEventos); qué servicio expone el receptor del outbox ERP y el despliegue
 del proceso `worker:outbox` (hoy no figura en ningún compose ni en Coolify).
-# Decisiones del plan de cumplimiento (ERP)
 
 Cada sección la escribe el paquete que tomó la decisión. Una decisión de negocio, riesgo, fiscal o
 legal se implementa con un valor por defecto conservador y queda aquí PENDIENTE DE RATIFICAR por el
@@ -97,7 +96,6 @@ Pendientes (fuera de los archivos de P-07 o de otro agente):
 | `accounting/shared/schemas/accounting.schemas.ts`               | `money = z.coerce.number().multipleOf(0.01)` en el contrato HTTP de asientos                                                         | P-14 (contrato decimal como texto) |
 | `accounting/supplier-payment-terms/*`                           | porcentajes y días con `Number` (no importes)                                                                                        | sin riesgo de céntimos             |
 | `b2b-sales-crm/b2b-sales-crm.schemas.ts`                        | `money = z.coerce.number()` en el borde HTTP (se convierte una vez con `parseMoney` en el servicio)                                  | P-14                               |
-# Decisiones de cumplimiento del ERP
 
 Cada sección registra una política de negocio/riesgo que el plan de cumplimiento exigía y que se
 implementó con un valor por defecto CONSERVADOR (fallar cerrado o mandar a revisión humana). Ninguna
