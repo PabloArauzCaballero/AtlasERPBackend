@@ -27,14 +27,33 @@ import { SapPostingValidationService } from '../../posting/services/sap-posting-
 import { LegalEntityAccessService } from '../../../../common/services/legal-entity-access.service';
 import { PostingRuleSnapshotService } from '../../posting/services/posting-rule-snapshot.service';
 import { AccountingDefaultsService } from '../../shared/services/accounting-defaults.service';
+import { normalizeAmount, toMinorUnits } from '../../../../common/money/decimal-amount.util';
 import { PinoLoggerService } from '../../../../common/logger/pino-logger.service';
 import { BusinessActionLogsService } from '../../../business-action-logs/business-action-logs.service';
+
+type JournalLineDto = CreateAccountingDocumentDto['lines'][number];
+
+/**
+ * Línea de un borrador tal como la entregan los flujos INTERNOS (puente del CRM, reverso): los
+ * importes pueden venir como cadena decimal exacta —tal cual los devuelve una columna `numeric`—
+ * en lugar de `number`, para no pasar por coma flotante un importe que ya era exacto (P-07). El
+ * contrato HTTP (`journalLineSchema`) sigue siendo `number`, que es un caso particular de éste.
+ */
+export type DraftJournalLineInput = Omit<JournalLineDto, 'debit' | 'credit' | 'amountLc'> & {
+  debit: number | string;
+  credit: number | string;
+  amountLc?: number | string;
+};
+
+export type AccountingDraftInput = Omit<CreateAccountingDocumentDto, 'lines'> & {
+  lines: DraftJournalLineInput[];
+};
 
 /**
  * El documento con todo lo que el sistema ya sabía resuelto: número, referencia de origen, fecha
  * de contabilización, período y libro.
  */
-type ResolvedAccountingDocument = CreateAccountingDocumentDto & {
+type ResolvedAccountingDocument = AccountingDraftInput & {
   documentNo: string;
   sourceId: string;
   postingDate: Date;
@@ -96,7 +115,7 @@ export class AccountingDocumentsService {
    * Lo explícito sigue mandando, así que ningún integrador se entera del cambio.
    */
   private async withResolvedDefaults(
-    input: CreateAccountingDocumentDto & { documentNo: string },
+    input: AccountingDraftInput & { documentNo: string },
     transaction: Transaction,
   ): Promise<ResolvedAccountingDocument> {
     /* En un asiento manual la fecha del documento y la de contabilización son la misma. */
@@ -120,9 +139,9 @@ export class AccountingDocumentsService {
   }
 
   private async withDocumentNumber(
-    input: CreateAccountingDocumentDto,
+    input: AccountingDraftInput,
     transaction: Transaction,
-  ): Promise<CreateAccountingDocumentDto & { documentNo: string }> {
+  ): Promise<AccountingDraftInput & { documentNo: string }> {
     if (input.documentNo) return { ...input, documentNo: input.documentNo };
     const documentNo = await nextDocumentNumber(
       this.sequelize,
@@ -144,7 +163,7 @@ export class AccountingDocumentsService {
    * de ver CUÁL tardó o cuál falló. Ningún atributo lleva importes, razón social ni NIT.
    */
   createDraftInTransaction(
-    rawInput: CreateAccountingDocumentDto,
+    rawInput: AccountingDraftInput,
     user: AuthUser,
     transaction: Transaction,
   ) {
@@ -160,7 +179,7 @@ export class AccountingDocumentsService {
   }
 
   private async createDraftInSpan(
-    rawInput: CreateAccountingDocumentDto,
+    rawInput: AccountingDraftInput,
     user: AuthUser,
     transaction: Transaction,
   ) {
@@ -210,10 +229,10 @@ export class AccountingDocumentsService {
         journalEntryId: journal.id,
         lineNo: index + 1,
         glAccountId: line.glAccountId,
-        debit: line.debit,
-        credit: line.credit,
+        debit: normalizeAmount(line.debit),
+        credit: normalizeAmount(line.credit),
         currencyCode: line.currencyCode,
-        amountLc: line.amountLc || Math.max(line.debit, line.credit),
+        amountLc: localAmount(line),
         partnerId: line.partnerId,
         costCenterId: line.costCenterId,
         profitCenterId: line.profitCenterId,
@@ -394,6 +413,18 @@ export class AccountingDocumentsService {
       });
     }
 
+    /*
+     * Un documento que espera aprobación, o al que se la negaron, no se publica: publicar es
+     * justamente lo que la aprobación autoriza. Antes se publicaba sin mirar este campo.
+     */
+    if (document.approvalStatus === 'PENDING' || document.approvalStatus === 'REJECTED') {
+      throw new ConflictException({
+        code: 'ACCOUNTING_DOCUMENT_APPROVAL_REQUIRED',
+        message: 'El documento necesita aprobación antes de publicarse.',
+        details: { approvalStatus: document.approvalStatus },
+      });
+    }
+
     await this.periodGuardService.assertPeriodIsOpen(document.accountingPeriodId, transaction);
 
     const journal = await this.journalEntryModel.findOne({
@@ -415,7 +446,7 @@ export class AccountingDocumentsService {
     });
 
     this.doubleEntryValidator.validate(
-      lines.map((line) => ({ debit: Number(line.debit), credit: Number(line.credit) })),
+      lines.map((line) => ({ debit: String(line.debit), credit: String(line.credit) })),
     );
 
     const hash = createHash('sha256')
@@ -570,10 +601,10 @@ export class AccountingDocumentsService {
           approvalStatus: 'NOT_REQUIRED',
           lines: originalLines.map((line) => ({
             glAccountId: line.glAccountId,
-            debit: Number(line.credit),
-            credit: Number(line.debit),
+            debit: String(line.credit),
+            credit: String(line.debit),
             currencyCode: line.currencyCode,
-            amountLc: Number(line.amountLc),
+            amountLc: String(line.amountLc),
             partnerId: line.partnerId ?? undefined,
             costCenterId: line.costCenterId ?? undefined,
             profitCenterId: line.profitCenterId ?? undefined,
@@ -651,6 +682,23 @@ export class AccountingDocumentsService {
     return { items, total: items.length };
   }
 
+  /**
+   * El documento vivo (no anulado) de una clave de origen, en cualquier libro, bloqueado para
+   * actualizar. Es lo que permite a un flujo de integración RECUPERAR un documento que un intento
+   * anterior creó y no llegó a enlazar, en vez de crear otro (P-06).
+   */
+  findActiveDocumentBySource(
+    source: { sourceSystem: string; sourceType: string; sourceId: string },
+    transaction: Transaction,
+  ): Promise<AccountingDocumentModel | null> {
+    return this.accountingDocumentModel.findOne({
+      where: { ...source, status: { [Op.ne]: 'VOID' } },
+      order: [['createdAt', 'ASC']],
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+  }
+
   async getDocument(id: string, transaction?: Transaction) {
     this.logger.debug('Consulta de documento contable.', {
       layer: 'service',
@@ -721,4 +769,18 @@ export class AccountingDocumentsService {
         ),
     );
   }
+}
+
+/**
+ * Importe en moneda local de una línea: el informado, o el mayor de debe/haber (una línea válida
+ * tiene uno de los dos en cero). Comparación en unidades menores, nunca con `Math.max` sobre
+ * `number`, que ya no distingue céntimos cerca del máximo de `numeric(18,2)`.
+ */
+function localAmount(line: DraftJournalLineInput): string {
+  if (line.amountLc !== undefined && toMinorUnits(line.amountLc) !== 0n) {
+    return normalizeAmount(line.amountLc);
+  }
+  const debit = toMinorUnits(line.debit);
+  const credit = toMinorUnits(line.credit);
+  return normalizeAmount(String(debit >= credit ? line.debit : line.credit));
 }

@@ -38,7 +38,15 @@ interface ValidatedAccountingContext {
  * El esquema los admite vacíos desde el 2026-09-19 —la fecha dice el período y la entidad dice el
  * libro—, pero aquí ya no pueden faltar: `AccountingDocumentsService` los deduce antes de llamar.
  */
-export type PostableAccountingDocument = CreateAccountingDocumentDto & {
+export type PostableAccountingDocument = Omit<CreateAccountingDocumentDto, 'lines'> & {
+  /* Los importes pueden venir como cadena exacta desde un flujo interno: aquí no se leen. */
+  lines: Array<
+    Omit<CreateAccountingDocumentDto['lines'][number], 'debit' | 'credit' | 'amountLc'> & {
+      debit: number | string;
+      credit: number | string;
+      amountLc?: number | string;
+    }
+  >;
   accountingPeriodId: string;
   ledgerId: string;
   postingDate: Date;
@@ -234,7 +242,7 @@ export class SapPostingValidationService {
   }
 
   private async assertLinesUseValidAccountsAndDimensions(
-    input: CreateAccountingDocumentDto,
+    input: PostableAccountingDocument,
     transaction: Transaction,
   ): Promise<void> {
     this.logger.debug('Validando cuentas y dimensiones de líneas contables.', {
@@ -278,7 +286,7 @@ export class SapPostingValidationService {
   }
 
   private assertRequiredDimensions(
-    line: CreateAccountingDocumentDto['lines'][number],
+    line: PostableAccountingDocument['lines'][number],
     account: GlAccountModel,
     lineNumber: number,
   ): void {
@@ -312,8 +320,8 @@ export class SapPostingValidationService {
   }
 
   private assertControlAccountHasSubledgerReference(
-    input: CreateAccountingDocumentDto,
-    line: CreateAccountingDocumentDto['lines'][number],
+    input: PostableAccountingDocument,
+    line: PostableAccountingDocument['lines'][number],
     account: GlAccountModel,
     lineNumber: number,
   ): void {
@@ -348,7 +356,7 @@ export class SapPostingValidationService {
   }
 
   private async assertDimensionReferencesExist(
-    line: CreateAccountingDocumentDto['lines'][number],
+    line: PostableAccountingDocument['lines'][number],
     lineNumber: number,
     transaction: Transaction,
   ): Promise<void> {

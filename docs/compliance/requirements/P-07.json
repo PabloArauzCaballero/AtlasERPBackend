@@ -1,0 +1,170 @@
+[
+  {
+    "requirementId": "B10",
+    "packageId": "P-07",
+    "repository": "AtlasERPBackend",
+    "title": "Dinero en unidades menores exactas: MDR, impuestos, cuotas y redondeo reproducible",
+    "releaseIncluded": true,
+    "ownerRole": "E",
+    "acceptance": "0,10+0,20; 1.000 pagos de 0,01; 100,00 en tres cuotas; importe máximo de la columna; tasa de seis decimales; mezcla de monedas rechazada. Ningún céntimo desaparece; debe=haber y saldo inicial+movimientos=saldo final. Reglas tributarias sin constantes nuevas (las valida Fiscal). En base real: la compra guarda cuotas que suman el financiado y su MDR aunque la regla cambie; IVA de líneas = cabecera; el importe máximo llega al mayor sin perder céntimos.",
+    "tests": [
+      {
+        "file": "test/money-business-invariants.spec.ts",
+        "name": "0,10 + 0,20 = 0,30 exacto"
+      },
+      {
+        "file": "test/money-business-invariants.spec.ts",
+        "name": "1.000 pagos de 0,01 suman exactamente 10,00"
+      },
+      {
+        "file": "test/money-business-invariants.spec.ts",
+        "name": "100,00 en tres cuotas: 33,34 + 33,33 + 33,33 con el residuo en la primera"
+      },
+      {
+        "file": "test/money-business-invariants.spec.ts",
+        "name": "jornada: 1.000,00 financiados en 400,00 + 300,00 + 300,00 suman exacto"
+      },
+      {
+        "file": "test/money-business-invariants.spec.ts",
+        "name": "el reparto es determinista y exacto para cualquier total y número de partes"
+      },
+      {
+        "file": "test/money-business-invariants.spec.ts",
+        "name": "cuotas que no suman el financiado por un céntimo se rechazan en el borde"
+      },
+      {
+        "file": "test/money-business-invariants.spec.ts",
+        "name": "asignaciones de pago que no suman el pago por un céntimo se rechazan en el borde"
+      },
+      {
+        "file": "test/money-business-invariants.spec.ts",
+        "name": "importe máximo de numeric(18,2) sin pérdida, y uno más se rechaza"
+      },
+      {
+        "file": "test/money-business-invariants.spec.ts",
+        "name": "rechaza céntimos fraccionarios, negativos y monedas desconocidas en vez de redondear"
+      },
+      {
+        "file": "test/money-business-invariants.spec.ts",
+        "name": "tasa de 6 decimales: 1.000,00 × 1,234567 % = 12,35 y más decimales se rechazan"
+      },
+      {
+        "file": "test/money-business-invariants.spec.ts",
+        "name": "redondeo declarado HALF_UP: medio céntimo exacto sube, alejándose de cero"
+      },
+      {
+        "file": "test/money-business-invariants.spec.ts",
+        "name": "una factura con cargos en monedas distintas se rechaza; en una moneda cuadra al céntimo"
+      },
+      {
+        "file": "test/money-business-invariants.spec.ts",
+        "name": "debe = haber al céntimo; un céntimo de diferencia es un asiento descuadrado"
+      },
+      {
+        "file": "test/money-business-invariants.spec.ts",
+        "name": "saldo inicial + movimientos = saldo final con 1.000 movimientos de céntimos"
+      },
+      {
+        "file": "test/money-business-invariants.spec.ts",
+        "name": "resumen de comisiones del comercio: cobrado − abierto = liquidado, al céntimo"
+      },
+      {
+        "file": "test/merchant-accounting-bridge.integration.spec.ts",
+        "name": "jornada: la compra guarda cuotas 400+300+300 y conserva su MDR aunque la regla cambie"
+      },
+      {
+        "file": "test/merchant-accounting-bridge.integration.spec.ts",
+        "name": "emitir factura con cargos en monedas distintas se rechaza sin escribir"
+      },
+      {
+        "file": "test/merchant-accounting-bridge.integration.spec.ts",
+        "name": "factura de céntimos: el IVA de las líneas suma el de la cabecera y el asiento cuadra"
+      },
+      {
+        "file": "test/merchant-accounting-bridge.integration.spec.ts",
+        "name": "asienta el importe máximo de la columna sin perder céntimos"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  },
+  {
+    "requirementId": "UC_FacturaMDR",
+    "packageId": "P-07",
+    "repository": "AtlasERPBackend",
+    "title": "Calcular factura por MDR",
+    "releaseIncluded": true,
+    "ownerRole": "E",
+    "acceptance": "La factura de comisiones MDR suma sus cargos en céntimos exactos, en una sola moneda, con IVA de líneas igual al de cabecera; la tasa de IVA viene de configuración y la valida Fiscal.",
+    "tests": [
+      {
+        "file": "test/merchant-accounting-bridge.integration.spec.ts",
+        "name": "jornada: la compra guarda cuotas 400+300+300 y conserva su MDR aunque la regla cambie"
+      },
+      {
+        "file": "test/merchant-accounting-bridge.integration.spec.ts",
+        "name": "emitir factura con cargos en monedas distintas se rechaza sin escribir"
+      },
+      {
+        "file": "test/merchant-accounting-bridge.integration.spec.ts",
+        "name": "factura de céntimos: el IVA de las líneas suma el de la cabecera y el asiento cuadra"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  },
+  {
+    "requirementId": "UC_ReconocerMDR",
+    "packageId": "P-07",
+    "repository": "AtlasERPBackend",
+    "title": "Reconocer MDR de venta financiada con la versión contractual de la compra",
+    "releaseIncluded": true,
+    "ownerRole": "E",
+    "acceptance": "La comisión MDR se calcula con la versión vigente al comprar (tasa de 6 decimales, HALF_UP, mín./máx.), se conserva en la compra aunque la regla cambie y llega al mayor vía factura → borrador → publicación con debe=haber.",
+    "tests": [
+      {
+        "file": "test/money-business-invariants.spec.ts",
+        "name": "tasa de 6 decimales: 1.000,00 × 1,234567 % = 12,35 y más decimales se rechazan"
+      },
+      {
+        "file": "test/money-business-invariants.spec.ts",
+        "name": "MDR acotado por el mínimo y el máximo de la regla"
+      },
+      {
+        "file": "test/merchant-accounting-bridge.integration.spec.ts",
+        "name": "jornada: la compra guarda cuotas 400+300+300 y conserva su MDR aunque la regla cambie"
+      },
+      {
+        "file": "test/merchant-accounting-bridge.integration.spec.ts",
+        "name": "factura de céntimos: el IVA de las líneas suma el de la cabecera y el asiento cuadra"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  },
+  {
+    "requirementId": "UC_ValidarPartidaDoble",
+    "packageId": "P-07",
+    "repository": "AtlasERPBackend",
+    "title": "Validar partida doble al céntimo",
+    "releaseIncluded": true,
+    "ownerRole": "E",
+    "acceptance": "Debe = haber en unidades menores exactas, también con el importe máximo de numeric(18,2); un céntimo de diferencia se rechaza.",
+    "tests": [
+      {
+        "file": "test/money-business-invariants.spec.ts",
+        "name": "debe = haber al céntimo; un céntimo de diferencia es un asiento descuadrado"
+      },
+      {
+        "file": "test/money-business-invariants.spec.ts",
+        "name": "importe máximo de numeric(18,2) sin pérdida, y uno más se rechaza"
+      },
+      {
+        "file": "test/merchant-accounting-bridge.integration.spec.ts",
+        "name": "factura de céntimos: el IVA de las líneas suma el de la cabecera y el asiento cuadra"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  }
+]

@@ -927,6 +927,20 @@ export class BNPLPurchaseModel extends Model {
   @Column({ type: DataType.DATE, field: 'purchase_date' })
   declare purchaseDate: Date;
 
+  /* Instantánea del MDR cobrado al comprar (P-07, migración 20260924300100). NULL en compras
+   * anteriores: no se inventa la tasa que tuvieron. */
+  @Column({ type: DataType.DECIMAL(9, 6), field: 'mdr_rate_percent' })
+  declare mdrRatePercent: string | null;
+
+  @Column({ type: DataType.DECIMAL(18, 2), field: 'mdr_amount' })
+  declare mdrAmount: string | null;
+
+  @Column({ type: DataType.UUID, field: 'mdr_rule_id' })
+  declare mdrRuleId: string | null;
+
+  @Column({ type: DataType.STRING(40), field: 'mdr_pricing_source' })
+  declare mdrPricingSource: string | null;
+
   @HasMany(() => BNPLInstallmentModel)
   declare installments?: BNPLInstallmentModel[];
 

@@ -31,6 +31,17 @@ import {
 import { B2BSalesCrmRepository } from '../repositories/b2b-sales-crm.repository';
 import { B2BSalesCrmUseCaseBase } from './b2b-sales-crm-use-case.base';
 import type { BillingProductModel } from '../models/b2b-sales-crm.models';
+import {
+  fromMinorUnits,
+  parseMoney,
+  toMinorUnits,
+} from '../../../common/money/decimal-amount.util';
+import {
+  MoneyRuleViolation,
+  allocationsMatchPayment,
+  computeInvoiceTotals,
+  parsePurchaseSplit,
+} from '../domain/merchant-billing-math';
 
 @Injectable()
 export class B2BBnplBillingService extends B2BSalesCrmUseCaseBase {
@@ -63,12 +74,8 @@ export class B2BBnplBillingService extends B2BSalesCrmUseCaseBase {
         throw new ForbiddenException('La sucursal no está habilitada para originar BNPL.');
       }
 
-      this.assertPurchaseAmounts(
-        input.purchaseAmount,
-        input.downPaymentAmount,
-        input.financedAmount,
-      );
-      this.assertInstallmentsMatchFinancedAmount(input.installments, input.financedAmount);
+      this.assertPurchaseSplit(input);
+      const split = parsePurchaseSplit(input);
       const consumerId = await this.resolveConsumerId(input, transaction);
 
       const purchaseDate = new Date().toISOString().slice(0, 10);
@@ -97,12 +104,16 @@ export class B2BBnplBillingService extends B2BSalesCrmUseCaseBase {
           branchId: input.branchId,
           consumerId,
           contractVersionId: activeVersion.id,
-          purchaseAmount: input.purchaseAmount.toFixed(2),
-          downPaymentAmount: input.downPaymentAmount.toFixed(2),
-          financedAmount: input.financedAmount.toFixed(2),
+          purchaseAmount: fromMinorUnits(split.purchase),
+          downPaymentAmount: fromMinorUnits(split.downPayment),
+          financedAmount: fromMinorUnits(split.financed),
           riskTierAtOrigination: input.riskTierAtOrigination ?? null,
           cohortId: input.cohortId ?? null,
           status: PurchaseStatus.CONFIRMED,
+          mdrRatePercent: mdr.ratePercent,
+          mdrAmount: mdr.amount,
+          mdrRuleId: mdr.ruleId,
+          mdrPricingSource: mdr.source,
         },
         { transaction },
       );
@@ -111,7 +122,7 @@ export class B2BBnplBillingService extends B2BSalesCrmUseCaseBase {
         {
           purchaseId: purchase.id,
           installmentId: null,
-          amount: input.downPaymentAmount.toFixed(2),
+          amount: fromMinorUnits(split.downPayment),
           paidAt: input.downPaymentPaidAt ?? new Date(),
           evidenceRef: input.downPaymentEvidenceRef ?? null,
           status: 'REPORTED',
@@ -119,13 +130,13 @@ export class B2BBnplBillingService extends B2BSalesCrmUseCaseBase {
         { transaction },
       );
 
-      for (const installment of input.installments) {
+      for (const [index, installment] of input.installments.entries()) {
         await this.repository.installments.create(
           {
             purchaseId: purchase.id,
             installmentNumber: installment.installmentNumber,
             dueDate: installment.dueDate,
-            amount: installment.amount.toFixed(2),
+            amount: fromMinorUnits(split.installments[index]!),
             status: InstallmentStatus.SCHEDULED,
           },
           { transaction },
@@ -140,8 +151,8 @@ export class B2BBnplBillingService extends B2BSalesCrmUseCaseBase {
           sourceType: TermType.MDR,
           sourceId: purchase.id,
           productId: mdrProduct?.id ?? null,
-          amountOriginal: mdr.amount.toFixed(2),
-          amountOpen: mdr.amount.toFixed(2),
+          amountOriginal: mdr.amount,
+          amountOpen: mdr.amount,
           currency: 'BOB',
           dueDate: input.mdrReceivableDueDate,
           status: ReceivableStatus.PENDING,
@@ -163,8 +174,9 @@ export class B2BBnplBillingService extends B2BSalesCrmUseCaseBase {
           status: consumerPaymentToMerchant.status,
         },
         mdr: {
-          ratePercent: mdr.ratePercent,
-          amount: mdr.amount.toFixed(2),
+          /* `number` por compatibilidad del contrato HTTP: sólo se muestra, no se opera. */
+          ratePercent: Number(mdr.ratePercent),
+          amount: mdr.amount,
           source: mdr.source,
         },
         receivable: toReceivableResponse(receivable),
@@ -195,13 +207,16 @@ export class B2BBnplBillingService extends B2BSalesCrmUseCaseBase {
         throw new ConflictException('Solo se pueden facturar cargos CxC pendientes.');
       }
 
-      if (receivables.some((receivable) => this.toNumber(receivable.amountOpen) <= 0)) {
+      if (receivables.some((receivable) => toMinorUnits(receivable.amountOpen) <= 0n)) {
         throw new ConflictException('No se pueden facturar cargos CxC sin saldo abierto.');
       }
 
-      const subtotal = receivables.reduce((sum, item) => sum + this.toNumber(item.amountOpen), 0);
-      const tax = this.roundMoney((subtotal * env.DEFAULT_TAX_RATE_PERCENT) / 100);
-      const total = this.roundMoney(subtotal + tax);
+      /*
+       * Céntimos exactos, una sola moneda y el impuesto de las líneas sumando el de la cabecera
+       * (P-07). La tasa sale de `DEFAULT_TAX_RATE_PERCENT`; su valor lo valida Fiscal.
+       */
+      const totals = this.invoiceTotals(receivables);
+      const lineTotals = new Map(totals.lines.map((line) => [line.id, line]));
 
       /*
        * La serie de facturas de comercio es única en toda la instalación —así la declara el índice
@@ -225,9 +240,9 @@ export class B2BBnplBillingService extends B2BSalesCrmUseCaseBase {
           invoiceNumber,
           invoiceDate: input.invoiceDate,
           dueDate: input.dueDate,
-          subtotalAmount: subtotal.toFixed(2),
-          taxAmount: tax.toFixed(2),
-          totalAmount: total.toFixed(2),
+          subtotalAmount: totals.subtotal,
+          taxAmount: totals.tax,
+          totalAmount: totals.total,
           status: InvoiceStatus.ISSUED,
           externalTaxRef: input.externalTaxRef ?? null,
         },
@@ -249,9 +264,7 @@ export class B2BBnplBillingService extends B2BSalesCrmUseCaseBase {
       );
 
       for (const receivable of receivables) {
-        const lineTax = this.roundMoney(
-          (this.toNumber(receivable.amountOpen) * env.DEFAULT_TAX_RATE_PERCENT) / 100,
-        );
+        const line = lineTotals.get(receivable.id)!;
         const product = products.get(receivable.sourceType) ?? null;
         await this.repository.invoiceLines.create(
           {
@@ -261,9 +274,9 @@ export class B2BBnplBillingService extends B2BSalesCrmUseCaseBase {
             productId: receivable.productId ?? product?.id ?? null,
             description: product ? product.name : `Cargo ${receivable.sourceType}`,
             quantity: '1.0000',
-            unitAmount: receivable.amountOpen,
-            taxAmount: lineTax.toFixed(2),
-            totalAmount: this.roundMoney(this.toNumber(receivable.amountOpen) + lineTax).toFixed(2),
+            unitAmount: line.net,
+            taxAmount: line.tax,
+            totalAmount: line.total,
           },
           { transaction },
         );
@@ -284,11 +297,7 @@ export class B2BBnplBillingService extends B2BSalesCrmUseCaseBase {
       useCase: 'registerMerchantPayment',
     });
     return this.repository.transaction(async (transaction) => {
-      const allocationTotal = this.roundMoney(
-        input.allocations.reduce((sum, allocation) => sum + allocation.amountApplied, 0),
-      );
-
-      if (Math.abs(allocationTotal - input.amount) > 0.01) {
+      if (!allocationsMatchPayment(input.amount, input.allocations, input.currency)) {
         throw new BadRequestException(
           'La suma de asignaciones debe coincidir con el monto total del pago.',
         );
@@ -297,7 +306,7 @@ export class B2BBnplBillingService extends B2BSalesCrmUseCaseBase {
       const payment = await this.repository.payments.create(
         {
           accountId: input.accountId,
-          amount: input.amount.toFixed(2),
+          amount: fromMinorUnits(parseMoney(input.amount, { currency: input.currency })),
           currency: input.currency,
           paidAt: input.paidAt,
           paymentMethod: input.paymentMethod ?? null,
@@ -320,8 +329,20 @@ export class B2BBnplBillingService extends B2BSalesCrmUseCaseBase {
           throw new NotFoundException('CxC comercial no encontrada para aplicar pago.');
         }
 
-        const currentOpen = this.toNumber(receivable.amountOpen);
-        if (allocation.amountApplied > currentOpen) {
+        /* Un pago en BOB no cancela una CxC en USD: sin tipo de cambio no hay equivalencia. */
+        if (receivable.currency.trim().toUpperCase() !== input.currency) {
+          throw new ConflictException({
+            code: 'PAYMENT_CURRENCY_MISMATCH',
+            message: `La CxC está en ${receivable.currency} y el pago en ${input.currency}.`,
+          });
+        }
+
+        const currentOpen = toMinorUnits(receivable.amountOpen);
+        const applied = parseMoney(allocation.amountApplied, {
+          currency: input.currency,
+          allowZero: false,
+        });
+        if (applied > currentOpen) {
           throw new ConflictException('Una asignación excede el saldo abierto de la CxC.');
         }
 
@@ -329,16 +350,16 @@ export class B2BBnplBillingService extends B2BSalesCrmUseCaseBase {
           {
             paymentId: payment.id,
             receivableId: receivable.id,
-            amountApplied: allocation.amountApplied.toFixed(2),
+            amountApplied: fromMinorUnits(applied),
           },
           { transaction },
         );
 
-        const nextOpen = this.roundMoney(currentOpen - allocation.amountApplied);
+        const nextOpen = currentOpen - applied;
         await receivable.update(
           {
-            amountOpen: nextOpen.toFixed(2),
-            status: nextOpen === 0 ? ReceivableStatus.PAID : ReceivableStatus.PARTIALLY_PAID,
+            amountOpen: fromMinorUnits(nextOpen),
+            status: nextOpen === 0n ? ReceivableStatus.PAID : ReceivableStatus.PARTIALLY_PAID,
           },
           { transaction },
         );
@@ -358,6 +379,26 @@ export class B2BBnplBillingService extends B2BSalesCrmUseCaseBase {
         allocations: input.allocations,
       };
     });
+  }
+
+  private invoiceTotals(
+    receivables: ReadonlyArray<{ id: string; amountOpen: string; currency: string }>,
+  ): ReturnType<typeof computeInvoiceTotals> {
+    try {
+      return computeInvoiceTotals(
+        receivables.map((receivable) => ({
+          id: receivable.id,
+          amountOpen: receivable.amountOpen,
+          currency: receivable.currency,
+        })),
+        env.DEFAULT_TAX_RATE_PERCENT,
+      );
+    } catch (error) {
+      if (error instanceof MoneyRuleViolation) {
+        throw new ConflictException({ code: error.code, message: error.message });
+      }
+      throw error;
+    }
   }
 
   /** Producto del catálogo que corresponde a un origen de cargo, o `null` si no hay ninguno. */
@@ -398,10 +439,9 @@ export class B2BBnplBillingService extends B2BSalesCrmUseCaseBase {
       return;
     }
 
-    const allPaid = receivables.every((receivable) => this.toNumber(receivable.amountOpen) === 0);
+    const allPaid = receivables.every((receivable) => toMinorUnits(receivable.amountOpen) === 0n);
     const anyPartial = receivables.some(
-      (receivable) =>
-        this.toNumber(receivable.amountOpen) < this.toNumber(receivable.amountOriginal),
+      (receivable) => toMinorUnits(receivable.amountOpen) < toMinorUnits(receivable.amountOriginal),
     );
 
     await invoice.update(

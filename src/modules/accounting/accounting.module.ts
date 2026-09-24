@@ -64,6 +64,8 @@ import { SupplierPaymentTermsService } from './supplier-payment-terms/supplier-p
   ],
   exports: [
     AccountingDocumentsService,
+    /* El puente del CRM comprueba el alcance por entidad ANTES de bloquear la factura (P-06). */
+    LegalEntityAccessService,
     DoubleEntryValidator,
     PeriodGuardService,
     SapPostingValidationService,
