@@ -1,0 +1,153 @@
+[
+  {
+    "requirementId": "B06",
+    "packageId": "P-04",
+    "repository": "AtlasERPBackend",
+    "title": "Cobertura sólo para cuota vencida, impaga, habilitada y no cubierta, por su saldo",
+    "releaseIncluded": true,
+    "ownerRole": "E",
+    "acceptance": "Con lock sobre la cuota: futura, pagada, cancelada o ya cubierta se rechazan sin mutar; vencida sin pago → CxP por el total; parcialmente pagada → CxP por el saldo; dos solicitudes concurrentes dejan una sola CxP; índice único parcial impide doble CxP viva; se registran motivo, actor, versión contractual y evidencia; reverso sin borrar historia.",
+    "tests": [
+      {
+        "file": "test/coverage-eligibility.integration.spec.ts",
+        "name": "rechaza cuota futura sin mutar nada"
+      },
+      {
+        "file": "test/coverage-eligibility.integration.spec.ts",
+        "name": "cubre la cuota vencida sin pago por su importe completo"
+      },
+      {
+        "file": "test/coverage-eligibility.integration.spec.ts",
+        "name": "cubre la cuota parcialmente pagada sólo por el saldo"
+      },
+      {
+        "file": "test/coverage-eligibility.integration.spec.ts",
+        "name": "rechaza la cuota con pago confirmado sin mutar nada"
+      },
+      {
+        "file": "test/coverage-eligibility.integration.spec.ts",
+        "name": "rechaza una cuota ya pagada al comercio sin mutar nada"
+      },
+      {
+        "file": "test/coverage-eligibility.integration.spec.ts",
+        "name": "rechaza una cuota cancelada sin mutar nada"
+      },
+      {
+        "file": "test/coverage-eligibility.integration.spec.ts",
+        "name": "rechaza una cuota ya cubierta sin mutar nada"
+      },
+      {
+        "file": "test/coverage-eligibility.integration.spec.ts",
+        "name": "dos solicitudes concurrentes producen una sola CxP por el saldo"
+      },
+      {
+        "file": "test/coverage-eligibility.integration.spec.ts",
+        "name": "el índice único impide una segunda CxP viva aunque se salte el servicio"
+      },
+      {
+        "file": "test/coverage-eligibility.integration.spec.ts",
+        "name": "registra motivo, actor, versión contractual y evidencia de la elegibilidad"
+      },
+      {
+        "file": "test/coverage-eligibility.integration.spec.ts",
+        "name": "contrato no activo va a revisión, no a aprobación"
+      },
+      {
+        "file": "test/coverage-eligibility.integration.spec.ts",
+        "name": "cancelar una CxP no liquidada conserva la fila y permite reabrir la cobertura"
+      },
+      {
+        "file": "test/coverage-eligibility-policy.spec.ts",
+        "name": "cuota futura o que vence hoy: NOT_DUE"
+      },
+      {
+        "file": "test/coverage-eligibility-policy.spec.ts",
+        "name": "parcialmente pagada: elegible por el saldo exacto en centavos"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  },
+  {
+    "requirementId": "B08",
+    "packageId": "P-04",
+    "repository": "AtlasERPBackend",
+    "title": "Aviso REPORTED no es pago: plazo configurable y cola de revisión visible",
+    "releaseIncluded": true,
+    "ownerRole": "E",
+    "acceptance": "En el barrido y en la elegibilidad sólo CONFIRMED cuenta como pago; un aviso REPORTED da un plazo (BNPL_PAYMENT_NOTICE_REVIEW_HOURS, 72 h) tras el cual la cuota pasa a mora y el aviso entra en coverage_review_items; la cobertura sobre una cuota con aviso pendiente va a REVISIÓN; REJECTED no cuenta; corte de día en America/La_Paz.",
+    "tests": [
+      {
+        "file": "test/coverage-eligibility.integration.spec.ts",
+        "name": "manda a revisión la cobertura de una cuota con aviso de pago pendiente"
+      },
+      {
+        "file": "test/coverage-eligibility.integration.spec.ts",
+        "name": "ignora un aviso rechazado: la cuota vencida es elegible por el total"
+      },
+      {
+        "file": "test/coverage-eligibility.integration.spec.ts",
+        "name": "el barrido no da por pagada una cuota con aviso REPORTED y la manda a revisión vencido el plazo"
+      },
+      {
+        "file": "test/coverage-eligibility.integration.spec.ts",
+        "name": "el barrido ignora avisos rechazados y marca la cuota en mora"
+      },
+      {
+        "file": "test/coverage-eligibility.integration.spec.ts",
+        "name": "el barrido respeta el pago confirmado y no toca la cuota futura"
+      },
+      {
+        "file": "test/coverage-eligibility.integration.spec.ts",
+        "name": "corta el día en America/La_Paz, no en UTC"
+      },
+      {
+        "file": "src/modules/b2b-sales-crm/services/b2b-overdue-sweep.service.spec.ts",
+        "name": "un aviso REPORTED dentro del plazo no es pago"
+      },
+      {
+        "file": "src/modules/b2b-sales-crm/services/b2b-overdue-sweep.service.spec.ts",
+        "name": "un aviso REPORTED vencido el plazo va a revisión y la cuota pasa a mora"
+      },
+      {
+        "file": "test/coverage-eligibility-policy.spec.ts",
+        "name": "aviso REPORTED: revisión, nunca aprobación implícita"
+      },
+      {
+        "file": "test/coverage-eligibility-policy.spec.ts",
+        "name": "el día de negocio es el de La Paz (UTC−4), no el de UTC"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  },
+  {
+    "requirementId": "UC_CuotaVencida",
+    "packageId": "P-04",
+    "repository": "AtlasERPBackend",
+    "title": "Detectar cuota vencida",
+    "releaseIncluded": true,
+    "ownerRole": "E",
+    "acceptance": "El barrido marca OVERDUE la cuota vencida (día de negocio La Paz) sin pago confirmado, respeta la pagada y la futura, y no da por pagada la que sólo tiene aviso REPORTED.",
+    "tests": [
+      {
+        "file": "test/coverage-eligibility.integration.spec.ts",
+        "name": "el barrido ignora avisos rechazados y marca la cuota en mora"
+      },
+      {
+        "file": "test/coverage-eligibility.integration.spec.ts",
+        "name": "el barrido respeta el pago confirmado y no toca la cuota futura"
+      },
+      {
+        "file": "test/coverage-eligibility.integration.spec.ts",
+        "name": "el barrido no da por pagada una cuota con aviso REPORTED y la manda a revisión vencido el plazo"
+      },
+      {
+        "file": "src/modules/b2b-sales-crm/services/b2b-overdue-sweep.service.spec.ts",
+        "name": "marca OVERDUE las vencidas sin pago confirmado"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  }
+]

@@ -309,27 +309,60 @@ Registra pago del comercio y lo aplica explícitamente contra CxC B2B.
 
 ### Responsabilidad
 
-Crea CxP ATLAS→comercio por una cuota impaga específica.
+Crea CxP ATLAS→comercio por una cuota impaga específica, por su SALDO (importe − pagos confirmados).
 
-### Regla aplicada
+### Reglas aplicadas (P-04, 2026-09-24)
 
-No acelera toda la deuda; cubre cuota por cuota.
+- No acelera toda la deuda; cubre cuota por cuota.
+- Con lock sobre la cuota: vencida según el día de negocio de Bolivia (`America/La_Paz`), cuota
+  SCHEDULED/OVERDUE, compra CONFIRMED, saldo > 0 y sin CxP viva. Si no, 409 sin mutar nada
+  (`NOT_DUE`, `ALREADY_PAID`, `CANCELLED`, `ALREADY_COVERED`, `STATUS_NOT_ELIGIBLE`).
+- Aviso de pago REPORTED sin confirmar o contrato no activo: 202 `REVIEW_REQUIRED` y elemento en la
+  cola de revisión; nunca aprobación implícita.
+- Guarda actor, versión contractual, fecha de negocio y evidencia de elegibilidad.
+- Índice único parcial: una CxP viva por cuota.
+
+## PATCH /api/v1/b2b/coverage/payables/:payableId/cancel
+
+Revierte una CxP aún no liquidada (queda CANCELLED con motivo y actor; la cuota puede reabrirse).
+
+## GET /api/v1/b2b/coverage/review-queue
+
+Cola de revisión: avisos REPORTED que superaron `BNPL_PAYMENT_NOTICE_REVIEW_HOURS` (72 h por defecto)
+y coberturas que no se aprueban solas.
 
 ## PATCH /api/v1/b2b/coverage/payables/:payableId/paid
 
 ### Responsabilidad
 
-Marca la CxP como pagada y recién entonces crea `consumer_recovery_receivable`.
+Registra la liquidación al comercio (primera firma). **Cambio de contrato (P-05):** exige
+`settlementReference`, `amount`, `currency`, `beneficiaryAccountId`, `paidAt` y `evidenceFileId`;
+el cuerpo anterior con sólo `paidAt` responde 400. Queda `PENDING_APPROVAL` (202).
+
+## PATCH /api/v1/b2b/coverage/payables/:payableId/settlement/approve
+
+Segunda firma, por OTRA persona (403 `FOUR_EYES_REQUIRED` si es quien registró). En una transacción:
+CxP → PAID, cuota → COVERED_BY_ATLAS, nace `consumer_recovery_receivable` por el importe liquidado y
+se escribe `b2b.coverage.settled` en el outbox. Repetir no duplica.
 
 ### Regla aplicada
 
-La recuperación contra consumidor no nace antes del pago/cobertura ATLAS.
+La recuperación contra consumidor no nace antes del pago/cobertura ATLAS confirmado.
+
+## PATCH /api/v1/b2b/coverage/payables/:payableId/settlement/reject
+
+Rechaza una liquidación pendiente (otra persona); libera la referencia.
 
 ## PATCH /api/v1/b2b/coverage/recoveries/:recoveryId/apply-payment
 
 ### Responsabilidad
 
-Aplica recuperación parcial o total contra la CxC del consumidor.
+Aplica recuperación parcial o total contra la CxC del consumidor como movimiento con
+`paymentReference` único. Repetir la referencia no suma (`replayed=true`); sobrepago → 409.
+
+## POST /api/v1/b2b/coverage/recoveries/:recoveryId/movements/:movementId/reverse
+
+Reverso/devolución: movimiento compensatorio; los movimientos son de sólo inserción.
 
 ## POST /api/v1/b2b/reconciliation/runs
 
