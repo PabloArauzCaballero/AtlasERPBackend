@@ -38,8 +38,16 @@ Cabeceras: `x-atlas-event-key`, `x-atlas-topic`, `x-atlas-delivery-attempt`, `tr
 El receptor verifica con `verifyOutboxSignature` (cuerpo CRUDO, ventana de 300 s), aplica el efecto
 con `consumeOnce` y responde 2xx **después** de confirmar. Un duplicado también responde 2xx.
 
-Hoy no hay receptor desplegado en ningún servicio: sin `OUTBOX_DELIVERY_URL` el worker no reserva
-nada, deja los eventos PENDING y lo avisa cada minuto con el tamaño de la cola.
+El receptor es AtlasBackend (P-14): `POST /api/v1/internal/integration/erp/events`, firmado con el
+secreto que allí se llama `ERP_EVENTS_SIGNING_SECRET`. Contrato completo en
+`contracts/atlas-integration-v1/` (copia versionada del de Core). En Coolify el proceso es el
+servicio `worker-outbox` de `docker-compose.coolify.yml`, con
+`OUTBOX_DELIVERY_URL=http://atlas-backend:3005/api/v1/internal/integration/erp/events`. Sin
+`OUTBOX_DELIVERY_URL` el worker no reserva nada, deja los eventos PENDING y lo avisa cada minuto.
+
+El sentido contrario (Core → ERP, `payment.*`) llega a `POST /api/v1/integration/core/events`
+(`CoreEventsController`, firma con `CORE_EVENTS_SIGNING_SECRET`) y lo aplica
+`CorePaymentEventsService` con `consumeOnce` (consumidor `core-payments`).
 
 ## Operación
 
