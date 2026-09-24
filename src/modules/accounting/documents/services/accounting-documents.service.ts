@@ -164,9 +164,13 @@ export class AccountingDocumentsService {
     user: AuthUser,
     transaction: Transaction,
   ) {
+    // El alcance se comprueba ANTES de numerar o deducir período y libro: esas lecturas son de la
+    // entidad pedida, y hacerlas primero convertía los errores («esta empresa no tiene ejercicio
+    // fiscal») en un oráculo sobre entidades ajenas al token. Lo cubre
+    // `test/accounting-documents-db.e2e-spec.ts` (403 y ninguna fila escrita).
+    this.legalEntityAccessService.assertCanAccessLegalEntity(user, rawInput.legalEntityId);
     const numerado = await this.withDocumentNumber(rawInput, transaction);
     const input = await this.withResolvedDefaults(numerado, transaction);
-    this.legalEntityAccessService.assertCanAccessLegalEntity(user, input.legalEntityId);
     this.doubleEntryValidator.validate(input.lines);
     await this.sapPostingValidationService.assertDocumentCanBePosted(input, transaction);
 
