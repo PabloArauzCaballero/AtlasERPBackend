@@ -21,7 +21,7 @@
     "acceptance": "Restore probado con RPO/RTO acordados, rollback ensayado, alertas entregadas y proveedores reales verificados.",
     "tests": [],
     "requiresDatabase": true,
-    "blockedBy": "Requiere entorno y decisiones de operación (SLO/RPO/RTO, proveedores reales); fuera de lo que el repositorio puede demostrar."
+    "blockedBy": "Lo ejecutable en local está en P-16.json (carga) y P-17.json (restore y rollback). Queda lo que exige entorno o decisión: SLO acordado, RPO/RTO aprobados, retención ratificada por J, credenciales efectivas, restore de objetos y ejecución por alguien distinto del autor."
   },
   {
     "requirementId": "B20",
