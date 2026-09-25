@@ -64,6 +64,19 @@ export class AccountingDocumentModel extends Model {
   @Column({ type: DataType.UUID, field: 'policy_snapshot_id', allowNull: true })
   declare policySnapshotId: string | null;
 
+  /* Quién aprobó o rechazó el borrador y cuándo: lo escribe sólo el servidor (ATL-03). */
+  @Column({ type: DataType.UUID, field: 'approved_by', allowNull: true })
+  declare approvedBy: string | null;
+
+  @Column({ type: DataType.DATE, field: 'approved_at', allowNull: true })
+  declare approvedAt: Date | null;
+
+  @Column({ type: DataType.UUID, field: 'rejected_by', allowNull: true })
+  declare rejectedBy: string | null;
+
+  @Column({ type: DataType.DATE, field: 'rejected_at', allowNull: true })
+  declare rejectedAt: Date | null;
+
   @Column({ type: DataType.UUID, field: 'created_by', allowNull: true })
   declare createdBy: string | null;
 

@@ -383,6 +383,20 @@ export const reverseAccountingDocumentSchema = z.object({
   reason: z.string().min(3).max(240),
 });
 
+/*
+ * Listado de documentos (ATL-05): página y tamaño OPCIONALES. Sin ellos se devuelve la primera
+ * página de 500, lo que el ERP web recibía antes; el tope es ese mismo 500.
+ */
+export const listAccountingDocumentsQuerySchema = z.object({
+  page: z.coerce.number().int().positive().optional(),
+  pageSize: z.coerce.number().int().positive().max(500).optional(),
+});
+
+/* Aprobar o rechazar un borrador PENDING: el motivo es opcional y queda en su auditoría. */
+export const decideAccountingDocumentSchema = z
+  .object({ reason: z.string().trim().min(3).max(240).optional() })
+  .default({});
+
 export const createBillingEventSchema = z.object({
   contractId: uuid,
   eventType: z.enum(['MDR', 'SAAS', 'SETUP', 'INTERCOMPANY', 'SUPPORT']),
@@ -549,3 +563,6 @@ export const updateArInvoiceSchema = z.object({
   status: zodEnum(arInvoiceStatusDomain).optional(),
 });
 export type UpdateArInvoiceDto = z.infer<typeof updateArInvoiceSchema>;
+
+export type ListAccountingDocumentsQueryDto = z.infer<typeof listAccountingDocumentsQuerySchema>;
+export type DecideAccountingDocumentDto = z.infer<typeof decideAccountingDocumentSchema>;
