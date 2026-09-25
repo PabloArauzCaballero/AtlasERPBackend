@@ -1,5 +1,7 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { ANY_AUTHENTICATED_KEY } from '../decorators/any-authenticated.decorator';
+import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import { ROLES_KEY } from '../decorators/roles.decorator';
 import { PinoLoggerService } from '../logging/pino-logger.service';
 import type { AuthUser, RequestWithAuthUser } from '../types/auth-context.types';
@@ -18,10 +20,26 @@ export class RolesGuard implements CanActivate {
     ]);
 
     if (!requiredRoles || requiredRoles.length === 0) {
-      this.logger.debugContext(RolesGuard.name, 'Endpoint without explicit role requirement', {
+      /*
+       * Deniega por defecto (TSK-ERPB-16). Antes un handler sin `@Roles` quedaba abierto a
+       * cualquier sesión, y así se colaron lecturas de Ads y de contratos. Ahora pasar sin rol
+       * exige decirlo: `@Public()` o `@AnyAuthenticated()`. `test/controllers-roles-coverage.spec.ts`
+       * recorre los controladores y falla si alguno no declara ninguna de las tres cosas.
+       */
+      const targets = [context.getHandler(), context.getClass()];
+      const explicitlyOpen =
+        this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, targets) === true ||
+        this.reflector.getAllAndOverride<boolean>(ANY_AUTHENTICATED_KEY, targets) === true;
+      if (explicitlyOpen) {
+        this.logger.debugContext(RolesGuard.name, 'Endpoint explicitly open to any session', {
+          handler: context.getHandler().name,
+        });
+        return true;
+      }
+      this.logger.warnContext(RolesGuard.name, 'Endpoint without role declaration denied', {
         handler: context.getHandler().name,
       });
-      return true;
+      throw new ForbiddenException('No tienes permisos para ejecutar esta operación.');
     }
 
     const request = context.switchToHttp().getRequest<RequestWithAuthUser>();
