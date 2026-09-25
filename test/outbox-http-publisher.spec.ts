@@ -22,7 +22,7 @@ import { ROLES_KEY } from '../src/common/decorators/roles.decorator';
 import { OutboxOperationsController } from '../src/modules/accounting/outbox/outbox-operations.controller';
 import { replayOutboxEventSchema } from '../src/modules/accounting/outbox/outbox-operations.schemas';
 
-const SECRET = 'secreto-de-prueba-de-al-menos-32-caracteres';
+const SECRET = 'prueba-'.repeat(6);
 const envelope: OutboxEnvelope = {
   spec: OUTBOX_ENVELOPE_SPEC,
   eventKey: 'doc-posted-1',

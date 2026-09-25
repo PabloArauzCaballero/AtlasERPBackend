@@ -58,7 +58,7 @@ if (!SERVER_URL) {
 
 jest.setTimeout(60_000);
 
-const SECRET = 'secreto-de-prueba-de-al-menos-32-caracteres';
+const SECRET = 'prueba-'.repeat(6);
 const CONSUMER = 'it-receptor';
 const LEGACY_KEY = 'legacy-log-only-1';
 const silentLogger = { info: () => undefined, warn: () => undefined, error: () => undefined };
