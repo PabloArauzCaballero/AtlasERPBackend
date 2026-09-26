@@ -79,6 +79,9 @@ jobs:
       - name: Smoke de despliegue (contrato HTTP)
         run: node --test .github/tests/post-deploy-smoke.test.mjs
 
+      - name: Smoke de despliegue (contrato HTTP)
+        run: node --test .github/tests/post-deploy-smoke.test.mjs
+
       # `--passWithNoTests` NO se usa a propósito: hoy hay 30 ficheros de prueba y el día que
       # alguien los borre o rompa el patrón de nombres, esto tiene que ponerse rojo y no verde.
       # La salida JSON es la evidencia que lee el evaluador de cumplimiento (P-02); el sello la ata
