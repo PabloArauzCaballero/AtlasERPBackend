@@ -1540,3 +1540,13 @@ fiscal. Idempotente por ciclo (`cycle_key` única): repetirla responde `ALREADY_
 | `POST /b2b/billing/runs` | Lanza a mano el cierre del último mes cerrado.                                                      |
 
 La contabilización al mayor sigue siendo `PATCH /b2b/billing/invoices/:id/post-to-gl`.
+
+## Factura fiscal en el portal del comercio
+
+Roles del portal (`PORTAL_ROLES`), acotado a las cuentas del comercio (`PortalScopeService`).
+
+| Método y ruta                                 | Qué hace                                                                                                                                               |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `GET /portal/billing/invoices/:id`            | Además de la factura, `fiscalDocument`: N° fiscal, CUF, estado y si ya se puede descargar (o `null`).                                                  |
+| `GET /portal/billing/invoices/:id/fiscal/pdf` | Representación gráfica de la factura fiscal (validada, observada, fuera de línea o anulada). 404 `FISCAL_DOCUMENT_NOT_AVAILABLE` si todavía no la hay. |
+| `GET /portal/billing/invoices/:id/fiscal/xml` | El XML tal como se envió al SIN.                                                                                                                       |

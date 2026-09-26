@@ -43,6 +43,7 @@ import { FiscalSiatController } from './controllers/fiscal-siat.controller';
     LegalEntityAccessService,
   ],
   exports: [
+    FiscalPdfService,
     SiatGatewayService,
     SiatEmissionService,
     SiatIssuerProfileService,
