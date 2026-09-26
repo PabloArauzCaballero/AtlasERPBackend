@@ -5,6 +5,7 @@ import { ErpFileModel } from '../../database/models';
 import { AuthUser } from '../../common/types/auth-context.types';
 import { PinoLoggerService } from '../../common/logger/pino-logger.service';
 import { AtlasPartnerClient } from '../partner-onboarding-gateway/atlas-partner.client';
+import { MerchantFolderService } from '../partner-onboarding-gateway/merchant-folder.service';
 import { ListFilesQueryDto, RegisterFileDto, UploadSignatureDto } from './files.schemas';
 
 /** El permiso de subida que emite AtlasBackend. La forma es la de su `UploadTicket`. */
@@ -47,9 +48,10 @@ export class ErpFilesService {
     private readonly atlas: AtlasPartnerClient,
     private readonly logger: PinoLoggerService,
     @InjectModel(ErpFileModel) private readonly fileModel: typeof ErpFileModel,
+    private readonly merchantFolder: MerchantFolderService,
   ) {}
 
-  signUpload(
+  async signUpload(
     input: UploadSignatureDto,
     accessToken: string | undefined,
     scope: FileAccountScope = null,
@@ -62,18 +64,52 @@ export class ErpFilesService {
       ownerType: input.ownerType,
       ownerId: input.ownerId,
     });
+    const destino = await this.destinoEnElAlmacen(input, accessToken);
     return this.atlas.forward<UploadTicket>({
       method: 'POST',
       path: 'operations/erp-documents/upload-url',
       accessToken,
       body: {
-        ownerType: input.ownerType,
-        ownerId: input.ownerId,
-        documentKind: 'adjunto',
+        ...destino,
         contentType: input.contentType,
         sizeBytes: input.sizeBytes,
       },
     });
+  }
+
+  /**
+   * Bajo qué dueño se guarda el objeto en el almacén.
+   *
+   * El documento de un contrato de un comercio va a la carpeta `documentos/` de ESE comercio en
+   * Atlas (Operaciones › Archivos). AtlasBackend sólo sabe atar a un comercio la cuenta B2B, así que
+   * el objeto se guarda bajo la cuenta del contrato —y no bajo el contrato, que allá no existe—,
+   * con el número del contrato como nombre. Antes se asegura la carpeta: si el comercio no la tenía
+   * (onboarding anterior, ficha sin abrir) el archivo no se habría anotado en ningún sitio.
+   *
+   * La fila del ERP sigue siendo del contrato (`ownerType`/`ownerId` del registro): esto sólo
+   * decide la ruta del objeto. Un contrato que no es de un comercio se guarda bajo el contrato.
+   */
+  private async destinoEnElAlmacen(
+    input: UploadSignatureDto,
+    accessToken: string | undefined,
+  ): Promise<{ ownerType: string; ownerId: string; documentKind: string }> {
+    const porDefecto = {
+      ownerType: input.ownerType,
+      ownerId: input.ownerId,
+      documentKind: 'adjunto',
+    };
+    if (input.ownerType !== 'CONTRACT') return porDefecto;
+    const dueno = await this.merchantFolder.contractOwner(input.ownerId);
+    if (!dueno) return porDefecto;
+    await this.merchantFolder.tryEnsureForAccount(dueno.accountId, accessToken);
+    return {
+      ownerType: 'b2b_account',
+      ownerId: dueno.accountId,
+      // AtlasBackend sólo admite `[A-Za-z0-9_-]` en la clase: es un tramo de la ruta del objeto.
+      documentKind: `contrato-${dueno.contractNumber}`
+        .replace(/[^A-Za-z0-9_-]+/g, '-')
+        .slice(0, 80),
+    };
   }
 
   /** Registra el archivo DESPUÉS de que AtlasBackend haya comprobado que existe y es lo que dice ser. */

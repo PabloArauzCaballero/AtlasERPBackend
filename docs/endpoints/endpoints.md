@@ -259,6 +259,20 @@ Firma contrato y activa su versión contractual inicial.
 
 Crea caso de onboarding con checklist legal/operativo/técnico.
 
+Después de crear el caso asegura la **carpeta del comercio** en Atlas (Operaciones › Archivos, con
+`qr/`, `documentos/` y `otros/`) llamando a `POST /operations/erp-documents/merchant-expediente` de
+AtlasBackend con el token de la cookie `atlas_upstream_at`: busca la ficha por la cuenta o por NIT, la
+abre si no existe (razón social, NIT y correo del contacto principal) y guarda el puente
+`b2b_accounts.partner_profile_id`. No puede tumbar el alta: el desenlace viaja en
+`carpetaDelComercio` (`{ partnerId, expedienteId, created, reason }`; `reason` explica por qué no hay
+carpeta: `SIN_CORREO_DE_CONTACTO`, `DATOS_DE_LA_CUENTA_INVALIDOS`, `CUENTA_ENLAZADA_A_OTRA_FICHA`,
+`ATLAS_NO_RESPONDIO`).
+
+Los documentos de un contrato (`POST /files/upload-signature` con `ownerType: CONTRACT`) se guardan
+en el almacén bajo la cuenta del comercio del contrato (comercial, o contable cuya contraparte es el
+socio de negocio de una cuenta B2B), con clase `contrato-<número>`, y así aparecen en la carpeta
+`documentos/` del comercio. Un contrato que no es de un comercio se guarda bajo el propio contrato.
+
 ## POST /api/v1/b2b/onboarding/branches
 
 ### Responsabilidad

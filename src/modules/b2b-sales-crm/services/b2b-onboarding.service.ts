@@ -44,6 +44,7 @@ import { B2BSalesCrmUseCaseBase } from './b2b-sales-crm-use-case.base';
 import { AtlasIdentityClient } from '../../auth-gateway/atlas-identity.client';
 import type { AtlasMerchantProvisioningRequest } from '../../auth-gateway/auth-gateway.types';
 import { BusinessActionLogsService } from '../../business-action-logs/business-action-logs.service';
+import { MerchantFolderService } from '../../partner-onboarding-gateway/merchant-folder.service';
 import { AtlasPartnerClient } from '../../partner-onboarding-gateway/atlas-partner.client';
 
 /**
@@ -116,11 +117,38 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
     private readonly identityClient: AtlasIdentityClient,
     private readonly businessActionLogsService: BusinessActionLogsService,
     private readonly partnerClient: AtlasPartnerClient,
+    private readonly merchantFolder: MerchantFolderService,
   ) {
     super(repository, logger);
   }
 
-  async createOnboardingCase(input: CreateOnboardingCaseDto): Promise<Record<string, unknown>> {
+  /**
+   * Abre el caso y, ya confirmado, asegura la carpeta del comercio en Atlas.
+   *
+   * La carpeta (Operaciones › Archivos, con `documentos/`) tiene que existir desde el onboarding
+   * (Pablo, 2026-09-26): ahí caen el contrato firmado y lo que el ERP guarde del comercio. Va
+   * DESPUÉS de la transacción y sin poder tumbarla: el caso vale aunque Atlas no conteste, y el
+   * desenlace viaja en `carpetaDelComercio` para que la pantalla lo diga.
+   */
+  async createOnboardingCase(
+    input: CreateOnboardingCaseDto,
+    accessToken?: string,
+  ): Promise<Record<string, unknown>> {
+    const caso = await this.openOnboardingCase(input);
+    const carpeta = await this.merchantFolder.tryEnsureForAccount(input.accountId, accessToken);
+    if (carpeta.partnerId && !carpeta.reason) {
+      // El puente hacia la ficha de Atlas: sin él, la verificación KYB tendría que volver a buscarla.
+      await this.repository.accounts.update(
+        { partnerProfileId: carpeta.partnerId },
+        { where: { id: input.accountId, partnerProfileId: null } },
+      );
+    }
+    return { ...caso, carpetaDelComercio: carpeta };
+  }
+
+  private async openOnboardingCase(
+    input: CreateOnboardingCaseDto,
+  ): Promise<Record<string, unknown>> {
     this.logger.infoContext(B2BOnboardingService.name, 'B2B CRM use case started', {
       useCase: 'createOnboardingCase',
     });

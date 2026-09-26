@@ -147,9 +147,13 @@ export class OnboardingController {
   @Roles('OPERATIONS', 'LEGAL', 'ADMIN')
   @Post('cases')
   createCase(
+    @Req() req: Request,
     @Body(new ZodValidationPipe(createOnboardingCaseSchema)) body: CreateOnboardingCaseDto,
   ): Promise<Record<string, unknown>> {
-    return this.service.createOnboardingCase(body);
+    // Sin exigir el token: el caso se abre igual, y la carpeta del comercio en Atlas —que sí lo
+    // necesita— dice en la respuesta por qué no se pudo asegurar.
+    const token = (req.cookies as Record<string, string> | undefined)?.[UPSTREAM_ACCESS_COOKIE];
+    return this.service.createOnboardingCase(body, token);
   }
 
   /*

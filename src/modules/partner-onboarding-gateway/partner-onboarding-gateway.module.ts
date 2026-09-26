@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { AtlasPartnerClient } from './atlas-partner.client';
+import { MerchantFolderService } from './merchant-folder.service';
 import { MerchantCreditGatewayController } from './merchant-credit-gateway.controller';
 import { PartnerOnboardingGatewayController } from './partner-onboarding-gateway.controller';
 import { SupportGatewayController } from './support-gateway.controller';
@@ -20,8 +21,11 @@ import { SupportGatewayController } from './support-gateway.controller';
     MerchantCreditGatewayController,
     SupportGatewayController,
   ],
-  providers: [AtlasPartnerClient],
-  /* El CRM lo usa para pedir la verificación KYB del comercio: el ERP pide, AtlasBackend decide con el Motor. */
-  exports: [AtlasPartnerClient],
+  providers: [AtlasPartnerClient, MerchantFolderService],
+  /*
+   * El CRM lo usa para pedir la verificación KYB del comercio: el ERP pide, AtlasBackend decide con
+   * el Motor. `MerchantFolderService` asegura la carpeta del comercio (onboarding y contratos).
+   */
+  exports: [AtlasPartnerClient, MerchantFolderService],
 })
 export class PartnerOnboardingGatewayModule {}
