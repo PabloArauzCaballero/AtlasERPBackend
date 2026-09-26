@@ -8,7 +8,7 @@
 # hacerse DENTRO del contenedor.
 #
 #   node dist/src/main.js                          la API
-#   npm run db:migrate:prod                        migrar (la MISMA ruta que usa el despliegue)
+#   node --run db:migrate:prod                     migrar (la MISMA ruta que usa el despliegue)
 #   node dist/scripts/db/seed-pull.js pull|status  traer o inspeccionar el conjunto sembrado
 #
 # ## Lo que NO trae, y por qué importa en un VPS
@@ -24,15 +24,10 @@
 
 FROM node:22-bookworm-slim AS dependencies
 WORKDIR /app
-COPY package*.json ./
+COPY package.json yarn.lock ./
 # `--ignore-scripts`: ninguna dependencia de este proyecto compila nada nativo, y saltarse los
 # postinstall es una superficie menos en una imagen que se reconstruye a menudo.
-# `sharing=locked`: sin esto BuildKit comparte la cache entre builds Y ENTRE ETAPAS —que corren en
-# paralelo—, y dos `npm ci` escribiendo a la vez en `/root/.npm` revientan con
-# `ENOTEMPTY: directory not empty, rmdir '/root/.npm/_cacache/index-v5/..'`. El despliegue muere en
-# la instalacion de dependencias y el error no menciona ni concurrencia ni cache compartida.
-RUN --mount=type=cache,target=/root/.npm,sharing=locked \
-    npm ci --ignore-scripts
+RUN corepack enable && corepack yarn install --frozen-lockfile --ignore-scripts --non-interactive
 
 FROM node:22-bookworm-slim AS build
 WORKDIR /app
@@ -40,7 +35,7 @@ COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
 # `type-check` antes de compilar, igual que la imagen de producción: en un VPS de pruebas una imagen
 # que compila pero no tipa es exactamente la que hace perder una tarde.
-RUN npm run type-check && npm run build
+RUN corepack yarn type-check && corepack yarn build
 
 FROM node:22-bookworm-slim AS runtime
 WORKDIR /app
@@ -69,17 +64,11 @@ RUN printf 'Acquire::ForceIPv4 "true";\nAcquire::Retries "5";\n' > /etc/apt/apt.
       && rm -rf /var/lib/apt/lists/* \
       || echo 'AVISO: no se pudieron instalar los paquetes opcionales; la imagen funciona igual')
 
-COPY package*.json ./
-# Sin `npm cache clean`: aqui la cache es un MONTAJE del build, no una capa de la imagen, asi que
-# limpiarla no quita un solo byte del resultado — y en cambio borra lo que la otra etapa esta usando.
-# Era el disparador directo del ENOTEMPTY. En `Dockerfile` (produccion) no hay montaje: alli el
-# `cache clean` si cae sobre una capa real y por eso se queda.
-RUN --mount=type=cache,target=/root/.npm,sharing=locked \
-    npm ci --omit=dev --ignore-scripts
+COPY package.json yarn.lock ./
+RUN corepack enable && corepack yarn install --production=true --frozen-lockfile --ignore-scripts --non-interactive
 
 # `dist/` ENTERO, no sólo `dist/src`: `dist/scripts` es lo que hace innecesarias las dependencias de
-# desarrollo. Y `package.json` conserva los scripts npm, así que `npm run db:migrate:prod` sigue
-# funcionando tal cual.
+# desarrollo. `package.json` conserva los scripts, que Node 22 ejecuta con `node --run`.
 COPY --from=build --chown=node:node /app/dist ./dist
 # Los `.sql` los nombra `db:migrate:prod` POR RUTA. Sin copiarlos, la imagen arranca y la primera
 # migración muere con «no such file», que es un fallo de EMPAQUETADO disfrazado de fallo de base.

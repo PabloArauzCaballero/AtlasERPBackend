@@ -90,7 +90,7 @@ No se pudo ejecutar un smoke test real contra PostgreSQL porque el sandbox no ti
 cp .env.example .env
 npm ci
 npm run db:migrate
-npm run db:seed
+npm run db:seed:pull
 npm run start:dev
 npm run smoke:b2b
 ```

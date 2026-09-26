@@ -251,20 +251,44 @@ export class FinancialStructureService {
   }
 
   // ---- Listados maestros (para poblar selects en el frontend) ----
-  listLegalEntities() {
-    return this.legalEntityModel.findAll({ order: [['code', 'ASC']] });
+  /*
+   * Listados maestros para los selects. Son filas DE UNA entidad legal (sucursal, año, período,
+   * libro, centros, cuentas bancarias) y se devolvían todas a cualquier contable o CFO: la pantalla
+   * de A ofrecía las cuentas bancarias de B. Ahora cada rol ve sólo las entidades de su token y
+   * ADMIN todas, la misma regla que `LegalEntityAccessService` aplica al escribir (P-13). El plan
+   * de cuentas y los códigos tributarios son catálogos globales y no se filtran.
+   */
+  listLegalEntities(user: AuthUser) {
+    return this.legalEntityModel.findAll({
+      where: this.entityScope(user, 'id'),
+      order: [['code', 'ASC']],
+    });
   }
-  listBranches() {
-    return this.branchModel.findAll({ order: [['code', 'ASC']] });
+  listBranches(user: AuthUser) {
+    return this.branchModel.findAll({ where: this.entityScope(user), order: [['code', 'ASC']] });
   }
-  listFiscalYears() {
-    return this.fiscalYearModel.findAll({ order: [['yearLabel', 'DESC']] });
+  listFiscalYears(user: AuthUser) {
+    return this.fiscalYearModel.findAll({
+      where: this.entityScope(user),
+      order: [['yearLabel', 'DESC']],
+    });
   }
-  listAccountingPeriods() {
-    return this.accountingPeriodModel.findAll({ order: [['startDate', 'DESC']] });
+  async listAccountingPeriods(user: AuthUser) {
+    const allowed = this.legalEntityAccessService.accessibleLegalEntityIds(user);
+    if (allowed === null) {
+      return this.accountingPeriodModel.findAll({ order: [['startDate', 'DESC']] });
+    }
+    const years = await this.fiscalYearModel.findAll({
+      attributes: ['id'],
+      where: this.entityScope(user),
+    });
+    return this.accountingPeriodModel.findAll({
+      where: { fiscalYearId: { [Op.in]: years.map((year) => year.id) } } as WhereOptions,
+      order: [['startDate', 'DESC']],
+    });
   }
-  listLedgers() {
-    return this.ledgerModel.findAll({ order: [['code', 'ASC']] });
+  listLedgers(user: AuthUser) {
+    return this.ledgerModel.findAll({ where: this.entityScope(user), order: [['code', 'ASC']] });
   }
   listChartsOfAccounts() {
     return this.chartOfAccountsModel.findAll({ order: [['code', 'ASC']] });
@@ -272,14 +296,30 @@ export class FinancialStructureService {
   listTaxCodes() {
     return this.taxCodeModel.findAll({ order: [['code', 'ASC']] });
   }
-  listCostCenters() {
-    return this.costCenterModel.findAll({ order: [['code', 'ASC']] });
+  listCostCenters(user: AuthUser) {
+    return this.costCenterModel.findAll({
+      where: this.entityScope(user),
+      order: [['code', 'ASC']],
+    });
   }
-  listProfitCenters() {
-    return this.profitCenterModel.findAll({ order: [['code', 'ASC']] });
+  listProfitCenters(user: AuthUser) {
+    return this.profitCenterModel.findAll({
+      where: this.entityScope(user),
+      order: [['code', 'ASC']],
+    });
   }
-  listBankAccounts() {
-    return this.bankAccountModel.findAll({ order: [['accountName', 'ASC']] });
+  listBankAccounts(user: AuthUser) {
+    return this.bankAccountModel.findAll({
+      where: this.entityScope(user),
+      order: [['accountName', 'ASC']],
+    });
+  }
+
+  /** `WHERE <columna> IN (<entidades del token>)`, o nada para ADMIN. */
+  private entityScope(user: AuthUser, column = 'legalEntityId'): WhereOptions {
+    const allowed = this.legalEntityAccessService.accessibleLegalEntityIds(user);
+    if (allowed === null) return {};
+    return { [column]: { [Op.in]: [...allowed] } } as WhereOptions;
   }
 
   private async assertPeriodIsInsideFiscalYear(

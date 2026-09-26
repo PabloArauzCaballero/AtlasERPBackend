@@ -10,6 +10,8 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { ObservabilityModule } from './common/observability/observability.module';
 import { activeTraceLogFields } from './common/observability/trace-log-fields';
+import { redactUrlQuery } from './common/logging/redact-url';
+import { SENSITIVE_LOG_PATHS } from './common/logging/root-pino-logger';
 import { TraceResponseInterceptor } from './common/observability/trace-response.interceptor';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
@@ -23,6 +25,7 @@ import { PartnerOnboardingGatewayModule } from './modules/partner-onboarding-gat
 import { NotificationCampaignsGatewayModule } from './modules/notification-campaigns-gateway/notification-campaigns-gateway.module';
 import { B2BSalesCrmModule } from './modules/b2b-sales-crm/b2b-sales-crm.module';
 import { AccountingModule } from './modules/accounting/accounting.module';
+import { OutboxOperationsModule } from './modules/accounting/outbox/outbox-operations.module';
 import { AdsModule } from './modules/ads/ads.module';
 import { FilesModule } from './modules/files/files.module';
 import { DocumentsModule } from './modules/documents/documents.module';
@@ -77,21 +80,26 @@ function prettyDisponible(): boolean {
         mixin: () => activeTraceLogFields(),
         redact: {
           paths: [
-            'req.headers.authorization',
-            'req.headers.cookie',
-            'res.headers["set-cookie"]',
-            'req.body.password',
-            'req.body.token',
-            'req.body.accessToken',
-            'req.body.refreshToken',
-            'authorization',
-            'cookie',
-            'password',
-            'token',
-            'accessToken',
-            'refreshToken',
+            ...new Set([
+              ...SENSITIVE_LOG_PATHS,
+              'req.body.password',
+              'req.body.token',
+              'req.body.accessToken',
+              'req.body.refreshToken',
+              'password',
+              'token',
+              'accessToken',
+              'refreshToken',
+            ]),
           ],
           censor: '[REDACTED]',
+        },
+        /*
+         * La URL sin los VALORES de la consulta: `?search=` lleva nombres y documentos de personas y
+         * algún cliente pone tokens en la URL. `req.query` ya se censura entero arriba (P-13).
+         */
+        serializers: {
+          req: (req: { url?: string }) => ({ ...req, url: redactUrlQuery(req.url) }),
         },
         ...(env.NODE_ENV === 'development' && prettyDisponible()
           ? { transport: { target: 'pino-pretty' } }
@@ -102,7 +110,7 @@ function prettyDisponible(): boolean {
       secret: env.JWT_INTERNAL_SECRET,
       signOptions: { issuer: env.JWT_INTERNAL_ISSUER, audience: env.JWT_INTERNAL_AUDIENCE },
     }),
-    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]),
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: env.HTTP_RATE_LIMIT_PER_MINUTE }]),
     DatabaseModule,
     HealthModule,
     AuthGatewayModule,
@@ -110,6 +118,7 @@ function prettyDisponible(): boolean {
     NotificationCampaignsGatewayModule,
     B2BSalesCrmModule,
     AccountingModule,
+    OutboxOperationsModule,
     AdsModule,
     FilesModule,
     DocumentsModule,

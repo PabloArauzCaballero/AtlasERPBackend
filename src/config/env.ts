@@ -8,6 +8,10 @@ const commaSeparatedList = (value: string): string[] =>
     .map((entry) => entry.trim())
     .filter(Boolean);
 
+/** Una variable declarada vacía en el `.env` (`X=`) cuenta como no declarada. */
+const emptyAsUndefined = (value: unknown): unknown =>
+  typeof value === 'string' && value.trim() === '' ? undefined : value;
+
 const localTestingDefaultRoles = [
   'ADMIN',
   'AUDITOR',
@@ -201,12 +205,49 @@ const envSchema = z
     OUTBOX_WORKER_BATCH_SIZE: z.coerce.number().int().positive().max(100).default(25),
     WORKER_SHUTDOWN_TIMEOUT_SECONDS: z.coerce.number().int().positive().default(30),
 
+    /*
+     * Límite global de peticiones por cliente (ThrottlerGuard, ventana de 60 s). Antes estaba
+     * fijo en el código (120); se expone para que el banco de carga (P-16) mida la capacidad de
+     * las rutas financieras sin chocar con él. El valor por omisión NO cambia. El rastreador es la
+     * IP de la petición y la API no declara `trust proxy`: detrás de un proxy todos los usuarios
+     * comparten ese cupo (ver docs/operations/erp-benchmark-2026-09-24.md).
+     */
+    HTTP_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().max(1_000_000).default(120),
+
+    /*
+     * Entrega del outbox (P-03). El worker envía cada evento por HTTP firmado (HMAC-SHA256) a
+     * `OUTBOX_DELIVERY_URL` y SÓLO un 2xx del receptor cuenta como publicado. Sin URL el worker
+     * no finge entrega: deja los eventos PENDING y lo dice en cada ciclo. Ver
+     * `src/workers/outbox/README.md` para el contrato de cabeceras y firma.
+     */
+    OUTBOX_DELIVERY_URL: z.preprocess(emptyAsUndefined, z.string().trim().url().optional()),
+    OUTBOX_DELIVERY_SIGNING_SECRET: z.preprocess(emptyAsUndefined, z.string().min(32).optional()),
+    OUTBOX_DELIVERY_TIMEOUT_MS: z.coerce.number().int().positive().default(10_000),
+    /*
+     * Core -> ERP (P-14): el receptor `POST /integration/core/events` verifica la firma de los
+     * `payment.*` de Core con este secreto (el `ERP_EVENTS_DELIVERY_SECRET` de Core). Mismo esquema
+     * que el outbox: `x-atlas-signature: t=…,v1=…` sobre el cuerpo crudo. Sin él la ruta responde 503
+     * y Core reintenta: cerrada, nunca abierta.
+     */
+    CORE_EVENTS_SIGNING_SECRET: z.preprocess(emptyAsUndefined, z.string().min(32).optional()),
+    CORE_EVENTS_SIGNATURE_TOLERANCE_SECONDS: z.coerce.number().int().min(30).max(3600).default(300),
+    OUTBOX_LEASE_MS: z.coerce.number().int().positive().default(60_000),
+    OUTBOX_MAX_ATTEMPTS: z.coerce.number().int().positive().max(100).default(12),
+    OUTBOX_RETRY_BASE_MS: z.coerce.number().int().positive().default(5_000),
+    OUTBOX_RETRY_MAX_MS: z.coerce.number().int().positive().default(3_600_000),
+
     /* Pasada que marca OVERDUE las cuotas BNPL vencidas; corre dentro del API (ver B2BOverdueSweepProcessor). */
     BNPL_OVERDUE_SWEEP_ENABLED: z
       .enum(['true', 'false'])
       .default('true')
       .transform((value) => value === 'true'),
     BNPL_OVERDUE_SWEEP_INTERVAL_MS: z.coerce.number().int().positive().default(3_600_000),
+    /*
+     * Horas que un aviso de pago REPORTED (sin confirmar) puede esperar antes de ir a la cola de
+     * revisión de cobertura. Mientras tanto la cuota NO se da por pagada. 72 h por defecto: decisión
+     * conservadora pendiente de ratificar por Riesgo/Finanzas (docs/compliance/decisions.md, P-04).
+     */
+    BNPL_PAYMENT_NOTICE_REVIEW_HOURS: z.coerce.number().int().positive().max(720).default(72),
   })
   .superRefine((value, context) => {
     const globalPrefixes = [
@@ -262,6 +303,31 @@ const envSchema = z
           'DB_SSL_REJECT_UNAUTHORIZED no puede ser false en producción: el cifrado sin ' +
           'validar el certificado no protege frente a un intermediario. Declara la CA en ' +
           'DB_SSL_CA o DB_SSL_CA_FILE si el certificado no lo firma una autoridad pública.',
+      });
+    }
+    // Una URL de entrega sin secreto obligaría a enviar sin firma: el receptor no podría
+    // distinguir al ERP de cualquiera que conozca la URL.
+    if (value.OUTBOX_DELIVERY_URL && !value.OUTBOX_DELIVERY_SIGNING_SECRET) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['OUTBOX_DELIVERY_SIGNING_SECRET'],
+        message: 'OUTBOX_DELIVERY_SIGNING_SECRET es obligatorio si se declara OUTBOX_DELIVERY_URL.',
+      });
+    }
+    // El lease tiene que sobrevivir a la llamada más larga posible; si caducara antes, otro
+    // worker reservaría el mismo evento mientras el primero sigue esperando la respuesta.
+    if (value.OUTBOX_LEASE_MS < value.OUTBOX_DELIVERY_TIMEOUT_MS * 2) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['OUTBOX_LEASE_MS'],
+        message: 'OUTBOX_LEASE_MS debe ser al menos el doble de OUTBOX_DELIVERY_TIMEOUT_MS.',
+      });
+    }
+    if (value.OUTBOX_RETRY_MAX_MS < value.OUTBOX_RETRY_BASE_MS) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['OUTBOX_RETRY_MAX_MS'],
+        message: 'OUTBOX_RETRY_MAX_MS no puede ser menor que OUTBOX_RETRY_BASE_MS.',
       });
     }
     if (

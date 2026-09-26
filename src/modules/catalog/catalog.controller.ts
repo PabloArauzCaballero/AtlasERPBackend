@@ -1,4 +1,5 @@
 import { Controller, Get, Header, NotFoundException, Param, Query } from '@nestjs/common';
+import { AnyAuthenticated } from '../../common/decorators/any-authenticated.decorator';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import {
   catalogDomainParamsSchema,
@@ -12,10 +13,11 @@ import { CatalogService } from './catalog.service';
 /**
  * Los valores válidos de cada campo cerrado del ERP, con su etiqueta.
  *
- * Sin `@Roles`: cualquier usuario autenticado —interno o del comercio— necesita saber qué puede
- * elegir en un formulario, y nada de esto es un dato de negocio. La autenticación sigue siendo
- * obligatoria por el guard global.
+ * Sin `@Roles` y con `@AnyAuthenticated()`: cualquier usuario autenticado —interno o del
+ * comercio— necesita saber qué puede elegir en un formulario, y nada de esto es un dato de
+ * negocio. La autenticación sigue siendo obligatoria por el guard global.
  */
+@AnyAuthenticated()
 @Controller('catalog')
 export class CatalogController {
   constructor(private readonly catalog: CatalogService) {}

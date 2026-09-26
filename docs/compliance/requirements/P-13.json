@@ -1,0 +1,665 @@
+[
+  {
+    "requirementId": "P13-ERP-DOCUMENTO-POR-ID",
+    "packageId": "P-13",
+    "repository": "AtlasERPBackend",
+    "title": "GET /accounting/documents/:id autoriza por la entidad legal del documento",
+    "releaseIncluded": true,
+    "ownerRole": "E",
+    "acceptance": "Contable/CFO de A: su documento 200; documento de B 403 LEGAL_ENTITY_FORBIDDEN sin datos del recurso; inexistente 404; token financiero sin entidades 403; ADMIN 200; listado sólo con documentos de su entidad.",
+    "tests": [
+      {
+        "file": "test/authz-legal-entity.e2e-spec.ts",
+        "name": "el contable de A lee SU documento con sus líneas"
+      },
+      {
+        "file": "test/authz-legal-entity.e2e-spec.ts",
+        "name": "GET /accounting/documents/:id de otra entidad legal responde 403 y no filtra el documento"
+      },
+      {
+        "file": "test/authz-legal-entity.e2e-spec.ts",
+        "name": "un documento inexistente responde 404 y no 403 ni 500"
+      },
+      {
+        "file": "test/authz-legal-entity.e2e-spec.ts",
+        "name": "el token de finanzas SIN alcance de entidad no lee ningún documento (falla cerrado)"
+      },
+      {
+        "file": "test/authz-legal-entity.e2e-spec.ts",
+        "name": "ADMIN lee documentos de cualquier entidad"
+      },
+      {
+        "file": "test/authz-legal-entity.e2e-spec.ts",
+        "name": "el listado de documentos sólo trae los de la entidad del token"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  },
+  {
+    "requirementId": "P13-ERP-DOCUMENTO-MUTACIONES-LOTES",
+    "packageId": "P-13",
+    "repository": "AtlasERPBackend",
+    "title": "Mutaciones, lotes y referencias ajenas en asientos no cruzan entidades",
+    "releaseIncluded": true,
+    "ownerRole": "E",
+    "acceptance": "Contabilizar/revertir documento ajeno 403 sin cambiar estado; un lote con un solo documento ajeno se rechaza entero sin persistir; centro de costo/beneficio de otra entidad en una línea → 409; con dimensiones propias 201.",
+    "tests": [
+      {
+        "file": "test/authz-legal-entity.e2e-spec.ts",
+        "name": "contabilizar el documento de otra entidad responde 403 y lo deja en DRAFT"
+      },
+      {
+        "file": "test/authz-legal-entity.e2e-spec.ts",
+        "name": "revertir el documento de otra entidad responde 403"
+      },
+      {
+        "file": "test/authz-legal-entity.e2e-spec.ts",
+        "name": "un lote con UN documento de otra entidad se rechaza entero: no se persiste ninguno"
+      },
+      {
+        "file": "test/authz-legal-entity.e2e-spec.ts",
+        "name": "un asiento de A no puede imputar al centro de costo de B (referencia ajena en el cuerpo)"
+      },
+      {
+        "file": "test/authz-legal-entity.e2e-spec.ts",
+        "name": "un asiento de A no puede imputar al centro de beneficio de B"
+      },
+      {
+        "file": "test/authz-legal-entity.e2e-spec.ts",
+        "name": "el mismo asiento con las dimensiones de A se crea (prueba positiva)"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  },
+  {
+    "requirementId": "P13-ERP-VINCULOS-ASIENTO",
+    "packageId": "P-13",
+    "repository": "AtlasERPBackend",
+    "title": "Vínculos de asientos autorizados por la entidad del documento",
+    "releaseIncluded": true,
+    "ownerRole": "E",
+    "acceptance": "Leer/crear vínculos de un asiento de otra entidad 403 sin crear filas; asiento inexistente 404; propio 201.",
+    "tests": [
+      {
+        "file": "test/authz-legal-entity.e2e-spec.ts",
+        "name": "listar los vínculos del asiento de otra entidad responde 403"
+      },
+      {
+        "file": "test/authz-legal-entity.e2e-spec.ts",
+        "name": "vincular algo al asiento de otra entidad responde 403 y no crea el vínculo"
+      },
+      {
+        "file": "test/authz-legal-entity.e2e-spec.ts",
+        "name": "un asiento inexistente responde 404"
+      },
+      {
+        "file": "test/authz-legal-entity.e2e-spec.ts",
+        "name": "el asiento propio sí se vincula (prueba positiva)"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  },
+  {
+    "requirementId": "P13-ERP-CONDICIONES-PAGO",
+    "packageId": "P-13",
+    "repository": "AtlasERPBackend",
+    "title": "Condiciones de pago a proveedor aisladas por entidad legal",
+    "releaseIncluded": true,
+    "ownerRole": "E",
+    "acceptance": "Listado filtrado a las entidades del token; filtro por entidad ajena, leer, editar (sin cambios en base), simular y crear en entidad ajena → 403; propio 200; inexistente 404; editar un campo no da 500.",
+    "tests": [
+      {
+        "file": "test/authz-legal-entity.e2e-spec.ts",
+        "name": "el listado sin filtro sólo trae las condiciones de la entidad del token"
+      },
+      {
+        "file": "test/authz-legal-entity.e2e-spec.ts",
+        "name": "filtrar el listado por la entidad ajena responde 403"
+      },
+      {
+        "file": "test/authz-legal-entity.e2e-spec.ts",
+        "name": "leer la condición de otra entidad por id responde 403"
+      },
+      {
+        "file": "test/authz-legal-entity.e2e-spec.ts",
+        "name": "editar la condición de otra entidad responde 403 y no la cambia"
+      },
+      {
+        "file": "test/authz-legal-entity.e2e-spec.ts",
+        "name": "simular sobre la condición de otra entidad responde 403"
+      },
+      {
+        "file": "test/authz-legal-entity.e2e-spec.ts",
+        "name": "crear una condición en la entidad ajena responde 403"
+      },
+      {
+        "file": "test/authz-legal-entity.e2e-spec.ts",
+        "name": "la condición propia sí se renegocia (prueba positiva)"
+      },
+      {
+        "file": "test/authz-legal-entity.e2e-spec.ts",
+        "name": "la condición propia se lee y una inexistente da 404"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  },
+  {
+    "requirementId": "P13-ERP-MAESTROS-LISTADOS",
+    "packageId": "P-13",
+    "repository": "AtlasERPBackend",
+    "title": "Listados maestros y eventos facturables sin filas de otra entidad legal",
+    "releaseIncluded": true,
+    "ownerRole": "E",
+    "acceptance": "Entidades, sucursales, años, períodos, libros, centros de costo/beneficio, cuentas bancarias y eventos facturables: el contable de A no ve filas de B; ADMIN ve todas; registrar evento sobre contrato ajeno 403.",
+    "tests": [
+      {
+        "file": "test/authz-legal-entity.e2e-spec.ts",
+        "name": "GET /accounting/financial-structure/legal-entities no devuelve filas de otra entidad legal"
+      },
+      {
+        "file": "test/authz-legal-entity.e2e-spec.ts",
+        "name": "GET /accounting/financial-structure/branches no devuelve filas de otra entidad legal"
+      },
+      {
+        "file": "test/authz-legal-entity.e2e-spec.ts",
+        "name": "GET /accounting/financial-structure/fiscal-years no devuelve filas de otra entidad legal"
+      },
+      {
+        "file": "test/authz-legal-entity.e2e-spec.ts",
+        "name": "GET /accounting/financial-structure/periods no devuelve filas de otra entidad legal"
+      },
+      {
+        "file": "test/authz-legal-entity.e2e-spec.ts",
+        "name": "GET /accounting/financial-structure/ledgers no devuelve filas de otra entidad legal"
+      },
+      {
+        "file": "test/authz-legal-entity.e2e-spec.ts",
+        "name": "GET /accounting/financial-structure/cost-centers no devuelve filas de otra entidad legal"
+      },
+      {
+        "file": "test/authz-legal-entity.e2e-spec.ts",
+        "name": "GET /accounting/financial-structure/profit-centers no devuelve filas de otra entidad legal"
+      },
+      {
+        "file": "test/authz-legal-entity.e2e-spec.ts",
+        "name": "GET /accounting/financial-structure/bank-accounts no devuelve filas de otra entidad legal"
+      },
+      {
+        "file": "test/authz-legal-entity.e2e-spec.ts",
+        "name": "ADMIN sigue viendo los maestros de todas las entidades"
+      },
+      {
+        "file": "test/authz-legal-entity.e2e-spec.ts",
+        "name": "GET /accounting/billing/events no devuelve eventos de contratos de otra entidad"
+      },
+      {
+        "file": "test/authz-legal-entity.e2e-spec.ts",
+        "name": "registrar un evento facturable sobre el contrato de otra entidad responde 403"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  },
+  {
+    "requirementId": "P13-ERP-COMERCIO-SUCURSALES",
+    "packageId": "P-13",
+    "repository": "AtlasERPBackend",
+    "title": "Comercio B no opera sucursales ni compras del comercio A",
+    "releaseIncluded": true,
+    "ownerRole": "E",
+    "acceptance": "Por /b2b/onboarding/branches: renombrar, cerrar o abrir sucursal en la cuenta de A → 403 sin cambios en base; propio 200/201; inexistente 404; OPERATIONS opera cualquiera; membresía suspendida 403. Compra BNPL a nombre de A o con sucursal de A no se registra.",
+    "tests": [
+      {
+        "file": "test/authz-merchant.e2e-spec.ts",
+        "name": "el comercio B no puede renombrar la sucursal del comercio A (403, sin cambios)"
+      },
+      {
+        "file": "test/authz-merchant.e2e-spec.ts",
+        "name": "el comercio B no puede cerrar la sucursal del comercio A"
+      },
+      {
+        "file": "test/authz-merchant.e2e-spec.ts",
+        "name": "el comercio B no puede abrir una sucursal en la cuenta del comercio A"
+      },
+      {
+        "file": "test/authz-merchant.e2e-spec.ts",
+        "name": "el comercio edita SU sucursal y abre sucursales en SU cuenta (prueba positiva)"
+      },
+      {
+        "file": "test/authz-merchant.e2e-spec.ts",
+        "name": "una sucursal inexistente responde 404"
+      },
+      {
+        "file": "test/authz-merchant.e2e-spec.ts",
+        "name": "OPERATIONS (staff) sigue operando la sucursal de cualquier comercio"
+      },
+      {
+        "file": "test/authz-merchant.e2e-spec.ts",
+        "name": "un comercio con la membresía suspendida no opera ni su propia sucursal"
+      },
+      {
+        "file": "test/authz-merchant.e2e-spec.ts",
+        "name": "registrar una compra BNPL a nombre de otro comercio responde 403"
+      },
+      {
+        "file": "test/authz-merchant.e2e-spec.ts",
+        "name": "una compra de B en la sucursal de A (id ajeno en el cuerpo) no se registra"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  },
+  {
+    "requirementId": "P13-ERP-COMERCIO-PORTAL",
+    "packageId": "P-13",
+    "repository": "AtlasERPBackend",
+    "title": "Portal del comercio acotado a sus membresías",
+    "releaseIncluded": true,
+    "ownerRole": "E",
+    "acceptance": "Alcance sólo con la cuenta propia; panel de facturación de otra cuenta 403; editar sucursal ajena desde el portal no cambia nada; factura ajena/inexistente 404; membresía suspendida 403 PORTAL_SCOPE_NOT_PROVISIONED.",
+    "tests": [
+      {
+        "file": "test/authz-merchant.e2e-spec.ts",
+        "name": "GET /portal/scope sólo devuelve la cuenta propia"
+      },
+      {
+        "file": "test/authz-merchant.e2e-spec.ts",
+        "name": "el panel de facturación de otro comercio responde 403 aunque se pida por consulta"
+      },
+      {
+        "file": "test/authz-merchant.e2e-spec.ts",
+        "name": "editar la sucursal de otro comercio desde el portal no la cambia"
+      },
+      {
+        "file": "test/authz-merchant.e2e-spec.ts",
+        "name": "descargar una factura que no es del comercio responde 404"
+      },
+      {
+        "file": "test/authz-merchant.e2e-spec.ts",
+        "name": "la membresía suspendida no ve el portal (falla cerrado)"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  },
+  {
+    "requirementId": "P13-ERP-COMERCIO-ARCHIVOS",
+    "packageId": "P-13",
+    "repository": "AtlasERPBackend",
+    "title": "Adjuntos KYB: listados, lecturas, descargas y bajas sólo del dueño",
+    "releaseIncluded": true,
+    "ownerRole": "E",
+    "acceptance": "Comercio B: listar/leer/descargar/dar de baja archivos de A → 403 (sigue ACTIVE); adjuntos de contabilidad interna 403; firmar subida para cuenta ajena 403; los suyos 200; inexistente 404; staff FINANCE ve cualquiera.",
+    "tests": [
+      {
+        "file": "test/authz-merchant.e2e-spec.ts",
+        "name": "el comercio B no lista los archivos de la cuenta del comercio A"
+      },
+      {
+        "file": "test/authz-merchant.e2e-spec.ts",
+        "name": "el comercio B no lee los metadatos del archivo del comercio A"
+      },
+      {
+        "file": "test/authz-merchant.e2e-spec.ts",
+        "name": "el comercio B no descarga el archivo del comercio A"
+      },
+      {
+        "file": "test/authz-merchant.e2e-spec.ts",
+        "name": "el comercio B no da de baja el archivo del comercio A (sigue ACTIVE)"
+      },
+      {
+        "file": "test/authz-merchant.e2e-spec.ts",
+        "name": "un comercio no alcanza adjuntos de la contabilidad interna"
+      },
+      {
+        "file": "test/authz-merchant.e2e-spec.ts",
+        "name": "un comercio no pide permiso de subida para la cuenta de otro"
+      },
+      {
+        "file": "test/authz-merchant.e2e-spec.ts",
+        "name": "el comercio lista y lee SUS archivos; un id inexistente da 404 (prueba positiva)"
+      },
+      {
+        "file": "test/authz-merchant.e2e-spec.ts",
+        "name": "el staff (FINANCE) sigue viendo los archivos de cualquier comercio"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  },
+  {
+    "requirementId": "P13-ERP-ROL-SIN-PERMISO",
+    "packageId": "P-13",
+    "repository": "AtlasERPBackend",
+    "title": "Rol sin permiso no alcanza rutas financieras aunque traiga entidad",
+    "releaseIncluded": true,
+    "ownerRole": "E",
+    "acceptance": "MERCHANT_ADMIN, COLLECTIONS, OPERATIONS, AUDITOR y TREASURY reciben 403 en contabilidad, outbox, cobertura, facturación B2B, cartera y bitácora según @Roles.",
+    "tests": [
+      {
+        "file": "test/authz-legal-entity.e2e-spec.ts",
+        "name": "MERCHANT_ADMIN en /api/v1/accounting/documents responde 403 aunque tenga la entidad en el token"
+      },
+      {
+        "file": "test/authz-legal-entity.e2e-spec.ts",
+        "name": "COLLECTIONS en /api/v1/accounting/documents responde 403 aunque tenga la entidad en el token"
+      },
+      {
+        "file": "test/authz-legal-entity.e2e-spec.ts",
+        "name": "OPERATIONS en /api/v1/accounting/outbox/status responde 403 aunque tenga la entidad en el token"
+      },
+      {
+        "file": "test/authz-legal-entity.e2e-spec.ts",
+        "name": "AUDITOR en /api/v1/accounting/supplier-payment-terms responde 403 aunque tenga la entidad en el token"
+      },
+      {
+        "file": "test/authz-legal-entity.e2e-spec.ts",
+        "name": "TREASURY en /api/v1/accounting/closings/periods/close responde 403 aunque tenga la entidad en el token"
+      },
+      {
+        "file": "test/authz-merchant.e2e-spec.ts",
+        "name": "MERCHANT_ADMIN en GET /api/v1/b2b/coverage/payables responde 403"
+      },
+      {
+        "file": "test/authz-merchant.e2e-spec.ts",
+        "name": "MERCHANT_ADMIN en GET /api/v1/b2b/billing/invoices responde 403"
+      },
+      {
+        "file": "test/authz-merchant.e2e-spec.ts",
+        "name": "MERCHANT_ADMIN en GET /api/v1/accounting/outbox/events/dead responde 403"
+      },
+      {
+        "file": "test/authz-merchant.e2e-spec.ts",
+        "name": "MERCHANT_ADMIN en GET /api/v1/b2b/receivables responde 403"
+      },
+      {
+        "file": "test/authz-merchant.e2e-spec.ts",
+        "name": "MERCHANT_ADMIN en GET /api/v1/audit/business-actions responde 403"
+      },
+      {
+        "file": "test/authz-merchant.e2e-spec.ts",
+        "name": "COLLECTIONS no liquida coberturas (sólo FINANCE/ADMIN)"
+      },
+      {
+        "file": "test/authz-merchant.e2e-spec.ts",
+        "name": "OPERATIONS no reenvía eventos del outbox contable"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  },
+  {
+    "requirementId": "P13-ERP-TOKENS",
+    "packageId": "P-13",
+    "repository": "AtlasERPBackend",
+    "title": "Tokens vencidos, mal firmados, de otro emisor/audiencia o manipulados se rechazan",
+    "releaseIncluded": true,
+    "ownerRole": "E",
+    "acceptance": "401 sin datos del recurso ni eco del token para: sin cabecera, formatos inválidos, cookie en lugar de Bearer, vencido, nbf futuro, otra llave, emisor o audiencia incorrectos, HS512, alg=none, payload manipulado, sin sub o sin roles. No hay verificador remoto (verificación local HS256): no aplica caída del verificador.",
+    "tests": [
+      {
+        "file": "test/authz-tokens.e2e-spec.ts",
+        "name": "sin cabecera Authorization responde 401"
+      },
+      {
+        "file": "test/authz-tokens.e2e-spec.ts",
+        "name": "esquema Basic responde 401"
+      },
+      {
+        "file": "test/authz-tokens.e2e-spec.ts",
+        "name": "Bearer sin token responde 401"
+      },
+      {
+        "file": "test/authz-tokens.e2e-spec.ts",
+        "name": "token que no es JWT responde 401"
+      },
+      {
+        "file": "test/authz-tokens.e2e-spec.ts",
+        "name": "dos tokens responde 401"
+      },
+      {
+        "file": "test/authz-tokens.e2e-spec.ts",
+        "name": "la cookie de identidad upstream NO sustituye al Bearer"
+      },
+      {
+        "file": "test/authz-tokens.e2e-spec.ts",
+        "name": "token vencido responde 401"
+      },
+      {
+        "file": "test/authz-tokens.e2e-spec.ts",
+        "name": "token todavía no válido (nbf futuro) responde 401"
+      },
+      {
+        "file": "test/authz-tokens.e2e-spec.ts",
+        "name": "firma con otra llave responde 401"
+      },
+      {
+        "file": "test/authz-tokens.e2e-spec.ts",
+        "name": "emisor incorrecto responde 401"
+      },
+      {
+        "file": "test/authz-tokens.e2e-spec.ts",
+        "name": "audiencia incorrecta responde 401"
+      },
+      {
+        "file": "test/authz-tokens.e2e-spec.ts",
+        "name": "algoritmo distinto de HS256 con la llave correcta responde 401"
+      },
+      {
+        "file": "test/authz-tokens.e2e-spec.ts",
+        "name": "alg=none sin firma responde 401"
+      },
+      {
+        "file": "test/authz-tokens.e2e-spec.ts",
+        "name": "payload manipulado (roles cambiados tras firmar) responde 401"
+      },
+      {
+        "file": "test/authz-tokens.e2e-spec.ts",
+        "name": "token sin sub o sin roles responde 401"
+      },
+      {
+        "file": "test/authz-tokens.e2e-spec.ts",
+        "name": "el token válido del contable de A lee su documento (prueba positiva)"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  },
+  {
+    "requirementId": "P13-ERP-CLIENTE-TECNICO",
+    "packageId": "P-13",
+    "repository": "AtlasERPBackend",
+    "title": "El cliente técnico S2S no actúa como persona ni alcanza rutas financieras",
+    "releaseIncluded": true,
+    "ownerRole": "E",
+    "acceptance": "Token del plano interno con ADMIN/FINANCE/MERCHANT_ADMIN → 401; con ADS_EVENT_TRACKER → 403 en contabilidad y outbox y autenticado en su ruta; tokens de un plano firmados con la llave del otro → 401; manifiesto exige su llave propia.",
+    "tests": [
+      {
+        "file": "test/authz-tokens.e2e-spec.ts",
+        "name": "un token de servicio NO puede declararse ADMIN: 401 en la contabilidad"
+      },
+      {
+        "file": "test/authz-tokens.e2e-spec.ts",
+        "name": "un token de servicio NO puede declararse FINANCE ni MERCHANT_ADMIN"
+      },
+      {
+        "file": "test/authz-tokens.e2e-spec.ts",
+        "name": "un token de servicio con su rol técnico (ADS_EVENT_TRACKER) no alcanza rutas financieras"
+      },
+      {
+        "file": "test/authz-tokens.e2e-spec.ts",
+        "name": "un token de servicio con su rol técnico sí pasa la autenticación de su ruta (prueba positiva)"
+      },
+      {
+        "file": "test/authz-tokens.e2e-spec.ts",
+        "name": "un token de persona firmado con la llave de servicio no vale en el plano de acceso"
+      },
+      {
+        "file": "test/authz-tokens.e2e-spec.ts",
+        "name": "un token de servicio firmado con la llave de acceso no vale en el plano interno"
+      },
+      {
+        "file": "test/authz-tokens.e2e-spec.ts",
+        "name": "el manifiesto de plataforma exige su propia llave: sin ella no responde el catálogo"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  },
+  {
+    "requirementId": "P13-ERP-CABECERAS",
+    "packageId": "P-13",
+    "repository": "AtlasERPBackend",
+    "title": "Cabeceras y parámetros manipulados no amplían el alcance",
+    "releaseIncluded": true,
+    "ownerRole": "E",
+    "acceptance": "x-legal-entity-id, x-tenant-id, x-user-id, x-roles, x-merchant-account-id, x-forwarded-user y ?sub=/?roles= no cambian identidad ni alcance: el documento de otra entidad sigue en 403.",
+    "tests": [
+      {
+        "file": "test/authz-tokens.e2e-spec.ts",
+        "name": "la cabecera x-legal-entity-id no amplía el alcance del token: el documento de B sigue en 403"
+      },
+      {
+        "file": "test/authz-tokens.e2e-spec.ts",
+        "name": "la cabecera x-tenant-id no amplía el alcance del token: el documento de B sigue en 403"
+      },
+      {
+        "file": "test/authz-tokens.e2e-spec.ts",
+        "name": "la cabecera x-user-id no amplía el alcance del token: el documento de B sigue en 403"
+      },
+      {
+        "file": "test/authz-tokens.e2e-spec.ts",
+        "name": "la cabecera x-roles no amplía el alcance del token: el documento de B sigue en 403"
+      },
+      {
+        "file": "test/authz-tokens.e2e-spec.ts",
+        "name": "la cabecera x-merchant-account-id no amplía el alcance del token: el documento de B sigue en 403"
+      },
+      {
+        "file": "test/authz-tokens.e2e-spec.ts",
+        "name": "la cabecera x-forwarded-user no amplía el alcance del token: el documento de B sigue en 403"
+      },
+      {
+        "file": "test/authz-tokens.e2e-spec.ts",
+        "name": "un sub y roles de otro usuario en la consulta no cambian la identidad"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  },
+  {
+    "requirementId": "P13-ERP-LOGS-REDACCION",
+    "packageId": "P-13",
+    "repository": "AtlasERPBackend",
+    "title": "Tokens, cookies, contraseñas y datos personales no salen en los logs",
+    "releaseIncluded": true,
+    "ownerRole": "S",
+    "acceptance": "Con LOG_LEVEL=debug y la aplicación completa, ninguna línea escrita contiene el Bearer, su firma, la cookie upstream, contraseñas, el correo del token ni el término de búsqueda con nombre/CI (ni en claro ni codificado). Trazas: url.query y consulta de url.full se eliminan (RedactingSpanProcessor).",
+    "tests": [
+      {
+        "file": "test/authz-log-redaction.e2e-spec.ts",
+        "name": "ni tokens, ni cookies, ni contraseñas, ni datos personales llegan a los logs"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  },
+  {
+    "requirementId": "P13-ERP-ROL-DB-RUNTIME",
+    "packageId": "P-13",
+    "repository": "AtlasERPBackend",
+    "title": "La API en runtime no usa privilegios de migrador",
+    "releaseIncluded": true,
+    "ownerRole": "S",
+    "acceptance": "Con infra/postgres/runtime-role.sql: DML permitido; CREATE/ALTER/DROP/TRUNCATE/DISABLE TRIGGER/CREATE FUNCTION y lectura del registro de migraciones → 42501; la API arranca y atiende con ese rol. Contraste: el rol dueño (configuración actual) sí puede desactivar los disparadores append-only.",
+    "tests": [
+      {
+        "file": "test/authz-db-runtime-role.e2e-spec.ts",
+        "name": "el rol de runtime NO es superusuario ni dueño de las tablas"
+      },
+      {
+        "file": "test/authz-db-runtime-role.e2e-spec.ts",
+        "name": "el rol de runtime lee y escribe (DML)"
+      },
+      {
+        "file": "test/authz-db-runtime-role.e2e-spec.ts",
+        "name": "CREATE TABLE se rechaza con 42501 (permiso denegado)"
+      },
+      {
+        "file": "test/authz-db-runtime-role.e2e-spec.ts",
+        "name": "ALTER TABLE se rechaza con 42501 (permiso denegado)"
+      },
+      {
+        "file": "test/authz-db-runtime-role.e2e-spec.ts",
+        "name": "DROP TABLE se rechaza con 42501 (permiso denegado)"
+      },
+      {
+        "file": "test/authz-db-runtime-role.e2e-spec.ts",
+        "name": "TRUNCATE se rechaza con 42501 (permiso denegado)"
+      },
+      {
+        "file": "test/authz-db-runtime-role.e2e-spec.ts",
+        "name": "DISABLE TRIGGER (append-only) se rechaza con 42501 (permiso denegado)"
+      },
+      {
+        "file": "test/authz-db-runtime-role.e2e-spec.ts",
+        "name": "contraste: con el rol DUEÑO (configuración actual del runtime) el mismo DISABLE TRIGGER pasa"
+      },
+      {
+        "file": "test/authz-db-runtime-role.e2e-spec.ts",
+        "name": "la API completa arranca con el rol de runtime y atiende una ruta financiera"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": "Aplicar el rol en DEV/TEST/PROD: hoy api y migrate comparten DATABASE_URL (rol dueño) y la API migra al arrancar; requiere al DBA/SRE crear atlas_erp_app, cambiar DATABASE_URL del servicio api en Coolify y fijar STARTUP_MIGRATIONS_ENABLED=false y STARTUP_SEEDS_ENABLED=false (decisions.md P-13 #4)."
+  },
+  {
+    "requirementId": "P13-ERP-ALCANCE-ENTIDAD-EN-TOKEN",
+    "packageId": "P-13",
+    "repository": "AtlasERPBackend",
+    "title": "Los usuarios financieros reales reciben su alcance de entidad legal en el token",
+    "releaseIncluded": true,
+    "ownerRole": "S",
+    "acceptance": "El token que emite el ERP incluye legalEntityIds de una fuente de verdad asignada, para que FINANCE_MANAGER opere sus entidades sin ser ADMIN.",
+    "tests": [],
+    "requiresDatabase": false,
+    "blockedBy": "No existe fuente de verdad de la asignación usuario→entidad legal (ni en AtlasBackend ni en el ERP); el emisor no puede incluirla sin inventarla. Decisión de negocio/seguridad pendiente (decisions.md P-13 #1)."
+  },
+  {
+    "requirementId": "UC_Permisos",
+    "packageId": "P-13",
+    "repository": "AtlasERPBackend",
+    "title": "Permisos por recurso en las rutas financieras del ERP (caso de uso)",
+    "releaseIncluded": true,
+    "ownerRole": "E",
+    "acceptance": "Cero acceso cruzado entre entidades legales y entre comercios en lecturas, listados, mutaciones, lotes y descargas; rol sin permiso 403.",
+    "tests": [
+      {
+        "file": "test/authz-legal-entity.e2e-spec.ts",
+        "name": "GET /accounting/documents/:id de otra entidad legal responde 403 y no filtra el documento"
+      },
+      {
+        "file": "test/authz-legal-entity.e2e-spec.ts",
+        "name": "un lote con UN documento de otra entidad se rechaza entero: no se persiste ninguno"
+      },
+      {
+        "file": "test/authz-merchant.e2e-spec.ts",
+        "name": "el comercio B no puede renombrar la sucursal del comercio A (403, sin cambios)"
+      },
+      {
+        "file": "test/authz-merchant.e2e-spec.ts",
+        "name": "el comercio B no descarga el archivo del comercio A"
+      },
+      {
+        "file": "test/authz-merchant.e2e-spec.ts",
+        "name": "MERCHANT_ADMIN en GET /api/v1/b2b/coverage/payables responde 403"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  }
+]

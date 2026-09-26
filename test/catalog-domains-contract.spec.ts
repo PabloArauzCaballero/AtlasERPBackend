@@ -185,7 +185,14 @@ const TECHNICAL_ENUMS: readonly (readonly string[])[] = [
  * Estructuras que no son formularios de negocio: el payload de un documento generado describe cómo
  * se MAQUETA (tipo de campo impreso), no un dato que alguien elige.
  */
-const TECHNICAL_PATHS = ['src/modules/documents/documents.schemas.ts#generateDocumentSchema'];
+/*
+ * Tampoco el sobre de eventos entre servicios (P-14): `spec` y `producer` son vocabulario del
+ * protocolo atlas-integration-v1, fijado por su JSON Schema, no algo que una persona elija.
+ */
+const TECHNICAL_PATHS = [
+  'src/modules/documents/documents.schemas.ts#generateDocumentSchema',
+  'src/modules/b2b-sales-crm/integration/core-events.schemas.ts#coreEnvelopeSchema',
+];
 
 describe('esquemas de entrada ↔ catálogo de dominios', () => {
   const found: { path: string; values: string[] }[] = [];

@@ -23,8 +23,8 @@ export class BillingController {
   ) {}
 
   @Get('events')
-  listEvents() {
-    return this.service.listEvents();
+  listEvents(@CurrentUser() user: AuthUser) {
+    return this.service.listEvents(user);
   }
 
   @Get('ar-invoices')

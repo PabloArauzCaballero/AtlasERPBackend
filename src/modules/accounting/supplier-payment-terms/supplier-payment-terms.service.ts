@@ -5,8 +5,10 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
-import { UniqueConstraintError, type WhereOptions } from 'sequelize';
+import { Op, UniqueConstraintError, type WhereOptions } from 'sequelize';
 import { PinoLoggerService } from '../../../common/logger/pino-logger.service';
+import { LegalEntityAccessService } from '../../../common/services/legal-entity-access.service';
+import type { AuthUser } from '../../../common/types/auth-context.types';
 import { SupplierPaymentTermsModel } from '../../../database/models/supplier_payment_terms.model';
 import { buildPaymentTermsCatalog } from './payment-terms.catalog';
 import type { BaseDeComputo, MedioDePago, ModalidadDePago } from './payment-terms.catalog';
@@ -38,6 +40,7 @@ export class SupplierPaymentTermsService {
     private readonly logger: PinoLoggerService,
     @InjectModel(SupplierPaymentTermsModel)
     private readonly model: typeof SupplierPaymentTermsModel,
+    private readonly legalEntityAccess: LegalEntityAccessService,
   ) {}
 
   /** El vocabulario con su explicación, para que la pantalla no copie las listas. */
@@ -45,9 +48,23 @@ export class SupplierPaymentTermsService {
     return buildPaymentTermsCatalog();
   }
 
-  async list(query: ListSupplierPaymentTermsQueryDto): Promise<Record<string, unknown>[]> {
+  /*
+   * Una condición de pago es de UNA entidad legal (`legal_entity_id NOT NULL`). Hasta P-13 ninguna de
+   * estas rutas miraba el token: tesorería de A listaba, leía, simulaba y renegociaba las
+   * condiciones de B, y podía pactar condiciones en nombre de B.
+   */
+  async list(
+    query: ListSupplierPaymentTermsQueryDto,
+    user: AuthUser,
+  ): Promise<Record<string, unknown>[]> {
     const where: Record<string, unknown> = {};
-    if (query.legalEntityId) where.legalEntityId = query.legalEntityId;
+    if (query.legalEntityId) {
+      this.legalEntityAccess.assertCanAccessLegalEntity(user, query.legalEntityId);
+      where.legalEntityId = query.legalEntityId;
+    } else {
+      const allowed = this.legalEntityAccess.accessibleLegalEntityIds(user);
+      if (allowed !== null) where.legalEntityId = { [Op.in]: [...allowed] };
+    }
     if (query.supplierBpId) where.supplierBpId = query.supplierBpId;
     if (query.status) where.status = query.status;
 
@@ -61,11 +78,13 @@ export class SupplierPaymentTermsService {
     return rows.map((row) => this.toResponse(row));
   }
 
-  async get(id: string): Promise<Record<string, unknown>> {
-    return this.toResponse(await this.find(id));
+  async get(id: string, user: AuthUser): Promise<Record<string, unknown>> {
+    return this.toResponse(await this.find(id, user));
   }
 
-  async create(input: CreateSupplierPaymentTermsDto, actorUserId?: string) {
+  async create(input: CreateSupplierPaymentTermsDto, user: AuthUser) {
+    this.legalEntityAccess.assertCanAccessLegalEntity(user, input.legalEntityId);
+    const actorUserId = user.sub;
     this.revisar(this.toCondicion(input));
 
     try {
@@ -91,11 +110,19 @@ export class SupplierPaymentTermsService {
     }
   }
 
-  async update(id: string, input: UpdateSupplierPaymentTermsDto) {
-    const row = await this.find(id);
+  async update(id: string, input: UpdateSupplierPaymentTermsDto, user: AuthUser) {
+    const row = await this.find(id, user);
     /* Se revisa la condición RESULTANTE, no el parche: cambiar sólo el medio de pago puede dejar
      * una condición que exige cuenta bancaria sin cuenta, y eso no se ve mirando el cambio. */
-    const resultante = { ...this.toCondicion(row), ...this.toCondicion(input as never) };
+    /* Sólo lo que el parche TRAE pisa a la fila: mezclar `toCondicion(input)` entero dejaba
+     * `modalidad: undefined` en cuanto el parche no la mencionaba, y renegociar el plazo daba 500. */
+    const traidos = Object.fromEntries(
+      Object.entries(input).filter(([, valor]) => valor !== undefined),
+    );
+    const resultante = this.toCondicion({
+      ...(row.get({ plain: true }) as Record<string, unknown>),
+      ...traidos,
+    } as never);
     this.revisar(resultante);
 
     try {
@@ -115,8 +142,8 @@ export class SupplierPaymentTermsService {
    * de que la condición sea histórica es precisamente ese: una factura de hace seis meses vence con
    * la condición de entonces, no con la de hoy.
    */
-  async simulate(id: string, input: SimulateSupplierScheduleDto) {
-    const row = await this.find(id);
+  async simulate(id: string, input: SimulateSupplierScheduleDto, user: AuthUser) {
+    const row = await this.find(id, user);
     const condicion = this.toCondicion(row);
     const problemas = revisarCondicion(condicion);
 
@@ -146,7 +173,7 @@ export class SupplierPaymentTermsService {
     }
   }
 
-  private async find(id: string): Promise<SupplierPaymentTermsModel> {
+  private async find(id: string, user: AuthUser): Promise<SupplierPaymentTermsModel> {
     const row = await this.model.findByPk(id);
     if (!row) {
       throw new NotFoundException({
@@ -154,6 +181,7 @@ export class SupplierPaymentTermsService {
         message: 'La condición de pago no existe.',
       });
     }
+    this.legalEntityAccess.assertCanAccessLegalEntity(user, row.legalEntityId);
     return row;
   }
 

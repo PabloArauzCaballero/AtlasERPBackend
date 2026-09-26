@@ -13,7 +13,7 @@ La carpeta `06 - Portal del comercio` no funciona con `AUTH_DISABLED_FOR_LOCAL_T
 Para ejercerla de verdad:
 
 ```bash
-npm run db:seed:test-fixtures     # comercios Alfa y Beta, sucursales, facturas, anunciantes y campañas
+npm run db:seed:pull              # trae, entre otros, los comercios Alfa y Beta de prueba (ver docs/base-de-datos/semillas.md)
 npm run dev:jwt merchant-alfa     # token del usuario partner del Comercio Alfa
 ```
 

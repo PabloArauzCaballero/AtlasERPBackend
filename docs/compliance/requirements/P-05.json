@@ -1,0 +1,246 @@
+[
+  {
+    "requirementId": "B07",
+    "packageId": "P-05",
+    "repository": "AtlasERPBackend",
+    "title": "Pago de cobertura probado (doble control) y recuperación sin duplicados",
+    "releaseIncluded": true,
+    "ownerRole": "E",
+    "acceptance": "Fecha o comprobante aislado no confirman pago; la liquidación exige referencia única, importe=CxP, moneda, beneficiario, fecha y evidencia, y la confirma otra persona; la CxC de recuperación es 0 antes de liquidar y nace por el importe cubierto después, atómica con cuota, CxP y evento en outbox; referencia repetida no duplica; sobrepago rechazado; reverso compensatorio conserva historia; 100+200 dejan saldo 0 y repetir el primero no cambia nada.",
+    "tests": [
+      {
+        "file": "test/coverage-settlement-recovery.integration.spec.ts",
+        "name": "una fecha aislada no confirma el pago: el cuerpo con sólo paidAt se rechaza"
+      },
+      {
+        "file": "test/coverage-settlement-recovery.integration.spec.ts",
+        "name": "un comprobante registrado no confirma el pago hasta la segunda firma"
+      },
+      {
+        "file": "test/coverage-settlement-recovery.integration.spec.ts",
+        "name": "quien registra la liquidación no puede aprobarla"
+      },
+      {
+        "file": "test/coverage-settlement-recovery.integration.spec.ts",
+        "name": "rechaza la liquidación con importe, moneda, beneficiario o evidencia que no corresponden"
+      },
+      {
+        "file": "test/coverage-settlement-recovery.integration.spec.ts",
+        "name": "la CxC de recuperación es 0 antes de liquidar y nace por el importe cubierto después"
+      },
+      {
+        "file": "test/coverage-settlement-recovery.integration.spec.ts",
+        "name": "repetir el registro o la aprobación devuelve lo mismo sin duplicar"
+      },
+      {
+        "file": "test/coverage-settlement-recovery.integration.spec.ts",
+        "name": "la referencia de liquidación repetida en otra CxP se rechaza"
+      },
+      {
+        "file": "test/coverage-settlement-recovery.integration.spec.ts",
+        "name": "si falla la escritura del evento nada se confirma y el reintento funciona"
+      },
+      {
+        "file": "test/coverage-settlement-recovery.integration.spec.ts",
+        "name": "100 + 200 con referencias únicas dejan saldo 0 y repetir el primero no cambia nada"
+      },
+      {
+        "file": "test/coverage-settlement-recovery.integration.spec.ts",
+        "name": "importe de recuperación excesivo se rechaza sin mutar"
+      },
+      {
+        "file": "test/coverage-settlement-recovery.integration.spec.ts",
+        "name": "una referencia de recuperación reutilizada con otro importe se rechaza"
+      },
+      {
+        "file": "test/coverage-settlement-recovery.integration.spec.ts",
+        "name": "dos cobros concurrentes con la misma referencia suman una sola vez"
+      },
+      {
+        "file": "test/coverage-settlement-recovery.integration.spec.ts",
+        "name": "el reverso de un cobro es un movimiento compensatorio que conserva saldo e historia"
+      },
+      {
+        "file": "test/coverage-settlement-recovery.integration.spec.ts",
+        "name": "una CxP liquidada no se cancela"
+      },
+      {
+        "file": "test/coverage-settlement-recovery.integration.spec.ts",
+        "name": "un cobro de recuperación sin referencia de pago se rechaza"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  },
+  {
+    "requirementId": "B07-notificacion-externa",
+    "packageId": "P-05",
+    "repository": "AtlasERPBackend",
+    "title": "Liquidación confirmada por notificación bancaria/pasarela autenticada (replay, importe, beneficiario)",
+    "releaseIncluded": false,
+    "ownerRole": "I",
+    "acceptance": "Si el pago al comercio es externo, la notificación se autentica y se verifican replay, importe y beneficiario antes de confirmar.",
+    "tests": [],
+    "requiresDatabase": true,
+    "blockedBy": "No existe proveedor ni contrato de notificación bancaria para pagos al comercio; sólo está implementado el camino manual con doble control. No se inventa proveedor."
+  },
+  {
+    "requirementId": "B10-cobertura",
+    "packageId": "P-05",
+    "repository": "AtlasERPBackend",
+    "title": "(Parte P-07 en cobertura) Importes de cobertura y recuperación en precisión decimal (sin Number/flotantes)",
+    "releaseIncluded": true,
+    "ownerRole": "E",
+    "acceptance": "b2b-coverage.service opera en unidades menores bigint (decimal-amount.util); la entrada rechaza >2 decimales, notación científica y flotantes imprecisos; 0,10+0,20 = 0,30 exacto.",
+    "tests": [
+      {
+        "file": "test/coverage-settlement-recovery.integration.spec.ts",
+        "name": "rechaza importes con más de dos decimales o flotantes imprecisos en vez de redondear"
+      },
+      {
+        "file": "test/coverage-settlement-recovery.integration.spec.ts",
+        "name": "suma exacta en centavos: 0,10 + 0,20 recuperan exactamente 0,30"
+      },
+      {
+        "file": "test/coverage-eligibility-policy.spec.ts",
+        "name": "parcialmente pagada: elegible por el saldo exacto en centavos"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  },
+  {
+    "requirementId": "UC_PagoATLASComercio",
+    "packageId": "P-05",
+    "repository": "AtlasERPBackend",
+    "title": "Pagar cuota al comercio por incumplimiento",
+    "releaseIncluded": true,
+    "ownerRole": "E",
+    "acceptance": "La CxP de la cuota incumplida se liquida con referencia, importe, moneda, beneficiario, fecha y evidencia, con doble control; queda PAID y la cuota COVERED_BY_ATLAS.",
+    "tests": [
+      {
+        "file": "test/coverage-settlement-recovery.integration.spec.ts",
+        "name": "la CxC de recuperación es 0 antes de liquidar y nace por el importe cubierto después"
+      },
+      {
+        "file": "test/coverage-settlement-recovery.integration.spec.ts",
+        "name": "quien registra la liquidación no puede aprobarla"
+      },
+      {
+        "file": "test/coverage-settlement-recovery.integration.spec.ts",
+        "name": "rechaza la liquidación con importe, moneda, beneficiario o evidencia que no corresponden"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  },
+  {
+    "requirementId": "UC_CxCConsumidor",
+    "packageId": "P-05",
+    "repository": "AtlasERPBackend",
+    "title": "Crear cuenta por cobrar al consumidor",
+    "releaseIncluded": true,
+    "ownerRole": "E",
+    "acceptance": "La CxC de recuperación nace sólo tras la liquidación confirmada, por el importe cubierto, una sola vez.",
+    "tests": [
+      {
+        "file": "test/coverage-settlement-recovery.integration.spec.ts",
+        "name": "la CxC de recuperación es 0 antes de liquidar y nace por el importe cubierto después"
+      },
+      {
+        "file": "test/coverage-settlement-recovery.integration.spec.ts",
+        "name": "repetir el registro o la aprobación devuelve lo mismo sin duplicar"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  },
+  {
+    "requirementId": "UC_RecuperarCuotaCubierta",
+    "packageId": "P-05",
+    "repository": "AtlasERPBackend",
+    "title": "Registrar recuperación de cuota cubierta",
+    "releaseIncluded": true,
+    "ownerRole": "E",
+    "acceptance": "Cada cobro es un movimiento con referencia única; repetir no suma; sobrepago rechazado; reverso compensatorio.",
+    "tests": [
+      {
+        "file": "test/coverage-settlement-recovery.integration.spec.ts",
+        "name": "100 + 200 con referencias únicas dejan saldo 0 y repetir el primero no cambia nada"
+      },
+      {
+        "file": "test/coverage-settlement-recovery.integration.spec.ts",
+        "name": "importe de recuperación excesivo se rechaza sin mutar"
+      },
+      {
+        "file": "test/coverage-settlement-recovery.integration.spec.ts",
+        "name": "el reverso de un cobro es un movimiento compensatorio que conserva saldo e historia"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  },
+  {
+    "requirementId": "UC_EjecutarCobertura",
+    "packageId": "P-05",
+    "repository": "AtlasERPBackend",
+    "title": "Ejecutar cobertura al comercio (incluye efecto contable)",
+    "releaseIncluded": true,
+    "ownerRole": "E",
+    "acceptance": "Programación elegible + liquidación con doble control + evento b2b.coverage.settled en outbox; el asiento contable de la cobertura/provisión se genera en el mayor.",
+    "tests": [
+      {
+        "file": "test/coverage-eligibility.integration.spec.ts",
+        "name": "cubre la cuota vencida sin pago por su importe completo"
+      },
+      {
+        "file": "test/coverage-settlement-recovery.integration.spec.ts",
+        "name": "la CxC de recuperación es 0 antes de liquidar y nace por el importe cubierto después"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": "El lado operativo está cubierto; el asiento contable/provisión por cobertura no se genera en este paquete (caso clasificado «Integración excluida»; depende del consumidor contable del evento b2b.coverage.settled, P-03/P-06)."
+  },
+  {
+    "requirementId": "UC_RecuperacionPosterior",
+    "packageId": "P-05",
+    "repository": "AtlasERPBackend",
+    "title": "Registrar recuperación posterior (incluye efecto contable)",
+    "releaseIncluded": true,
+    "ownerRole": "E",
+    "acceptance": "Movimientos de recuperación únicos e idempotentes con evento en outbox; el asiento contable de la recuperación se genera en el mayor.",
+    "tests": [
+      {
+        "file": "test/coverage-settlement-recovery.integration.spec.ts",
+        "name": "100 + 200 con referencias únicas dejan saldo 0 y repetir el primero no cambia nada"
+      },
+      {
+        "file": "test/coverage-settlement-recovery.integration.spec.ts",
+        "name": "dos cobros concurrentes con la misma referencia suman una sola vez"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": "El lado operativo está cubierto; el asiento contable de la recuperación no se genera en este paquete (caso «Integración excluida»; depende del consumidor contable de b2b.recovery.payment_applied, P-03/P-06)."
+  },
+  {
+    "requirementId": "B07-listados-liquidacion",
+    "packageId": "P-05",
+    "repository": "AtlasERPBackend",
+    "title": "Los listados de cobertura y recuperación exponen estado de la liquidación, quién la registró y moneda",
+    "releaseIncluded": true,
+    "ownerRole": "E",
+    "acceptance": "GET /b2b/coverage/payables añade (sin quitar campos) settlementStatus, settlementReference, settlementRegisteredByUserId, settlementRegisteredByMe (relativo a quien pregunta) y currency; GET /b2b/coverage/recoveries añade currency. La pantalla ofrece aprobar/rechazar sólo con una liquidación PENDING_APPROVAL y nunca a quien la registró.",
+    "tests": [
+      {
+        "file": "test/coverage-review-resolution.integration.spec.ts",
+        "name": "las coberturas traen el estado de la liquidación"
+      },
+      {
+        "file": "test/coverage-review-resolution.integration.spec.ts",
+        "name": "las recuperaciones traen su moneda"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  }
+]
