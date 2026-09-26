@@ -95,3 +95,9 @@ Datos fiscales en los maestros de ventas: tipo de documento, complemento y corre
 del comercio; producto, unidad y actividad del SIN en el catálogo de productos facturables; moneda y
 entidad emisora en la factura de comercio. Va en `db:migrate:portal` porque necesita
 `billing_products`.
+
+## 20260926200200-merchant-billing-runs.sql
+
+`atlas_sales.merchant_billing_runs`: una fila por corrida del cierre de facturación de comercios,
+con `cycle_key` única (`MONTHLY:2026-09`) para que dos instancias de la API no facturen el mismo
+ciclo. Sólo añade una tabla.

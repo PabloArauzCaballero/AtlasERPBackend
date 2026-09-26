@@ -14,11 +14,7 @@ import { getConnectionToken, SequelizeModule } from '@nestjs/sequelize';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import type { ChildProcess } from 'node:child_process';
-import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { existsSync } from 'node:fs';
-import { createServer } from 'node:net';
-import { resolve } from 'node:path';
 import { QueryTypes } from 'sequelize';
 import type { Sequelize } from 'sequelize-typescript';
 import { PinoLoggerService } from '../src/common/logger/pino-logger.service';
@@ -46,62 +42,10 @@ import type {
 } from '../src/modules/fiscal/siat/infrastructure/siat-transport';
 import { ElectronicTaxDocumentModel } from '../src/database/models';
 import { JsonMockSiatTransport } from '../src/modules/fiscal/siat/infrastructure/json-mock-siat.transport';
-import { createMigratedDatabase, describeWithDatabase } from './support/coverage-integration-db';
+import { createMigratedDatabase } from './support/coverage-integration-db';
+import { ADMIN, arrancarEmulador, describeWithMock, silentLogger } from './support/siat-emulador';
+
 import type { MigratedDatabase } from './support/coverage-integration-db';
-
-const MOCK_DIR = resolve(process.env.ERP_PROVIDERS_MOCK_DIR ?? '../AtlasExternalProvidersMock');
-const MOCK_SERVER = resolve(MOCK_DIR, 'src/server.mjs');
-const MOCK_HAS_SIAT = existsSync(resolve(MOCK_DIR, 'src/providers/siat.mjs'));
-
-if (!MOCK_HAS_SIAT) {
-  if (process.env.ERP_REQUIRE_PROVIDERS_MOCK === '1') {
-    throw new Error(
-      `ERP_REQUIRE_PROVIDERS_MOCK=1 pero no hay emulador SIAT en ${MOCK_DIR}: la prueba no puede saltarse.`,
-    );
-  }
-  console.warn(`⚠️  No hay emulador SIAT en ${MOCK_DIR}: se SALTA la integración ERP ↔ SIAT.`);
-}
-
-const describeWithMock = MOCK_HAS_SIAT ? describeWithDatabase : describe.skip;
-
-const ADMIN = { sub: '11111111-1111-4111-8111-111111111111', role: 'admin', roles: ['admin'] };
-const silentLogger = { info: jest.fn(), warn: jest.fn(), error: jest.fn(), debug: jest.fn() };
-
-function puertoLibre(): Promise<number> {
-  return new Promise((ok, mal) => {
-    const server = createServer();
-    server.once('error', mal);
-    server.listen(0, '127.0.0.1', () => {
-      const { port } = server.address() as { port: number };
-      server.close(() => ok(port));
-    });
-  });
-}
-
-async function arrancarEmulador(): Promise<{ url: string; proceso: ChildProcess }> {
-  const port = await puertoLibre();
-  const proceso = spawn(process.execPath, [MOCK_SERVER], {
-    env: {
-      ...process.env,
-      MOCK_PROVIDERS_PORT: String(port),
-      MOCK_PROVIDERS_DEFAULT_LATENCY_MS: '0',
-      MOCK_PROVIDERS_MAX_LATENCY_MS: '0',
-      MOCK_PROVIDERS_MAX_BODY_BYTES: String(2 * 1024 * 1024),
-    },
-    stdio: 'ignore',
-  });
-  const url = `http://127.0.0.1:${port}`;
-  for (let intento = 0; intento < 100; intento += 1) {
-    try {
-      if ((await fetch(`${url}/mock/live`)).ok) return { url, proceso };
-    } catch {
-      /* todavía arrancando */
-    }
-    await new Promise((r) => setTimeout(r, 100));
-  }
-  proceso.kill();
-  throw new Error('El emulador no arrancó en 10 s.');
-}
 
 /** Transporte real hacia el emulador, con el escenario del mock que pida cada prueba. */
 class TransporteConEscenario implements SiatTransport {

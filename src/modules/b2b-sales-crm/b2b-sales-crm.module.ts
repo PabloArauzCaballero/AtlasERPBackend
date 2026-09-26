@@ -29,6 +29,9 @@ import { CrmSegmentsService } from './services/crm-segments.service';
 import { ActivitiesService } from './services/activities.service';
 import { B2BAccountsService } from './services/b2b-accounts.service';
 import { B2BBnplBillingService } from './services/b2b-bnpl-billing.service';
+import { MerchantBillingCycleService } from './billing-cycle/merchant-billing-cycle.service';
+import { MerchantBillingCycleProcessor } from './billing-cycle/merchant-billing-cycle.processor';
+import { BillingRunsController } from './controllers/billing-runs.controller';
 import { B2BContractsService } from './services/b2b-contracts.service';
 import { B2BCreditRatingService } from './services/b2b-credit-rating.service';
 import { B2BCreditRatingQueryService } from './services/b2b-credit-rating-query.service';
@@ -72,6 +75,7 @@ import { CoreSignatureGuard } from './integration/core-signature.guard';
     PartnerOnboardingGatewayModule,
   ],
   controllers: [
+    BillingRunsController,
     AccountTagsController,
     ActivitiesController,
     CatalogsController,
@@ -101,6 +105,8 @@ import { CoreSignatureGuard } from './integration/core-signature.guard';
     B2BContractsService,
     B2BOnboardingService,
     B2BBnplBillingService,
+    MerchantBillingCycleService,
+    MerchantBillingCycleProcessor,
     B2BCoverageService,
     B2BCoverageReviewService,
     B2BOverdueSweepService,

@@ -1525,3 +1525,18 @@ entidad responde 404, no 403, para no confirmar que existe.
   `FISCAL_PRODUCT_NOT_HOMOLOGATED`, `FISCAL_RECEIVER_INCOMPLETE`, `FISCAL_TOTAL_MISMATCH`,
   `FISCAL_ISSUER_NOT_CONFIGURED`; `503 FISCAL_UNAVAILABLE_NO_CUFD`.
 - Factura AR con SIAT activo que trae `electronicTaxDocument`: `422 FISCAL_STATUS_NOT_CLIENT_ASSERTED`.
+
+## Cierre de facturación de comercios (`/api/v1/b2b/billing/runs`)
+
+Roles `FINANCE`, `ADMIN`. El día 1 (hora de Bolivia, desde `MERCHANT_BILLING_CLOSE_HOUR_LOCAL`) y
+sólo con `MERCHANT_BILLING_AUTO_ENABLED=true`, factura los cargos CxC `PENDING` sin factura
+anteriores al día 1, una factura por comercio y moneda en tandas de ≤ 500 líneas, con vencimiento a
+`MERCHANT_BILLING_DUE_DAYS`. Con facturación electrónica activa cada factura sale con su documento
+fiscal. Idempotente por ciclo (`cycle_key` única): repetirla responde `ALREADY_RUN`.
+
+| Método y ruta            | Qué hace                                                                                            |
+| ------------------------ | --------------------------------------------------------------------------------------------------- |
+| `GET /b2b/billing/runs`  | Últimas 50 corridas: estado (`DONE`, `PARTIAL`, `FAILED`), facturas creadas y errores por comercio. |
+| `POST /b2b/billing/runs` | Lanza a mano el cierre del último mes cerrado.                                                      |
+
+La contabilización al mayor sigue siendo `PATCH /b2b/billing/invoices/:id/post-to-gl`.

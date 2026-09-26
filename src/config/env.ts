@@ -303,6 +303,22 @@ const envSchema = z
       emptyAsUndefined,
       z.coerce.number().int().positive().default(60),
     ),
+    /* Cierre automático de facturación de comercios (F6): apagado por defecto. */
+    MERCHANT_BILLING_AUTO_ENABLED: z.preprocess(
+      emptyAsUndefined,
+      z
+        .enum(['true', 'false'])
+        .default('false')
+        .transform((value) => value === 'true'),
+    ),
+    MERCHANT_BILLING_CLOSE_HOUR_LOCAL: z.preprocess(
+      emptyAsUndefined,
+      z.coerce.number().int().min(0).max(23).default(0),
+    ),
+    MERCHANT_BILLING_DUE_DAYS: z.preprocess(
+      emptyAsUndefined,
+      z.coerce.number().int().min(0).max(120).default(15),
+    ),
     SIAT_OFFLINE_PROBE_INTERVAL_MS: z.preprocess(
       emptyAsUndefined,
       z.coerce.number().int().positive().default(120_000),

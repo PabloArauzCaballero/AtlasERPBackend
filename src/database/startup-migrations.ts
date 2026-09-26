@@ -76,6 +76,8 @@ export const STARTUP_MIGRATION_FILES = [
   'src/database/migrations/20260926200000-siat-fiscal.sql',
   // Datos fiscales en los maestros de ventas (receptor, producto SIN, moneda de la factura).
   'src/database/migrations/20260926200100-siat-maestros.sql',
+  // Corridas del cierre de facturación de comercios (una por ciclo: sin doble facturación).
+  'src/database/migrations/20260926200200-merchant-billing-runs.sql',
 ] as const;
 
 export interface LegacySqlProbe {
