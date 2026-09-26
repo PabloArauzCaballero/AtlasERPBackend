@@ -1119,6 +1119,56 @@ paths:
           description: Documento no publicable
       tags:
         - Contabilidad
+  /accounting/documents/{id}/approve:
+    patch:
+      summary: Aprobar borrador contable pendiente
+      description: Marca APPROVED un borrador DRAFT con aprobación PENDING y deja
+        rastro en la bitácora del documento. Sólo roles admin o cfo, y nunca quien
+        lo creó. Si otra decisión llega primero, responde 409.
+      parameters:
+        - $ref: '#/components/parameters/AccountingId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DecideAccountingDocumentRequest'
+      responses:
+        '200':
+          description: Documento aprobado
+        '403':
+          description: Rol sin permiso, entidad legal no autorizada o autor del documento
+        '404':
+          description: Documento no existe
+        '409':
+          description: El documento ya no está pendiente de aprobación
+      tags:
+        - Contabilidad
+  /accounting/documents/{id}/reject:
+    patch:
+      summary: Rechazar borrador contable pendiente
+      description: Marca REJECTED un borrador DRAFT con aprobación PENDING y deja
+        rastro en la bitácora del documento. Sólo roles admin o cfo, y nunca quien
+        lo creó. Si otra decisión llega primero, responde 409.
+      parameters:
+        - $ref: '#/components/parameters/AccountingId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DecideAccountingDocumentRequest'
+      responses:
+        '200':
+          description: Documento rechazado
+        '403':
+          description: Rol sin permiso, entidad legal no autorizada o autor del documento
+        '404':
+          description: Documento no existe
+        '409':
+          description: El documento ya no está pendiente de aprobación
+      tags:
+        - Contabilidad
   /accounting/documents/{id}/reverse:
     post:
       summary: Reversar documento contable publicado
@@ -1924,6 +1974,15 @@ components:
       scheme: bearer
       bearerFormat: JWT
   schemas:
+    DecideAccountingDocumentRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        reason:
+          type: string
+          minLength: 3
+          maxLength: 240
+          description: Motivo de la decisión; queda en la bitácora del documento.
     CrmAccountLifecycleStatus:
       type: string
       enum:
