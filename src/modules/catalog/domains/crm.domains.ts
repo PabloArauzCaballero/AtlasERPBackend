@@ -759,6 +759,22 @@ export const riskTierDomain = defineDomain(
 );
 
 /*
+ * Banda de riesgo de CRÉDITO que decide Core (`credit.decision.recorded`, T-11). Distinta de
+ * `riskTierDomain` (comercial, LOW/MEDIUM/HIGH/CRITICAL): ésta es la que fija la regla de MDR por
+ * banda, y sale del Motor de decisiones, no de una elección libre en el alta.
+ */
+export const coreCreditRiskBandDomain = defineDomain(
+  'crm.coreCreditRiskBand',
+  'Banda de riesgo de crédito decidida por Core; determina la regla de MDR por banda.',
+  labelled(['A', 'B', 'C', 'D'] as const, {
+    A: { label: 'A', help: 'Menor riesgo de crédito; sin prima sobre la tasa base del producto.' },
+    B: { label: 'B', help: 'Riesgo de crédito bajo-medio.' },
+    C: { label: 'C', help: 'Riesgo de crédito medio-alto.' },
+    D: { label: 'D', help: 'Mayor riesgo de crédito dentro de lo aprobado; prima máxima.' },
+  }),
+);
+
+/*
  * Rubro del comercio. AtlasBackend es el dueño (`PARTNER_BUSINESS_CATEGORIES`) y los códigos tienen
  * que coincidir EXACTAMENTE: agrupan el gasto del cliente y segmentan la comisión. Antes cada
  * pantalla del ERP lo copiaba; ahora hay una sola copia en el ERP, aquí.
@@ -1093,6 +1109,7 @@ export const CRM_DOMAINS = [
   segmentOperatorDomain,
   segmentMatchDomain,
   riskTierDomain,
+  coreCreditRiskBandDomain,
   merchantCategoryDomain,
   industryDomain,
   businessLineDomain,

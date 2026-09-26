@@ -71,6 +71,11 @@ const build = ({
       create: jest.fn(async (fila: Record<string, unknown>) => ({ id: 'aprobacion-1', ...fila })),
       findOne: jest.fn(async () => pendiente),
     },
+    // T-10: publishMdrUpdatedForContractVersion lo consulta ANTES de publicar al outbox. Sin
+    // contrato, no hay cuenta que resolver y no se publica nada — estas pruebas no ejercitan T-10.
+    contracts: { findByPk: jest.fn(async () => null) },
+    accounts: { findByPk: jest.fn(async () => null) },
+    eventOutbox: { create: jest.fn(async (fila: Record<string, unknown>) => ({ id: 1, ...fila })) },
   };
   const logger = { infoContext: jest.fn() };
   const service = new B2BContractsService(repository as never, logger as never);
@@ -220,7 +225,10 @@ describe('B2BContractsService · updateMdrRule · el mínimo global (T-7)', () =
 
     await service.updateMdrRule('regla-1', { ratePercent: SOBRE_EL_MINIMO }, USUARIO);
 
-    expect(regla.update).toHaveBeenCalledWith({ ratePercent: SOBRE_EL_MINIMO });
+    expect(regla.update).toHaveBeenCalledWith(
+      { ratePercent: SOBRE_EL_MINIMO },
+      { transaction: TX },
+    );
     expect(repository.approvalRequests.create).not.toHaveBeenCalled();
   });
 
@@ -251,7 +259,7 @@ describe('B2BContractsService · updateMdrRule · el mínimo global (T-7)', () =
 
     await service.updateMdrRule('regla-1', { isActive: false }, USUARIO);
 
-    expect(regla.update).toHaveBeenCalledWith({ isActive: false });
+    expect(regla.update).toHaveBeenCalledWith({ isActive: false }, { transaction: TX });
     expect(repository.approvalRequests.create).not.toHaveBeenCalled();
   });
 
@@ -265,7 +273,10 @@ describe('B2BContractsService · updateMdrRule · el mínimo global (T-7)', () =
       USUARIO,
     );
 
-    expect(regla.update).toHaveBeenCalledWith({ ratePercent: BAJO_EL_MINIMO, isActive: false });
+    expect(regla.update).toHaveBeenCalledWith(
+      { ratePercent: BAJO_EL_MINIMO, isActive: false },
+      { transaction: TX },
+    );
     expect(repository.approvalRequests.create).not.toHaveBeenCalled();
   });
 
@@ -276,7 +287,7 @@ describe('B2BContractsService · updateMdrRule · el mínimo global (T-7)', () =
 
     await service.updateMdrRule('regla-1', { minFeeAmount: 5 }, USUARIO);
 
-    expect(regla.update).toHaveBeenCalledWith({ minFeeAmount: 5 });
+    expect(regla.update).toHaveBeenCalledWith({ minFeeAmount: 5 }, { transaction: TX });
     expect(repository.approvalRequests.create).not.toHaveBeenCalled();
   });
 
@@ -391,7 +402,7 @@ describe('B2BContractsService · piso <= techo (T-8)', () => {
 
     await service.updateMdrRule('regla-1', { maxFeeAmount: null }, USUARIO);
 
-    expect(regla.update).toHaveBeenCalledWith({ maxFeeAmount: null });
+    expect(regla.update).toHaveBeenCalledWith({ maxFeeAmount: null }, { transaction: TX });
   });
 
   it('al editar sin tocar los montos, una regla heredada con piso > techo aún se puede desactivar', async () => {
@@ -402,7 +413,7 @@ describe('B2BContractsService · piso <= techo (T-8)', () => {
 
     await service.updateMdrRule('regla-1', { isActive: false }, USUARIO);
 
-    expect(regla.update).toHaveBeenCalledWith({ isActive: false });
+    expect(regla.update).toHaveBeenCalledWith({ isActive: false }, { transaction: TX });
   });
 
   it('reactivar una regla heredada con piso > techo se rechaza con 409: encenderla cobraría siempre el techo', async () => {
@@ -421,6 +432,6 @@ describe('B2BContractsService · piso <= techo (T-8)', () => {
 
     await service.updateMdrRule('regla-1', { isActive: true }, USUARIO);
 
-    expect(regla.update).toHaveBeenCalledWith({ isActive: true });
+    expect(regla.update).toHaveBeenCalledWith({ isActive: true }, { transaction: TX });
   });
 });

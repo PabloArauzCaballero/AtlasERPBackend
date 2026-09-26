@@ -11,6 +11,7 @@ import type { Sequelize } from 'sequelize-typescript';
 import { getConnectionToken } from '@nestjs/sequelize';
 import { PinoLoggerService } from '../../src/common/logging/pino-logger.service';
 import { MessagingTraceService } from '../../src/common/observability/messaging-trace.service';
+import { EventOutboxModel } from '../../src/database/models';
 import { atlasSalesModels } from '../../src/modules/b2b-sales-crm/models/b2b-sales-crm.models';
 import { B2BSalesCrmRepository } from '../../src/modules/b2b-sales-crm/repositories/b2b-sales-crm.repository';
 import { B2BCoverageService } from '../../src/modules/b2b-sales-crm/services/b2b-coverage.service';
@@ -46,11 +47,11 @@ export async function buildCoverageHarness(databaseUrl: string): Promise<Coverag
         dialectOptions: { options: '-c search_path=atlas_sales,atlas_accounting,public' },
         autoLoadModels: false,
         synchronize: false,
-        models: atlasSalesModels,
+        models: [...atlasSalesModels, EventOutboxModel],
         logging: false,
         pool: { max: 8 },
       }),
-      SequelizeModule.forFeature(atlasSalesModels),
+      SequelizeModule.forFeature([...atlasSalesModels, EventOutboxModel]),
     ],
     providers: [
       B2BSalesCrmRepository,

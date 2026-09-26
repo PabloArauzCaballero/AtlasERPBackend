@@ -72,3 +72,11 @@ aprobación `MDR_BELOW_MINIMUM`. Hasta ahora sólo las propuestas pasaban por ap
 bajaba del mínimo global, y las reglas —que son lo que de verdad se cobra— aceptaban cualquier
 tarifa de 0 a 100 sin nadie que la firmara. Una regla por debajo del mínimo nace inactiva y se activa
 al aprobarse. Columna aditiva y nula: no toca filas.
+
+## 20260926100000-banda-riesgo-cliente-por-decision-de-core.sql
+
+T-11 (plan `_plan-motor-decisiones-tasa-2026-09-25`). `atlas_sales.customer_risk_tiers`: la última
+banda de riesgo de crédito que Core decidió por cliente (`credit.decision.recorded`). Hasta ahora
+`registerPurchase` dejaba que el propio comercio declarara `riskTierAtOrigination` en el cuerpo de
+la petición — le permitía elegir la tarifa MDR que más le convenga. Tabla nueva, sin efecto sobre
+filas existentes; sin fila para un cliente, sigue sin banda conocida, tal cual hoy.

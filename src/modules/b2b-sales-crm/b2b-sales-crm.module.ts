@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import { EventOutboxModel } from '../../database/models';
 import { atlasSalesModels } from './models/b2b-sales-crm.models';
 import { creditRatingModels } from './models/credit-rating.models';
 import { crmSegmentModels } from './models/crm-segment.model';
@@ -46,12 +47,18 @@ import { PortalModule } from '../portal/portal.module';
 import { AuthGatewayModule } from '../auth-gateway/auth-gateway.module';
 import { PartnerOnboardingGatewayModule } from '../partner-onboarding-gateway/partner-onboarding-gateway.module';
 import { CoreEventsController } from './controllers/core-events.controller';
+import { CoreCreditEventsService } from './integration/core-credit-events.service';
 import { CorePaymentEventsService } from './integration/core-payment-events.service';
 import { CoreSignatureGuard } from './integration/core-signature.guard';
 
 @Module({
   imports: [
-    SequelizeModule.forFeature([...atlasSalesModels, ...creditRatingModels, ...crmSegmentModels]),
+    SequelizeModule.forFeature([
+      ...atlasSalesModels,
+      ...creditRatingModels,
+      ...crmSegmentModels,
+      EventOutboxModel,
+    ]),
     BusinessActionLogsModule,
     AccountingModule,
     /* Para que el canal del comercio no pueda registrar compras de otra cuenta. */
@@ -102,6 +109,7 @@ import { CoreSignatureGuard } from './integration/core-signature.guard';
     B2BCreditRatingService,
     B2BCreditRatingQueryService,
     CorePaymentEventsService,
+    CoreCreditEventsService,
     CoreSignatureGuard,
     JwtAuthGuard,
     RolesGuard,

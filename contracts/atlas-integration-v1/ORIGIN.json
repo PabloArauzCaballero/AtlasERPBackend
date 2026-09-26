@@ -1,6 +1,6 @@
 {
   "sourceRepository": "AtlasBackend",
   "sourcePath": "contracts/atlas-integration-v1",
-  "sourceCommit": "a00d6320bd30a43cda9dec0336ac139d4371fb5e",
-  "checksumsSha256": "e7039fb3927998f2e98b2a61ce2f62a9068d4f714ad0c0def003a00aa8b92b78"
+  "sourceCommit": "76d7a863a94d06d5f4352ccb26dc65467c51b075",
+  "checksumsSha256": "f9ad0d59094faa83a5f7e3b499c6b92aad1d1de09993e9f5af4a482b72d7b2f6"
 }

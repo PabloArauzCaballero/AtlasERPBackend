@@ -91,12 +91,21 @@ export class B2BBnplBillingService extends B2BSalesCrmUseCaseBase {
         );
       }
 
+      // T-11 (2026-09-26): la banda de riesgo la decide Core (`credit.decision.recorded`), nunca
+      // el comercio en el cuerpo de la petición — le permitía elegir la tarifa MDR que más le
+      // convenga. Sin banda conocida (cliente sin decisión de crédito todavía), sigue sin banda,
+      // igual que hoy: es honesto, no un error que bloquee la compra.
+      const riskTierAtOrigination = await this.resolveRiskTier(
+        input.consumerExternalRef,
+        transaction,
+      );
+
       const mdr = this.calculateMdr(
         input.purchaseAmount,
         activeVersion,
         input.branchId,
         input.productCategory,
-        input.riskTierAtOrigination,
+        riskTierAtOrigination,
       );
 
       const purchase = await this.repository.purchases.create(
@@ -108,7 +117,7 @@ export class B2BBnplBillingService extends B2BSalesCrmUseCaseBase {
           purchaseAmount: fromMinorUnits(split.purchase),
           downPaymentAmount: fromMinorUnits(split.downPayment),
           financedAmount: fromMinorUnits(split.financed),
-          riskTierAtOrigination: input.riskTierAtOrigination ?? null,
+          riskTierAtOrigination: riskTierAtOrigination ?? null,
           cohortId: input.cohortId ?? null,
           status: PurchaseStatus.CONFIRMED,
           mdrRatePercent: mdr.ratePercent,
@@ -507,5 +516,20 @@ export class B2BBnplBillingService extends B2BSalesCrmUseCaseBase {
 
     const created = await this.repository.consumers.create({ externalRef }, { transaction });
     return created.id;
+  }
+
+  /**
+   * La banda que Core decidió para este cliente (`credit.decision.recorded`, T-11), no la que el
+   * comercio declare. `externalRef` es el `customerId` de Core (misma convención que
+   * `resolveConsumerId`); sin él, o sin fila todavía, no hay banda que aplicar.
+   */
+  private async resolveRiskTier(
+    externalRef: string | undefined,
+    transaction: Transaction,
+  ): Promise<string | undefined> {
+    const customerId = externalRef?.trim();
+    if (!customerId) return undefined;
+    const tier = await this.repository.customerRiskTiers.findByPk(customerId, { transaction });
+    return tier?.riskTier ?? undefined;
   }
 }

@@ -69,6 +69,8 @@ export const STARTUP_MIGRATION_FILES = [
   'src/database/migrations/20260925100000-aprobacion-documento-contable.sql',
   // Una aprobación puede esperar a una regla de comisión: columna aditiva y nula, sin UPDATE.
   'src/database/migrations/20260925120000-approval-requests-mdr-rule.sql',
+  // T-11: la última banda de riesgo que Core conoce por cliente (credit.decision.recorded).
+  'src/database/migrations/20260926100000-banda-riesgo-cliente-por-decision-de-core.sql',
 ] as const;
 
 export interface LegacySqlProbe {

@@ -1682,6 +1682,38 @@ export class MerchantSubscriptionModel extends Model {
   declare plan?: MerchantPlanModel;
 }
 
+/**
+ * Última banda de riesgo conocida por cliente de Core (`credit.decision.recorded`, T-11).
+ * El ERP la lee al registrar una compra; el comercio no puede declarar la suya.
+ * Ver migración `20260926100000-banda-riesgo-cliente-por-decision-de-core`.
+ */
+@Table({ schema: SALES_SCHEMA, tableName: 'customer_risk_tiers', timestamps: false })
+export class CustomerRiskTierModel extends Model {
+  @PrimaryKey
+  @Column({ type: DataType.STRING(30), field: 'customer_id' })
+  declare customerId: string;
+
+  @Column({ type: DataType.STRING(20), field: 'risk_tier' })
+  declare riskTier: string;
+
+  @Column({ type: DataType.DATE, field: 'decided_at' })
+  declare decidedAt: Date;
+
+  @Column({ type: DataType.STRING(80), field: 'application_code' })
+  declare applicationCode: string | null;
+
+  @Column({ type: DataType.STRING(160), field: 'last_event_key' })
+  declare lastEventKey: string | null;
+
+  @Default(DataType.NOW)
+  @Column({ type: DataType.DATE, field: 'created_at' })
+  declare createdAt: Date;
+
+  @Default(DataType.NOW)
+  @Column({ type: DataType.DATE, field: 'updated_at' })
+  declare updatedAt: Date;
+}
+
 export const atlasSalesModels = [
   InternalUserModel,
   TerritoryModel,
@@ -1722,4 +1754,5 @@ export const atlasSalesModels = [
   MerchantSubscriptionModel,
   /* Liquidaciones de cobertura, movimientos de recuperación y cola de revisión (P-04/P-05). */
   ...coverageModels,
+  CustomerRiskTierModel,
 ];

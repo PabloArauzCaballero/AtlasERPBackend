@@ -4,6 +4,7 @@ import { InjectConnection, InjectModel } from '@nestjs/sequelize';
 import { Op, Transaction, WhereOptions } from 'sequelize';
 import { Sequelize } from 'sequelize-typescript';
 import { PinoLoggerService } from '../../../common/logging/pino-logger.service';
+import { EventOutboxModel } from '../../../database/models';
 import {
   ApprovalRequestModel,
   AccountTagModel,
@@ -22,6 +23,7 @@ import {
   ConsumerRecoveryReceivableModel,
   ConsumerRefModel,
   ContractVersionModel,
+  CustomerRiskTierModel,
   MDRRuleModel,
   MerchantBranchModel,
   MerchantInvoiceLineModel,
@@ -81,6 +83,8 @@ export class B2BSalesCrmRepository {
     @InjectModel(ReconciliationItemModel)
     readonly reconciliationItems: typeof ReconciliationItemModel,
     @InjectModel(AuditLogModel) readonly auditLogs: typeof AuditLogModel,
+    @InjectModel(CustomerRiskTierModel) readonly customerRiskTiers: typeof CustomerRiskTierModel,
+    @InjectModel(EventOutboxModel) readonly eventOutbox: typeof EventOutboxModel,
     private readonly logger: PinoLoggerService,
   ) {}
 
