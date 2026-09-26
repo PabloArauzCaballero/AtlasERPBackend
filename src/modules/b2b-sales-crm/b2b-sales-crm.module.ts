@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import { EventOutboxModel } from '../../database/models';
 import { atlasSalesModels } from './models/b2b-sales-crm.models';
 import { creditRatingModels } from './models/credit-rating.models';
 import { crmSegmentModels } from './models/crm-segment.model';
@@ -52,7 +53,12 @@ import { CoreSignatureGuard } from './integration/core-signature.guard';
 
 @Module({
   imports: [
-    SequelizeModule.forFeature([...atlasSalesModels, ...creditRatingModels, ...crmSegmentModels]),
+    SequelizeModule.forFeature([
+      ...atlasSalesModels,
+      ...creditRatingModels,
+      ...crmSegmentModels,
+      EventOutboxModel,
+    ]),
     BusinessActionLogsModule,
     AccountingModule,
     /* Para que el canal del comercio no pueda registrar compras de otra cuenta. */
