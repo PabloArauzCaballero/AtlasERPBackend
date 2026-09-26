@@ -1,6 +1,8 @@
 import { Get, Body, Controller, Param, Patch, Post, Query } from '@nestjs/common';
+import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
+import type { AuthUser } from '../../../common/types/auth-context.types';
 import type {
   ContractIdParamsDto,
   CreateContractFromProposalDto,
@@ -45,8 +47,9 @@ export class ContractsController {
   @Post('mdr-rules')
   createMdrRule(
     @Body(new ZodValidationPipe(createMdrRuleSchema)) body: CreateMdrRuleDto,
+    @CurrentUser() user: AuthUser,
   ): Promise<Record<string, unknown>> {
-    return this.service.createMdrRule(body);
+    return this.service.createMdrRule(body, user);
   }
 
   @Roles('COMMERCIAL_MANAGER', 'FINANCE', 'ADMIN')
@@ -54,8 +57,9 @@ export class ContractsController {
   updateMdrRule(
     @Param(new ZodValidationPipe(mdrRuleIdParamsSchema)) params: MdrRuleIdParamsDto,
     @Body(new ZodValidationPipe(updateMdrRuleSchema)) body: UpdateMdrRuleDto,
+    @CurrentUser() user: AuthUser,
   ): Promise<Record<string, unknown>> {
-    return this.service.updateMdrRule(params.ruleId, body);
+    return this.service.updateMdrRule(params.ruleId, body, user);
   }
 
   /* Lectura de contratos, para poder ELEGIR uno en vez de teclear su uuid. */

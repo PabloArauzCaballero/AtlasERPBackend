@@ -260,8 +260,9 @@ export class OnboardingController {
   createCaseMdrRule(
     @Param(new ZodValidationPipe(onboardingCaseIdParamsSchema)) params: OnboardingCaseIdParamsDto,
     @Body(new ZodValidationPipe(createCaseMdrRuleSchema)) body: CreateCaseMdrRuleDto,
+    @CurrentUser() user: AuthUser,
   ): Promise<Record<string, unknown>> {
-    return this.service.createCaseMdrRule(params.onboardingCaseId, body);
+    return this.service.createCaseMdrRule(params.onboardingCaseId, body, user);
   }
 
   /*

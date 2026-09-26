@@ -48,6 +48,12 @@ export enum ApprovalStatus {
   REJECTED = 'REJECTED',
 }
 
+/**
+ * Tipo de la solicitud de aprobación que abre una comisión (MDR) por debajo del mínimo. Es el mismo
+ * para una PROPUESTA y para una REGLA de comisión: una sola cola, una sola forma de decidirla.
+ */
+export const MDR_BELOW_MINIMUM_APPROVAL = 'MDR_BELOW_MINIMUM';
+
 export enum ContractStatus {
   DRAFT = 'DRAFT',
   PENDING_SIGNATURE = 'PENDING_SIGNATURE',

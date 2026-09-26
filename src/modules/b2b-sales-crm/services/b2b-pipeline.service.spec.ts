@@ -76,3 +76,124 @@ describe('B2BPipelineService · listContracts', () => {
     expect(fila?.tradeName).toBe('Roho Home Center');
   });
 });
+
+/**
+ * Decidir una aprobación de una REGLA de comisión (T-7).
+ *
+ * Una regla por debajo del mínimo nace inactiva y su solicitud `MDR_BELOW_MINIMUM` cuelga de ella
+ * (`mdrRuleId`). Aprobar es lo que la activa; sin esa rama la solicitud se podía «aprobar» y la
+ * regla se quedaba inactiva para siempre, o —peor— se activaba sin pasar por aquí.
+ */
+const TX = { id: 'transaccion' };
+
+const buildAprobaciones = (aprobacion: Record<string, unknown> | null) => {
+  const fila = aprobacion
+    ? { update: jest.fn(async () => undefined), status: 'PENDING', ...aprobacion }
+    : null;
+  const repository = {
+    transaction: jest.fn(async (trabajo: (tx: unknown) => Promise<unknown>) => trabajo(TX)),
+    approvalRequests: {
+      findByPk: jest.fn(async () => fila),
+      findAll: jest.fn(async () => (fila ? [fila] : [])),
+    },
+    proposals: { update: jest.fn(async () => [1]) },
+    mdrRules: { update: jest.fn(async () => [1]) },
+  };
+  const logger = { infoContext: jest.fn() };
+  const service = new B2BPipelineService(repository as never, logger as never);
+  return { service, repository, fila };
+};
+
+const APROBADOR = { sub: 'aprobador-1' } as never;
+
+describe('B2BPipelineService · decideApproval · aprobación de una regla MDR', () => {
+  const APROBACION_DE_REGLA = {
+    id: 'aprobacion-1',
+    proposalId: null,
+    mdrRuleId: 'regla-1',
+    approvalType: 'MDR_BELOW_MINIMUM',
+  };
+
+  it('aprobarla ACTIVA la regla, dentro de la misma transacción que la decisión', async () => {
+    const { service, repository, fila } = buildAprobaciones(APROBACION_DE_REGLA);
+
+    await service.decideApproval(
+      'aprobacion-1',
+      { status: 'APPROVED', reason: 'Cliente ancla' } as never,
+      APROBADOR,
+    );
+
+    expect(repository.mdrRules.update).toHaveBeenCalledWith(
+      { isActive: true },
+      { where: { id: 'regla-1' }, transaction: TX },
+    );
+    expect(fila?.update).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'APPROVED', approvedByUserId: 'aprobador-1' }),
+      { transaction: TX },
+    );
+    expect(repository.proposals.update).not.toHaveBeenCalled();
+  });
+
+  it('rechazarla NO activa la regla: se queda inactiva y no cobra', async () => {
+    const { service, repository } = buildAprobaciones(APROBACION_DE_REGLA);
+
+    await service.decideApproval(
+      'aprobacion-1',
+      { status: 'REJECTED', reason: 'Fuera de política' } as never,
+      APROBADOR,
+    );
+
+    expect(repository.mdrRules.update).not.toHaveBeenCalled();
+  });
+
+  it('una aprobación ya decidida (409) no vuelve a activar la regla', async () => {
+    const { service, repository } = buildAprobaciones({
+      ...APROBACION_DE_REGLA,
+      status: 'REJECTED',
+    });
+
+    await expect(
+      service.decideApproval(
+        'aprobacion-1',
+        { status: 'APPROVED', reason: 'Ahora sí' } as never,
+        APROBADOR,
+      ),
+    ).rejects.toThrow('ya fue decidida');
+
+    expect(repository.mdrRules.update).not.toHaveBeenCalled();
+  });
+
+  it('la aprobación de una PROPUESTA sigue igual y no toca ninguna regla', async () => {
+    const { service, repository } = buildAprobaciones({
+      id: 'aprobacion-2',
+      proposalId: 'propuesta-1',
+      mdrRuleId: null,
+      approvalType: 'MDR_BELOW_MINIMUM',
+    });
+
+    await service.decideApproval(
+      'aprobacion-2',
+      { status: 'APPROVED', reason: 'Visto bueno' } as never,
+      APROBADOR,
+    );
+
+    expect(repository.proposals.update).toHaveBeenCalledWith(
+      { status: 'DRAFT' },
+      { where: { id: 'propuesta-1', status: 'PENDING_APPROVAL' }, transaction: TX },
+    );
+    expect(repository.mdrRules.update).not.toHaveBeenCalled();
+  });
+
+  it('la cola de aprobaciones dice de qué regla es cada solicitud', async () => {
+    const { service } = buildAprobaciones({
+      ...APROBACION_DE_REGLA,
+      contractVersionId: 'version-1',
+      reason: 'x',
+      requestedByUserId: 'u',
+    });
+
+    const [fila] = await service.listApprovals(true);
+
+    expect(fila?.mdrRuleId).toBe('regla-1');
+  });
+});
