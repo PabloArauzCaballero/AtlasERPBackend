@@ -1,3 +1,4 @@
+import { AnyAuthenticated } from '../../common/decorators/any-authenticated.decorator';
 import { Body, Controller, Get, Param, Patch, Post, Req, Res } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { Public } from '../../common/decorators/public.decorator';
@@ -95,6 +96,7 @@ export class AuthGatewayController {
    * No lleva `@Roles`: cualquier usuario con sesión puede cambiar SU propia contraseña, y quién es
    * lo decide el token upstream de la cookie, no el cuerpo.
    */
+  @AnyAuthenticated()
   @Post('password/change/request')
   async requestPasswordChange(
     @Body(new ZodValidationPipe(passwordChangeRequestSchema)) body: PasswordChangeRequestDto,
@@ -109,6 +111,7 @@ export class AuthGatewayController {
     return result;
   }
 
+  @AnyAuthenticated()
   @Post('password/change/confirm')
   async confirmPasswordChange(
     @Body(new ZodValidationPipe(passwordChangeConfirmSchema)) body: PasswordChangeConfirmDto,
@@ -282,6 +285,7 @@ export class AuthGatewayController {
     return result;
   }
 
+  @AnyAuthenticated()
   @Get('me')
   async me(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const { result, refreshedTokens } = await this.service.me(this.readUpstreamTokens(req));

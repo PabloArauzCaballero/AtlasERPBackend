@@ -29,6 +29,10 @@ import { PostingRuleSnapshotService } from '../../posting/services/posting-rule-
 import { AccountingDefaultsService } from '../../shared/services/accounting-defaults.service';
 import { normalizeAmount, toMinorUnits } from '../../../../common/money/decimal-amount.util';
 import { PinoLoggerService } from '../../../../common/logger/pino-logger.service';
+import {
+  assertClientApprovalStatus,
+  assertDocumentApprovedForPosting,
+} from '../domain/document-approval';
 import { BusinessActionLogsService } from '../../../business-action-logs/business-action-logs.service';
 
 type JournalLineDto = CreateAccountingDocumentDto['lines'][number];
@@ -60,6 +64,9 @@ type ResolvedAccountingDocument = AccountingDraftInput & {
   accountingPeriodId: string;
   ledgerId: string;
 };
+
+/** Tope de página del listado: el mismo 500 que devolvía antes sin parámetros. */
+export const DOCUMENT_LIST_MAX_PAGE_SIZE = 500;
 
 @Injectable()
 export class AccountingDocumentsService {
@@ -188,6 +195,8 @@ export class AccountingDocumentsService {
     // fiscal») en un oráculo sobre entidades ajenas al token. Lo cubre
     // `test/accounting-documents-db.e2e-spec.ts` (403 y ninguna fila escrita).
     this.legalEntityAccessService.assertCanAccessLegalEntity(user, rawInput.legalEntityId);
+    // APPROVED o REJECTED no los elige quien crea el documento: los decide el servidor (ATL-03).
+    assertClientApprovalStatus(rawInput.approvalStatus);
     const numerado = await this.withDocumentNumber(rawInput, transaction);
     const input = await this.withResolvedDefaults(numerado, transaction);
     this.doubleEntryValidator.validate(input.lines);
@@ -419,15 +428,10 @@ export class AccountingDocumentsService {
 
     /*
      * Un documento que espera aprobación, o al que se la negaron, no se publica: publicar es
-     * justamente lo que la aprobación autoriza. Antes se publicaba sin mirar este campo.
+     * justamente lo que la aprobación autoriza. Antes se publicaba sin mirar este campo. Un
+     * APPROVED sin aprobador registrado (autocertificado antes de ATL-03) tampoco.
      */
-    if (document.approvalStatus === 'PENDING' || document.approvalStatus === 'REJECTED') {
-      throw new ConflictException({
-        code: 'ACCOUNTING_DOCUMENT_APPROVAL_REQUIRED',
-        message: 'El documento necesita aprobación antes de publicarse.',
-        details: { approvalStatus: document.approvalStatus },
-      });
-    }
+    assertDocumentApprovedForPosting(document);
 
     await this.periodGuardService.assertPeriodIsOpen(document.accountingPeriodId, transaction);
 
@@ -670,20 +674,33 @@ export class AccountingDocumentsService {
     });
   }
 
-  async list(user: AuthUser) {
-    const rows = await this.accountingDocumentModel.findAll({
-      order: [['documentDate', 'DESC']],
-      limit: 500,
+  /**
+   * Listado paginado de documentos, filtrado por las entidades del token EN LA CONSULTA (ATL-05).
+   *
+   * Antes traía los 500 más recientes de TODAS las entidades y filtraba después: un contable de
+   * una entidad con pocos documentos no veía los suyos si otra entidad tenía 500 más recientes, y
+   * `total` era el tamaño de la ventana. Ahora el WHERE va antes del LIMIT, el orden es estable
+   * (fecha DESC, id DESC) y `total` es un COUNT con el mismo filtro. Sin parámetros devuelve la
+   * primera página de 500, que es lo que el ERP web espera hoy.
+   */
+  async list(user: AuthUser, query: { page?: number; pageSize?: number } = {}) {
+    const page = query.page ?? 1;
+    const pageSize = query.pageSize ?? DOCUMENT_LIST_MAX_PAGE_SIZE;
+    const allowed = this.legalEntityAccessService.accessibleLegalEntityIds(user);
+    if (allowed !== null && allowed.length === 0) {
+      return { items: [], total: 0, page, pageSize };
+    }
+    const where = allowed === null ? {} : { legalEntityId: { [Op.in]: [...allowed] } };
+    const { rows, count } = await this.accountingDocumentModel.findAndCountAll({
+      where,
+      order: [
+        ['documentDate', 'DESC'],
+        ['id', 'DESC'],
+      ],
+      limit: pageSize,
+      offset: (page - 1) * pageSize,
     });
-    const items = rows.filter((row) => {
-      try {
-        this.legalEntityAccessService.assertCanAccessLegalEntity(user, row.legalEntityId);
-        return true;
-      } catch {
-        return false;
-      }
-    });
-    return { items, total: items.length };
+    return { items: rows, total: count, page, pageSize };
   }
 
   /**

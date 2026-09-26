@@ -65,6 +65,8 @@ export const STARTUP_MIGRATION_FILES = [
   // Cobertura: la cola de revisión se resuelve (desenlace, actor, motivo) y su historia no se borra.
   'src/database/migrations/20260924400000-cobertura-resolucion-cola.sql',
   'src/database/migrations/20260924500000-eventos-core-erp.sql',
+  // Aprobación del documento contable por el servidor (quién y cuándo) e índices del listado.
+  'src/database/migrations/20260925100000-aprobacion-documento-contable.sql',
 ] as const;
 
 export interface LegacySqlProbe {
