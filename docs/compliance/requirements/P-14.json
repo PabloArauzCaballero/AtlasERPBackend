@@ -1,6 +1,6 @@
 [
   {
-    "requirementId": "B20",
+    "requirementId": "B20-confirmacion-idempotente",
     "packageId": "P-14",
     "repository": "AtlasERPBackend",
     "title": "Core→ERP: payment.confirmed confirma el aviso una sola vez aunque llegue diez veces",
@@ -17,7 +17,7 @@
     "blockedBy": null
   },
   {
-    "requirementId": "B20",
+    "requirementId": "B20-desorden-y-rechazo",
     "packageId": "P-14",
     "repository": "AtlasERPBackend",
     "title": "Duplicados y desorden no revierten una decisión; payment.rejected rechaza con la transición de la cola",
@@ -42,7 +42,7 @@
     "blockedBy": null
   },
   {
-    "requirementId": "B20",
+    "requirementId": "B20-pago-tardio-con-cobertura",
     "packageId": "P-14",
     "repository": "AtlasERPBackend",
     "title": "Pago tardío concurrente con cobertura: sin doble beneficio, a la cola de revisión",
@@ -59,7 +59,7 @@
     "blockedBy": null
   },
   {
-    "requirementId": "B20",
+    "requirementId": "B20-identidad-mapeo-explicito",
     "packageId": "P-14",
     "repository": "AtlasERPBackend",
     "title": "Identidad común préstamo/compra/cuota/comercio con mapeo explícito; nada se adivina",
@@ -88,7 +88,7 @@
     "blockedBy": null
   },
   {
-    "requirementId": "B20",
+    "requirementId": "B20-receptor-s2s-firmado",
     "packageId": "P-14",
     "repository": "AtlasERPBackend",
     "title": "Receptor S2S de Core firmado (HMAC por sentido, ventana anti-replay) y contrato estricto",
@@ -150,7 +150,7 @@
     "blockedBy": null
   },
   {
-    "requirementId": "B20",
+    "requirementId": "B20-worker-outbox-desplegado",
     "packageId": "P-14",
     "repository": "AtlasERPBackend",
     "title": "worker-outbox desplegado y receptor de Core configurado en los entornos",
