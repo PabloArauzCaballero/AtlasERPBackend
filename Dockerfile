@@ -20,8 +20,11 @@ COPY package.json yarn.lock ./
 # mismo commit.
 RUN apk add --no-cache --upgrade libcrypto3 libssl3
 
+# `yarn cache clean` en la MISMA capa: Yarn 1 descarga a su caché (/usr/local/share/.cache/yarn)
+# TODOS los paquetes del lockfile, también los de desarrollo, aunque sólo instale los de producción.
+# Sin limpiarla, la imagen llevaba browserslist, fast-uri y js-yaml de desarrollo y Trivy daba 7 altos.
 RUN corepack enable && corepack yarn install --production=true --frozen-lockfile --ignore-scripts --non-interactive \
-  && corepack cache clean
+  && corepack yarn cache clean && corepack cache clean
 
 # npm FUERA de la imagen que se despliega, YA instaladas las dependencias.
 #

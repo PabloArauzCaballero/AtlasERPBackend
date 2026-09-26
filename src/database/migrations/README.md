@@ -50,3 +50,25 @@ comercio en AtlasBackend, sin el cual no hay a quién pedirle la verificación.
 
 `atlas_sales.merchant_users.identity_rejection_reason`: el motivo con el que Atlas rechazó el acceso
 pedido. El acuse lo recibía y lo tiraba; ahora la fila de la cola lo enseña sin volver a preguntar.
+
+## 20260924300000-p06-origen-contable-unico.sql
+
+P-06. Un documento contable por factura de comercio (`uq_accounting_document_merchant_invoice_origin`,
+sin el libro), un documento por factura (`uq_merchant_invoices_accounting_document`) y un asiento por
+documento (`uq_journal_entry_document`), que sustituye la unicidad GLOBAL de `journal_no` —derivado de
+un número de documento que es único por entidad legal—. Si los datos no cumplen un índice, la
+migración avisa (`WARNING P-06: …`) y no lo crea. El `down` sólo retira índices.
+
+## 20260924300100-p07-mdr-de-la-compra.sql
+
+P-07. Instantánea del MDR cobrado en cada compra BNPL (`mdr_rate_percent`, `mdr_amount`, `mdr_rule_id`,
+`mdr_pricing_source`): las reglas MDR se editan en sitio y sin ella la comisión no se reconstruía.
+Columnas NULLABLE; las compras anteriores quedan en NULL. El `down` conserva los datos.
+
+## 20260925120000-approval-requests-mdr-rule.sql
+
+`atlas_sales.approval_requests.mdr_rule_id`: la regla de comisión (`mdr_rules`) que espera una
+aprobación `MDR_BELOW_MINIMUM`. Hasta ahora sólo las propuestas pasaban por aprobación cuando su MDR
+bajaba del mínimo global, y las reglas —que son lo que de verdad se cobra— aceptaban cualquier
+tarifa de 0 a 100 sin nadie que la firmara. Una regla por debajo del mínimo nace inactiva y se activa
+al aprobarse. Columna aditiva y nula: no toca filas.

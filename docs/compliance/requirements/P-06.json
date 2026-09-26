@@ -1,0 +1,167 @@
+[
+  {
+    "requirementId": "B09",
+    "packageId": "P-06",
+    "repository": "AtlasERPBackend",
+    "title": "Puente factura de comercio → mayor: borrador explícito, atómico, idempotente y revalidado",
+    "releaseIncluded": true,
+    "ownerRole": "E",
+    "acceptance": "Dos llamadas simultáneas dejan un documento por origen; caída entre creación y enlace no deja huérfanos; un DRAFT nunca se reporta como saldo contabilizado; período cerrado y entidad ajena se rechazan; reverso conserva historia.",
+    "tests": [
+      {
+        "file": "test/merchant-accounting-bridge.integration.spec.ts",
+        "name": "genera un BORRADOR que no se reporta como saldo contabilizado"
+      },
+      {
+        "file": "test/merchant-accounting-bridge.integration.spec.ts",
+        "name": "dos llamadas simultáneas dejan un solo documento por origen y devuelven el mismo"
+      },
+      {
+        "file": "test/merchant-accounting-bridge.integration.spec.ts",
+        "name": "una segunda llamada secuencial es idempotente"
+      },
+      {
+        "file": "test/merchant-accounting-bridge.integration.spec.ts",
+        "name": "caída entre la creación y el enlace no deja documentos huérfanos"
+      },
+      {
+        "file": "test/merchant-accounting-bridge.integration.spec.ts",
+        "name": "recupera el documento huérfano de un intento anterior sin crear otro"
+      },
+      {
+        "file": "test/merchant-accounting-bridge.integration.spec.ts",
+        "name": "la base impide un segundo documento para el mismo origen aunque sea en otro libro"
+      },
+      {
+        "file": "test/merchant-accounting-bridge.integration.spec.ts",
+        "name": "rechaza un período cerrado sin escribir nada"
+      },
+      {
+        "file": "test/merchant-accounting-bridge.integration.spec.ts",
+        "name": "rechaza una entidad legal ajena al usuario sin escribir nada"
+      },
+      {
+        "file": "test/merchant-accounting-bridge.integration.spec.ts",
+        "name": "rechaza período y libro de otra entidad legal"
+      },
+      {
+        "file": "test/merchant-accounting-bridge.integration.spec.ts",
+        "name": "no devuelve a un usuario de otra entidad el documento ya enlazado"
+      },
+      {
+        "file": "test/merchant-accounting-bridge.integration.spec.ts",
+        "name": "rechaza un partner distinto del de la factura aunque lo envíe el cliente"
+      },
+      {
+        "file": "test/merchant-accounting-bridge.integration.spec.ts",
+        "name": "rechaza una factura con cargos en monedas mezcladas"
+      },
+      {
+        "file": "test/merchant-accounting-bridge.integration.spec.ts",
+        "name": "rechaza una moneda distinta de la de la factura"
+      },
+      {
+        "file": "test/merchant-accounting-bridge.integration.spec.ts",
+        "name": "rechaza una factura cuyo impuesto no cuadra con sus líneas"
+      },
+      {
+        "file": "test/merchant-accounting-bridge.integration.spec.ts",
+        "name": "rechaza una factura cuyo contrato es de otro comercio"
+      },
+      {
+        "file": "test/merchant-accounting-bridge.integration.spec.ts",
+        "name": "el reverso conserva la historia y el puente no crea otro documento"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  },
+  {
+    "requirementId": "UC_DocContable",
+    "packageId": "P-06",
+    "repository": "AtlasERPBackend",
+    "title": "Generar documento contable desde una factura de comercio",
+    "releaseIncluded": true,
+    "ownerRole": "E",
+    "acceptance": "El borrador se crea con su origen (CRM/MERCHANT_INVOICE/id), enlazado a la factura en la misma transacción, una sola vez por origen.",
+    "tests": [
+      {
+        "file": "test/merchant-accounting-bridge.integration.spec.ts",
+        "name": "genera un BORRADOR que no se reporta como saldo contabilizado"
+      },
+      {
+        "file": "test/merchant-accounting-bridge.integration.spec.ts",
+        "name": "dos llamadas simultáneas dejan un solo documento por origen y devuelven el mismo"
+      },
+      {
+        "file": "test/merchant-accounting-bridge.integration.spec.ts",
+        "name": "caída entre la creación y el enlace no deja documentos huérfanos"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  },
+  {
+    "requirementId": "UC_TrazabilidadAsiento",
+    "packageId": "P-06",
+    "repository": "AtlasERPBackend",
+    "title": "Auditar trazabilidad origen-asiento",
+    "releaseIncluded": true,
+    "ownerRole": "E",
+    "acceptance": "Cada factura de comercio tiene como máximo un documento contable vivo (índice único por origen) y el documento enlazado es el que respalda la factura, incluso tras un reverso.",
+    "tests": [
+      {
+        "file": "test/merchant-accounting-bridge.integration.spec.ts",
+        "name": "la base impide un segundo documento para el mismo origen aunque sea en otro libro"
+      },
+      {
+        "file": "test/merchant-accounting-bridge.integration.spec.ts",
+        "name": "recupera el documento huérfano de un intento anterior sin crear otro"
+      },
+      {
+        "file": "test/merchant-accounting-bridge.integration.spec.ts",
+        "name": "el reverso conserva la historia y el puente no crea otro documento"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  },
+  {
+    "requirementId": "UC_PublicarAsiento",
+    "packageId": "P-06",
+    "repository": "AtlasERPBackend",
+    "title": "Publicar asiento como paso explícito, con aprobación aplicable",
+    "releaseIncluded": true,
+    "ownerRole": "E",
+    "acceptance": "Sólo la publicación convierte el borrador en saldo contabilizado; un documento con aprobación pendiente no se publica.",
+    "tests": [
+      {
+        "file": "test/merchant-accounting-bridge.integration.spec.ts",
+        "name": "genera un BORRADOR que no se reporta como saldo contabilizado"
+      },
+      {
+        "file": "test/merchant-accounting-bridge.integration.spec.ts",
+        "name": "no publica un documento con aprobación pendiente"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  },
+  {
+    "requirementId": "UC_ReversarAsiento",
+    "packageId": "P-06",
+    "repository": "AtlasERPBackend",
+    "title": "Reversar asiento conservando historia",
+    "releaseIncluded": true,
+    "ownerRole": "E",
+    "acceptance": "El original queda REVERSED con sus líneas intactas, el reverso POSTED con las líneas invertidas y el saldo contabilizado vuelve a cero.",
+    "tests": [
+      {
+        "file": "test/merchant-accounting-bridge.integration.spec.ts",
+        "name": "el reverso conserva la historia y el puente no crea otro documento"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  }
+]

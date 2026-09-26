@@ -40,28 +40,28 @@ export class FinancialStructureController {
 
   // ---- Listados maestros (para poblar selects en el frontend) ----
   @Get('legal-entities')
-  listLegalEntities() {
-    return this.service.listLegalEntities();
+  listLegalEntities(@CurrentUser() user: AuthUser) {
+    return this.service.listLegalEntities(user);
   }
 
   @Get('branches')
-  listBranches() {
-    return this.service.listBranches();
+  listBranches(@CurrentUser() user: AuthUser) {
+    return this.service.listBranches(user);
   }
 
   @Get('fiscal-years')
-  listFiscalYears() {
-    return this.service.listFiscalYears();
+  listFiscalYears(@CurrentUser() user: AuthUser) {
+    return this.service.listFiscalYears(user);
   }
 
   @Get('periods')
-  listAccountingPeriods() {
-    return this.service.listAccountingPeriods();
+  listAccountingPeriods(@CurrentUser() user: AuthUser) {
+    return this.service.listAccountingPeriods(user);
   }
 
   @Get('ledgers')
-  listLedgers() {
-    return this.service.listLedgers();
+  listLedgers(@CurrentUser() user: AuthUser) {
+    return this.service.listLedgers(user);
   }
 
   @Get('charts-of-accounts')
@@ -75,18 +75,18 @@ export class FinancialStructureController {
   }
 
   @Get('cost-centers')
-  listCostCenters() {
-    return this.service.listCostCenters();
+  listCostCenters(@CurrentUser() user: AuthUser) {
+    return this.service.listCostCenters(user);
   }
 
   @Get('profit-centers')
-  listProfitCenters() {
-    return this.service.listProfitCenters();
+  listProfitCenters(@CurrentUser() user: AuthUser) {
+    return this.service.listProfitCenters(user);
   }
 
   @Get('bank-accounts')
-  listBankAccounts() {
-    return this.service.listBankAccounts();
+  listBankAccounts(@CurrentUser() user: AuthUser) {
+    return this.service.listBankAccounts(user);
   }
 
   @Post('legal-entities')
@@ -203,7 +203,7 @@ export class FinancialStructureController {
       action: 'listGlAccounts',
       page: query.page,
       pageSize: query.pageSize,
-      search: query.search ?? null,
+      hasSearch: Boolean(query.search),
       accountType: query.accountType ?? null,
     });
     return this.service.listGlAccounts(query);

@@ -11,6 +11,7 @@ import { catchError, Observable, tap, throwError } from 'rxjs';
 import { HttpAccessRegistryService } from '../observability/http-access-registry.service';
 import { requestOrigin } from '../observability/request-origin';
 import { PinoLoggerService } from '../logging/pino-logger.service';
+import { redactUrlQuery } from '../logging/redact-url';
 import type { AuthUser } from '../types/auth-context.types';
 
 interface RequestWithLogContext extends Request {
@@ -70,7 +71,7 @@ export class LoggingInterceptor implements NestInterceptor {
     this.logger.infoContext(this.contextName, 'HTTP request started', {
       requestId,
       method: request.method,
-      path: request.originalUrl ?? request.url,
+      path: redactUrlQuery(request.originalUrl ?? request.url),
       userId: request.user?.sub,
       roleCode: request.user?.roleCode,
       ip: request.ip,
@@ -81,7 +82,7 @@ export class LoggingInterceptor implements NestInterceptor {
         this.logger.infoContext(this.contextName, 'HTTP request completed', {
           requestId,
           method: request.method,
-          path: request.originalUrl ?? request.url,
+          path: redactUrlQuery(request.originalUrl ?? request.url),
           statusCode: response.statusCode,
           durationMs: Date.now() - startedAt,
           userId: request.user?.sub,
@@ -96,7 +97,7 @@ export class LoggingInterceptor implements NestInterceptor {
         this.logger.warnContext(this.contextName, 'HTTP request failed before response', {
           requestId,
           method: request.method,
-          path: request.originalUrl ?? request.url,
+          path: redactUrlQuery(request.originalUrl ?? request.url),
           statusCode: estado,
           durationMs: Date.now() - startedAt,
           errorName: error instanceof Error ? error.name : 'UnknownError',

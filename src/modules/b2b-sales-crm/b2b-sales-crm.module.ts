@@ -32,6 +32,7 @@ import { B2BContractsService } from './services/b2b-contracts.service';
 import { B2BCreditRatingService } from './services/b2b-credit-rating.service';
 import { B2BCreditRatingQueryService } from './services/b2b-credit-rating-query.service';
 import { B2BCoverageService } from './services/b2b-coverage.service';
+import { B2BCoverageReviewService } from './services/coverage-review.service';
 import { B2BOverdueSweepProcessor } from './services/b2b-overdue-sweep.processor';
 import { B2BOverdueSweepService } from './services/b2b-overdue-sweep.service';
 import { B2BOnboardingService } from './services/b2b-onboarding.service';
@@ -44,6 +45,9 @@ import { AccountingModule } from '../accounting/accounting.module';
 import { PortalModule } from '../portal/portal.module';
 import { AuthGatewayModule } from '../auth-gateway/auth-gateway.module';
 import { PartnerOnboardingGatewayModule } from '../partner-onboarding-gateway/partner-onboarding-gateway.module';
+import { CoreEventsController } from './controllers/core-events.controller';
+import { CorePaymentEventsService } from './integration/core-payment-events.service';
+import { CoreSignatureGuard } from './integration/core-signature.guard';
 
 @Module({
   imports: [
@@ -72,6 +76,8 @@ import { PartnerOnboardingGatewayModule } from '../partner-onboarding-gateway/pa
     ReconciliationController,
     CreditRatingController,
     CrmSegmentsController,
+    // P-14: receptor firmado de payment.* de Core.
+    CoreEventsController,
   ],
   providers: [
     B2BSalesCrmRepository,
@@ -86,6 +92,7 @@ import { PartnerOnboardingGatewayModule } from '../partner-onboarding-gateway/pa
     B2BOnboardingService,
     B2BBnplBillingService,
     B2BCoverageService,
+    B2BCoverageReviewService,
     B2BOverdueSweepService,
     B2BOverdueSweepProcessor,
     B2BReconciliationService,
@@ -94,6 +101,8 @@ import { PartnerOnboardingGatewayModule } from '../partner-onboarding-gateway/pa
     CreditRatingRepository,
     B2BCreditRatingService,
     B2BCreditRatingQueryService,
+    CorePaymentEventsService,
+    CoreSignatureGuard,
     JwtAuthGuard,
     RolesGuard,
   ],

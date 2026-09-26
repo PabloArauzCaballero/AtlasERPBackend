@@ -67,7 +67,7 @@ export class BusinessPartnersController {
       action: 'list',
       page: query.page,
       pageSize: query.pageSize,
-      search: query.search ?? null,
+      hasSearch: Boolean(query.search),
       partnerType: query.partnerType ?? null,
     });
     return this.service.list(query);

@@ -20,6 +20,12 @@ describe('Health endpoints (e2e)', () => {
               .fn()
               .mockReturnValue({ status: 'ok', service: 'atlas-integrated-backend' }),
             ready: jest.fn().mockResolvedValue({ status: 'ready', database: 'ok' }),
+            version: jest.fn().mockReturnValue({
+              service: 'atlas-integrated-backend',
+              version: '1.0.0',
+              commit: 'a'.repeat(40),
+              environment: 'dev',
+            }),
           },
         },
       ],
@@ -70,6 +76,28 @@ describe('Health endpoints (e2e)', () => {
             database: 'ok',
           },
         });
+      });
+  });
+
+  it('publica live, ready y versión sin cambiar las rutas heredadas', async () => {
+    if (!app) throw new Error('Aplicación Nest no inicializada.');
+    await request(app.getHttpServer())
+      .get('/api/v1/health/live')
+      .expect(200)
+      .expect((response: Response) => {
+        expect(response.body.data.status).toBe('ok');
+      });
+    await request(app.getHttpServer())
+      .get('/api/v1/health/ready')
+      .expect(200)
+      .expect((response: Response) => {
+        expect(response.body.data.database).toBe('ok');
+      });
+    await request(app.getHttpServer())
+      .get('/api/v1/version')
+      .expect(200)
+      .expect((response: Response) => {
+        expect(response.body.data.commit).toBe('a'.repeat(40));
       });
   });
 });

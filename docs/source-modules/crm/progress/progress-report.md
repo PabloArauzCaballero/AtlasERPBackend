@@ -35,7 +35,7 @@ Se implementó y luego se auditó de forma estricta una API NestJS para el módu
 | Core BNPL externo no incluido                         | Validación real de consumidor/línea no se ejecuta aquí             | Conectar `registerPurchase` con el servicio BNPL real antes de producción |
 | Política exacta de vencimiento/cobertura puede variar | Fechas y estados financieros podrían necesitar ajuste              | Validar con Finanzas/Legal antes del despliegue                           |
 | Tokens JWT dependen del auth central                  | Payload debe coincidir con el sistema principal                    | Ajustar `JwtAuthGuard` a la estrategia auth final                         |
-| No se ejecutó PostgreSQL real en sandbox              | No se validó ejecución física de migración contra una base viva    | Ejecutar `npm run db:migrate`, `npm run db:seed` y smoke en local/CI      |
+| No se ejecutó PostgreSQL real en sandbox              | No se validó ejecución física de migración contra una base viva    | Ejecutar `npm run db:migrate`, `npm run db:seed:pull` y smoke en local/CI |
 
 ## 4. Decisiones clave tomadas
 
