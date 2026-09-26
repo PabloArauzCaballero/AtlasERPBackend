@@ -75,6 +75,7 @@ if (!databaseUrl && databaseRequired) {
       const { LoggerModule } = await import('../src/common/logger/logger.module');
       const { AccountingModule } = await import('../src/modules/accounting/accounting.module');
       const models = await import('../src/modules/b2b-sales-crm/models/b2b-sales-crm.models');
+      const { EventOutboxModel } = await import('../src/database/models');
       const bridgeModule =
         await import('../src/modules/b2b-sales-crm/services/merchant-accounting-bridge.service');
       const documentsModule =
@@ -91,7 +92,7 @@ if (!databaseUrl && databaseRequired) {
           LoggerModule,
           DatabaseModule,
           AccountingModule,
-          SequelizeModule.forFeature([...models.atlasSalesModels]),
+          SequelizeModule.forFeature([...models.atlasSalesModels, EventOutboxModel]),
         ],
         providers: [
           bridgeModule.MerchantAccountingBridgeService,
