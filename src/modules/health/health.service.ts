@@ -15,6 +15,15 @@ export class HealthService {
     return { status: 'ok', service: 'atlas-integrated-backend' };
   }
 
+  version(): { service: string; version: string; commit: string; environment: string } {
+    return {
+      service: 'atlas-integrated-backend',
+      version: process.env.APP_VERSION ?? 'unknown',
+      commit: process.env.APP_COMMIT_SHA ?? 'unknown',
+      environment: process.env.NODE_ENV ?? 'unknown',
+    };
+  }
+
   async ready(): Promise<{ status: 'ready'; database: 'ok' }> {
     const startedAt = Date.now();
     try {

@@ -25,6 +25,7 @@ import {
   SALES_SCHEMA,
   TermType,
 } from '../b2b-sales-crm.enums';
+import { coverageModels } from './coverage.models';
 
 @Table({ schema: SALES_SCHEMA, tableName: 'internal_users', timestamps: false })
 export class InternalUserModel extends Model {
@@ -927,6 +928,20 @@ export class BNPLPurchaseModel extends Model {
   @Column({ type: DataType.DATE, field: 'purchase_date' })
   declare purchaseDate: Date;
 
+  /* Instantánea del MDR cobrado al comprar (P-07, migración 20260924300100). NULL en compras
+   * anteriores: no se inventa la tasa que tuvieron. */
+  @Column({ type: DataType.DECIMAL(9, 6), field: 'mdr_rate_percent' })
+  declare mdrRatePercent: string | null;
+
+  @Column({ type: DataType.DECIMAL(18, 2), field: 'mdr_amount' })
+  declare mdrAmount: string | null;
+
+  @Column({ type: DataType.UUID, field: 'mdr_rule_id' })
+  declare mdrRuleId: string | null;
+
+  @Column({ type: DataType.STRING(40), field: 'mdr_pricing_source' })
+  declare mdrPricingSource: string | null;
+
   @HasMany(() => BNPLInstallmentModel)
   declare installments?: BNPLInstallmentModel[];
 
@@ -992,6 +1007,28 @@ export class ConsumerPaymentToMerchantModel extends Model {
   @Default('REPORTED')
   @Column(DataType.STRING(40))
   declare status: string;
+
+  /* Cuándo supo el ERP del aviso: mide el plazo de verificación de un aviso REPORTED. */
+  @Default(DataType.NOW)
+  @Column({ type: DataType.DATE, field: 'created_at' })
+  declare createdAt: Date;
+
+  /* Quién confirmó o rechazó el aviso desde la cola de revisión (migración 20260924400000). */
+  @Column({ type: DataType.UUID, field: 'decided_by_user_id' })
+  declare decidedByUserId: string | null;
+
+  @Column({ type: DataType.DATE, field: 'decided_at' })
+  declare decidedAt: Date | null;
+
+  @Column({ type: DataType.STRING(240), field: 'decision_note' })
+  declare decisionNote: string | null;
+
+  /* Aviso que llegó de Core (P-14, migración 20260924500000): tenant y aviso de origen. */
+  @Column({ type: DataType.STRING(20), field: 'core_tenant_id' })
+  declare coreTenantId: string | null;
+
+  @Column({ type: DataType.STRING(20), field: 'core_claim_id' })
+  declare coreClaimId: string | null;
 
   @BelongsTo(() => BNPLPurchaseModel)
   declare purchase?: BNPLPurchaseModel;
@@ -1336,6 +1373,33 @@ export class MerchantPayableModel extends Model {
   @Column({ type: DataType.ENUM(...Object.values(PayableStatus)) })
   declare status: PayableStatus;
 
+  @Default('BOB')
+  @Column(DataType.CHAR(3))
+  declare currency: string;
+
+  /* Trazabilidad de la cobertura (migración 20260924200000): quién la pidió, con qué versión
+   * contractual, en qué fecha de negocio y con qué evidencia de elegibilidad. */
+  @Column({ type: DataType.UUID, field: 'requested_by_user_id' })
+  declare requestedByUserId: string | null;
+
+  @Column({ type: DataType.UUID, field: 'contract_version_id' })
+  declare contractVersionId: string | null;
+
+  @Column({ type: DataType.DATEONLY, field: 'business_date' })
+  declare businessDate: string | null;
+
+  @Column({ type: DataType.JSONB, field: 'eligibility_evidence' })
+  declare eligibilityEvidence: Record<string, unknown> | null;
+
+  @Column({ type: DataType.DATE, field: 'cancelled_at' })
+  declare cancelledAt: Date | null;
+
+  @Column({ type: DataType.UUID, field: 'cancelled_by_user_id' })
+  declare cancelledByUserId: string | null;
+
+  @Column({ type: DataType.STRING(240), field: 'cancellation_reason' })
+  declare cancellationReason: string | null;
+
   @BelongsTo(() => BNPLPurchaseModel)
   declare purchase?: BNPLPurchaseModel;
 
@@ -1384,6 +1448,10 @@ export class ConsumerRecoveryReceivableModel extends Model {
   @Default(0)
   @Column({ type: DataType.INTEGER, field: 'days_past_due' })
   declare daysPastDue: number;
+
+  @Default('BOB')
+  @Column(DataType.CHAR(3))
+  declare currency: string;
 }
 
 @Table({ schema: SALES_SCHEMA, tableName: 'reconciliation_runs', timestamps: false })
@@ -1648,4 +1716,6 @@ export const atlasSalesModels = [
   AuditLogModel,
   MerchantPlanModel,
   MerchantSubscriptionModel,
+  /* Liquidaciones de cobertura, movimientos de recuperación y cola de revisión (P-04/P-05). */
+  ...coverageModels,
 ];

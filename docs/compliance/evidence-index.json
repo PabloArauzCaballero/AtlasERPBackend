@@ -1,0 +1,5305 @@
+{
+  "schemaVersion": 1,
+  "repository": "AtlasERPBackend",
+  "generatedAt": "2026-09-24T20:13:15.572Z",
+  "environment": "local",
+  "runUrl": null,
+  "scope": "Requisitos de docs/compliance/requirements/*.json y los 258 casos de docs/compliance/release-scope.json. Denominador: sólo elementos incluidos en el release; los pendientes de decisión y los diferidos se listan aparte y no suman cumplimiento.",
+  "rules": [
+    "VERIFIED sólo si todas las pruebas/comandos mapeados pasaron en candidateSha.",
+    "Una clasificación documental (MODEL_SUPPORTED, etc.) nunca es evidencia.",
+    "Prueba saltada, ausente o de otro SHA no cuenta como pasada.",
+    "DEFERRED exige motivo, impacto y aprobador; sin aprobador cuenta como incluido."
+  ],
+  "candidateSha": "8aa7d442b88ed18c376a2e6a3b499c491b5ab3c8",
+  "sources": [],
+  "invalid": [],
+  "requirements": [
+    {
+      "kind": "requirement",
+      "id": "B02",
+      "packageId": "P-01",
+      "title": "El despliegue DEV depende de los gates de CI del mismo SHA",
+      "releaseIncluded": true,
+      "declaredClassification": null,
+      "ownerRole": "S",
+      "blockedBy": "Se verifica en GitHub Actions (P-01, PR #2/#3 ya en esta rama): hace falta observar un run con CI rojo que no despliega. El orquestador empuja y registra el run.",
+      "countedAsIncluded": true,
+      "status": "BLOCKED",
+      "reasons": [
+        "BLOQUEADO: Se verifica en GitHub Actions (P-01, PR #2/#3 ya en esta rama): hace falta observar un run con CI rojo que no despliega. El orquestador empuja y registra el run."
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "requirement",
+      "id": "B19",
+      "packageId": "P-17",
+      "title": "Restore, rollback integral, credenciales efectivas, alertas e integraciones reales verificados",
+      "releaseIncluded": true,
+      "declaredClassification": null,
+      "ownerRole": "S",
+      "blockedBy": "Requiere entorno y decisiones de operación (SLO/RPO/RTO, proveedores reales); fuera de lo que el repositorio puede demostrar.",
+      "countedAsIncluded": true,
+      "status": "BLOCKED",
+      "reasons": [
+        "BLOQUEADO: Requiere entorno y decisiones de operación (SLO/RPO/RTO, proveedores reales); fuera de lo que el repositorio puede demostrar."
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "requirement",
+      "id": "B20",
+      "packageId": "P-18",
+      "title": "Ciclo S2S completo Core–Engine–ERP con duplicados y fallos parciales",
+      "releaseIncluded": true,
+      "declaredClassification": null,
+      "ownerRole": "I",
+      "blockedBy": "Requiere los tres servicios desplegados juntos y contratos congelados (P-08, P-14, P-18).",
+      "countedAsIncluded": true,
+      "status": "BLOCKED",
+      "reasons": [
+        "BLOQUEADO: Requiere los tres servicios desplegados juntos y contratos congelados (P-08, P-14, P-18)."
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "requirement",
+      "id": "ERP-D01",
+      "packageId": "P-15",
+      "title": "Numeración de asientos: journal_no es único global pero se deriva de una serie por entidad legal",
+      "releaseIncluded": true,
+      "declaredClassification": null,
+      "ownerRole": "E",
+      "blockedBy": "Decisión contable pendiente (E/R): numeración de asientos global o por entidad legal. La corrección depende de ella (migración de la restricción o cambio de formato).",
+      "countedAsIncluded": true,
+      "status": "BLOCKED",
+      "reasons": [
+        "BLOQUEADO: Decisión contable pendiente (E/R): numeración de asientos global o por entidad legal. La corrección depende de ella (migración de la restricción o cambio de formato)."
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "requirement",
+      "id": "ERP-D02",
+      "packageId": "P-12",
+      "title": "db:migrate (camino de desarrollo) migra una base vacía y produce el mismo esquema que db:migrate:prod",
+      "releaseIncluded": true,
+      "declaredClassification": null,
+      "ownerRole": "S",
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "IMPLEMENTED",
+      "reasons": ["NOT-RUN: migrate-dev"],
+      "evidence": [
+        {
+          "kind": "command",
+          "ref": "migrate-dev",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        }
+      ]
+    },
+    {
+      "kind": "requirement",
+      "id": "ERP-D03",
+      "packageId": "P-13",
+      "title": "El alcance por entidad legal se comprueba antes de leer datos de la entidad pedida al crear un asiento",
+      "releaseIncluded": true,
+      "declaredClassification": null,
+      "ownerRole": "E",
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "IMPLEMENTED",
+      "reasons": [
+        "NOT-RUN: test/accounting-documents-db.e2e-spec.ts › Asientos contables por HTTP autenticado sobre base migrada (e2e) rechaza operar sobre una entidad legal fuera del alcance del token (403)"
+      ],
+      "evidence": [
+        {
+          "kind": "test",
+          "ref": "test/accounting-documents-db.e2e-spec.ts › Asientos contables por HTTP autenticado sobre base migrada (e2e) rechaza operar sobre una entidad legal fuera del alcance del token (403)",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        }
+      ]
+    },
+    {
+      "kind": "requirement",
+      "id": "B03",
+      "packageId": "P-02",
+      "title": "Matriz de cumplimiento basada en evidencia del SHA candidato (sin runtimeScopePass fijo)",
+      "releaseIncluded": true,
+      "declaredClassification": null,
+      "ownerRole": "L",
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "IMPLEMENTED",
+      "reasons": [
+        "NOT-RUN: test/compliance-evaluator.spec.ts › Evaluador de cumplimiento basado en evidencia declara VERIFIED sólo cuando todas las pruebas pasaron en el SHA del candidato",
+        "NOT-RUN: test/compliance-evaluator.spec.ts › Evaluador de cumplimiento basado en evidencia incluido sin prueba: DECLARED y la matriz estricta falla",
+        "NOT-RUN: test/compliance-evaluator.spec.ts › Evaluador de cumplimiento basado en evidencia prueba fallida: no se verifica y la matriz estricta falla",
+        "NOT-RUN: test/compliance-evaluator.spec.ts › Evaluador de cumplimiento basado en evidencia resultados de un SHA distinto se rechazan enteros y la matriz falla",
+        "NOT-RUN: test/compliance-evaluator.spec.ts › Evaluador de cumplimiento basado en evidencia resultados alterados después de sellarlos se rechazan",
+        "NOT-RUN: test/compliance-evaluator.spec.ts › Evaluador de cumplimiento basado en evidencia prueba saltada no cuenta como pasada",
+        "NOT-RUN: test/compliance-evaluator.spec.ts › Evaluador de cumplimiento basado en evidencia diferido con aprobación: visible y fuera del denominador",
+        "NOT-RUN: test/compliance-evaluator.spec.ts › Evaluador de cumplimiento basado en evidencia exclusión sin aprobador sigue contando como incluida y visible",
+        "NOT-RUN: test/compliance-evaluator.spec.ts › Evaluador de cumplimiento basado en evidencia MODEL_SUPPORTED sin pruebas nunca se vuelve VERIFIED",
+        "NOT-RUN: test/compliance-release-scope.spec.ts › Alcance del release contra el catálogo de casos de uso la auditoría publicada ya no declara APROBADO por construcción"
+      ],
+      "evidence": [
+        {
+          "kind": "test",
+          "ref": "test/compliance-evaluator.spec.ts › Evaluador de cumplimiento basado en evidencia declara VERIFIED sólo cuando todas las pruebas pasaron en el SHA del candidato",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        },
+        {
+          "kind": "test",
+          "ref": "test/compliance-evaluator.spec.ts › Evaluador de cumplimiento basado en evidencia incluido sin prueba: DECLARED y la matriz estricta falla",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        },
+        {
+          "kind": "test",
+          "ref": "test/compliance-evaluator.spec.ts › Evaluador de cumplimiento basado en evidencia prueba fallida: no se verifica y la matriz estricta falla",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        },
+        {
+          "kind": "test",
+          "ref": "test/compliance-evaluator.spec.ts › Evaluador de cumplimiento basado en evidencia resultados de un SHA distinto se rechazan enteros y la matriz falla",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        },
+        {
+          "kind": "test",
+          "ref": "test/compliance-evaluator.spec.ts › Evaluador de cumplimiento basado en evidencia resultados alterados después de sellarlos se rechazan",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        },
+        {
+          "kind": "test",
+          "ref": "test/compliance-evaluator.spec.ts › Evaluador de cumplimiento basado en evidencia prueba saltada no cuenta como pasada",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        },
+        {
+          "kind": "test",
+          "ref": "test/compliance-evaluator.spec.ts › Evaluador de cumplimiento basado en evidencia diferido con aprobación: visible y fuera del denominador",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        },
+        {
+          "kind": "test",
+          "ref": "test/compliance-evaluator.spec.ts › Evaluador de cumplimiento basado en evidencia exclusión sin aprobador sigue contando como incluida y visible",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        },
+        {
+          "kind": "test",
+          "ref": "test/compliance-evaluator.spec.ts › Evaluador de cumplimiento basado en evidencia MODEL_SUPPORTED sin pruebas nunca se vuelve VERIFIED",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        },
+        {
+          "kind": "test",
+          "ref": "test/compliance-release-scope.spec.ts › Alcance del release contra el catálogo de casos de uso la auditoría publicada ya no declara APROBADO por construcción",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        }
+      ]
+    },
+    {
+      "kind": "requirement",
+      "id": "B04",
+      "packageId": "P-02",
+      "title": "Los 258 casos del catálogo con decisión de alcance explícita (incluido, diferido con aprobación o no aplicable)",
+      "releaseIncluded": true,
+      "declaredClassification": null,
+      "ownerRole": "R",
+      "blockedBy": "Decisión de alcance del rol R pendiente para 210 casos (releaseIncluded=null en docs/compliance/release-scope.json); los 48 incluidos se cierran caso a caso en P-15.",
+      "countedAsIncluded": true,
+      "status": "BLOCKED",
+      "reasons": [
+        "BLOQUEADO: Decisión de alcance del rol R pendiente para 210 casos (releaseIncluded=null en docs/compliance/release-scope.json); los 48 incluidos se cierran caso a caso en P-15.",
+        "NOT-RUN: test/compliance-release-scope.spec.ts › Alcance del release contra el catálogo de casos de uso contiene exactamente los IDs del catálogo, sin perder ni inventar ninguno",
+        "NOT-RUN: test/compliance-release-scope.spec.ts › Alcance del release contra el catálogo de casos de uso conserva la clasificación histórica 46/109/54/49 como dato declarado",
+        "NOT-RUN: test/compliance-release-scope.spec.ts › Alcance del release contra el catálogo de casos de uso no hereda la exclusión de integración: los 54 quedan pendientes de decisión, no excluidos",
+        "NOT-RUN: test/compliance-release-scope.spec.ts › Alcance del release contra el catálogo de casos de uso ningún caso sale del release sin motivo, impacto y aprobador"
+      ],
+      "evidence": [
+        {
+          "kind": "test",
+          "ref": "test/compliance-release-scope.spec.ts › Alcance del release contra el catálogo de casos de uso contiene exactamente los IDs del catálogo, sin perder ni inventar ninguno",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        },
+        {
+          "kind": "test",
+          "ref": "test/compliance-release-scope.spec.ts › Alcance del release contra el catálogo de casos de uso conserva la clasificación histórica 46/109/54/49 como dato declarado",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        },
+        {
+          "kind": "test",
+          "ref": "test/compliance-release-scope.spec.ts › Alcance del release contra el catálogo de casos de uso no hereda la exclusión de integración: los 54 quedan pendientes de decisión, no excluidos",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        },
+        {
+          "kind": "test",
+          "ref": "test/compliance-release-scope.spec.ts › Alcance del release contra el catálogo de casos de uso ningún caso sale del release sin motivo, impacto y aprobador",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        }
+      ]
+    },
+    {
+      "kind": "requirement",
+      "id": "B17",
+      "packageId": "P-02",
+      "title": "La documentación no cita comandos que package.json no tiene",
+      "releaseIncluded": true,
+      "declaredClassification": null,
+      "ownerRole": "Q",
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "IMPLEMENTED",
+      "reasons": [
+        "NOT-RUN: test/doc-commands.spec.ts › Comandos citados en la documentación detecta un script inexistente con yarn, npm run, corepack yarn y node --run",
+        "NOT-RUN: test/doc-commands.spec.ts › Comandos citados en la documentación acepta los scripts que existen y los subcomandos propios de yarn",
+        "NOT-RUN: test/doc-commands.spec.ts › Comandos citados en la documentación no confunde un prefijo con el script completo",
+        "NOT-RUN: check:doc-commands"
+      ],
+      "evidence": [
+        {
+          "kind": "test",
+          "ref": "test/doc-commands.spec.ts › Comandos citados en la documentación detecta un script inexistente con yarn, npm run, corepack yarn y node --run",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        },
+        {
+          "kind": "test",
+          "ref": "test/doc-commands.spec.ts › Comandos citados en la documentación acepta los scripts que existen y los subcomandos propios de yarn",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        },
+        {
+          "kind": "test",
+          "ref": "test/doc-commands.spec.ts › Comandos citados en la documentación no confunde un prefijo con el script completo",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        },
+        {
+          "kind": "command",
+          "ref": "check:doc-commands",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        }
+      ]
+    },
+    {
+      "kind": "requirement",
+      "id": "B16-MIGRACION",
+      "packageId": "P-12",
+      "title": "Base efímera migrada desde cero con el migrador de despliegue, y de forma idempotente",
+      "releaseIncluded": true,
+      "declaredClassification": null,
+      "ownerRole": "S",
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "IMPLEMENTED",
+      "reasons": ["NOT-RUN: migrate-fresh", "NOT-RUN: migrate-idempotent", "NOT-RUN: migrate-dev"],
+      "evidence": [
+        {
+          "kind": "command",
+          "ref": "migrate-fresh",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        },
+        {
+          "kind": "command",
+          "ref": "migrate-idempotent",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        },
+        {
+          "kind": "command",
+          "ref": "migrate-dev",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        }
+      ]
+    },
+    {
+      "kind": "requirement",
+      "id": "B16-ACTUALIZACION",
+      "packageId": "P-12",
+      "title": "Ruta de actualización desde la versión promovida (origin/test) y desde origin/main",
+      "releaseIncluded": true,
+      "declaredClassification": null,
+      "ownerRole": "S",
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "IMPLEMENTED",
+      "reasons": ["NOT-RUN: upgrade-path"],
+      "evidence": [
+        {
+          "kind": "command",
+          "ref": "upgrade-path",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        }
+      ]
+    },
+    {
+      "kind": "requirement",
+      "id": "B16-INVARIANTES",
+      "packageId": "P-12",
+      "title": "Controles financieros de la base probados con SQL directo contra PostgreSQL migrado",
+      "releaseIncluded": true,
+      "declaredClassification": null,
+      "ownerRole": "E",
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "IMPLEMENTED",
+      "reasons": [
+        "NOT-RUN: test/accounting-db-invariants.integration.spec.ts › Invariantes contables en PostgreSQL (accounting-db-invariants) doble partida acepta un asiento cuadrado",
+        "NOT-RUN: test/accounting-db-invariants.integration.spec.ts › Invariantes contables en PostgreSQL (accounting-db-invariants) doble partida rechaza al confirmar un asiento descuadrado (UNBALANCED_JOURNAL)",
+        "NOT-RUN: test/accounting-db-invariants.integration.spec.ts › Invariantes contables en PostgreSQL (accounting-db-invariants) doble partida rechaza descuadrar un asiento ya cuadrado borrando una línea",
+        "NOT-RUN: test/accounting-db-invariants.integration.spec.ts › Invariantes contables en PostgreSQL (accounting-db-invariants) doble partida rechaza una línea con débito y crédito a la vez (CHECK de línea)",
+        "NOT-RUN: test/accounting-db-invariants.integration.spec.ts › Invariantes contables en PostgreSQL (accounting-db-invariants) inmutabilidad de lo publicado (POSTED) rechaza modificar un documento POSTED",
+        "NOT-RUN: test/accounting-db-invariants.integration.spec.ts › Invariantes contables en PostgreSQL (accounting-db-invariants) inmutabilidad de lo publicado (POSTED) rechaza volver a DRAFT un documento POSTED",
+        "NOT-RUN: test/accounting-db-invariants.integration.spec.ts › Invariantes contables en PostgreSQL (accounting-db-invariants) inmutabilidad de lo publicado (POSTED) rechaza alterar el hash de un asiento POSTED",
+        "NOT-RUN: test/accounting-db-invariants.integration.spec.ts › Invariantes contables en PostgreSQL (accounting-db-invariants) inmutabilidad de lo publicado (POSTED) rechaza cambiar importes de líneas de un asiento POSTED",
+        "NOT-RUN: test/accounting-db-invariants.integration.spec.ts › Invariantes contables en PostgreSQL (accounting-db-invariants) inmutabilidad de lo publicado (POSTED) rechaza borrar líneas de un asiento POSTED",
+        "NOT-RUN: test/accounting-db-invariants.integration.spec.ts › Invariantes contables en PostgreSQL (accounting-db-invariants) inmutabilidad de lo publicado (POSTED) rechaza modificar o borrar la bitácora de auditoría del documento",
+        "NOT-RUN: test/accounting-db-invariants.integration.spec.ts › Invariantes contables en PostgreSQL (accounting-db-invariants) inmutabilidad de lo publicado (POSTED) permite la única transición válida: POSTED -> REVERSED enlazando el reverso",
+        "NOT-RUN: test/accounting-db-invariants.integration.spec.ts › Invariantes contables en PostgreSQL (accounting-db-invariants) período cerrado y contexto rechaza contabilizar en un período cerrado (ACCOUNTING_PERIOD_CLOSED)",
+        "NOT-RUN: test/accounting-db-invariants.integration.spec.ts › Invariantes contables en PostgreSQL (accounting-db-invariants) período cerrado y contexto rechaza una fecha de contabilización fuera del período (POSTING_DATE_OUTSIDE_PERIOD)",
+        "NOT-RUN: test/accounting-db-invariants.integration.spec.ts › Invariantes contables en PostgreSQL (accounting-db-invariants) duplicación de origen rechaza dos documentos con la misma clave de origen en el mismo libro",
+        "NOT-RUN: test/accounting-db-invariants.integration.spec.ts › Invariantes contables en PostgreSQL (accounting-db-invariants) duplicación de origen rechaza el mismo evento facturable externo dos veces para un contrato",
+        "NOT-RUN: test/accounting-db-invariants.integration.spec.ts › Invariantes contables en PostgreSQL (accounting-db-invariants) concurrencia de reversos y recibos rechaza un segundo reverso activo del mismo documento",
+        "NOT-RUN: test/accounting-db-invariants.integration.spec.ts › Invariantes contables en PostgreSQL (accounting-db-invariants) concurrencia de reversos y recibos dos recibos concurrentes no aplican más que el saldo de la factura"
+      ],
+      "evidence": [
+        {
+          "kind": "test",
+          "ref": "test/accounting-db-invariants.integration.spec.ts › Invariantes contables en PostgreSQL (accounting-db-invariants) doble partida acepta un asiento cuadrado",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        },
+        {
+          "kind": "test",
+          "ref": "test/accounting-db-invariants.integration.spec.ts › Invariantes contables en PostgreSQL (accounting-db-invariants) doble partida rechaza al confirmar un asiento descuadrado (UNBALANCED_JOURNAL)",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        },
+        {
+          "kind": "test",
+          "ref": "test/accounting-db-invariants.integration.spec.ts › Invariantes contables en PostgreSQL (accounting-db-invariants) doble partida rechaza descuadrar un asiento ya cuadrado borrando una línea",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        },
+        {
+          "kind": "test",
+          "ref": "test/accounting-db-invariants.integration.spec.ts › Invariantes contables en PostgreSQL (accounting-db-invariants) doble partida rechaza una línea con débito y crédito a la vez (CHECK de línea)",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        },
+        {
+          "kind": "test",
+          "ref": "test/accounting-db-invariants.integration.spec.ts › Invariantes contables en PostgreSQL (accounting-db-invariants) inmutabilidad de lo publicado (POSTED) rechaza modificar un documento POSTED",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        },
+        {
+          "kind": "test",
+          "ref": "test/accounting-db-invariants.integration.spec.ts › Invariantes contables en PostgreSQL (accounting-db-invariants) inmutabilidad de lo publicado (POSTED) rechaza volver a DRAFT un documento POSTED",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        },
+        {
+          "kind": "test",
+          "ref": "test/accounting-db-invariants.integration.spec.ts › Invariantes contables en PostgreSQL (accounting-db-invariants) inmutabilidad de lo publicado (POSTED) rechaza alterar el hash de un asiento POSTED",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        },
+        {
+          "kind": "test",
+          "ref": "test/accounting-db-invariants.integration.spec.ts › Invariantes contables en PostgreSQL (accounting-db-invariants) inmutabilidad de lo publicado (POSTED) rechaza cambiar importes de líneas de un asiento POSTED",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        },
+        {
+          "kind": "test",
+          "ref": "test/accounting-db-invariants.integration.spec.ts › Invariantes contables en PostgreSQL (accounting-db-invariants) inmutabilidad de lo publicado (POSTED) rechaza borrar líneas de un asiento POSTED",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        },
+        {
+          "kind": "test",
+          "ref": "test/accounting-db-invariants.integration.spec.ts › Invariantes contables en PostgreSQL (accounting-db-invariants) inmutabilidad de lo publicado (POSTED) rechaza modificar o borrar la bitácora de auditoría del documento",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        },
+        {
+          "kind": "test",
+          "ref": "test/accounting-db-invariants.integration.spec.ts › Invariantes contables en PostgreSQL (accounting-db-invariants) inmutabilidad de lo publicado (POSTED) permite la única transición válida: POSTED -> REVERSED enlazando el reverso",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        },
+        {
+          "kind": "test",
+          "ref": "test/accounting-db-invariants.integration.spec.ts › Invariantes contables en PostgreSQL (accounting-db-invariants) período cerrado y contexto rechaza contabilizar en un período cerrado (ACCOUNTING_PERIOD_CLOSED)",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        },
+        {
+          "kind": "test",
+          "ref": "test/accounting-db-invariants.integration.spec.ts › Invariantes contables en PostgreSQL (accounting-db-invariants) período cerrado y contexto rechaza una fecha de contabilización fuera del período (POSTING_DATE_OUTSIDE_PERIOD)",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        },
+        {
+          "kind": "test",
+          "ref": "test/accounting-db-invariants.integration.spec.ts › Invariantes contables en PostgreSQL (accounting-db-invariants) duplicación de origen rechaza dos documentos con la misma clave de origen en el mismo libro",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        },
+        {
+          "kind": "test",
+          "ref": "test/accounting-db-invariants.integration.spec.ts › Invariantes contables en PostgreSQL (accounting-db-invariants) duplicación de origen rechaza el mismo evento facturable externo dos veces para un contrato",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        },
+        {
+          "kind": "test",
+          "ref": "test/accounting-db-invariants.integration.spec.ts › Invariantes contables en PostgreSQL (accounting-db-invariants) concurrencia de reversos y recibos rechaza un segundo reverso activo del mismo documento",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        },
+        {
+          "kind": "test",
+          "ref": "test/accounting-db-invariants.integration.spec.ts › Invariantes contables en PostgreSQL (accounting-db-invariants) concurrencia de reversos y recibos dos recibos concurrentes no aplican más que el saldo de la factura",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        }
+      ]
+    },
+    {
+      "kind": "requirement",
+      "id": "B16-AUTOPRUEBA",
+      "packageId": "P-12",
+      "title": "El gate contable se pone rojo si falta el control que vigila (mutaciones)",
+      "releaseIncluded": true,
+      "declaredClassification": null,
+      "ownerRole": "Q",
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "IMPLEMENTED",
+      "reasons": ["NOT-RUN: gate-self-test"],
+      "evidence": [
+        {
+          "kind": "command",
+          "ref": "gate-self-test",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        }
+      ]
+    },
+    {
+      "kind": "requirement",
+      "id": "B16-E2E",
+      "packageId": "P-12",
+      "title": "E2E autenticados que leen y escriben tablas migradas",
+      "releaseIncluded": true,
+      "declaredClassification": null,
+      "ownerRole": "Q",
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "IMPLEMENTED",
+      "reasons": [
+        "NOT-RUN: test/accounting-documents-db.e2e-spec.ts › Asientos contables por HTTP autenticado sobre base migrada (e2e) rechaza sin token (401) y no escribe nada",
+        "NOT-RUN: test/accounting-documents-db.e2e-spec.ts › Asientos contables por HTTP autenticado sobre base migrada (e2e) rechaza un rol sin permiso contable (403)",
+        "NOT-RUN: test/accounting-documents-db.e2e-spec.ts › Asientos contables por HTTP autenticado sobre base migrada (e2e) rechaza operar sobre una entidad legal fuera del alcance del token (403)",
+        "NOT-RUN: test/accounting-documents-db.e2e-spec.ts › Asientos contables por HTTP autenticado sobre base migrada (e2e) rechaza un borrador descuadrado sin escribirlo",
+        "NOT-RUN: test/accounting-documents-db.e2e-spec.ts › Asientos contables por HTTP autenticado sobre base migrada (e2e) crea, publica y revierte un asiento; la base refleja cada paso",
+        "NOT-RUN: test/accounting-documents-db.e2e-spec.ts › Asientos contables por HTTP autenticado sobre base migrada (e2e) lee por HTTP lo que la base tiene para la entidad del token"
+      ],
+      "evidence": [
+        {
+          "kind": "test",
+          "ref": "test/accounting-documents-db.e2e-spec.ts › Asientos contables por HTTP autenticado sobre base migrada (e2e) rechaza sin token (401) y no escribe nada",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        },
+        {
+          "kind": "test",
+          "ref": "test/accounting-documents-db.e2e-spec.ts › Asientos contables por HTTP autenticado sobre base migrada (e2e) rechaza un rol sin permiso contable (403)",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        },
+        {
+          "kind": "test",
+          "ref": "test/accounting-documents-db.e2e-spec.ts › Asientos contables por HTTP autenticado sobre base migrada (e2e) rechaza operar sobre una entidad legal fuera del alcance del token (403)",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        },
+        {
+          "kind": "test",
+          "ref": "test/accounting-documents-db.e2e-spec.ts › Asientos contables por HTTP autenticado sobre base migrada (e2e) rechaza un borrador descuadrado sin escribirlo",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        },
+        {
+          "kind": "test",
+          "ref": "test/accounting-documents-db.e2e-spec.ts › Asientos contables por HTTP autenticado sobre base migrada (e2e) crea, publica y revierte un asiento; la base refleja cada paso",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        },
+        {
+          "kind": "test",
+          "ref": "test/accounting-documents-db.e2e-spec.ts › Asientos contables por HTTP autenticado sobre base migrada (e2e) lee por HTTP lo que la base tiene para la entidad del token",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        }
+      ]
+    },
+    {
+      "kind": "requirement",
+      "id": "B16-SUMINISTRO",
+      "packageId": "P-12",
+      "title": "Auditoría de dependencias, SAST e imagen escaneada con artefactos",
+      "releaseIncluded": true,
+      "declaredClassification": null,
+      "ownerRole": "S",
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "IMPLEMENTED",
+      "reasons": [
+        "NOT-RUN: job:dependency-audit",
+        "NOT-RUN: job:codeql",
+        "NOT-RUN: job:image-scan"
+      ],
+      "evidence": [
+        {
+          "kind": "command",
+          "ref": "job:dependency-audit",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        },
+        {
+          "kind": "command",
+          "ref": "job:codeql",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        },
+        {
+          "kind": "command",
+          "ref": "job:image-scan",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        }
+      ]
+    }
+  ],
+  "useCases": [
+    {
+      "kind": "useCase",
+      "id": "UC_ConfigEntidad",
+      "packageId": null,
+      "title": "Configuración financiera maestra · Configurar entidad legal",
+      "releaseIncluded": true,
+      "declaredClassification": "PRODUCTION_COVERED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "DECLARED",
+      "reasons": ["SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ConfigSucursales",
+      "packageId": null,
+      "title": "Configuración financiera maestra · Configurar sucursales",
+      "releaseIncluded": true,
+      "declaredClassification": "PRODUCTION_COVERED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "DECLARED",
+      "reasons": ["SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ConfigCalendario",
+      "packageId": null,
+      "title": "Configuración financiera maestra · Configurar calendario fiscal",
+      "releaseIncluded": true,
+      "declaredClassification": "PRODUCTION_COVERED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "DECLARED",
+      "reasons": ["SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_Periodos",
+      "packageId": null,
+      "title": "Configuración financiera maestra · Abrir y cerrar periodos contables",
+      "releaseIncluded": true,
+      "declaredClassification": "PRODUCTION_COVERED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "DECLARED",
+      "reasons": ["SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ConfigLedgers",
+      "packageId": null,
+      "title": "Configuración financiera maestra · Configurar ledgers contables Local/Gestión/IFRS",
+      "releaseIncluded": true,
+      "declaredClassification": "PRODUCTION_COVERED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "DECLARED",
+      "reasons": ["SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_PlanCuentas",
+      "packageId": null,
+      "title": "Configuración financiera maestra · Configurar plan de cuentas",
+      "releaseIncluded": true,
+      "declaredClassification": "PRODUCTION_COVERED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "DECLARED",
+      "reasons": ["SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_CuentasGL",
+      "packageId": null,
+      "title": "Configuración financiera maestra · Crear cuentas contables GL",
+      "releaseIncluded": true,
+      "declaredClassification": "PRODUCTION_COVERED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "DECLARED",
+      "reasons": ["SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_CuentasControl",
+      "packageId": null,
+      "title": "Configuración financiera maestra · Configurar cuentas de control",
+      "releaseIncluded": true,
+      "declaredClassification": "PRODUCTION_COVERED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "DECLARED",
+      "reasons": ["SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_CentrosCosto",
+      "packageId": null,
+      "title": "Configuración financiera maestra · Configurar centros de costo",
+      "releaseIncluded": null,
+      "declaredClassification": "DOCUMENTED_EXTENSION_POINT",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_CentrosBeneficio",
+      "packageId": null,
+      "title": "Configuración financiera maestra · Configurar centros de beneficio",
+      "releaseIncluded": null,
+      "declaredClassification": "DOCUMENTED_EXTENSION_POINT",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_Monedas",
+      "packageId": null,
+      "title": "Configuración financiera maestra · Configurar monedas y tipos de cambio",
+      "releaseIncluded": null,
+      "declaredClassification": "DOCUMENTED_EXTENSION_POINT",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_Impuestos",
+      "packageId": null,
+      "title": "Configuración financiera maestra · Configurar impuestos",
+      "releaseIncluded": true,
+      "declaredClassification": "PRODUCTION_COVERED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "DECLARED",
+      "reasons": ["SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_VersionReglas",
+      "packageId": null,
+      "title": "Configuración financiera maestra · Versionar reglas contables",
+      "releaseIncluded": true,
+      "declaredClassification": "PRODUCTION_COVERED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "DECLARED",
+      "reasons": ["SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ReglasPosting",
+      "packageId": null,
+      "title": "Configuración financiera maestra · Configurar reglas automáticas de contabilización",
+      "releaseIncluded": true,
+      "declaredClassification": "PRODUCTION_COVERED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "DECLARED",
+      "reasons": ["SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_PerfilesAprobacion",
+      "packageId": null,
+      "title": "Configuración financiera maestra · Configurar perfiles de aprobación",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_Permisos",
+      "packageId": null,
+      "title": "Configuración financiera maestra · Configurar matriz de permisos contables",
+      "releaseIncluded": true,
+      "declaredClassification": "PRODUCTION_COVERED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "DECLARED",
+      "reasons": ["SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_CrearBP",
+      "packageId": null,
+      "title": "Maestro único de terceros / Business Partner · Crear Business Partner",
+      "releaseIncluded": true,
+      "declaredClassification": "PRODUCTION_COVERED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "DECLARED",
+      "reasons": ["SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_RolBP",
+      "packageId": null,
+      "title": "Maestro único de terceros / Business Partner · Clasificar rol del tercero",
+      "releaseIncluded": true,
+      "declaredClassification": "PRODUCTION_COVERED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "DECLARED",
+      "reasons": ["SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_BPClienteCorp",
+      "packageId": null,
+      "title": "Maestro único de terceros / Business Partner · Registrar cliente corporativo",
+      "releaseIncluded": true,
+      "declaredClassification": "PRODUCTION_COVERED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "DECLARED",
+      "reasons": ["SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_BPComercio",
+      "packageId": null,
+      "title": "Maestro único de terceros / Business Partner · Registrar comercio afiliado",
+      "releaseIncluded": true,
+      "declaredClassification": "PRODUCTION_COVERED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "DECLARED",
+      "reasons": ["SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_BPConsumidor",
+      "packageId": null,
+      "title": "Maestro único de terceros / Business Partner · Registrar consumidor asociado",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_BPProveedor",
+      "packageId": null,
+      "title": "Maestro único de terceros / Business Partner · Registrar proveedor",
+      "releaseIncluded": true,
+      "declaredClassification": "PRODUCTION_COVERED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "DECLARED",
+      "reasons": ["SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_BPBanco",
+      "packageId": null,
+      "title": "Maestro único de terceros / Business Partner · Registrar banco",
+      "releaseIncluded": true,
+      "declaredClassification": "PRODUCTION_COVERED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "DECLARED",
+      "reasons": ["SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_BPLender",
+      "packageId": null,
+      "title": "Maestro único de terceros / Business Partner · Registrar lender / acreedor",
+      "releaseIncluded": true,
+      "declaredClassification": "PRODUCTION_COVERED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "DECLARED",
+      "reasons": ["SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_BPSocio",
+      "packageId": null,
+      "title": "Maestro único de terceros / Business Partner · Registrar socio / accionista",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_BPIntercompany",
+      "packageId": null,
+      "title": "Maestro único de terceros / Business Partner · Registrar intercompany",
+      "releaseIncluded": true,
+      "declaredClassification": "PRODUCTION_COVERED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "DECLARED",
+      "reasons": ["SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_DatosFiscalesBP",
+      "packageId": null,
+      "title": "Maestro único de terceros / Business Partner · Gestionar datos fiscales del tercero",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_CuentasBancariasBP",
+      "packageId": null,
+      "title": "Maestro único de terceros / Business Partner · Gestionar cuentas bancarias del tercero",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ValidarKYC",
+      "packageId": null,
+      "title": "Maestro único de terceros / Business Partner · Validar KYB / KYC del tercero",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_BloquearBP",
+      "packageId": null,
+      "title": "Maestro único de terceros / Business Partner · Bloquear o suspender tercero",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_HistorialBP",
+      "packageId": null,
+      "title": "Maestro único de terceros / Business Partner · Consultar historial financiero del tercero",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ContratoComercio",
+      "packageId": null,
+      "title": "Contratos, tarifas y condiciones comerciales · Crear contrato con comercio",
+      "releaseIncluded": true,
+      "declaredClassification": "PRODUCTION_COVERED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "DECLARED",
+      "reasons": ["SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ContratoCorp",
+      "packageId": null,
+      "title": "Contratos, tarifas y condiciones comerciales · Crear contrato con cliente corporativo",
+      "releaseIncluded": true,
+      "declaredClassification": "PRODUCTION_COVERED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "DECLARED",
+      "reasons": ["SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ContratoIntercompany",
+      "packageId": null,
+      "title": "Contratos, tarifas y condiciones comerciales · Crear contrato intercompany",
+      "releaseIncluded": true,
+      "declaredClassification": "PRODUCTION_COVERED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "DECLARED",
+      "reasons": ["SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ContratoProveedor",
+      "packageId": null,
+      "title": "Contratos, tarifas y condiciones comerciales · Crear contrato con proveedor",
+      "releaseIncluded": true,
+      "declaredClassification": "PRODUCTION_COVERED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "DECLARED",
+      "reasons": ["SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ContratoDeuda",
+      "packageId": null,
+      "title": "Contratos, tarifas y condiciones comerciales · Crear contrato de deuda / préstamo",
+      "releaseIncluded": true,
+      "declaredClassification": "PRODUCTION_COVERED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "DECLARED",
+      "reasons": ["SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_DefinirMDR",
+      "packageId": null,
+      "title": "Contratos, tarifas y condiciones comerciales · Definir MDR por comercio",
+      "releaseIncluded": true,
+      "declaredClassification": "PRODUCTION_COVERED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "DECLARED",
+      "reasons": ["SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_TarifaSaaS",
+      "packageId": null,
+      "title": "Contratos, tarifas y condiciones comerciales · Definir tarifa SaaS corporativa",
+      "releaseIncluded": true,
+      "declaredClassification": "PRODUCTION_COVERED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "DECLARED",
+      "reasons": ["SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_FeeImplementacion",
+      "packageId": null,
+      "title": "Contratos, tarifas y condiciones comerciales · Definir fee de implementación",
+      "releaseIncluded": true,
+      "declaredClassification": "PRODUCTION_COVERED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "DECLARED",
+      "reasons": ["SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_Penalidades",
+      "packageId": null,
+      "title": "Contratos, tarifas y condiciones comerciales · Definir penalidades y cargos",
+      "releaseIncluded": null,
+      "declaredClassification": "DOCUMENTED_EXTENSION_POINT",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_CondicionesPago",
+      "packageId": null,
+      "title": "Contratos, tarifas y condiciones comerciales · Definir condiciones de pago",
+      "releaseIncluded": true,
+      "declaredClassification": "PRODUCTION_COVERED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "DECLARED",
+      "reasons": ["SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_CoberturaComercio",
+      "packageId": null,
+      "title": "Contratos, tarifas y condiciones comerciales · Definir garantías o coberturas a comercios",
+      "releaseIncluded": true,
+      "declaredClassification": "PRODUCTION_COVERED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "DECLARED",
+      "reasons": ["SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_VersionContrato",
+      "packageId": null,
+      "title": "Contratos, tarifas y condiciones comerciales · Versionar términos contractuales",
+      "releaseIncluded": true,
+      "declaredClassification": "PRODUCTION_COVERED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "DECLARED",
+      "reasons": ["SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_AprobarContratoFin",
+      "packageId": null,
+      "title": "Contratos, tarifas y condiciones comerciales · Aprobar contrato financiero",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_SoporteContrato",
+      "packageId": null,
+      "title": "Contratos, tarifas y condiciones comerciales · Adjuntar soporte contractual",
+      "releaseIncluded": null,
+      "declaredClassification": "DOCUMENTED_EXTENSION_POINT",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_EventoFacturable",
+      "packageId": null,
+      "title": "Facturación comercial y fiscal · Generar evento facturable",
+      "releaseIncluded": true,
+      "declaredClassification": "PRODUCTION_COVERED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "DECLARED",
+      "reasons": ["SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_FacturaMDR",
+      "packageId": null,
+      "title": "Facturación comercial y fiscal · Calcular factura por MDR",
+      "releaseIncluded": true,
+      "declaredClassification": "PRODUCTION_COVERED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "DECLARED",
+      "reasons": ["SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_FacturaSaaS",
+      "packageId": null,
+      "title": "Facturación comercial y fiscal · Calcular factura SaaS corporativa",
+      "releaseIncluded": true,
+      "declaredClassification": "PRODUCTION_COVERED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "DECLARED",
+      "reasons": ["SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_FacturaImplementacion",
+      "packageId": null,
+      "title": "Facturación comercial y fiscal · Calcular factura por implementación",
+      "releaseIncluded": true,
+      "declaredClassification": "PRODUCTION_COVERED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "DECLARED",
+      "reasons": ["SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_FacturaIntercompany",
+      "packageId": null,
+      "title": "Facturación comercial y fiscal · Calcular factura intercompany",
+      "releaseIncluded": true,
+      "declaredClassification": "PRODUCTION_COVERED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "DECLARED",
+      "reasons": ["SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_GenerarFactura",
+      "packageId": null,
+      "title": "Facturación comercial y fiscal · Generar factura comercial",
+      "releaseIncluded": true,
+      "declaredClassification": "PRODUCTION_COVERED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "DECLARED",
+      "reasons": ["SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_EmitirFacturaSIN",
+      "packageId": null,
+      "title": "Facturación comercial y fiscal · Emitir factura electrónica SIN",
+      "releaseIncluded": true,
+      "declaredClassification": "PRODUCTION_COVERED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "DECLARED",
+      "reasons": ["SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_CUFCUFD",
+      "packageId": null,
+      "title": "Facturación comercial y fiscal · Generar CUF / CUFD",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_EnviarXML",
+      "packageId": null,
+      "title": "Facturación comercial y fiscal · Enviar XML fiscal",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_EstadoFacturaFiscal",
+      "packageId": null,
+      "title": "Facturación comercial y fiscal · Consultar estado de factura fiscal",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ContingenciaFiscal",
+      "packageId": null,
+      "title": "Facturación comercial y fiscal · Gestionar contingencia de facturación",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_NotaCredito",
+      "packageId": null,
+      "title": "Facturación comercial y fiscal · Emitir nota de crédito",
+      "releaseIncluded": null,
+      "declaredClassification": "DOCUMENTED_EXTENSION_POINT",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_NotaDebito",
+      "packageId": null,
+      "title": "Facturación comercial y fiscal · Emitir nota de débito",
+      "releaseIncluded": null,
+      "declaredClassification": "DOCUMENTED_EXTENSION_POINT",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_AnularFactura",
+      "packageId": null,
+      "title": "Facturación comercial y fiscal · Anular factura",
+      "releaseIncluded": null,
+      "declaredClassification": "DOCUMENTED_EXTENSION_POINT",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ReprocesarFactura",
+      "packageId": null,
+      "title": "Facturación comercial y fiscal · Reprocesar factura rechazada",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_EnviarFacturaCliente",
+      "packageId": null,
+      "title": "Facturación comercial y fiscal · Enviar factura al cliente",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_DisputaFactura",
+      "packageId": null,
+      "title": "Facturación comercial y fiscal · Registrar disputa de factura",
+      "releaseIncluded": null,
+      "declaredClassification": "DOCUMENTED_EXTENSION_POINT",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_CrearCxC",
+      "packageId": null,
+      "title": "Cuentas por cobrar / AR · Crear cuenta por cobrar",
+      "releaseIncluded": true,
+      "declaredClassification": "PRODUCTION_COVERED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "DECLARED",
+      "reasons": ["SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_SubmayorAR",
+      "packageId": null,
+      "title": "Cuentas por cobrar / AR · Registrar submayor AR",
+      "releaseIncluded": true,
+      "declaredClassification": "PRODUCTION_COVERED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "DECLARED",
+      "reasons": ["SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_EstadoCuentaCliente",
+      "packageId": null,
+      "title": "Cuentas por cobrar / AR · Consultar estado de cuenta de cliente",
+      "releaseIncluded": null,
+      "declaredClassification": "DOCUMENTED_EXTENSION_POINT",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_AgingAR",
+      "packageId": null,
+      "title": "Cuentas por cobrar / AR · Consultar antigüedad de saldos AR",
+      "releaseIncluded": null,
+      "declaredClassification": "DOCUMENTED_EXTENSION_POINT",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_AplicarCobro",
+      "packageId": null,
+      "title": "Cuentas por cobrar / AR · Aplicar cobranza a factura",
+      "releaseIncluded": true,
+      "declaredClassification": "PRODUCTION_COVERED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "DECLARED",
+      "reasons": ["SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_PagoParcialAR",
+      "packageId": null,
+      "title": "Cuentas por cobrar / AR · Aplicar pago parcial",
+      "releaseIncluded": true,
+      "declaredClassification": "PRODUCTION_COVERED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "DECLARED",
+      "reasons": ["SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_CompensarNC",
+      "packageId": null,
+      "title": "Cuentas por cobrar / AR · Compensar factura con nota de crédito",
+      "releaseIncluded": null,
+      "declaredClassification": "DOCUMENTED_EXTENSION_POINT",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ReclasificarAR",
+      "packageId": null,
+      "title": "Cuentas por cobrar / AR · Reclasificar AR corriente / vencida",
+      "releaseIncluded": null,
+      "declaredClassification": "DOCUMENTED_EXTENSION_POINT",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_WriteOffAR",
+      "packageId": null,
+      "title": "Cuentas por cobrar / AR · Registrar incobrable / write-off",
+      "releaseIncluded": null,
+      "declaredClassification": "DOCUMENTED_EXTENSION_POINT",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_AprobarWriteOff",
+      "packageId": null,
+      "title": "Cuentas por cobrar / AR · Aprobar write-off",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ECLAR",
+      "packageId": null,
+      "title": "Cuentas por cobrar / AR · Registrar provisión ECL / deterioro AR",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ConciliarARGL",
+      "packageId": null,
+      "title": "Cuentas por cobrar / AR · Conciliar AR con mayor contable",
+      "releaseIncluded": true,
+      "declaredClassification": "PRODUCTION_COVERED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "DECLARED",
+      "reasons": ["SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ExportarEstadoCliente",
+      "packageId": null,
+      "title": "Cuentas por cobrar / AR · Exportar estado de cuenta para cliente",
+      "releaseIncluded": null,
+      "declaredClassification": "DOCUMENTED_EXTENSION_POINT",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_FacturaProveedor",
+      "packageId": null,
+      "title": "Cuentas por pagar / AP · Registrar factura de proveedor",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ValidarFacturaProveedor",
+      "packageId": null,
+      "title": "Cuentas por pagar / AP · Validar factura de proveedor",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_AsignarCentroCosto",
+      "packageId": null,
+      "title": "Cuentas por pagar / AP · Asignar centro de costo a gasto",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_CrearCxP",
+      "packageId": null,
+      "title": "Cuentas por pagar / AP · Crear cuenta por pagar",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_SubmayorAP",
+      "packageId": null,
+      "title": "Cuentas por pagar / AP · Registrar submayor AP",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_AgingAP",
+      "packageId": null,
+      "title": "Cuentas por pagar / AP · Consultar antigüedad de saldos AP",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ProgramarPagoProveedor",
+      "packageId": null,
+      "title": "Cuentas por pagar / AP · Programar pago a proveedor",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_AprobarPagoProveedor",
+      "packageId": null,
+      "title": "Cuentas por pagar / AP · Aprobar pago a proveedor",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_EjecutarPagoProveedor",
+      "packageId": null,
+      "title": "Cuentas por pagar / AP · Ejecutar pago a proveedor",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_Retenciones",
+      "packageId": null,
+      "title": "Cuentas por pagar / AP · Registrar retenciones fiscales",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_NCProveedor",
+      "packageId": null,
+      "title": "Cuentas por pagar / AP · Aplicar nota de crédito proveedor",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ConciliarAPGL",
+      "packageId": null,
+      "title": "Cuentas por pagar / AP · Conciliar AP con mayor contable",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_CuentaBancariaInterna",
+      "packageId": null,
+      "title": "Tesorería, bancos y liquidez · Crear cuenta bancaria interna",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_AprobarCuentaBanco",
+      "packageId": null,
+      "title": "Tesorería, bancos y liquidez · Aprobar alta de cuenta bancaria",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ImportarExtracto",
+      "packageId": null,
+      "title": "Tesorería, bancos y liquidez · Importar extracto bancario",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_MovimientoBancario",
+      "packageId": null,
+      "title": "Tesorería, bancos y liquidez · Registrar movimiento bancario",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ConciliarBancoAR",
+      "packageId": null,
+      "title": "Tesorería, bancos y liquidez · Conciliar banco contra AR",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ConciliarBancoAP",
+      "packageId": null,
+      "title": "Tesorería, bancos y liquidez · Conciliar banco contra AP",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ConciliarBancoGL",
+      "packageId": null,
+      "title": "Tesorería, bancos y liquidez · Conciliar banco contra GL",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_PartidasNoIdentificadas",
+      "packageId": null,
+      "title": "Tesorería, bancos y liquidez · Gestionar partidas no identificadas",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_TransferenciaInterna",
+      "packageId": null,
+      "title": "Tesorería, bancos y liquidez · Registrar transferencia interna",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ComisionesBanco",
+      "packageId": null,
+      "title": "Tesorería, bancos y liquidez · Registrar comisiones bancarias",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_FlujoCaja",
+      "packageId": null,
+      "title": "Tesorería, bancos y liquidez · Gestionar flujo de caja",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ProyeccionLiquidez",
+      "packageId": null,
+      "title": "Tesorería, bancos y liquidez · Proyectar liquidez",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_CashForecast",
+      "packageId": null,
+      "title": "Tesorería, bancos y liquidez · Gestionar cash forecast",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_SaldosMinimos",
+      "packageId": null,
+      "title": "Tesorería, bancos y liquidez · Controlar saldos mínimos",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_PaymentRun",
+      "packageId": null,
+      "title": "Tesorería, bancos y liquidez · Ejecutar payment run",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_BloquearPago",
+      "packageId": null,
+      "title": "Tesorería, bancos y liquidez · Bloquear pago sospechoso",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_PrestamoBanco",
+      "packageId": null,
+      "title": "Deuda empresarial y pasivos financieros · Registrar préstamo bancario",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_LineaCredito",
+      "packageId": null,
+      "title": "Deuda empresarial y pasivos financieros · Registrar línea de crédito revolving",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_DeudaInversionista",
+      "packageId": null,
+      "title": "Deuda empresarial y pasivos financieros · Registrar deuda con inversionista",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_BonoPagare",
+      "packageId": null,
+      "title": "Deuda empresarial y pasivos financieros · Registrar bono / pagaré",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_DeudaIntercompany",
+      "packageId": null,
+      "title": "Deuda empresarial y pasivos financieros · Registrar deuda intercompany",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_CronogramaDeuda",
+      "packageId": null,
+      "title": "Deuda empresarial y pasivos financieros · Crear cronograma de deuda",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_DevengarInteres",
+      "packageId": null,
+      "title": "Deuda empresarial y pasivos financieros · Devengar intereses",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_InteresPorPagar",
+      "packageId": null,
+      "title": "Deuda empresarial y pasivos financieros · Registrar intereses por pagar",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_PagarCuotaDeuda",
+      "packageId": null,
+      "title": "Deuda empresarial y pasivos financieros · Pagar cuota de deuda",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_SepararCapitalInteres",
+      "packageId": null,
+      "title": "Deuda empresarial y pasivos financieros · Separar capital, interés y fee",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ReclasificarDeuda",
+      "packageId": null,
+      "title": "Deuda empresarial y pasivos financieros · Reclasificar deuda CP / LP",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_Refinanciamiento",
+      "packageId": null,
+      "title": "Deuda empresarial y pasivos financieros · Registrar refinanciamiento",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_Covenant",
+      "packageId": null,
+      "title": "Deuda empresarial y pasivos financieros · Registrar covenant financiero",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_MonitorearCovenant",
+      "packageId": null,
+      "title": "Deuda empresarial y pasivos financieros · Monitorear cumplimiento de covenant",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ReporteDeuda",
+      "packageId": null,
+      "title": "Deuda empresarial y pasivos financieros · Reportar deuda a CFO / Directorio",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ActivoFijo",
+      "packageId": null,
+      "title": "Activos, intangibles y diferidos · Registrar activo fijo",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_EquipoTecnologico",
+      "packageId": null,
+      "title": "Activos, intangibles y diferidos · Registrar equipo tecnológico",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_SoftwareCapitalizado",
+      "packageId": null,
+      "title": "Activos, intangibles y diferidos · Registrar software propio capitalizado",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_LicenciaCapitalizada",
+      "packageId": null,
+      "title": "Activos, intangibles y diferidos · Registrar licencia capitalizada",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_Intangible",
+      "packageId": null,
+      "title": "Activos, intangibles y diferidos · Registrar activo intangible",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ActivoDiferido",
+      "packageId": null,
+      "title": "Activos, intangibles y diferidos · Registrar activo diferido",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_GarantiaEntregada",
+      "packageId": null,
+      "title": "Activos, intangibles y diferidos · Registrar garantía entregada",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_DepositoEntregado",
+      "packageId": null,
+      "title": "Activos, intangibles y diferidos · Registrar depósito entregado",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ActivoEnServicio",
+      "packageId": null,
+      "title": "Activos, intangibles y diferidos · Poner activo en servicio",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_Depreciacion",
+      "packageId": null,
+      "title": "Activos, intangibles y diferidos · Calcular depreciación",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_Amortizacion",
+      "packageId": null,
+      "title": "Activos, intangibles y diferidos · Calcular amortización",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_BajaActivo",
+      "packageId": null,
+      "title": "Activos, intangibles y diferidos · Registrar baja de activo",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_DeterioroActivo",
+      "packageId": null,
+      "title": "Activos, intangibles y diferidos · Registrar deterioro de activo",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ConciliarActivosGL",
+      "packageId": null,
+      "title": "Activos, intangibles y diferidos · Conciliar submayor de activos con GL",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_InventarioActivos",
+      "packageId": null,
+      "title": "Activos, intangibles y diferidos · Generar inventario de activos",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_CapitalSocial",
+      "packageId": null,
+      "title": "Patrimonio, capital y socios · Registrar capital social",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_AporteSocio",
+      "packageId": null,
+      "title": "Patrimonio, capital y socios · Registrar aporte de socio",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_AporteCapitalizar",
+      "packageId": null,
+      "title": "Patrimonio, capital y socios · Registrar aporte por capitalizar",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_CapitalizarAporte",
+      "packageId": null,
+      "title": "Patrimonio, capital y socios · Capitalizar aporte",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_PrimaEmision",
+      "packageId": null,
+      "title": "Patrimonio, capital y socios · Registrar prima de emisión",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ReservaLegal",
+      "packageId": null,
+      "title": "Patrimonio, capital y socios · Registrar reserva legal",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_OtrasReservas",
+      "packageId": null,
+      "title": "Patrimonio, capital y socios · Registrar otras reservas",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_UtilidadRetenida",
+      "packageId": null,
+      "title": "Patrimonio, capital y socios · Registrar utilidad retenida",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ResultadoEjercicio",
+      "packageId": null,
+      "title": "Patrimonio, capital y socios · Registrar resultado del ejercicio",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_AprobarDividendos",
+      "packageId": null,
+      "title": "Patrimonio, capital y socios · Aprobar distribución de dividendos",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_DividendosPagar",
+      "packageId": null,
+      "title": "Patrimonio, capital y socios · Registrar dividendos por pagar",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_PagarDividendos",
+      "packageId": null,
+      "title": "Patrimonio, capital y socios · Pagar dividendos",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_EstadoPatrimonio",
+      "packageId": null,
+      "title": "Patrimonio, capital y socios · Generar estado de evolución patrimonial",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ConsolidarPatrimonio",
+      "packageId": null,
+      "title": "Patrimonio, capital y socios · Consolidar patrimonio del grupo",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_MovPatrimonialExtra",
+      "packageId": null,
+      "title": "Patrimonio, capital y socios · Registrar movimiento patrimonial extraordinario",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_CrearProvision",
+      "packageId": null,
+      "title": "Provisiones, garantías y contingencias · Crear caso de provisión",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ProvisionCoberturaComercio",
+      "packageId": null,
+      "title": "Provisiones, garantías y contingencias · Registrar provisión por cobertura a comercio",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ProvisionLegal",
+      "packageId": null,
+      "title": "Provisiones, garantías y contingencias · Registrar provisión legal",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_PasivoContingente",
+      "packageId": null,
+      "title": "Provisiones, garantías y contingencias · Registrar pasivo contingente",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ActualizarProvision",
+      "packageId": null,
+      "title": "Provisiones, garantías y contingencias · Actualizar estimación de provisión",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_LiberarProvision",
+      "packageId": null,
+      "title": "Provisiones, garantías y contingencias · Liberar provisión",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_EjecutarCobertura",
+      "packageId": null,
+      "title": "Provisiones, garantías y contingencias · Ejecutar cobertura al comercio",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_RecuperacionPosterior",
+      "packageId": null,
+      "title": "Provisiones, garantías y contingencias · Registrar recuperación posterior",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_RollForwardProvision",
+      "packageId": null,
+      "title": "Provisiones, garantías y contingencias · Generar roll-forward de provisiones",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ConciliarProvisionGL",
+      "packageId": null,
+      "title": "Provisiones, garantías y contingencias · Conciliar provisiones con GL",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_DocContable",
+      "packageId": null,
+      "title": "Libro diario, mayor y motor contable · Generar documento contable",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_AsientoAutomatico",
+      "packageId": null,
+      "title": "Libro diario, mayor y motor contable · Generar asiento automático",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_AsientoManual",
+      "packageId": null,
+      "title": "Libro diario, mayor y motor contable · Registrar asiento manual",
+      "releaseIncluded": true,
+      "declaredClassification": "PRODUCTION_COVERED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "IMPLEMENTED",
+      "reasons": [
+        "NOT-RUN: test/accounting-documents-db.e2e-spec.ts › Asientos contables por HTTP autenticado sobre base migrada (e2e) crea, publica y revierte un asiento; la base refleja cada paso",
+        "NOT-RUN: test/accounting-documents-db.e2e-spec.ts › Asientos contables por HTTP autenticado sobre base migrada (e2e) rechaza un borrador descuadrado sin escribirlo",
+        "NOT-RUN: test/accounting-documents-db.e2e-spec.ts › Asientos contables por HTTP autenticado sobre base migrada (e2e) rechaza sin token (401) y no escribe nada",
+        "NOT-RUN: test/accounting-documents-db.e2e-spec.ts › Asientos contables por HTTP autenticado sobre base migrada (e2e) rechaza operar sobre una entidad legal fuera del alcance del token (403)",
+        "NOT-RUN: test/accounting-db-invariants.integration.spec.ts › Invariantes contables en PostgreSQL (accounting-db-invariants) doble partida rechaza al confirmar un asiento descuadrado (UNBALANCED_JOURNAL)"
+      ],
+      "evidence": [
+        {
+          "kind": "test",
+          "ref": "test/accounting-documents-db.e2e-spec.ts › Asientos contables por HTTP autenticado sobre base migrada (e2e) crea, publica y revierte un asiento; la base refleja cada paso",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        },
+        {
+          "kind": "test",
+          "ref": "test/accounting-documents-db.e2e-spec.ts › Asientos contables por HTTP autenticado sobre base migrada (e2e) rechaza un borrador descuadrado sin escribirlo",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        },
+        {
+          "kind": "test",
+          "ref": "test/accounting-documents-db.e2e-spec.ts › Asientos contables por HTTP autenticado sobre base migrada (e2e) rechaza sin token (401) y no escribe nada",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        },
+        {
+          "kind": "test",
+          "ref": "test/accounting-documents-db.e2e-spec.ts › Asientos contables por HTTP autenticado sobre base migrada (e2e) rechaza operar sobre una entidad legal fuera del alcance del token (403)",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        },
+        {
+          "kind": "test",
+          "ref": "test/accounting-db-invariants.integration.spec.ts › Invariantes contables en PostgreSQL (accounting-db-invariants) doble partida rechaza al confirmar un asiento descuadrado (UNBALANCED_JOURNAL)",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        }
+      ]
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ValidarPartidaDoble",
+      "packageId": null,
+      "title": "Libro diario, mayor y motor contable · Validar partida doble",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_PublicarAsiento",
+      "packageId": null,
+      "title": "Libro diario, mayor y motor contable · Publicar asiento",
+      "releaseIncluded": true,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "IMPLEMENTED",
+      "reasons": [
+        "NOT-RUN: test/accounting-documents-db.e2e-spec.ts › Asientos contables por HTTP autenticado sobre base migrada (e2e) crea, publica y revierte un asiento; la base refleja cada paso",
+        "NOT-RUN: test/accounting-db-invariants.integration.spec.ts › Invariantes contables en PostgreSQL (accounting-db-invariants) inmutabilidad de lo publicado (POSTED) rechaza modificar un documento POSTED",
+        "NOT-RUN: test/accounting-db-invariants.integration.spec.ts › Invariantes contables en PostgreSQL (accounting-db-invariants) inmutabilidad de lo publicado (POSTED) rechaza cambiar importes de líneas de un asiento POSTED",
+        "NOT-RUN: test/accounting-db-invariants.integration.spec.ts › Invariantes contables en PostgreSQL (accounting-db-invariants) período cerrado y contexto rechaza contabilizar en un período cerrado (ACCOUNTING_PERIOD_CLOSED)"
+      ],
+      "evidence": [
+        {
+          "kind": "test",
+          "ref": "test/accounting-documents-db.e2e-spec.ts › Asientos contables por HTTP autenticado sobre base migrada (e2e) crea, publica y revierte un asiento; la base refleja cada paso",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        },
+        {
+          "kind": "test",
+          "ref": "test/accounting-db-invariants.integration.spec.ts › Invariantes contables en PostgreSQL (accounting-db-invariants) inmutabilidad de lo publicado (POSTED) rechaza modificar un documento POSTED",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        },
+        {
+          "kind": "test",
+          "ref": "test/accounting-db-invariants.integration.spec.ts › Invariantes contables en PostgreSQL (accounting-db-invariants) inmutabilidad de lo publicado (POSTED) rechaza cambiar importes de líneas de un asiento POSTED",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        },
+        {
+          "kind": "test",
+          "ref": "test/accounting-db-invariants.integration.spec.ts › Invariantes contables en PostgreSQL (accounting-db-invariants) período cerrado y contexto rechaza contabilizar en un período cerrado (ACCOUNTING_PERIOD_CLOSED)",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        }
+      ]
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ReversarAsiento",
+      "packageId": null,
+      "title": "Libro diario, mayor y motor contable · Reversar asiento",
+      "releaseIncluded": true,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "IMPLEMENTED",
+      "reasons": [
+        "NOT-RUN: test/accounting-documents-db.e2e-spec.ts › Asientos contables por HTTP autenticado sobre base migrada (e2e) crea, publica y revierte un asiento; la base refleja cada paso",
+        "NOT-RUN: test/accounting-db-invariants.integration.spec.ts › Invariantes contables en PostgreSQL (accounting-db-invariants) inmutabilidad de lo publicado (POSTED) permite la única transición válida: POSTED -> REVERSED enlazando el reverso",
+        "NOT-RUN: test/accounting-db-invariants.integration.spec.ts › Invariantes contables en PostgreSQL (accounting-db-invariants) concurrencia de reversos y recibos rechaza un segundo reverso activo del mismo documento"
+      ],
+      "evidence": [
+        {
+          "kind": "test",
+          "ref": "test/accounting-documents-db.e2e-spec.ts › Asientos contables por HTTP autenticado sobre base migrada (e2e) crea, publica y revierte un asiento; la base refleja cada paso",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        },
+        {
+          "kind": "test",
+          "ref": "test/accounting-db-invariants.integration.spec.ts › Invariantes contables en PostgreSQL (accounting-db-invariants) inmutabilidad de lo publicado (POSTED) permite la única transición válida: POSTED -> REVERSED enlazando el reverso",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        },
+        {
+          "kind": "test",
+          "ref": "test/accounting-db-invariants.integration.spec.ts › Invariantes contables en PostgreSQL (accounting-db-invariants) concurrencia de reversos y recibos rechaza un segundo reverso activo del mismo documento",
+          "result": "not-run",
+          "sha": null,
+          "environment": null,
+          "command": null,
+          "date": null,
+          "artifact": null
+        }
+      ]
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ReprocesarAsiento",
+      "packageId": null,
+      "title": "Libro diario, mayor y motor contable · Reprocesar asiento fallido",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_BloquearEdicion",
+      "packageId": null,
+      "title": "Libro diario, mayor y motor contable · Bloquear edición de asiento publicado",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_LibroDiario",
+      "packageId": null,
+      "title": "Libro diario, mayor y motor contable · Consultar libro diario",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_LibroMayor",
+      "packageId": null,
+      "title": "Libro diario, mayor y motor contable · Consultar libro mayor",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_BalanceComprobacion",
+      "packageId": null,
+      "title": "Libro diario, mayor y motor contable · Consultar balance de comprobación",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ConciliarSubmayoresGL",
+      "packageId": null,
+      "title": "Libro diario, mayor y motor contable · Conciliar submayores con GL",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_DetectarDescuadre",
+      "packageId": null,
+      "title": "Libro diario, mayor y motor contable · Detectar asientos descuadrados",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_TrazabilidadAsiento",
+      "packageId": null,
+      "title": "Libro diario, mayor y motor contable · Auditar trazabilidad origen-asiento",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_GastoCentroCosto",
+      "packageId": null,
+      "title": "Contabilidad analítica y control presupuestario · Asignar gasto a centro de costo",
+      "releaseIncluded": null,
+      "declaredClassification": "DOCUMENTED_EXTENSION_POINT",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_IngresoProfitCenter",
+      "packageId": null,
+      "title": "Contabilidad analítica y control presupuestario · Asignar ingreso a centro de beneficio",
+      "releaseIncluded": null,
+      "declaredClassification": "DOCUMENTED_EXTENSION_POINT",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_OrdenInterna",
+      "packageId": null,
+      "title": "Contabilidad analítica y control presupuestario · Crear orden interna",
+      "releaseIncluded": null,
+      "declaredClassification": "DOCUMENTED_EXTENSION_POINT",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_GastoOrdenInterna",
+      "packageId": null,
+      "title": "Contabilidad analítica y control presupuestario · Imputar gasto a orden interna",
+      "releaseIncluded": null,
+      "declaredClassification": "DOCUMENTED_EXTENSION_POINT",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_CrearPresupuesto",
+      "packageId": null,
+      "title": "Contabilidad analítica y control presupuestario · Crear presupuesto",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_AprobarPresupuesto",
+      "packageId": null,
+      "title": "Contabilidad analítica y control presupuestario · Aprobar presupuesto",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ControlPresupuesto",
+      "packageId": null,
+      "title": "Contabilidad analítica y control presupuestario · Controlar ejecución presupuestaria",
+      "releaseIncluded": null,
+      "declaredClassification": "DOCUMENTED_EXTENSION_POINT",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_BloquearGastoPresupuesto",
+      "packageId": null,
+      "title": "Contabilidad analítica y control presupuestario · Bloquear gasto fuera de presupuesto",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_RentabilidadComercio",
+      "packageId": null,
+      "title": "Contabilidad analítica y control presupuestario · Analizar rentabilidad por comercio",
+      "releaseIncluded": null,
+      "declaredClassification": "DOCUMENTED_EXTENSION_POINT",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_RentabilidadCorp",
+      "packageId": null,
+      "title": "Contabilidad analítica y control presupuestario · Analizar rentabilidad por cliente corporativo",
+      "releaseIncluded": null,
+      "declaredClassification": "DOCUMENTED_EXTENSION_POINT",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_RentabilidadProducto",
+      "packageId": null,
+      "title": "Contabilidad analítica y control presupuestario · Analizar rentabilidad por producto BNPL",
+      "releaseIncluded": null,
+      "declaredClassification": "DOCUMENTED_EXTENSION_POINT",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_CostoRiesgo",
+      "packageId": null,
+      "title": "Contabilidad analítica y control presupuestario · Analizar costo de riesgo",
+      "releaseIncluded": null,
+      "declaredClassification": "DOCUMENTED_EXTENSION_POINT",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ReporteGerencial",
+      "packageId": null,
+      "title": "Contabilidad analítica y control presupuestario · Generar reporte gerencial",
+      "releaseIncluded": null,
+      "declaredClassification": "DOCUMENTED_EXTENSION_POINT",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_IVADebito",
+      "packageId": null,
+      "title": "Impuestos, fiscalidad y cumplimiento local · Calcular IVA débito fiscal",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_IVACredito",
+      "packageId": null,
+      "title": "Impuestos, fiscalidad y cumplimiento local · Calcular IVA crédito fiscal",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_LiquidarIVA",
+      "packageId": null,
+      "title": "Impuestos, fiscalidad y cumplimiento local · Liquidar IVA mensual",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_CalcularIT",
+      "packageId": null,
+      "title": "Impuestos, fiscalidad y cumplimiento local · Calcular IT",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_LiquidarIT",
+      "packageId": null,
+      "title": "Impuestos, fiscalidad y cumplimiento local · Liquidar IT mensual",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_CalcularIUE",
+      "packageId": null,
+      "title": "Impuestos, fiscalidad y cumplimiento local · Calcular IUE",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_CompensarIUEIT",
+      "packageId": null,
+      "title": "Impuestos, fiscalidad y cumplimiento local · Compensar IUE contra IT",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_LibroVentas",
+      "packageId": null,
+      "title": "Impuestos, fiscalidad y cumplimiento local · Generar libro de ventas",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_LibroCompras",
+      "packageId": null,
+      "title": "Impuestos, fiscalidad y cumplimiento local · Generar libro de compras",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_AnexosTributarios",
+      "packageId": null,
+      "title": "Impuestos, fiscalidad y cumplimiento local · Generar anexos tributarios",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_Form605",
+      "packageId": null,
+      "title": "Impuestos, fiscalidad y cumplimiento local · Generar Formulario 605 / estados digitales",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ExportFiscal",
+      "packageId": null,
+      "title": "Impuestos, fiscalidad y cumplimiento local · Exportar información fiscal",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ObsTributaria",
+      "packageId": null,
+      "title": "Impuestos, fiscalidad y cumplimiento local · Responder observación tributaria",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_EvidenciaFiscal",
+      "packageId": null,
+      "title": "Impuestos, fiscalidad y cumplimiento local · Mantener evidencia fiscal",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ChecklistCierreMensual",
+      "packageId": null,
+      "title": "Cierre contable, estados financieros y reporting · Ejecutar checklist de cierre mensual",
+      "releaseIncluded": null,
+      "declaredClassification": "DOCUMENTED_EXTENSION_POINT",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_CerrarAR",
+      "packageId": null,
+      "title": "Cierre contable, estados financieros y reporting · Cerrar submayor AR",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_CerrarAP",
+      "packageId": null,
+      "title": "Cierre contable, estados financieros y reporting · Cerrar submayor AP",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_CerrarBancos",
+      "packageId": null,
+      "title": "Cierre contable, estados financieros y reporting · Cerrar bancos",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_CerrarActivos",
+      "packageId": null,
+      "title": "Cierre contable, estados financieros y reporting · Cerrar activos",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_CerrarDeuda",
+      "packageId": null,
+      "title": "Cierre contable, estados financieros y reporting · Cerrar deuda e intereses",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_CerrarImpuestos",
+      "packageId": null,
+      "title": "Cierre contable, estados financieros y reporting · Cerrar impuestos",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_CerrarGL",
+      "packageId": null,
+      "title": "Cierre contable, estados financieros y reporting · Cerrar GL",
+      "releaseIncluded": null,
+      "declaredClassification": "DOCUMENTED_EXTENSION_POINT",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ReabrirPeriodo",
+      "packageId": null,
+      "title": "Cierre contable, estados financieros y reporting · Reabrir periodo con aprobación",
+      "releaseIncluded": true,
+      "declaredClassification": "PRODUCTION_COVERED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "DECLARED",
+      "reasons": ["SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_BalanceGeneral",
+      "packageId": null,
+      "title": "Cierre contable, estados financieros y reporting · Generar balance general",
+      "releaseIncluded": null,
+      "declaredClassification": "DOCUMENTED_EXTENSION_POINT",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_EstadoResultados",
+      "packageId": null,
+      "title": "Cierre contable, estados financieros y reporting · Generar estado de resultados",
+      "releaseIncluded": null,
+      "declaredClassification": "DOCUMENTED_EXTENSION_POINT",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_FlujoEfectivo",
+      "packageId": null,
+      "title": "Cierre contable, estados financieros y reporting · Generar flujo de efectivo",
+      "releaseIncluded": null,
+      "declaredClassification": "DOCUMENTED_EXTENSION_POINT",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_CambiosPatrimonio",
+      "packageId": null,
+      "title": "Cierre contable, estados financieros y reporting · Generar estado de cambios en patrimonio",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_NotasEEFF",
+      "packageId": null,
+      "title": "Cierre contable, estados financieros y reporting · Generar notas a estados financieros",
+      "releaseIncluded": null,
+      "declaredClassification": "DOCUMENTED_EXTENSION_POINT",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_PaqueteDirectorio",
+      "packageId": null,
+      "title": "Cierre contable, estados financieros y reporting · Generar paquete de directorio",
+      "releaseIncluded": null,
+      "declaredClassification": "DOCUMENTED_EXTENSION_POINT",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_PaqueteInversionistas",
+      "packageId": null,
+      "title": "Cierre contable, estados financieros y reporting · Generar paquete para inversionistas",
+      "releaseIncluded": null,
+      "declaredClassification": "DOCUMENTED_EXTENSION_POINT",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ReportesIFRS",
+      "packageId": null,
+      "title": "Cierre contable, estados financieros y reporting · Generar reportes IFRS / gestión",
+      "releaseIncluded": null,
+      "declaredClassification": "DOCUMENTED_EXTENSION_POINT",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ConsolidarEntidades",
+      "packageId": null,
+      "title": "Cierre contable, estados financieros y reporting · Consolidar entidades legales",
+      "releaseIncluded": null,
+      "declaredClassification": "DOCUMENTED_EXTENSION_POINT",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_EliminarIntercompany",
+      "packageId": null,
+      "title": "Cierre contable, estados financieros y reporting · Eliminar operaciones intercompany",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_VentaFinanciada",
+      "packageId": null,
+      "title": "Integración contable con operación BNPL ATLAS · Recibir venta financiada desde comercio",
+      "releaseIncluded": null,
+      "declaredClassification": "DOCUMENTED_EXTENSION_POINT",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_PagoInicial60",
+      "packageId": null,
+      "title": "Integración contable con operación BNPL ATLAS · Registrar pago inicial 60% al comercio",
+      "releaseIncluded": null,
+      "declaredClassification": "DOCUMENTED_EXTENSION_POINT",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_PlanCuotas40",
+      "packageId": null,
+      "title": "Integración contable con operación BNPL ATLAS · Registrar plan de 3 cuotas del 40%",
+      "releaseIncluded": null,
+      "declaredClassification": "DOCUMENTED_EXTENSION_POINT",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_PagoDirectoConsumidorComercio",
+      "packageId": null,
+      "title": "Integración contable con operación BNPL ATLAS · Registrar pago directo consumidor-comercio",
+      "releaseIncluded": null,
+      "declaredClassification": "DOCUMENTED_EXTENSION_POINT",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_CuotaVencida",
+      "packageId": null,
+      "title": "Integración contable con operación BNPL ATLAS · Detectar cuota vencida",
+      "releaseIncluded": null,
+      "declaredClassification": "DOCUMENTED_EXTENSION_POINT",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_PagoATLASComercio",
+      "packageId": null,
+      "title": "Integración contable con operación BNPL ATLAS · Pagar cuota al comercio por incumplimiento",
+      "releaseIncluded": null,
+      "declaredClassification": "DOCUMENTED_EXTENSION_POINT",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_CxCConsumidor",
+      "packageId": null,
+      "title": "Integración contable con operación BNPL ATLAS · Crear cuenta por cobrar al consumidor",
+      "releaseIncluded": null,
+      "declaredClassification": "DOCUMENTED_EXTENSION_POINT",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ActivarCobranzaConsumidor",
+      "packageId": null,
+      "title": "Integración contable con operación BNPL ATLAS · Activar cobranza al consumidor",
+      "releaseIncluded": null,
+      "declaredClassification": "DOCUMENTED_EXTENSION_POINT",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_RecuperarCuotaCubierta",
+      "packageId": null,
+      "title": "Integración contable con operación BNPL ATLAS · Registrar recuperación de cuota cubierta",
+      "releaseIncluded": null,
+      "declaredClassification": "DOCUMENTED_EXTENSION_POINT",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ReconocerMDR",
+      "packageId": null,
+      "title": "Integración contable con operación BNPL ATLAS · Reconocer MDR de venta financiada",
+      "releaseIncluded": null,
+      "declaredClassification": "DOCUMENTED_EXTENSION_POINT",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_LiquidacionComercio",
+      "packageId": null,
+      "title": "Integración contable con operación BNPL ATLAS · Registrar liquidación con comercio",
+      "releaseIncluded": null,
+      "declaredClassification": "DOCUMENTED_EXTENSION_POINT",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ConciliarLiquidacionComercio",
+      "packageId": null,
+      "title": "Integración contable con operación BNPL ATLAS · Conciliar liquidación comercio",
+      "releaseIncluded": null,
+      "declaredClassification": "DOCUMENTED_EXTENSION_POINT",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_CohorteRiesgoCompra",
+      "packageId": null,
+      "title": "Integración contable con operación BNPL ATLAS · Etiquetar compra por cohorte y riesgo",
+      "releaseIncluded": null,
+      "declaredClassification": "DOCUMENTED_EXTENSION_POINT",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_EnviarDataRiesgo",
+      "packageId": null,
+      "title": "Integración contable con operación BNPL ATLAS · Enviar datos a analítica de riesgo",
+      "releaseIncluded": null,
+      "declaredClassification": "DOCUMENTED_EXTENSION_POINT",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_BitacoraAuditoria",
+      "packageId": null,
+      "title": "Auditoría, control interno y seguridad · Consultar bitácora de auditoría",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_SegregacionFunciones",
+      "packageId": null,
+      "title": "Auditoría, control interno y seguridad · Validar segregación de funciones",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_AprobarOperacionSensible",
+      "packageId": null,
+      "title": "Auditoría, control interno y seguridad · Aprobar operación sensible",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_EvidenciaDocumental",
+      "packageId": null,
+      "title": "Auditoría, control interno y seguridad · Revisar evidencia documental",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_AuditarConfig",
+      "packageId": null,
+      "title": "Auditoría, control interno y seguridad · Auditar cambios de configuración",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_AuditarReglasPosting",
+      "packageId": null,
+      "title": "Auditoría, control interno y seguridad · Auditar reglas de posting",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_AuditarReversos",
+      "packageId": null,
+      "title": "Auditoría, control interno y seguridad · Auditar reversos contables",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_AuditarConciliaciones",
+      "packageId": null,
+      "title": "Auditoría, control interno y seguridad · Auditar conciliaciones",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_PapelesTrabajo",
+      "packageId": null,
+      "title": "Auditoría, control interno y seguridad · Exportar papeles de trabajo",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_HallazgoAuditoria",
+      "packageId": null,
+      "title": "Auditoría, control interno y seguridad · Gestionar hallazgo de auditoría",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_CerrarHallazgo",
+      "packageId": null,
+      "title": "Auditoría, control interno y seguridad · Cerrar hallazgo de auditoría",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_SnapshotsCierre",
+      "packageId": null,
+      "title": "Auditoría, control interno y seguridad · Congelar snapshots de cierre",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_HashDocumentos",
+      "packageId": null,
+      "title": "Auditoría, control interno y seguridad · Verificar hash de documentos",
+      "releaseIncluded": null,
+      "declaredClassification": "MODEL_SUPPORTED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_PublicarEvento",
+      "packageId": null,
+      "title": "APIs, eventos, outbox y escalabilidad · Publicar evento contable",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ConsumirEvento",
+      "packageId": null,
+      "title": "APIs, eventos, outbox y escalabilidad · Consumir evento operativo",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_Idempotencia",
+      "packageId": null,
+      "title": "APIs, eventos, outbox y escalabilidad · Garantizar idempotencia",
+      "releaseIncluded": true,
+      "declaredClassification": "PRODUCTION_COVERED",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": true,
+      "status": "DECLARED",
+      "reasons": ["SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_Outbox",
+      "packageId": null,
+      "title": "APIs, eventos, outbox y escalabilidad · Registrar outbox financiero",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ReintentoEvento",
+      "packageId": null,
+      "title": "APIs, eventos, outbox y escalabilidad · Reintentar evento fallido",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_MonitorearEventos",
+      "packageId": null,
+      "title": "APIs, eventos, outbox y escalabilidad · Monitorear cola de eventos",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ParticionPeriodo",
+      "packageId": null,
+      "title": "APIs, eventos, outbox y escalabilidad · Particionar transacciones por periodo",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_ParticionEntidad",
+      "packageId": null,
+      "title": "APIs, eventos, outbox y escalabilidad · Particionar por entidad legal",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_LogsIntegracion",
+      "packageId": null,
+      "title": "APIs, eventos, outbox y escalabilidad · Generar logs de integración",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_APIEstadoCuenta",
+      "packageId": null,
+      "title": "APIs, eventos, outbox y escalabilidad · Exponer API de estado de cuenta",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_APIFacturacion",
+      "packageId": null,
+      "title": "APIs, eventos, outbox y escalabilidad · Exponer API de facturación",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_APIConciliacion",
+      "packageId": null,
+      "title": "APIs, eventos, outbox y escalabilidad · Exponer API de conciliación",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    },
+    {
+      "kind": "useCase",
+      "id": "UC_APIReporting",
+      "packageId": null,
+      "title": "APIs, eventos, outbox y escalabilidad · Exponer API de reporting financiero",
+      "releaseIncluded": null,
+      "declaredClassification": "EXCLUDED_INTEGRATION_SCOPE",
+      "ownerRole": null,
+      "blockedBy": null,
+      "countedAsIncluded": false,
+      "status": "DECLARED",
+      "reasons": [
+        "DECISION_DE_ALCANCE_PENDIENTE",
+        "SIN_PRUEBAS_MAPEADAS: una clasificación documental no es evidencia"
+      ],
+      "evidence": []
+    }
+  ],
+  "byRequirementId": [
+    {
+      "requirementId": "B02",
+      "packages": ["P-01"],
+      "status": "BLOCKED"
+    },
+    {
+      "requirementId": "B03",
+      "packages": ["P-02"],
+      "status": "IMPLEMENTED"
+    },
+    {
+      "requirementId": "B04",
+      "packages": ["P-02"],
+      "status": "BLOCKED"
+    },
+    {
+      "requirementId": "B16-ACTUALIZACION",
+      "packages": ["P-12"],
+      "status": "IMPLEMENTED"
+    },
+    {
+      "requirementId": "B16-AUTOPRUEBA",
+      "packages": ["P-12"],
+      "status": "IMPLEMENTED"
+    },
+    {
+      "requirementId": "B16-E2E",
+      "packages": ["P-12"],
+      "status": "IMPLEMENTED"
+    },
+    {
+      "requirementId": "B16-INVARIANTES",
+      "packages": ["P-12"],
+      "status": "IMPLEMENTED"
+    },
+    {
+      "requirementId": "B16-MIGRACION",
+      "packages": ["P-12"],
+      "status": "IMPLEMENTED"
+    },
+    {
+      "requirementId": "B16-SUMINISTRO",
+      "packages": ["P-12"],
+      "status": "IMPLEMENTED"
+    },
+    {
+      "requirementId": "B17",
+      "packages": ["P-02"],
+      "status": "IMPLEMENTED"
+    },
+    {
+      "requirementId": "B19",
+      "packages": ["P-17"],
+      "status": "BLOCKED"
+    },
+    {
+      "requirementId": "B20",
+      "packages": ["P-18"],
+      "status": "BLOCKED"
+    },
+    {
+      "requirementId": "ERP-D01",
+      "packages": ["P-15"],
+      "status": "BLOCKED"
+    },
+    {
+      "requirementId": "ERP-D02",
+      "packages": ["P-12"],
+      "status": "IMPLEMENTED"
+    },
+    {
+      "requirementId": "ERP-D03",
+      "packages": ["P-13"],
+      "status": "IMPLEMENTED"
+    }
+  ],
+  "summary": {
+    "requirements": {
+      "total": 15,
+      "included": 15,
+      "verifiedIncluded": 0,
+      "pendingScopeDecision": 0,
+      "deferred": 0,
+      "unapprovedExclusions": 0,
+      "byStatus": {
+        "DECLARED": 0,
+        "IMPLEMENTED": 10,
+        "VERIFIED": 0,
+        "BLOCKED": 5,
+        "DEFERRED": 0
+      },
+      "compliance": "0/15 incluidos verificados"
+    },
+    "useCases": {
+      "total": 258,
+      "included": 48,
+      "verifiedIncluded": 0,
+      "pendingScopeDecision": 210,
+      "deferred": 0,
+      "unapprovedExclusions": 0,
+      "byStatus": {
+        "DECLARED": 255,
+        "IMPLEMENTED": 3,
+        "VERIFIED": 0,
+        "BLOCKED": 0,
+        "DEFERRED": 0
+      },
+      "compliance": "0/48 incluidos verificados"
+    },
+    "strictPass": false
+  }
+}

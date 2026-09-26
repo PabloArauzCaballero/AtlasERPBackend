@@ -8,6 +8,7 @@ import { startTracing, stopTracing } from './observability/tracing';
 
 startTracing('atlas-erp-api');
 
+import type { IncomingMessage } from 'node:http';
 import { json, urlencoded } from 'express';
 import * as compression from 'compression';
 import * as cookieParser from 'cookie-parser';
@@ -22,6 +23,9 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { TraceResponseInterceptor } from './common/observability/trace-response.interceptor';
 import { PinoLoggerService } from './common/logging/pino-logger.service';
+
+/** Única ruta cuyo cuerpo crudo se conserva: el receptor de eventos firmados de Core. */
+const CORE_EVENTS_PATH = '/integration/core/events';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
@@ -39,7 +43,16 @@ async function bootstrap(): Promise<void> {
   app.use(helmet());
   app.use(compression());
   app.use(cookieParser());
-  app.use(json({ limit: env.BODY_LIMIT }));
+  // El cuerpo CRUDO se conserva sólo para el receptor firmado de Core (P-14): la firma HMAC se
+  // calcula sobre esos bytes y re-serializar el JSON cambia espacios y orden de claves.
+  app.use(
+    json({
+      limit: env.BODY_LIMIT,
+      verify: (request: IncomingMessage & { rawBody?: Buffer }, _response, buffer: Buffer) => {
+        if (request.url?.includes(CORE_EVENTS_PATH)) request.rawBody = Buffer.from(buffer);
+      },
+    }),
+  );
   app.use(urlencoded({ extended: true, limit: env.BODY_LIMIT }));
   app.enableCors(buildCorsOptions());
   app.enableShutdownHooks();

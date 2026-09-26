@@ -1,0 +1,114 @@
+[
+  {
+    "requirementId": "B03",
+    "packageId": "P-02",
+    "repository": "AtlasERPBackend",
+    "title": "Matriz de cumplimiento basada en evidencia del SHA candidato (sin runtimeScopePass fijo)",
+    "releaseIncluded": true,
+    "ownerRole": "L",
+    "acceptance": "Un caso incluido sin prueba, una prueba fallida o un SHA distinto hacen fallar la matriz; uno diferido aparece visible y no se cuenta; MODEL_SUPPORTED nunca pasa a VERIFIED sin pruebas; ninguna cifra sin denominador.",
+    "tests": [
+      {
+        "file": "test/compliance-evaluator.spec.ts",
+        "name": "Evaluador de cumplimiento basado en evidencia declara VERIFIED sólo cuando todas las pruebas pasaron en el SHA del candidato"
+      },
+      {
+        "file": "test/compliance-evaluator.spec.ts",
+        "name": "Evaluador de cumplimiento basado en evidencia incluido sin prueba: DECLARED y la matriz estricta falla"
+      },
+      {
+        "file": "test/compliance-evaluator.spec.ts",
+        "name": "Evaluador de cumplimiento basado en evidencia prueba fallida: no se verifica y la matriz estricta falla"
+      },
+      {
+        "file": "test/compliance-evaluator.spec.ts",
+        "name": "Evaluador de cumplimiento basado en evidencia resultados de un SHA distinto se rechazan enteros y la matriz falla"
+      },
+      {
+        "file": "test/compliance-evaluator.spec.ts",
+        "name": "Evaluador de cumplimiento basado en evidencia resultados alterados después de sellarlos se rechazan"
+      },
+      {
+        "file": "test/compliance-evaluator.spec.ts",
+        "name": "Evaluador de cumplimiento basado en evidencia prueba saltada no cuenta como pasada"
+      },
+      {
+        "file": "test/compliance-evaluator.spec.ts",
+        "name": "Evaluador de cumplimiento basado en evidencia diferido con aprobación: visible y fuera del denominador"
+      },
+      {
+        "file": "test/compliance-evaluator.spec.ts",
+        "name": "Evaluador de cumplimiento basado en evidencia exclusión sin aprobador sigue contando como incluida y visible"
+      },
+      {
+        "file": "test/compliance-evaluator.spec.ts",
+        "name": "Evaluador de cumplimiento basado en evidencia MODEL_SUPPORTED sin pruebas nunca se vuelve VERIFIED"
+      },
+      {
+        "file": "test/compliance-release-scope.spec.ts",
+        "name": "Alcance del release contra el catálogo de casos de uso la auditoría publicada ya no declara APROBADO por construcción"
+      }
+    ],
+    "requiresDatabase": false,
+    "blockedBy": null
+  },
+  {
+    "requirementId": "B04",
+    "packageId": "P-02",
+    "repository": "AtlasERPBackend",
+    "title": "Los 258 casos del catálogo con decisión de alcance explícita (incluido, diferido con aprobación o no aplicable)",
+    "releaseIncluded": true,
+    "ownerRole": "R",
+    "acceptance": "Se conservan todos los IDs; la exclusión de integración no se hereda; nada sale del release sin motivo, impacto y aprobador; cada caso incluido tiene evidencia (P-15).",
+    "tests": [
+      {
+        "file": "test/compliance-release-scope.spec.ts",
+        "name": "Alcance del release contra el catálogo de casos de uso contiene exactamente los IDs del catálogo, sin perder ni inventar ninguno"
+      },
+      {
+        "file": "test/compliance-release-scope.spec.ts",
+        "name": "Alcance del release contra el catálogo de casos de uso conserva la clasificación histórica 46/109/54/49 como dato declarado"
+      },
+      {
+        "file": "test/compliance-release-scope.spec.ts",
+        "name": "Alcance del release contra el catálogo de casos de uso no hereda la exclusión de integración: los 54 quedan pendientes de decisión, no excluidos"
+      },
+      {
+        "file": "test/compliance-release-scope.spec.ts",
+        "name": "Alcance del release contra el catálogo de casos de uso ningún caso sale del release sin motivo, impacto y aprobador"
+      }
+    ],
+    "requiresDatabase": false,
+    "blockedBy": "Decisión de alcance del rol R pendiente para 210 casos (releaseIncluded=null en docs/compliance/release-scope.json); los 48 incluidos se cierran caso a caso en P-15."
+  },
+  {
+    "requirementId": "B17",
+    "packageId": "P-02",
+    "repository": "AtlasERPBackend",
+    "title": "La documentación no cita comandos que package.json no tiene",
+    "releaseIncluded": true,
+    "ownerRole": "Q",
+    "acceptance": "Todo `yarn|npm run|node --run <script>` citado en un .md versionado existe; CI falla si no.",
+    "tests": [
+      {
+        "file": "test/doc-commands.spec.ts",
+        "name": "Comandos citados en la documentación detecta un script inexistente con yarn, npm run, corepack yarn y node --run"
+      },
+      {
+        "file": "test/doc-commands.spec.ts",
+        "name": "Comandos citados en la documentación acepta los scripts que existen y los subcomandos propios de yarn"
+      },
+      {
+        "file": "test/doc-commands.spec.ts",
+        "name": "Comandos citados en la documentación no confunde un prefijo con el script completo"
+      }
+    ],
+    "commands": [
+      {
+        "name": "check:doc-commands"
+      }
+    ],
+    "requiresDatabase": false,
+    "blockedBy": null
+  }
+]

@@ -1,0 +1,72 @@
+[
+  {
+    "requirementId": "B19-RESTORE",
+    "packageId": "P-17",
+    "repository": "AtlasERPBackend",
+    "title": "Ensayo de restore local con conciliación contable idéntica y outbox que no reenvía lo publicado",
+    "releaseIncluded": true,
+    "ownerRole": "S",
+    "acceptance": "Base migrada con un ciclo sintético (cobertura, liquidación, recuperación, documentos y asientos, outbox PENDING/PUBLISHED/DEAD) → pg_dump -Fc → base nueva → conciliación idéntica (conteos, md5 por tabla, saldos por cuenta, debe = haber, CxP/CxC, eventos por estado); RTO medido; el worker contra la restaurada entrega exactamente los PENDING a un receptor local y ninguno PUBLISHED ni DEAD.",
+    "tests": [],
+    "commands": [
+      {
+        "name": "restore-drill",
+        "runner": "script",
+        "command": "yarn build && PG_CONTAINER=<contenedor> yarn ops:restore-drill"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  },
+  {
+    "requirementId": "B19-ROLLBACK",
+    "packageId": "P-17",
+    "repository": "AtlasERPBackend",
+    "title": "Las reversas de las migraciones del 2026-09-24 no destruyen hechos financieros",
+    "releaseIncluded": true,
+    "ownerRole": "S",
+    "acceptance": "Con un ciclo financiero real en la base, la reversa de cobertura/liquidación se niega y no toca nada; las de P-07, P-06 y outbox sólo retiran restricciones e índices (md5 de las tablas de hechos idéntico); reaplicar las de ida restaura los controles sin tocar datos.",
+    "tests": [
+      {
+        "file": "test/migrations-rollback-preserva-hechos.integration.spec.ts",
+        "name": "la reversa de cobertura/liquidación se niega con hechos registrados y no toca nada"
+      },
+      {
+        "file": "test/migrations-rollback-preserva-hechos.integration.spec.ts",
+        "name": "las reversas de P-07, P-06 y outbox sólo retiran restricciones: los hechos quedan idénticos"
+      },
+      {
+        "file": "test/migrations-rollback-preserva-hechos.integration.spec.ts",
+        "name": "corrección hacia adelante: reaplicar las migraciones de ida restaura los controles sin tocar datos"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  },
+  {
+    "requirementId": "B19-RPO-RTO",
+    "packageId": "P-17",
+    "repository": "AtlasERPBackend",
+    "title": "RPO/RTO aprobados, restore de objetos y ejecución por alguien distinto del autor",
+    "releaseIncluded": true,
+    "ownerRole": "S",
+    "acceptance": "RPO/RTO acordados; restore de una copia real y de los archivos del ERP (erp_file → almacenamiento de objetos) en entorno aislado, con credenciales efectivas recuperables, ejecutado por una persona distinta del autor del runbook.",
+    "tests": [],
+    "commands": [],
+    "requiresDatabase": true,
+    "blockedBy": "Decisión de RPO/RTO (S), acceso a copias reales y al almacenamiento de objetos, credenciales efectivas del entorno y un ejecutor distinto del autor: nada de eso existe en local."
+  },
+  {
+    "requirementId": "B19-RETENCION",
+    "packageId": "P-17",
+    "repository": "AtlasERPBackend",
+    "title": "Retención por conjunto de datos aprobada, con vencimiento, legal hold y borrado probados",
+    "releaseIncluded": true,
+    "ownerRole": "J",
+    "acceptance": "Plazos por conjunto (libros y documentos contables, CxP/CxC y movimientos, evidencias de liquidación, outbox/inbox, auditoría de acciones, logs) aprobados por J y probados.",
+    "tests": [],
+    "commands": [],
+    "requiresDatabase": true,
+    "blockedBy": "Plazos propuestos en docs/compliance/decisions.md (## P-17), pendientes de ratificación por J."
+  }
+]

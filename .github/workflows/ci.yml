@@ -1,4 +1,8 @@
-# Integración continua del ERP (ATL-009).
+# Integración continua del ERP (ATL-009; ampliada por P-12 el 2026-09-24).
+#
+# Nombres estables de jobs (para required checks): «Tipos, lint y pruebas», «Escaneo de secretos
+# (gitleaks)», «Base migrada, integración y E2E», «Auditoría de dependencias», «CodeQL (SAST)»,
+# «Escaneo de imagen (Trivy)», «Matriz de cumplimiento (evidencia)».
 #
 # Este backend mueve la contabilidad, la facturación y el portal del comercio —249 endpoints— y
 # era, junto al frontend del ERP y la app móvil, el único sin ninguna comprobación automática al
@@ -19,7 +23,7 @@ jobs:
   static:
     name: Tipos, lint y pruebas
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
     # El arranque real necesita una base a la que conectarse: Sequelize se conecta al construir el
     # proveedor, así que sin PostgreSQL el proceso muere por la razón equivocada y el paso no diría
     # nada sobre el árbol de dependencias, que es lo que se quiere comprobar.
@@ -41,43 +45,63 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: yarn
 
       - name: Instalar dependencias
-        run: yarn install --frozen-lockfile
+        run: corepack yarn install --frozen-lockfile
 
       - name: Tipos
-        run: yarn type-check
+        run: corepack yarn type-check
 
       - name: Lint
-        run: yarn lint
+        run: corepack yarn lint
 
       # El formato entra como gate porque ya estaba en el repositorio (prettier es dependencia y
       # `format` lo escribe): sin comprobarlo, el árbol se separa del estándar sin que nadie lo vea.
       # Se añadió el 2026-09-13 con los 7 archivos que había pendientes ya formateados.
       - name: Formato (prettier)
-        run: npx prettier --check .
+        run: corepack yarn format:check
 
       # Las tres listas de migraciones (db:migrate:prod, los guiones por dominio y
       # STARTUP_MIGRATION_FILES) describen el mismo conjunto y nada obligaba a que coincidieran.
       # No coincidian: produccion se saltaba una migracion y el arranque cubria 14 de 22. Es una
       # deriva que ningun entorno ve por si solo, porque cada uno es coherente con SU lista.
-      # La imagen se construye con `npm ci`, no con yarn: un `yarn add` deja `package-lock.json`
-      # desfasado y el despliegue muere con EUSAGE, sin que CI se entere. Pasó el 2026-09-19.
-      - name: Lockfile de npm en sintonía con package.json
-        run: yarn check:lockfiles
-
       - name: Listas de migraciones coherentes
-        run: yarn check:migration-lists
+        run: corepack yarn check:migration-lists
+
+      # Un documento que manda ejecutar un script que ya no existe (`db:prepare`, `db:rollback`…)
+      # hace que quien lo sigue crea que el repositorio o la base están rotos (B17).
+      - name: Comandos documentados existen
+        id: doc-commands
+        run: corepack yarn check:doc-commands
+
+      - name: Smoke de despliegue (contrato HTTP)
+        run: node --test .github/tests/post-deploy-smoke.test.mjs
 
       # `--passWithNoTests` NO se usa a propósito: hoy hay 30 ficheros de prueba y el día que
       # alguien los borre o rompa el patrón de nombres, esto tiene que ponerse rojo y no verde.
+      # La salida JSON es la evidencia que lee el evaluador de cumplimiento (P-02); el sello la ata
+      # al SHA de esta ejecución. Las pruebas `*.integration.spec.ts` NO corren aquí: necesitan la
+      # base migrada del job `db-integration`.
       - name: Pruebas unitarias
-        run: yarn test
+        id: unit
+        run: |
+          mkdir -p compliance-results
+          corepack yarn test --json --outputFile=compliance-results/unit.jest.json
+
+      - name: Sellar evidencia de pruebas unitarias
+        if: always()
+        run: |
+          if [ -f compliance-results/unit.jest.json ]; then
+            corepack yarn -s compliance:stamp jest compliance-results/unit.jest.json --command "yarn test" --environment ci:static
+          fi
+          corepack yarn -s compliance:stamp command check:doc-commands \
+            --exit-code "${{ steps.doc-commands.outcome == 'success' && '0' || '1' }}" \
+            --command "yarn check:doc-commands" --environment ci:static --out compliance-results
 
       - name: Compilar
-        run: yarn build
+        run: corepack yarn build
 
       # NINGUNA prueba unitaria levanta el árbol de Nest, así que un fallo de resolución de
       # dependencias —un proveedor que un controlador inyecta y que su módulo no provee— compila,
@@ -120,6 +144,23 @@ jobs:
           kill "$pid" || true
           exit 1
 
+      # El despliegue usa esta imagen, no el node_modules instalado por setup-node.
+      # Ambos Dockerfiles deben resolver el mismo yarn.lock y construir correctamente.
+      - name: Imagen de producción con Yarn
+        run: docker build --file Dockerfile --tag atlas-erp-backend:ci .
+
+      - name: Imagen de pruebas con Yarn
+        run: docker build --file Dockerfile.dev --tag atlas-erp-backend:dev-ci .
+
+      - name: Publicar evidencia (unitarias)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compliance-static
+          path: compliance-results/
+          if-no-files-found: warn
+          retention-days: 30
+
   # Escaneo de secretos del árbol (auditoría a producción, 2026-09-13). Este repositorio es
   # PÚBLICO: lo que entra en un commit queda indexado aunque se borre después. Corre antes de
   # instalar dependencias, así que sólo mira código de Atlas. Alcance: el árbol (`dir`), no el
@@ -138,3 +179,311 @@ jobs:
           tar -xzf gitleaks.tar.gz gitleaks && sudo install gitleaks /usr/local/bin/gitleaks && rm gitleaks gitleaks.tar.gz
       - name: Escanear el árbol
         run: gitleaks dir . --config .gitleaks.toml --redact --exit-code 1
+
+  # Base EFÍMERA migrada con los migradores reales y controles financieros contra PostgreSQL (P-12,
+  # B16). Hasta aquí el CI sólo arrancaba la API con `STARTUP_MIGRATIONS_ENABLED=false`: ningún
+  # trigger contable, ninguna migración y ningún endpoint se ejercían contra una base de verdad.
+  #
+  # Qué pone este job en rojo: una migración que no aplica desde cero o no es idempotente; una
+  # actualización desde la versión promovida (`origin/test`) o desde `origin/main` que no deja el
+  # mismo esquema que una instalación nueva; un control contable que falta (doble partida, POSTED
+  # inmutable, período cerrado, origen duplicado, reversos y recibos concurrentes); un E2E
+  # autenticado que no puede leer/escribir las tablas migradas o una autenticación desactivada; y
+  # un gate que no detecta que le quitaron un trigger (autoprueba por mutación).
+  db-integration:
+    name: Base migrada, integración y E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      CI: 'true'
+      # Contrato común de las suites con base (test/integration/database.ts y las guardas de P-03,
+      # P-04 y P-06): la base la da el job, y su ausencia es un FALLO, nunca un salto.
+      ERP_INTEGRATION_REQUIRED: '1'
+      ATLAS_TEST_DATABASE_PROVIDED: 'true'
+      REQUIRE_INTEGRATION_DB: 'true'
+      NODE_ENV: test
+      DB_SSL: 'false'
+      JWT_ACCESS_SECRET: ci_secret_with_more_than_32_characters
+      CORS_ALLOWED_ORIGINS: http://localhost:5273
+      LOG_LEVEL: warn
+      PG_ROOT: postgres://postgres:postgres@localhost:5432
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # La ruta de actualización necesita `origin/test` y `origin/main`.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: yarn
+
+      - name: Instalar dependencias
+        run: corepack yarn install --frozen-lockfile
+
+      # `db:migrate:prod` ejecuta `dist/scripts/db/run-sql.js`: es el MISMO migrador que corre el
+      # servicio `migrate` del despliegue (docker-compose.coolify.yml), no una imitación.
+      - name: Compilar
+        run: corepack yarn build
+
+      - name: Crear bases efímeras
+        run: |
+          for db in atlas_erp_ci atlas_erp_e2e atlas_erp_upgrade_test atlas_erp_upgrade_main atlas_erp_dev; do
+            node -e "const {Client}=require('pg');(async()=>{const c=new Client({connectionString:process.env.PG_ROOT+'/postgres'});await c.connect();await c.query('CREATE DATABASE $db');await c.end()})().catch(e=>{console.error(e);process.exit(1)})"
+          done
+          mkdir -p compliance-results
+
+      - name: Migrar desde cero (db:migrate:prod)
+        id: migrate-fresh
+        env:
+          DATABASE_URL: ${{ env.PG_ROOT }}/atlas_erp_ci
+        run: corepack yarn db:migrate:prod
+
+      - name: Migrar otra vez es un no-op (idempotencia del ledger)
+        id: migrate-idempotent
+        env:
+          DATABASE_URL: ${{ env.PG_ROOT }}/atlas_erp_ci
+        run: corepack yarn db:migrate:prod
+
+      # CI=true: sin DATABASE_URL la suite FALLA en vez de saltarse (test/integration/database.ts).
+      - name: Pruebas de integración (PostgreSQL real)
+        id: integration
+        env:
+          # Convención canónica: ERP_INTEGRATION_DATABASE_URL + ERP_INTEGRATION_REQUIRED (job). Las
+          # demás variables son las de suites que aún usan otra guarda; apuntan al mismo servidor.
+          ERP_INTEGRATION_DATABASE_URL: ${{ env.PG_ROOT }}/atlas_erp_ci
+          DATABASE_URL: ${{ env.PG_ROOT }}/atlas_erp_ci
+          # test/outbox-delivery.integration.spec.ts (P-03) crea su propia base desde esta conexión.
+          ATLAS_OUTBOX_IT_DATABASE_URL: ${{ env.PG_ROOT }}/postgres
+        run: corepack yarn test:integration --json --outputFile=compliance-results/integration.jest.json
+
+      # Base propia: los E2E numeran documentos por la serie del backend y no deben depender de lo
+      # que dejaron las pruebas de integración (ver ERP-D01 en docs/compliance).
+      - name: E2E autenticados contra base migrada
+        id: e2e
+        env:
+          ERP_INTEGRATION_DATABASE_URL: ${{ env.PG_ROOT }}/atlas_erp_e2e
+          DATABASE_URL: ${{ env.PG_ROOT }}/atlas_erp_e2e
+        run: |
+          corepack yarn -s db:migrate:prod
+          corepack yarn test:e2e --json --outputFile=compliance-results/e2e.jest.json
+
+      - name: Ruta de actualización desde versiones previas
+        id: upgrade-path
+        env:
+          FRESH_DATABASE_URL: ${{ env.PG_ROOT }}/atlas_erp_ci
+        run: |
+          UPGRADE_FROM_REF=origin/test UPGRADE_DATABASE_URL="$PG_ROOT/atlas_erp_upgrade_test" corepack yarn check:upgrade-path
+          UPGRADE_FROM_REF=origin/main UPGRADE_DATABASE_URL="$PG_ROOT/atlas_erp_upgrade_main" corepack yarn check:upgrade-path
+
+      # El camino de desarrollo (`db:migrate`, guiones por dominio) debe producir la misma base
+      # que el de despliegue. Hasta el 2026-09-24 ni siquiera migraba una base vacía.
+      - name: Camino de desarrollo (db:migrate) desde cero
+        id: migrate-dev
+        env:
+          DATABASE_URL: ${{ env.PG_ROOT }}/atlas_erp_dev
+        run: |
+          corepack yarn db:migrate
+          node_modules/.bin/tsx scripts/db/compare-schemas.ts "$PG_ROOT/atlas_erp_ci" "$PG_ROOT/atlas_erp_dev"
+
+      - name: Autoprueba del gate contable (mutaciones)
+        id: gate-self-test
+        env:
+          DATABASE_URL: ${{ env.PG_ROOT }}/atlas_erp_ci
+        run: corepack yarn check:accounting-gate
+
+      - name: Sellar evidencia
+        if: always()
+        run: |
+          stamp_jest() { [ -f "$1" ] && corepack yarn -s compliance:stamp jest "$1" --command "$2" --environment ci:db-integration || true; }
+          stamp_jest compliance-results/integration.jest.json "yarn test:integration"
+          stamp_jest compliance-results/e2e.jest.json "yarn test:e2e"
+          stamp_cmd() {
+            corepack yarn -s compliance:stamp command "$1" --exit-code "$2" --command "$3" \
+              --environment ci:db-integration --out compliance-results
+          }
+          stamp_cmd migrate-fresh "${{ steps.migrate-fresh.outcome == 'success' && '0' || '1' }}" "yarn db:migrate:prod (base vacía)"
+          stamp_cmd migrate-idempotent "${{ steps.migrate-idempotent.outcome == 'success' && '0' || '1' }}" "yarn db:migrate:prod (segunda vez)"
+          stamp_cmd upgrade-path "${{ steps.upgrade-path.outcome == 'success' && '0' || '1' }}" "yarn check:upgrade-path (origin/test y origin/main)"
+          stamp_cmd migrate-dev "${{ steps.migrate-dev.outcome == 'success' && '0' || '1' }}" "yarn db:migrate + compare-schemas"
+          stamp_cmd gate-self-test "${{ steps.gate-self-test.outcome == 'success' && '0' || '1' }}" "yarn check:accounting-gate"
+
+      - name: Publicar evidencia (base migrada)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compliance-db-integration
+          path: compliance-results/
+          if-no-files-found: warn
+          retention-days: 30
+
+  # Auditoría de dependencias con Yarn (nunca npm: reescribiría yarn.lock). Falla con high/critical
+  # en dependencias de PRODUCCIÓN; las de desarrollo se informan (ver decisions.md, P-12).
+  dependency-audit:
+    name: Auditoría de dependencias
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: yarn
+      - name: Instalar dependencias
+        run: corepack yarn install --frozen-lockfile --ignore-scripts
+      - name: yarn audit (producción bloquea, desarrollo informa)
+        run: corepack yarn audit:dependencies --out audit-results
+      - name: Publicar resultado
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-audit
+          path: audit-results/
+          if-no-files-found: warn
+          retention-days: 30
+
+  # SAST, copiado de AtlasBackend (.github/workflows/ci.yml, job `codeql`).
+  codeql:
+    name: CodeQL (SAST)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4.37.4
+        with:
+          languages: javascript-typescript
+          queries: security-extended
+      # JS/TS no necesita build para CodeQL: analiza el fuente directamente.
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v4.37.4
+        with:
+          category: '/language:javascript-typescript'
+
+  # Escaneo de la IMAGEN que se despliega, como AtlasDecisionEngineBackend (security.yml,
+  # `image-scan`): Trivy fijado por SHA, HIGH/CRITICAL con arreglo disponible.
+  image-scan:
+    name: Escaneo de imagen (Trivy)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Construir la imagen de producción
+        run: docker build --file Dockerfile --tag atlas-erp-backend:scan .
+      - name: Informe completo (artefacto)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: atlas-erp-backend:scan
+          format: json
+          output: trivy-image.json
+          severity: LOW,MEDIUM,HIGH,CRITICAL
+          exit-code: '0'
+      - name: Gate HIGH/CRITICAL con arreglo disponible
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: atlas-erp-backend:scan
+          format: table
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+      - name: Publicar resultado
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: image-scan
+          path: trivy-image.json
+          if-no-files-found: warn
+          retention-days: 30
+
+  # Matriz de cumplimiento (P-02): junta la evidencia sellada de este SHA y publica
+  # docs/compliance/evidence-index.json como artefacto. INFORMATIVO por ahora: casi todos los
+  # requisitos siguen abiertos y el modo estricto fallaría siempre.
+  #
+  # Para volverlo BLOQUEANTE en release: quitar `continue-on-error: true` del paso «Modo estricto»
+  # y añadir `compliance` a `needs` del job de despliegue/promoción que corresponda (y a los
+  # required checks de la rama protegida).
+  compliance:
+    name: Matriz de cumplimiento (evidencia)
+    if: always()
+    needs:
+      - static
+      - db-integration
+      - dependency-audit
+      - codeql
+      - image-scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: yarn
+      - name: Instalar dependencias
+        run: corepack yarn install --frozen-lockfile --ignore-scripts
+      - name: Descargar evidencia de los jobs
+        uses: actions/download-artifact@v4
+        with:
+          pattern: compliance-*
+          path: compliance-results
+          merge-multiple: true
+      - name: Sellar el resultado de los jobs de seguridad
+        run: |
+          stamp_job() {
+            corepack yarn -s compliance:stamp command "job:$1" --exit-code "$2" \
+              --command "job $1 de CI" --environment ci:compliance --out compliance-results
+          }
+          stamp_job dependency-audit "${{ needs.dependency-audit.result == 'success' && '0' || '1' }}"
+          stamp_job codeql "${{ needs.codeql.result == 'success' && '0' || '1' }}"
+          stamp_job image-scan "${{ needs.image-scan.result == 'success' && '0' || '1' }}"
+          stamp_job static "${{ needs.static.result == 'success' && '0' || '1' }}"
+          stamp_job db-integration "${{ needs.db-integration.result == 'success' && '0' || '1' }}"
+      - name: Evaluar evidencia
+        env:
+          COMPLIANCE_ENVIRONMENT: ci
+        run: |
+          corepack yarn -s compliance:evaluate --results-dir compliance-results \
+            --out compliance-results/evidence-index.json --write-audit
+          cp docs/audit/use-case-compliance-audit.md compliance-results/
+          cp docs/audit/use-case-compliance-audit.json compliance-results/
+      - name: Publicar índice de evidencia
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidence-index
+          path: compliance-results/
+          retention-days: 90
+      - name: Modo estricto (informativo)
+        continue-on-error: true
+        run: corepack yarn -s compliance:evaluate --results-dir compliance-results --out /tmp/strict.json --strict
+
+  deploy-dev:
+    name: Desplegar DEV sólo después de los quality gates
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    # `db-integration` es gate: sin base migrada y controles contables en verde no se despliega.
+    # dependency-audit, codeql, image-scan y compliance NO bloquean todavía el despliegue a DEV
+    # (ver docs/compliance/decisions.md, P-12); sí deben ser required checks del PR.
+    needs:
+      - static
+      - secret-scan
+      - db-integration
+    uses: ./.github/workflows/deploy-dev.yml
+    secrets: inherit

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { parseExactPositiveAmount } from '../../common/money/exact-amount-input.util';
 import { zodEnum } from '../../common/catalog/domain';
 import { paymentMethodDomain } from '../catalog/domains/accounting.domains';
 import {
@@ -20,6 +21,7 @@ import {
 } from './b2b-sales-crm.enums';
 import { checkAttributesAllowed, definitionSchemaFor } from '../../common/segmentation/rule-schema';
 import type { SegmentDefinition } from '../../common/segmentation/rule-engine';
+import { allocationsMatchPayment, purchaseSplitViolations } from './domain/merchant-billing-math';
 import {
   ATTRIBUTES_BY_SUBJECT,
   CRM_SEGMENT_ATTRIBUTES,
@@ -28,6 +30,11 @@ import {
 } from './domain/crm-segments';
 
 const uuid = z.string().uuid();
+/** Identificador numérico de Core (BIGINT) como texto: tenant, préstamo, cuota, comercio. */
+const coreId = z
+  .string()
+  .trim()
+  .regex(/^[1-9][0-9]{0,18}$/);
 const money = z.coerce.number().finite().min(0);
 const positiveMoney = z.coerce.number().finite().positive();
 const percent = z.coerce.number().finite().min(0).max(100);
@@ -36,6 +43,19 @@ const isoCurrency = z
   .trim()
   .length(3)
   .transform((value) => value.toUpperCase());
+
+/** Sin excepción: un importe ilegible ya lo rechaza su propio campo, aquí sólo se compara. */
+function allocationsMatchPaymentSafely(
+  amount: number,
+  allocations: ReadonlyArray<{ amountApplied: number }>,
+  currency: string,
+): boolean {
+  try {
+    return allocationsMatchPayment(amount, allocations, currency);
+  } catch {
+    return false;
+  }
+}
 
 function isRealDateOnly(value: string): boolean {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
@@ -458,49 +478,67 @@ export const registerPurchaseSchema = z
     cohortId: z.string().trim().max(80).optional(),
     productCategory: z.string().trim().max(120).optional(),
     mdrReceivableDueDate: dateOnly,
+    /*
+     * Identidad común con Core (P-14, contracts/atlas-integration-v1 compra-cuota): el préstamo de
+     * Core que financia esta compra. Opcional para no romper el alta manual; si viene, CADA cuota
+     * trae su `coreInstallmentId` y el ERP guarda el mapeo explícito en `core_installment_links`.
+     * Sin él, los avisos de pago de Core de esa cuota quedan como excepción de integración.
+     */
+    coreLoanRef: z
+      .object({ tenantId: coreId, loanId: coreId, partnerProfileId: coreId.optional() })
+      .strict()
+      .optional(),
     installments: z
       .array(
         z.object({
           installmentNumber: z.coerce.number().int().positive(),
           dueDate: dateOnly,
           amount: positiveMoney,
+          coreInstallmentId: coreId.optional(),
         }),
       )
       .min(1),
   })
   .superRefine((input, context) => {
-    const roundMoney = (value: number): number => Math.round((value + Number.EPSILON) * 100) / 100;
-    const expectedDownPayment = roundMoney(input.purchaseAmount * 0.6);
-    const expectedFinancedAmount = roundMoney(input.purchaseAmount - expectedDownPayment);
-    const installmentsTotal = roundMoney(
-      input.installments.reduce((sum, installment) => sum + installment.amount, 0),
-    );
-    const installmentNumbers = new Set<number>();
-
-    if (Math.abs(input.downPaymentAmount - expectedDownPayment) > 0.01) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['downPaymentAmount'],
-        message: 'El pago inicial debe representar 60% de la compra.',
-      });
-    }
-
-    if (Math.abs(input.financedAmount - expectedFinancedAmount) > 0.01) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['financedAmount'],
-        message: 'El monto financiado debe representar el 40% restante.',
-      });
-    }
-
-    if (Math.abs(installmentsTotal - input.financedAmount) > 0.01) {
+    const linked = input.installments.filter((installment) => installment.coreInstallmentId);
+    if (input.coreLoanRef && linked.length !== input.installments.length) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['installments'],
-        message: 'La suma de cuotas debe coincidir con el monto financiado.',
+        message: 'Con coreLoanRef, cada cuota debe traer su coreInstallmentId.',
+      });
+    }
+    if (!input.coreLoanRef && linked.length > 0) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['coreLoanRef'],
+        message: 'coreInstallmentId exige coreLoanRef (tenant y préstamo de Core).',
+      });
+    }
+    if (
+      new Set(linked.map((installment) => installment.coreInstallmentId)).size !== linked.length
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['installments'],
+        message: 'Dos cuotas no pueden apuntar a la misma cuota de Core.',
       });
     }
 
+    /*
+     * La misma regla que aplica el servicio (`domain/merchant-billing-math`), en céntimos exactos:
+     * financiado = compra − inicial y suma de cuotas = financiado, sin tolerancia (P-07).
+     */
+    for (const violation of purchaseSplitViolations(input)) {
+      if (violation.code === 'DUPLICATED_INSTALLMENT_NUMBER') continue;
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: [violation.path],
+        message: violation.message,
+      });
+    }
+
+    const installmentNumbers = new Set<number>();
     input.installments.forEach((installment, index) => {
       if (installmentNumbers.has(installment.installmentNumber)) {
         context.addIssue({
@@ -563,12 +601,7 @@ export const registerMerchantPaymentSchema = z
       .min(1),
   })
   .superRefine((input, context) => {
-    const roundMoney = (value: number): number => Math.round((value + Number.EPSILON) * 100) / 100;
-    const allocationTotal = roundMoney(
-      input.allocations.reduce((sum, allocation) => sum + allocation.amountApplied, 0),
-    );
-
-    if (Math.abs(allocationTotal - input.amount) > 0.01) {
+    if (!allocationsMatchPaymentSafely(input.amount, input.allocations, input.currency)) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['allocations'],
@@ -592,13 +625,106 @@ export const scheduleCoverageSchema = z.object({
   reason: z.string().trim().max(80).default('CUSTOMER_INSTALLMENT_DEFAULT_COVERAGE'),
 });
 
-export const markPayablePaidSchema = z.object({
-  paidAt: z.coerce.date(),
+/**
+ * Importe de dinero EXACTO (cadena preferida): positivo, sin notación científica y con 2 decimales
+ * como mucho. Sale como cadena canónica (`"300.00"`); nunca pasa por `number`.
+ */
+const exactMoney = z.union([z.string(), z.number()]).transform((value, context) => {
+  const parsed = parseExactPositiveAmount(value);
+  if (parsed === null) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Importe inválido: positivo, con 2 decimales como máximo (p. ej. "300.00").',
+    });
+    return z.NEVER;
+  }
+  return parsed;
 });
 
-export const applyRecoveryPaymentSchema = z.object({
-  amount: positiveMoney,
-});
+const externalReference = z
+  .string()
+  .trim()
+  .min(3)
+  .max(120)
+  .regex(/^[A-Za-z0-9][A-Za-z0-9._:/-]*$/, 'Referencia con caracteres no permitidos.');
+
+/**
+ * Registro de la liquidación de una CxP al comercio (P-05).
+ *
+ * CAMBIO DE CONTRATO deliberado (corrección de seguridad, 2026-09-24): antes bastaba `paidAt`, y
+ * una fecha daba por pagado al comercio y hacía nacer la CxC contra el consumidor. Ahora el cuerpo
+ * exige la referencia única del pago, el importe, la moneda, el comercio beneficiario, la fecha y
+ * el archivo de evidencia; el cliente que siga mandando sólo `paidAt` recibe 400 VALIDATION_ERROR.
+ * El registro queda PENDIENTE: la confirma otra persona con `/settlement/approve`.
+ */
+export const markPayablePaidSchema = z
+  .object({
+    settlementReference: externalReference,
+    amount: exactMoney,
+    currency: isoCurrency,
+    beneficiaryAccountId: uuid,
+    paidAt: z.coerce.date(),
+    evidenceFileId: uuid,
+  })
+  .strict();
+
+export const decidePayableSettlementSchema = z
+  .object({ note: z.string().trim().min(3).max(240).optional() })
+  .strict();
+
+export const rejectPayableSettlementSchema = z
+  .object({ note: z.string().trim().min(3).max(240) })
+  .strict();
+
+export const cancelPayableSchema = z.object({ reason: z.string().trim().min(3).max(240) }).strict();
+
+/**
+ * Cobro de recuperación contra el consumidor. `paymentReference` identifica el cobro: repetirlo
+ * devuelve el mismo resultado sin volver a sumar. Antes bastaba `amount` y cada repetición sumaba.
+ */
+export const applyRecoveryPaymentSchema = z
+  .object({
+    amount: exactMoney,
+    paymentReference: externalReference,
+    currency: isoCurrency.default('BOB'),
+    receivedAt: z.coerce.date().optional(),
+  })
+  .strict();
+
+export const reverseRecoveryMovementSchema = z
+  .object({
+    reversalReference: externalReference,
+    reason: z.string().trim().min(3).max(240),
+  })
+  .strict();
+
+export const recoveryMovementParamsSchema = z.object({ recoveryId: uuid, movementId: uuid });
+
+/**
+ * Resolución de un elemento de la cola de revisión de cobertura (P-04).
+ *
+ * - `CONFIRM_NOTICE`: el aviso de pago REPORTED se verificó; queda CONFIRMED y descuenta del saldo.
+ * - `REJECT_NOTICE`: el aviso no se sostiene; queda REJECTED y la cuota vuelve a ser cubrible.
+ * - `DISMISS`: descartar sin tocar pagos (contrato no activo, o aviso ya decidido por otra vía).
+ *
+ * `note` es obligatoria en los tres casos: es el motivo que queda en la historia del elemento.
+ * `noticeId` sólo hace falta si la cuota tiene más de un aviso pendiente.
+ */
+export const coverageReviewActionSchema = z.enum(['CONFIRM_NOTICE', 'REJECT_NOTICE', 'DISMISS']);
+
+export const resolveCoverageReviewItemSchema = z
+  .object({
+    action: coverageReviewActionSchema,
+    noticeId: uuid.optional(),
+    note: z.string().trim().min(3).max(240),
+  })
+  .strict();
+
+export const reviewItemIdParamsSchema = z.object({ reviewItemId: uuid });
+
+export const reviewQueueQuerySchema = z
+  .object({ status: z.enum(['OPEN', 'RESOLVED', 'ALL']).default('OPEN') })
+  .strict();
 
 export const runReconciliationSchema = z
   .object({

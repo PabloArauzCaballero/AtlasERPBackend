@@ -113,6 +113,26 @@ export class PortalScopeService {
     return requestedAccountId;
   }
 
+  /**
+   * Alcance de una ruta COMPARTIDA entre staff y comercio (fuera de `/portal`).
+   *
+   * `staffRoles` son los roles de esa ruta que operan cualquier comercio. Si el llamador tiene
+   * alguno, no hay restricción (`null`). Si no —sólo trae `MERCHANT_ADMIN`—, se devuelven SUS
+   * cuentas según sus membresías reales, y sin membresía activa se falla con 403. Existe porque
+   * `@Roles('OPERATIONS', 'ADMIN', 'MERCHANT_ADMIN')` sólo dice quién puede entrar, no sobre qué
+   * comercio: un comercio editaba sucursales y archivos de otro con sólo conocer el id (P-13).
+   */
+  async restrictToOwnAccounts(
+    user: AuthUser,
+    staffRoles: readonly string[],
+  ): Promise<readonly string[] | null> {
+    const roles = this.extractRoles(user);
+    const staff = new Set(staffRoles.map((role) => role.trim().toUpperCase()));
+    if (roles.some((role) => staff.has(role))) return null;
+    const scope = await this.resolveScope(user);
+    return scope.isInternalOperator ? null : scope.accountIds;
+  }
+
   /** Falla con 403 si la cuenta no pertenece al alcance del usuario partner. */
   assertAccountAccess(scope: PortalScope, accountId: string): void {
     if (scope.isInternalOperator) return;

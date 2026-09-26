@@ -256,10 +256,13 @@ El resultado queda persistido en `close_run.control_report_json`.
 Se agregaron scripts reproducibles:
 
 ```bash
-yarn db:prepare
+yarn build && yarn db:migrate:prod
 yarn check:deploy
-yarn deploy:audit
+yarn audit:dependencies
 ```
+
+> Corregido el 2026-09-24: `db:prepare` y `deploy:audit` no existen. Migrar es `db:migrate:prod`
+> (ejecuta `dist/`, así que va tras `build`) y la auditoría de dependencias es `audit:dependencies`.
 
 Y archivos de despliegue local:
 
@@ -273,19 +276,24 @@ La auditoría completa está en `docs/audit/deployment-readiness-audit.md`.
 
 ### Build de producción
 
-El proyecto ahora usa `tsconfig.build.json` para compilar únicamente `src/` hacia `dist/`. Esto permite que `npm run start:prod` ejecute `node dist/main.js` sin depender de `dist/src/main.js`.
+El proyecto usa `tsconfig.build.json`, que compila `src/` **y** `scripts/` hacia `dist/`: por eso la API queda en `dist/src/main.js` (lo que ejecuta `npm run start:prod`), el worker en `dist/src/workers/outbox/outbox.worker.js` y el migrador en `dist/scripts/db/run-sql.js`. (Corregido el 2026-09-24: la ruta `dist/main.js` citada antes no existe.)
 
 ### Migraciones versionadas
 
 Las migraciones viven en `src/database/migrations` y se aplican con:
 
 ```bash
-npm run db:migrate
-npm run db:migrate:status
-npm run db:rollback
+npm run db:migrate          # desarrollo (guiones por dominio)
+npm run db:migrate:prod     # despliegue: ejecuta dist/, tras `npm run build`
 ```
 
-El runner guarda estado en `atlas_accounting_migrations`, evitando re-ejecutar SQL estructural ya aplicado.
+El runner (`scripts/db/run-sql.ts`) guarda estado en `public.atlas_sql_migrations` con el checksum de cada
+archivo, evitando re-ejecutar SQL ya aplicado y rechazando un archivo aplicado cuyo contenido cambió.
+
+> Corregido el 2026-09-24: `db:migrate:status` y `db:rollback` no existen. El estado se consulta en
+> `public.atlas_sql_migrations`; una reversa se aplica pasando su `.down.sql` al mismo ejecutor
+> (`tsx scripts/db/run-sql.ts src/database/migrations/<archivo>.down.sql`), que desmarca la migración de ida.
+> No todas las migraciones tienen `.down.sql`.
 
 ### Seguridad de dependencias
 

@@ -38,13 +38,17 @@ export class SupplierPaymentTermsController {
   list(
     @Query(new ZodValidationPipe(listSupplierPaymentTermsQuerySchema))
     query: ListSupplierPaymentTermsQueryDto,
+    @CurrentUser() user: AuthUser,
   ) {
-    return this.service.list(query);
+    return this.service.list(query, user);
   }
 
   @Get(':id')
-  get(@Param(new ZodValidationPipe(idParamsSchema)) params: IdParamsDto) {
-    return this.service.get(params.id);
+  get(
+    @Param(new ZodValidationPipe(idParamsSchema)) params: IdParamsDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.service.get(params.id, user);
   }
 
   @Roles('admin', 'accountant', 'cfo')
@@ -54,7 +58,7 @@ export class SupplierPaymentTermsController {
     body: CreateSupplierPaymentTermsDto,
     @CurrentUser() user: AuthUser,
   ) {
-    return this.service.create(body, user?.sub);
+    return this.service.create(body, user);
   }
 
   @Roles('admin', 'accountant', 'cfo')
@@ -63,8 +67,9 @@ export class SupplierPaymentTermsController {
     @Param(new ZodValidationPipe(idParamsSchema)) params: IdParamsDto,
     @Body(new ZodValidationPipe(updateSupplierPaymentTermsSchema))
     body: UpdateSupplierPaymentTermsDto,
+    @CurrentUser() user: AuthUser,
   ) {
-    return this.service.update(params.id, body);
+    return this.service.update(params.id, body, user);
   }
 
   /**
@@ -77,7 +82,8 @@ export class SupplierPaymentTermsController {
   simulate(
     @Param(new ZodValidationPipe(idParamsSchema)) params: IdParamsDto,
     @Body(new ZodValidationPipe(simulateSupplierScheduleSchema)) body: SimulateSupplierScheduleDto,
+    @CurrentUser() user: AuthUser,
   ) {
-    return this.service.simulate(params.id, body);
+    return this.service.simulate(params.id, body, user);
   }
 }

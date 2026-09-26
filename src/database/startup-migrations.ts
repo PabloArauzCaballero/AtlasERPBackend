@@ -53,6 +53,20 @@ export const STARTUP_MIGRATION_FILES = [
   'src/database/migrations/20260901000000-ads-en-atlas-accounting.sql',
   // Portador del contexto de traza para el worker de outbox: columna aditiva, sin UPDATE.
   'src/database/migrations/20260918230000-outbox-trace-context.sql',
+  // Entrega real del outbox (lease, reintentos, DEAD, versión de agregado) e inbox del consumidor.
+  'src/database/migrations/20260924100000-outbox-entrega-real.sql',
+  // Cobertura BNPL: elegibilidad trazable, liquidación con doble control y recuperación por
+  // movimientos. Después de contabilidad porque la liquidación referencia `erp_file`.
+  'src/database/migrations/20260924200000-cobertura-elegibilidad-liquidacion.sql',
+  // P-06: un documento contable por factura de comercio y un asiento por documento (índices).
+  'src/database/migrations/20260924300000-p06-origen-contable-unico.sql',
+  // P-07: instantánea de la tasa MDR aplicada en cada compra (columnas aditivas).
+  'src/database/migrations/20260924300100-p07-mdr-de-la-compra.sql',
+  // Cobertura: la cola de revisión se resuelve (desenlace, actor, motivo) y su historia no se borra.
+  'src/database/migrations/20260924400000-cobertura-resolucion-cola.sql',
+  'src/database/migrations/20260924500000-eventos-core-erp.sql',
+  // Aprobación del documento contable por el servidor (quién y cuándo) e índices del listado.
+  'src/database/migrations/20260925100000-aprobacion-documento-contable.sql',
 ] as const;
 
 export interface LegacySqlProbe {

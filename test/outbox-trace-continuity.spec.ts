@@ -72,7 +72,10 @@ async function consumir(eventKey: string): Promise<void> {
     outboxConsumerAttributes({ eventType: TOPIC, aggregateType: 'accounting_document' }),
     async () => {
       await client.query(
-        'UPDATE atlas_accounting.event_outbox SET published_at = now() WHERE event_key = $1',
+        // Estado y fecha juntos: desde 20260924100000 un CHECK impide un `published_at` sin
+        // PUBLISHED (P-03).
+        `UPDATE atlas_accounting.event_outbox SET status = 'PUBLISHED', published_at = now()
+         WHERE event_key = $1`,
         [eventKey],
       );
     },

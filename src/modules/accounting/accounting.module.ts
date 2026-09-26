@@ -11,6 +11,7 @@ import { FinancialStructureController } from './financial-structure/controllers/
 import { ReceiptsController } from './receipts/controllers/receipts.controller';
 import { AccountGroupsService } from './account-groups/services/account-groups.service';
 import { AccountingDocumentsService } from './documents/services/accounting-documents.service';
+import { DocumentApprovalService } from './documents/services/document-approval.service';
 import { BillingService } from './billing/services/billing.service';
 import { BusinessPartnersService } from './business-partners/services/business-partners.service';
 import { ClosingService } from './closing/services/closing.service';
@@ -47,6 +48,7 @@ import { SupplierPaymentTermsService } from './supplier-payment-terms/supplier-p
     AccountGroupsService,
     AccountingDefaultsService,
     AccountingDocumentsService,
+    DocumentApprovalService,
     BusinessPartnerRoleValidationService,
     BillingService,
     BusinessPartnersService,
@@ -64,6 +66,8 @@ import { SupplierPaymentTermsService } from './supplier-payment-terms/supplier-p
   ],
   exports: [
     AccountingDocumentsService,
+    /* El puente del CRM comprueba el alcance por entidad ANTES de bloquear la factura (P-06). */
+    LegalEntityAccessService,
     DoubleEntryValidator,
     PeriodGuardService,
     SapPostingValidationService,

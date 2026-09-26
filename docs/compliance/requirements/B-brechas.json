@@ -1,0 +1,89 @@
+[
+  {
+    "requirementId": "B02",
+    "packageId": "P-01",
+    "repository": "AtlasERPBackend",
+    "title": "El despliegue DEV depende de los gates de CI del mismo SHA",
+    "releaseIncluded": true,
+    "ownerRole": "S",
+    "acceptance": "CI rojo, incompleto o de otro SHA no invoca el despliegue; smoke posterior identifica la versión desplegada.",
+    "tests": [],
+    "requiresDatabase": false,
+    "blockedBy": "Se verifica en GitHub Actions (P-01, PR #2/#3 ya en esta rama): hace falta observar un run con CI rojo que no despliega. El orquestador empuja y registra el run."
+  },
+  {
+    "requirementId": "B19",
+    "packageId": "P-17",
+    "repository": "AtlasERPBackend",
+    "title": "Restore, rollback integral, credenciales efectivas, alertas e integraciones reales verificados",
+    "releaseIncluded": true,
+    "ownerRole": "S",
+    "acceptance": "Restore probado con RPO/RTO acordados, rollback ensayado, alertas entregadas y proveedores reales verificados.",
+    "tests": [],
+    "requiresDatabase": true,
+    "blockedBy": "Lo ejecutable en local está en P-16.json (carga) y P-17.json (restore y rollback). Queda lo que exige entorno o decisión: SLO acordado, RPO/RTO aprobados, retención ratificada por J, credenciales efectivas, restore de objetos y ejecución por alguien distinto del autor."
+  },
+  {
+    "requirementId": "B20",
+    "packageId": "P-18",
+    "repository": "AtlasERPBackend",
+    "title": "Ciclo S2S completo Core–Engine–ERP con duplicados y fallos parciales",
+    "releaseIncluded": true,
+    "ownerRole": "I",
+    "acceptance": "Jornada sintética conjunta sin efectos económicos extra ante duplicados y fallos parciales; conciliación con diferencia 0.",
+    "tests": [],
+    "requiresDatabase": true,
+    "blockedBy": "Requiere los tres servicios desplegados juntos y contratos congelados (P-08, P-14, P-18)."
+  },
+  {
+    "requirementId": "ERP-D01",
+    "packageId": "P-15",
+    "repository": "AtlasERPBackend",
+    "title": "Numeración de asientos: journal_no es único global pero se deriva de una serie por entidad legal",
+    "releaseIncluded": true,
+    "ownerRole": "E",
+    "acceptance": "Dos entidades legales pueden registrar su primer asiento sin número; la unicidad global de journal_no se sustituye por un asiento por documento (migración 20260924300000).",
+    "tests": [
+      {
+        "file": "test/accounting-documents-db.e2e-spec.ts",
+        "name": "dos entidades pueden registrar su primer asiento sin número"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  },
+  {
+    "requirementId": "ERP-D02",
+    "packageId": "P-12",
+    "repository": "AtlasERPBackend",
+    "title": "db:migrate (camino de desarrollo) migra una base vacía y produce el mismo esquema que db:migrate:prod",
+    "releaseIncluded": true,
+    "ownerRole": "S",
+    "acceptance": "Antes fallaba con «schema atlas_accounting does not exist» porque db:migrate:crm corría antes que contabilidad.",
+    "tests": [],
+    "commands": [
+      {
+        "name": "migrate-dev"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  },
+  {
+    "requirementId": "ERP-D03",
+    "packageId": "P-13",
+    "repository": "AtlasERPBackend",
+    "title": "El alcance por entidad legal se comprueba antes de leer datos de la entidad pedida al crear un asiento",
+    "releaseIncluded": true,
+    "ownerRole": "E",
+    "acceptance": "Un contador con alcance a otra entidad recibe 403 (antes 400 ACCOUNTING_PERIOD_NOT_RESOLVED, un oráculo sobre entidades ajenas) y no se escribe nada.",
+    "tests": [
+      {
+        "file": "test/accounting-documents-db.e2e-spec.ts",
+        "name": "Asientos contables por HTTP autenticado sobre base migrada (e2e) rechaza operar sobre una entidad legal fuera del alcance del token (403)"
+      }
+    ],
+    "requiresDatabase": true,
+    "blockedBy": null
+  }
+]

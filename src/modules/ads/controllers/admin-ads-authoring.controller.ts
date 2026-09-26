@@ -107,7 +107,9 @@ export class AdminAdsAuthoringController {
   }
 
   /* Conjuntos, creatividades y espacios: sin estas lecturas la pantalla pedia uuids a mano. */
+  /* Faltaba el `@Roles` (TSK-ERPB-16): cualquier sesión listaba los conjuntos de anuncios. */
   @Get('ad-sets')
+  @Roles('ADS_ADMIN_VIEWER', 'ADS_ADMIN_MANAGER', 'ADS_ADMIN_OPERATOR', 'ADS_AUDITOR')
   listAdSets(@Query('campaignId') campaignId?: string) {
     return this.authoringService.listAdSets(campaignId);
   }

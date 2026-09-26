@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { WhereOptions } from 'sequelize';
 import { ErpFileModel } from '../../database/models';
@@ -30,6 +30,17 @@ export const ATLAS_STORAGE_PROVIDER = 'ATLAS_MINIO';
  * AtlasBackend emite el permiso bajo `<tenant>/erp-<dueño>/`, el navegador sube directo, el objeto
  * se VERIFICA antes de registrarse y se lee por bytes con la sesión (`GET /files/:id/content`).
  */
+/**
+ * Alcance del llamador sobre los adjuntos: `null` = staff (cualquier dueño); una lista = las
+ * cuentas de comercio del usuario partner, que sólo alcanza los adjuntos de SUS cuentas
+ * (`B2B_ACCOUNT`). Los demás tipos de dueño (asientos, cuentas GL, partners contables…) son
+ * contabilidad interna y un comercio no los ve nunca.
+ */
+export type FileAccountScope = readonly string[] | null;
+
+/** Tipo de dueño que un comercio puede alcanzar: su propia cuenta. */
+const MERCHANT_OWNER_TYPE = 'B2B_ACCOUNT';
+
 @Injectable()
 export class ErpFilesService {
   constructor(
@@ -38,7 +49,12 @@ export class ErpFilesService {
     @InjectModel(ErpFileModel) private readonly fileModel: typeof ErpFileModel,
   ) {}
 
-  signUpload(input: UploadSignatureDto, accessToken: string | undefined): Promise<UploadTicket> {
+  signUpload(
+    input: UploadSignatureDto,
+    accessToken: string | undefined,
+    scope: FileAccountScope = null,
+  ): Promise<UploadTicket> {
+    this.assertOwnerInScope(input.ownerType, input.ownerId, scope);
     this.logger.info('Emitiendo permiso de subida de archivo.', {
       layer: 'service',
       module: 'files',
@@ -65,7 +81,9 @@ export class ErpFilesService {
     input: RegisterFileDto,
     user: AuthUser,
     accessToken: string | undefined,
+    scope: FileAccountScope = null,
   ): Promise<ErpFileModel> {
+    this.assertOwnerInScope(input.ownerType, input.ownerId, scope);
     const verified = await this.atlas.forward<{
       sizeBytes: number;
       sha256: string;
@@ -105,7 +123,8 @@ export class ErpFilesService {
     });
   }
 
-  list(query: ListFilesQueryDto): Promise<ErpFileModel[]> {
+  list(query: ListFilesQueryDto, scope: FileAccountScope = null): Promise<ErpFileModel[]> {
+    this.assertOwnerInScope(query.ownerType, query.ownerId, scope);
     return this.fileModel.findAll({
       where: {
         ownerType: query.ownerType,
@@ -116,7 +135,7 @@ export class ErpFilesService {
     });
   }
 
-  async get(id: string): Promise<ErpFileModel> {
+  async get(id: string, scope: FileAccountScope = null): Promise<ErpFileModel> {
     const file = await this.fileModel.findByPk(id);
     if (!file || file.status === 'DELETED') {
       throw new NotFoundException({
@@ -124,15 +143,31 @@ export class ErpFilesService {
         message: 'El archivo informado no existe.',
       });
     }
+    this.assertOwnerInScope(file.ownerType, file.ownerId, scope);
     return file;
+  }
+
+  /*
+   * `/files` acepta `merchant_admin` a nivel de clase y ninguna ruta miraba de quién era el
+   * archivo: un comercio listaba, leía, descargaba y daba de baja los documentos KYB de otro con
+   * sólo conocer su id o el de la cuenta (P-13). Se comprueba ANTES de hablar con AtlasBackend.
+   */
+  private assertOwnerInScope(ownerType: string, ownerId: string, scope: FileAccountScope): void {
+    if (scope === null) return;
+    if (ownerType === MERCHANT_OWNER_TYPE && scope.includes(ownerId)) return;
+    throw new ForbiddenException({
+      code: 'ERP_FILE_FORBIDDEN',
+      message: 'No tienes permiso sobre los archivos de este dueño.',
+    });
   }
 
   /** Los bytes, con la sesión. Un archivo registrado con el proveedor viejo ya no se puede servir. */
   async content(
     id: string,
     accessToken: string | undefined,
+    scope: FileAccountScope = null,
   ): Promise<{ buffer: Buffer; contentType: string }> {
-    const file = await this.get(id);
+    const file = await this.get(id, scope);
     if (file.storageProvider !== ATLAS_STORAGE_PROVIDER) {
       throw new NotFoundException({
         code: 'ERP_FILE_PROVIDER_RETIRED',
@@ -151,8 +186,8 @@ export class ErpFilesService {
    * Baja lógica. El objeto se conserva en el almacén: es evidencia de lo que respaldó una decisión,
    * y AtlasBackend no expone borrado de documentos del ERP (el de privacidad es por sujeto).
    */
-  async remove(id: string): Promise<{ deleted: boolean }> {
-    const file = await this.get(id);
+  async remove(id: string, scope: FileAccountScope = null): Promise<{ deleted: boolean }> {
+    const file = await this.get(id, scope);
     await file.update({ status: 'DELETED' });
     return { deleted: true };
   }

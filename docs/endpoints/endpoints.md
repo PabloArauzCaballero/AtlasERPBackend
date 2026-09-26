@@ -309,27 +309,95 @@ Registra pago del comercio y lo aplica explícitamente contra CxC B2B.
 
 ### Responsabilidad
 
-Crea CxP ATLAS→comercio por una cuota impaga específica.
+Crea CxP ATLAS→comercio por una cuota impaga específica, por su SALDO (importe − pagos confirmados).
 
-### Regla aplicada
+### Reglas aplicadas (P-04, 2026-09-24)
 
-No acelera toda la deuda; cubre cuota por cuota.
+- No acelera toda la deuda; cubre cuota por cuota.
+- Con lock sobre la cuota: vencida según el día de negocio de Bolivia (`America/La_Paz`), cuota
+  SCHEDULED/OVERDUE, compra CONFIRMED, saldo > 0 y sin CxP viva. Si no, 409 sin mutar nada
+  (`NOT_DUE`, `ALREADY_PAID`, `CANCELLED`, `ALREADY_COVERED`, `STATUS_NOT_ELIGIBLE`).
+- Aviso de pago REPORTED sin confirmar o contrato no activo: 202 `REVIEW_REQUIRED` y elemento en la
+  cola de revisión; nunca aprobación implícita.
+- Guarda actor, versión contractual, fecha de negocio y evidencia de elegibilidad.
+- Índice único parcial: una CxP viva por cuota.
+
+## PATCH /api/v1/b2b/coverage/payables/:payableId/cancel
+
+Revierte una CxP aún no liquidada (queda CANCELLED con motivo y actor; la cuota puede reabrirse).
+
+## GET /api/v1/b2b/coverage/payables
+
+Coberturas con el estado de su liquidación. Campos añadidos (2026-09-24, aditivos): `currency`,
+`settlementId`, `settlementStatus` (`PENDING_APPROVAL`/`CONFIRMED`/null), `settlementReference`,
+`settlementAmount`, `settlementCurrency`, `settlementRegisteredAt`, `settlementRegisteredByUserId` y
+`settlementRegisteredByMe` (la registró quien pregunta: la pantalla no le ofrece aprobarla).
+
+## GET /api/v1/b2b/coverage/recoveries
+
+Recuperaciones; añade `currency`, `installmentId` y `merchantPayableId`.
+
+## GET /api/v1/b2b/coverage/review-queue
+
+Cola de revisión: avisos REPORTED que superaron `BNPL_PAYMENT_NOTICE_REVIEW_HOURS` (72 h por defecto)
+y coberturas que no se aprueban solas. Cada fila trae la cuota, los avisos pendientes y
+`allowedActions` para quien pregunta. `?status=RESOLVED|ALL` muestra lo cerrado (nunca se borra).
+
+## POST /api/v1/b2b/coverage/review-queue/:reviewItemId/resolve
+
+### Responsabilidad
+
+Cierra un elemento de la cola con `action` (`CONFIRM_NOTICE`, `REJECT_NOTICE`, `DISMISS`), `note`
+obligatoria y `noticeId` si la cuota tiene varios avisos pendientes.
+
+### Reglas aplicadas (P-04, 2026-09-24)
+
+- Sólo FINANCE/ADMIN; quien abrió el elemento no lo resuelve (403 `FOUR_EYES_REQUIRED`).
+- Lock sobre la cuota: dos resoluciones simultáneas dejan una; la otra recibe 409
+  `REVIEW_ITEM_ALREADY_RESOLVED`.
+- Confirmar: aviso CONFIRMED (con actor, fecha y nota), saldo actualizado; si queda cubierta, cuota
+  PAID_TO_MERCHANT. Con cobertura viva: 409 `COVERAGE_IN_PLACE`.
+- Rechazar: aviso REJECTED; la cuota vencida vuelve a ser cubrible (OVERDUE).
+- Descartar: sólo contrato no activo o aviso ya decidido (409 `REVIEW_ACTION_NOT_ALLOWED`).
+- El elemento cerrado guarda estado, desenlace, actor, motivo y fecha; no se edita ni se borra.
 
 ## PATCH /api/v1/b2b/coverage/payables/:payableId/paid
 
 ### Responsabilidad
 
-Marca la CxP como pagada y recién entonces crea `consumer_recovery_receivable`.
+Registra la liquidación al comercio (primera firma). **Cambio de contrato (P-05):** exige
+`settlementReference`, `amount`, `currency`, `beneficiaryAccountId`, `paidAt` y `evidenceFileId`;
+el cuerpo anterior con sólo `paidAt` responde 400. Queda `PENDING_APPROVAL` (202).
+
+## PATCH /api/v1/b2b/coverage/payables/:payableId/settlement/approve
+
+Segunda firma, por OTRA persona (403 `FOUR_EYES_REQUIRED` si es quien registró). En una transacción:
+CxP → PAID, cuota → COVERED_BY_ATLAS, nace `consumer_recovery_receivable` por el importe liquidado y
+se escribe `b2b.coverage.settled` en el outbox. Repetir no duplica.
 
 ### Regla aplicada
 
-La recuperación contra consumidor no nace antes del pago/cobertura ATLAS.
+La recuperación contra consumidor no nace antes del pago/cobertura ATLAS confirmado.
+
+## PATCH /api/v1/b2b/coverage/payables/:payableId/settlement/reject
+
+Rechaza una liquidación pendiente (otra persona); libera la referencia.
 
 ## PATCH /api/v1/b2b/coverage/recoveries/:recoveryId/apply-payment
 
 ### Responsabilidad
 
-Aplica recuperación parcial o total contra la CxC del consumidor.
+Aplica recuperación parcial o total contra la CxC del consumidor como movimiento con
+`paymentReference` único. Repetir la referencia no suma (`replayed=true`); sobrepago → 409.
+
+## POST /api/v1/b2b/coverage/recoveries/:recoveryId/movements/:movementId/reverse
+
+Reverso/devolución: movimiento compensatorio; los movimientos son de sólo inserción. Exige
+`reversalReference` única y `reason`. Revertir dos veces el mismo cobro → 409 `ALREADY_REVERSED`.
+
+## GET /api/v1/b2b/coverage/recoveries/:recoveryId/movements
+
+Cobros y reversos de una recuperación, en orden de registro (FINANCE, COLLECTIONS, ADMIN).
 
 ## POST /api/v1/b2b/reconciliation/runs
 
@@ -498,6 +566,25 @@ Cierra período si no hay documentos `DRAFT`.
 ### PATCH /api/v1/accounting/closings/periods/reopen
 
 Reabre período con motivo documentado.
+
+## Outbox contable (operación)
+
+Roles: `ADMIN`, `CFO`, `FINANCE`. Ver `src/workers/outbox/README.md`.
+
+### GET /api/v1/accounting/outbox/status
+
+Conteos por estado (`PENDING`, `PUBLISHED`, `DEAD`, `LEGACY_LOG_ONLY`), eventos en vuelo, edad del
+pendiente más antiguo, intentos máximos y `transportConfigured` (sin transporte nada se publica).
+
+### GET /api/v1/accounting/outbox/events/dead?limit=50
+
+Eventos agotados o rechazados, con su último error redactado.
+
+### POST /api/v1/accounting/outbox/events/:eventKey/replay
+
+Cuerpo `{ "reason": "…" }` (10–500 caracteres). Devuelve a `PENDING` un evento `DEAD` o
+`LEGACY_LOG_ONLY` y lo registra en `business_action_logs`. `404 OUTBOX_EVENT_NOT_FOUND`,
+`409 OUTBOX_EVENT_NOT_REPLAYABLE` si está `PENDING` o `PUBLISHED`.
 
 ## Endurecimiento transversal aplicado a endpoints contables
 

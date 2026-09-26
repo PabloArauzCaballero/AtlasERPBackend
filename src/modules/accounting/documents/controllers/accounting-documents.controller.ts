@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { CurrentUser } from '../../../../common/decorators/current-user.decorator';
 import { Roles } from '../../../../common/decorators/roles.decorator';
 import { AuthUser } from '../../../../common/types/auth-context.types';
@@ -6,13 +6,18 @@ import { ZodValidationPipe } from '../../../../common/pipes/zod-validation.pipe'
 import {
   BulkCreateAccountingDocumentsDto,
   CreateAccountingDocumentDto,
+  DecideAccountingDocumentDto,
+  ListAccountingDocumentsQueryDto,
   ReverseAccountingDocumentDto,
   bulkCreateAccountingDocumentsSchema,
   createAccountingDocumentSchema,
+  decideAccountingDocumentSchema,
   idParamsSchema,
+  listAccountingDocumentsQuerySchema,
   reverseAccountingDocumentSchema,
 } from '../../shared/schemas/accounting.schemas';
 import { AccountingDocumentsService } from '../services/accounting-documents.service';
+import { DocumentApprovalService } from '../services/document-approval.service';
 import { PinoLoggerService } from '../../../../common/logger/pino-logger.service';
 
 @Roles('admin', 'accountant', 'cfo')
@@ -20,6 +25,7 @@ import { PinoLoggerService } from '../../../../common/logger/pino-logger.service
 export class AccountingDocumentsController {
   constructor(
     private readonly service: AccountingDocumentsService,
+    private readonly approvalService: DocumentApprovalService,
     private readonly logger: PinoLoggerService,
   ) {}
 
@@ -71,6 +77,30 @@ export class AccountingDocumentsController {
     return this.service.postDocument(params.id, user);
   }
 
+  /*
+   * Aprobar y rechazar un borrador PENDING (ATL-03). Método con su propio @Roles: el contable crea,
+   * pero decide un CFO o un ADMIN, y nunca quien lo creó (403). Provisional hasta DEC-10.
+   */
+  @Roles('admin', 'cfo')
+  @Patch(':id/approve')
+  approveDocument(
+    @Param(new ZodValidationPipe(idParamsSchema)) params: { id: string },
+    @Body(new ZodValidationPipe(decideAccountingDocumentSchema)) body: DecideAccountingDocumentDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.approvalService.approve(params.id, user, body.reason);
+  }
+
+  @Roles('admin', 'cfo')
+  @Patch(':id/reject')
+  rejectDocument(
+    @Param(new ZodValidationPipe(idParamsSchema)) params: { id: string },
+    @Body(new ZodValidationPipe(decideAccountingDocumentSchema)) body: DecideAccountingDocumentDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.approvalService.reject(params.id, user, body.reason);
+  }
+
   @Post(':id/reverse')
   reverseDocument(
     @Param(new ZodValidationPipe(idParamsSchema)) params: { id: string },
@@ -89,18 +119,26 @@ export class AccountingDocumentsController {
   }
 
   @Get()
-  list(@CurrentUser() user: AuthUser) {
-    return this.service.list(user);
+  list(
+    @Query(new ZodValidationPipe(listAccountingDocumentsQuerySchema))
+    query: ListAccountingDocumentsQueryDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.service.list(user, query);
   }
 
   @Get(':id')
-  getDocument(@Param(new ZodValidationPipe(idParamsSchema)) params: { id: string }) {
+  getDocument(
+    @Param(new ZodValidationPipe(idParamsSchema)) params: { id: string },
+    @CurrentUser() user: AuthUser,
+  ) {
     this.logger.debug('Endpoint getDocument recibido.', {
       layer: 'controller',
       module: 'accounting-documents',
       action: 'getDocument',
       accountingDocumentId: params.id,
+      userId: user.sub,
     });
-    return this.service.getDocument(params.id);
+    return this.service.getDocumentForUser(params.id, user);
   }
 }

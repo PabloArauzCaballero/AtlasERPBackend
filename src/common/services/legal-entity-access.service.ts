@@ -70,6 +70,23 @@ export class LegalEntityAccessService {
     });
   }
 
+  /**
+   * Las entidades que el usuario puede VER en un listado: `null` significa todas (ADMIN), una lista
+   * vacía significa ninguna. Es la misma regla que `assertCanAccessLegalEntity`, pero para filtrar
+   * en la consulta en vez de lanzar: un listado de maestros no debe fallar entero porque exista
+   * otra entidad, debe no mostrarla (P-13).
+   */
+  accessibleLegalEntityIds(user: AuthUser): readonly string[] | null {
+    if (this.hasRole(user, 'admin')) return null;
+    return user.legalEntityIds ?? [];
+  }
+
+  /** Versión booleana, sin registro, para filtrar filas ya leídas. */
+  canAccessLegalEntity(user: AuthUser, legalEntityId: string): boolean {
+    const allowed = this.accessibleLegalEntityIds(user);
+    return allowed === null || allowed.includes(legalEntityId);
+  }
+
   private hasRole(user: AuthUser, expectedRole: string): boolean {
     const expected = expectedRole.trim().toUpperCase();
     return [user.roleCode, user.role, ...(user.roles ?? [])]

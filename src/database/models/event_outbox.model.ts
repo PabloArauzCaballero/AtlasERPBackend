@@ -45,8 +45,60 @@ export class EventOutboxModel extends Model {
   @Column({ type: DataType.JSONB, field: 'trace_context', allowNull: true })
   declare traceContext: Record<string, string> | null;
 
+  /**
+   * Momento del ACK duradero del receptor (2xx). Lo asigna SÓLO el worker tras la confirmación;
+   * nunca un productor ni un log. Ver migración `20260924100000-outbox-entrega-real`.
+   */
   @Column({ type: DataType.DATE, field: 'published_at', allowNull: true })
   declare publishedAt: Date | null;
+
+  /**
+   * PENDING | PUBLISHED | DEAD | LEGACY_LOG_ONLY. Los productores no lo escriben: la base pone
+   * PENDING por defecto. El resto de columnas de entrega son del worker.
+   */
+  @Column({ type: DataType.STRING(20), field: 'status', allowNull: false, defaultValue: 'PENDING' })
+  declare status: 'PENDING' | 'PUBLISHED' | 'DEAD' | 'LEGACY_LOG_ONLY';
+
+  @Column({ type: DataType.INTEGER, field: 'attempts', allowNull: false, defaultValue: 0 })
+  declare attempts: number;
+
+  @Column({
+    type: DataType.DATE,
+    field: 'next_attempt_at',
+    allowNull: false,
+    defaultValue: DataType.NOW,
+  })
+  declare nextAttemptAt: Date;
+
+  @Column({ type: DataType.STRING(120), field: 'lease_owner', allowNull: true })
+  declare leaseOwner: string | null;
+
+  @Column({ type: DataType.DATE, field: 'lease_expires_at', allowNull: true })
+  declare leaseExpiresAt: Date | null;
+
+  @Column({ type: DataType.DATE, field: 'last_attempt_at', allowNull: true })
+  declare lastAttemptAt: Date | null;
+
+  /** Error de la última entrega, ya redactado (sin cuerpo, cabeceras ni secretos). */
+  @Column({ type: DataType.STRING(500), field: 'last_error', allowNull: true })
+  declare lastError: string | null;
+
+  @Column({ type: DataType.SMALLINT, field: 'last_http_status', allowNull: true })
+  declare lastHttpStatus: number | null;
+
+  @Column({ type: DataType.DATE, field: 'dead_at', allowNull: true })
+  declare deadAt: Date | null;
+
+  @Column({ type: DataType.INTEGER, field: 'replay_count', allowNull: false, defaultValue: 0 })
+  declare replayCount: number;
+
+  /** Versión del esquema del `payload`; el productor la sube con un cambio incompatible. */
+  @Column({ type: DataType.INTEGER, field: 'schema_version', allowNull: false, defaultValue: 1 })
+  declare schemaVersion: number;
+
+  /** Versión monótona por agregado; la asigna un trigger al insertar (no la escribe el productor). */
+  @Column({ type: DataType.BIGINT, field: 'aggregate_version', allowNull: true })
+  declare aggregateVersion: string | null;
 
   @Column({
     type: DataType.DATE,
