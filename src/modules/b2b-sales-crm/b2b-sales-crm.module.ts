@@ -46,6 +46,7 @@ import { PortalModule } from '../portal/portal.module';
 import { AuthGatewayModule } from '../auth-gateway/auth-gateway.module';
 import { PartnerOnboardingGatewayModule } from '../partner-onboarding-gateway/partner-onboarding-gateway.module';
 import { CoreEventsController } from './controllers/core-events.controller';
+import { CoreCreditEventsService } from './integration/core-credit-events.service';
 import { CorePaymentEventsService } from './integration/core-payment-events.service';
 import { CoreSignatureGuard } from './integration/core-signature.guard';
 
@@ -102,6 +103,7 @@ import { CoreSignatureGuard } from './integration/core-signature.guard';
     B2BCreditRatingService,
     B2BCreditRatingQueryService,
     CorePaymentEventsService,
+    CoreCreditEventsService,
     CoreSignatureGuard,
     JwtAuthGuard,
     RolesGuard,

@@ -68,11 +68,27 @@ export type PaymentReported = z.infer<typeof paymentReportedSchema>;
 export type PaymentConfirmed = z.infer<typeof paymentConfirmedSchema>;
 export type PaymentRejected = z.infer<typeof paymentRejectedSchema>;
 
+/**
+ * T-11 (2026-09-26): la banda de riesgo con la que Core aprobó un crédito, para que la regla de
+ * MDR por banda case en el registro de la compra. `aggregate.type` es `credit_application`, no una
+ * cuota — a diferencia de `payment.*`, este evento no tiene forma de "claim".
+ */
+export const creditDecisionRecordedSchema = z
+  .object({
+    customerId: coreId,
+    riskBand: z.enum(['A', 'B', 'C', 'D']),
+    decidedAt: isoDateTime,
+    applicationCode: z.string().min(1).max(80),
+  })
+  .strict();
+export type CreditDecisionRecorded = z.infer<typeof creditDecisionRecordedSchema>;
+
 /** Tópicos de Core que el ERP consume, con la versión de esquema que entiende. */
 export const CONSUMED_CORE_TOPICS = {
   'payment.reported': { schemaVersion: 1, payload: paymentReportedSchema },
   'payment.confirmed': { schemaVersion: 1, payload: paymentConfirmedSchema },
   'payment.rejected': { schemaVersion: 1, payload: paymentRejectedSchema },
+  'credit.decision.recorded': { schemaVersion: 1, payload: creditDecisionRecordedSchema },
 } as const;
 export type ConsumedCoreTopic = keyof typeof CONSUMED_CORE_TOPICS;
 

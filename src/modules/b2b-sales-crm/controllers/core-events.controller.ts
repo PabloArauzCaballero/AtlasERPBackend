@@ -23,12 +23,16 @@ import { Public } from '../../../common/decorators/public.decorator';
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
 import { EVENT_KEY_HEADER } from '../../../workers/outbox/http-event-publisher';
 import { coreEnvelopeSchema, type CoreEnvelope } from '../integration/core-events.schemas';
+import { CoreCreditEventsService } from '../integration/core-credit-events.service';
 import { CorePaymentEventsService } from '../integration/core-payment-events.service';
 import { CoreSignatureGuard } from '../integration/core-signature.guard';
 
 @Controller('integration/core')
 export class CoreEventsController {
-  constructor(private readonly events: CorePaymentEventsService) {}
+  constructor(
+    private readonly events: CorePaymentEventsService,
+    private readonly creditEvents: CoreCreditEventsService,
+  ) {}
 
   @Public()
   @UseGuards(CoreSignatureGuard)
@@ -43,7 +47,12 @@ export class CoreEventsController {
     if (eventKeyHeader && eventKeyHeader !== envelope.eventKey) {
       throw new BadRequestException('EVENT_KEY_HEADER_MISMATCH');
     }
-    const { outcome } = await this.events.receive(envelope);
+    // T-11: `credit.decision.recorded` no tiene forma de "claim" (sin cuota ni préstamo) — su
+    // propio consumidor, sin la complejidad de cobertura/avisos de pago.
+    const { outcome } =
+      envelope.topic === 'credit.decision.recorded'
+        ? await this.creditEvents.receive(envelope)
+        : await this.events.receive(envelope);
     return { eventKey: envelope.eventKey, outcome };
   }
 }

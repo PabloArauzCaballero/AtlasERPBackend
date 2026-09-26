@@ -26,6 +26,7 @@ import type {
 import { toContractVersionResponse } from '../b2b-sales-crm.mapper';
 import { mdrRuleSpecificity } from '../domain/mdr-rule-specificity';
 import { B2BSalesCrmRepository } from '../repositories/b2b-sales-crm.repository';
+import { publishMdrUpdatedForContractVersion } from './mdr-updated-publisher.support';
 import { B2BSalesCrmUseCaseBase } from './b2b-sales-crm-use-case.base';
 
 const MDR_RULE_EXCEPTION_REQUIRED =
@@ -171,6 +172,14 @@ export class B2BContractsService extends B2BSalesCrmUseCaseBase {
         { transaction },
       );
 
+      // T-10: al activarse el contrato, Core se entera del MDR pactado (si ya hay una regla general).
+      await publishMdrUpdatedForContractVersion(
+        this.repository,
+        version.id,
+        new Date(),
+        transaction,
+      );
+
       return {
         contractId: contract.id,
         status: contract.status,
@@ -265,6 +274,13 @@ export class B2BContractsService extends B2BSalesCrmUseCaseBase {
             transaction,
           )
         : null;
+      // T-10: si esta regla es (o deja de ser) la general activa, Core se entera del MDR vigente.
+      await publishMdrUpdatedForContractVersion(
+        this.repository,
+        input.contractVersionId,
+        new Date(),
+        transaction,
+      );
       return {
         id: regla.id,
         ratePercent: regla.ratePercent,
@@ -338,8 +354,17 @@ export class B2BContractsService extends B2BSalesCrmUseCaseBase {
     };
 
     if (!needsException) {
-      await regla.update(changes);
-      return { id: regla.id, ratePercent: regla.ratePercent, isActive: regla.isActive };
+      return this.repository.transaction(async (transaction) => {
+        await regla.update(changes, { transaction });
+        // T-10: si esta regla es (o deja de ser) la general activa, Core se entera del MDR vigente.
+        await publishMdrUpdatedForContractVersion(
+          this.repository,
+          regla.contractVersionId,
+          new Date(),
+          transaction,
+        );
+        return { id: regla.id, ratePercent: regla.ratePercent, isActive: regla.isActive };
+      });
     }
 
     return this.repository.transaction(async (transaction) => {

@@ -481,6 +481,11 @@ export const registerPurchaseSchema = z
     downPaymentPaidAt: z.coerce.date().optional(),
     downPaymentEvidenceRef: z.string().trim().max(240).optional(),
     financedAmount: money,
+    /*
+     * T-11 (2026-09-26): el servicio YA NO usa este valor — lo resuelve él mismo desde
+     * `atlas_sales.customer_risk_tiers` (Core, `credit.decision.recorded`). Se conserva en el
+     * contrato para no romper a un cliente que todavía lo manda; se acepta y se ignora.
+     */
     riskTierAtOrigination: zodEnum(riskTierDomain).optional(),
     cohortId: z.string().trim().max(80).optional(),
     productCategory: z.string().trim().max(120).optional(),

@@ -15,6 +15,7 @@ import { IS_PUBLIC_KEY } from '../src/common/decorators/public.decorator';
 import { registerPurchaseSchema } from '../src/modules/b2b-sales-crm/b2b-sales-crm.schemas';
 import { CoreEventsController } from '../src/modules/b2b-sales-crm/controllers/core-events.controller';
 import type { CoreEnvelope } from '../src/modules/b2b-sales-crm/integration/core-events.schemas';
+import type { CoreCreditEventsService } from '../src/modules/b2b-sales-crm/integration/core-credit-events.service';
 import type { CorePaymentEventsService } from '../src/modules/b2b-sales-crm/integration/core-payment-events.service';
 import { CoreSignatureGuard } from '../src/modules/b2b-sales-crm/integration/core-signature.guard';
 import { signOutboxBody } from '../src/workers/outbox/http-event-publisher';
@@ -77,7 +78,11 @@ describe('CoreSignatureGuard (firma HMAC de Core)', () => {
 describe('CoreEventsController', () => {
   it('delega y devuelve el desenlace; clave de cabecera distinta de la del sobre es 400', async () => {
     const events = { receive: jest.fn(async () => ({ outcome: 'NOTICE_CONFIRMED' })) };
-    const controller = new CoreEventsController(events as unknown as CorePaymentEventsService);
+    const creditEvents = { receive: jest.fn(async () => ({ outcome: 'APPLIED' })) };
+    const controller = new CoreEventsController(
+      events as unknown as CorePaymentEventsService,
+      creditEvents as unknown as CoreCreditEventsService,
+    );
     const envelope = { eventKey: 'k-1' } as CoreEnvelope;
     await expect(controller.receive('k-1', envelope)).resolves.toEqual({
       eventKey: 'k-1',
@@ -87,6 +92,23 @@ describe('CoreEventsController', () => {
       eventKey: 'k-1',
     });
     await expect(controller.receive('otra', envelope)).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('T-11: credit.decision.recorded se delega al consumidor de crédito, no al de pagos', async () => {
+    const events = { receive: jest.fn(async () => ({ outcome: 'NOTICE_CONFIRMED' })) };
+    const creditEvents = { receive: jest.fn(async () => ({ outcome: 'APPLIED' })) };
+    const controller = new CoreEventsController(
+      events as unknown as CorePaymentEventsService,
+      creditEvents as unknown as CoreCreditEventsService,
+    );
+    const envelope = { eventKey: 'k-2', topic: 'credit.decision.recorded' } as CoreEnvelope;
+
+    await expect(controller.receive('k-2', envelope)).resolves.toEqual({
+      eventKey: 'k-2',
+      outcome: 'APPLIED',
+    });
+    expect(creditEvents.receive).toHaveBeenCalledWith(envelope);
+    expect(events.receive).not.toHaveBeenCalled();
   });
 });
 
