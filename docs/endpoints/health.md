@@ -1,5 +1,18 @@
 # Sonda de salud (`GET /api/v1/health`)
 
+## Smoke posterior al despliegue
+
+El gate de `dev` consulta el dominio público tras `finished` de Coolify:
+
+- `GET /api/v1/health/live`: proceso vivo, sin consultar dependencias.
+- `GET /api/v1/health/ready`: PostgreSQL responde a `sequelize.authenticate()`.
+- `GET /api/v1/version`: servicio, versión, entorno y SHA del commit servido.
+
+El SHA debe coincidir con el commit que pasó CI. Coolify inyecta `SOURCE_COMMIT` en Compose
+y el servicio API lo recibe como `APP_COMMIT_SHA`; si falta, el smoke falla. Se puede definir
+`DEV_SMOKE_BASE_URL` como variable de GitHub si el dominio no figura en la respuesta de Coolify.
+Las rutas anteriores `/api/v1/health` y `/api/v1/ready` siguen disponibles para sus consumidores.
+
 Devuelve `200` con `{ "status": "ok", "service": "..." }` mientras el proceso atiende peticiones.
 Es una sonda de **liveness**: no consulta la base ni las dependencias, así que un `200` significa
 «el proceso responde», no «todo el ERP funciona».

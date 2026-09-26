@@ -71,6 +71,9 @@ jobs:
       - name: Listas de migraciones coherentes
         run: yarn check:migration-lists
 
+      - name: Smoke de despliegue (contrato HTTP)
+        run: node --test .github/tests/post-deploy-smoke.test.mjs
+
       # `--passWithNoTests` NO se usa a propósito: hoy hay 30 ficheros de prueba y el día que
       # alguien los borre o rompa el patrón de nombres, esto tiene que ponerse rojo y no verde.
       - name: Pruebas unitarias
