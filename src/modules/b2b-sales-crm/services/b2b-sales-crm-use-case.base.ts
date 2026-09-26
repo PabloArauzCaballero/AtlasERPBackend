@@ -6,6 +6,7 @@ import {
   purchaseSplitViolations,
   type PurchaseSplitInput,
 } from '../domain/merchant-billing-math';
+import { mdrRuleSpecificity } from '../domain/mdr-rule-specificity';
 import type {
   CommercialTermModel,
   ContractVersionModel,
@@ -115,8 +116,9 @@ export abstract class B2BSalesCrmUseCaseBase {
     );
   }
 
+  /** El peso sale de `MDR_DIMENSION_WEIGHT`: es el MISMO criterio con que la pantalla ordena. */
   protected ruleSpecificity(rule: MDRRuleModel): number {
-    return [rule.branchId, rule.productCategory, rule.riskSegment].filter(Boolean).length;
+    return mdrRuleSpecificity(rule);
   }
 
   protected toNumber(value: string | number | null): number {

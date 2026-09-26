@@ -67,6 +67,8 @@ export const STARTUP_MIGRATION_FILES = [
   'src/database/migrations/20260924500000-eventos-core-erp.sql',
   // Aprobación del documento contable por el servidor (quién y cuándo) e índices del listado.
   'src/database/migrations/20260925100000-aprobacion-documento-contable.sql',
+  // Una aprobación puede esperar a una regla de comisión: columna aditiva y nula, sin UPDATE.
+  'src/database/migrations/20260925120000-approval-requests-mdr-rule.sql',
 ] as const;
 
 export interface LegacySqlProbe {

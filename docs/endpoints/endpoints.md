@@ -209,11 +209,33 @@ Rechaza propuesta y registra fecha de rechazo.
 
 ### Responsabilidad
 
-Aprueba o rechaza una excepción comercial.
+Aprueba o rechaza una excepción comercial. Si la solicitud es de una REGLA de comisión (`mdrRuleId`),
+aprobarla activa la regla; rechazarla la deja inactiva.
 
 ### Roles
 
 `COMMERCIAL_MANAGER`, `FINANCE`, `ADMIN`.
+
+## GET/POST /api/v1/b2b/contracts/mdr-rules · PATCH /api/v1/b2b/contracts/mdr-rules/:ruleId
+
+(también `POST /api/v1/b2b/onboarding/cases/:onboardingCaseId/mdr-rules`, que crea la regla en el
+contrato del caso)
+
+### Responsabilidad
+
+Las reglas de comisión (MDR) de una versión contractual: lo que de verdad se cobra al registrar una
+compra. El cobro elige la más específica —sucursal 4, categoría de producto 2, segmento de riesgo 1,
+`MDR_DIMENSION_WEIGHT`— y el listado las enseña en ese mismo orden.
+
+### Reglas aplicadas
+
+- Piso ≤ techo (`minFeeAmount` ≤ `maxFeeAmount`), al crear y al editar (contra lo ya guardado si
+  llega sólo uno): 409.
+- Una tarifa por debajo de `DEFAULT_MIN_MDR_RATE_PERCENT` exige `pricingExceptionReason` (400 si
+  falta). Con motivo, la regla queda INACTIVA y se abre una solicitud `MDR_BELOW_MINIMUM` (la misma de
+  las propuestas, con `mdrRuleId`); la respuesta trae `approvalRequestId`. Se activa al aprobarse.
+  Mientras espera, la regla no admite más ediciones (409). Editar aplica lo mismo si la regla
+  quedaría activa por debajo del mínimo al bajarle la tarifa o al reactivarla.
 
 ## POST /api/v1/b2b/contracts/from-proposal
 

@@ -388,6 +388,9 @@ export const createMdrRuleSchema = z.object({
   riskSegment: z.string().trim().min(1).max(60).optional(),
   minFeeAmount: z.number().min(0).optional(),
   maxFeeAmount: z.number().min(0).optional(),
+  /* Con una tarifa por debajo del mínimo global, la regla sólo nace con este motivo y queda a la
+     espera de aprobación (`MDR_BELOW_MINIMUM`), igual que una propuesta. */
+  pricingExceptionReason: z.string().trim().min(5).max(1000).optional(),
 });
 export type CreateMdrRuleDto = z.infer<typeof createMdrRuleSchema>;
 
@@ -397,10 +400,14 @@ export const updateMdrRuleSchema = z
     minFeeAmount: z.number().min(0).nullable().optional(),
     maxFeeAmount: z.number().min(0).nullable().optional(),
     isActive: z.boolean().optional(),
+    /* Ver `createMdrRuleSchema`: bajar la tarifa por debajo del mínimo, o activar una que ya lo está,
+       exige este motivo y abre la aprobación. No es un campo a modificar por sí solo. */
+    pricingExceptionReason: z.string().trim().min(5).max(1000).optional(),
   })
-  .refine((valor) => Object.keys(valor).length > 0, {
-    message: 'Indique al menos un campo a modificar.',
-  });
+  .refine(
+    (valor) => Object.keys(valor).filter((campo) => campo !== 'pricingExceptionReason').length > 0,
+    { message: 'Indique al menos un campo a modificar.' },
+  );
 export type UpdateMdrRuleDto = z.infer<typeof updateMdrRuleSchema>;
 
 export const mdrRuleIdParamsSchema = z.object({ ruleId: uuid });

@@ -1,11 +1,13 @@
 import {
   bulkCreateAccountsSchema,
   createContractFromProposalSchema,
+  createMdrRuleSchema,
   createProposalSchema,
   issueInvoiceSchema,
   qualifyAccountSchema,
   registerMerchantPaymentSchema,
   registerPurchaseSchema,
+  updateMdrRuleSchema,
 } from './b2b-sales-crm.schemas';
 
 const uuid = '00000000-0000-0000-0000-000000000001';
@@ -164,5 +166,45 @@ describe('B2B Sales CRM schemas', () => {
     });
 
     expect(result.success).toBe(false);
+  });
+});
+
+describe('Reglas de comisión (MDR) · motivo de excepción', () => {
+  it('la regla acepta `pricingExceptionReason`: sin el campo en el esquema, Zod lo descartaría y el servicio nunca lo vería', () => {
+    const resultado = createMdrRuleSchema.safeParse({
+      contractVersionId: uuid,
+      ratePercent: 1.5,
+      pricingExceptionReason: 'Comercio ancla acordado con dirección.',
+    });
+
+    expect(resultado.success).toBe(true);
+    // Se lee como registro suelto a propósito: si el campo faltara en el esquema, esto debe fallar
+    // en la ejecución (Zod descarta lo que no conoce), no sólo en la compilación.
+    expect((resultado.success ? resultado.data : {}) as Record<string, unknown>).toMatchObject({
+      pricingExceptionReason: 'Comercio ancla acordado con dirección.',
+    });
+  });
+
+  it('el motivo no puede ser una palabra suelta: mínimo 5 caracteres, como en las propuestas', () => {
+    const resultado = createMdrRuleSchema.safeParse({
+      contractVersionId: uuid,
+      ratePercent: 1.5,
+      pricingExceptionReason: 'ok',
+    });
+
+    expect(resultado.success).toBe(false);
+  });
+
+  it('editar acepta el motivo junto a un cambio, pero el motivo SOLO no es un cambio', () => {
+    expect(
+      updateMdrRuleSchema.safeParse({
+        ratePercent: 1.5,
+        pricingExceptionReason: 'Acordado con dirección.',
+      }).success,
+    ).toBe(true);
+    expect(
+      updateMdrRuleSchema.safeParse({ pricingExceptionReason: 'Acordado con dirección.' }).success,
+    ).toBe(false);
+    expect(updateMdrRuleSchema.safeParse({}).success).toBe(false);
   });
 });

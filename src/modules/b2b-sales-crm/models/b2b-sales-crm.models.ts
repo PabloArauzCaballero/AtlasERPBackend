@@ -473,6 +473,10 @@ export class ApprovalRequestModel extends Model {
   @Column({ type: DataType.UUID, field: 'contract_version_id' })
   declare contractVersionId: string | null;
 
+  /** La regla de comisión que espera esta aprobación (sólo `MDR_BELOW_MINIMUM` de una regla). */
+  @Column({ type: DataType.UUID, field: 'mdr_rule_id' })
+  declare mdrRuleId: string | null;
+
   @ForeignKey(() => InternalUserModel)
   @Column({ type: DataType.UUID, field: 'requested_by_user_id' })
   declare requestedByUserId: string;

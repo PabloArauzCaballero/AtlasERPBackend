@@ -203,12 +203,16 @@ export class B2BSalesCrmService {
     return this.contractsService.listMdrRules(contractVersionId);
   }
 
-  createMdrRule(input: CreateMdrRuleDto): Promise<Record<string, unknown>> {
-    return this.contractsService.createMdrRule(input);
+  createMdrRule(input: CreateMdrRuleDto, user: AuthUser): Promise<Record<string, unknown>> {
+    return this.contractsService.createMdrRule(input, user);
   }
 
-  updateMdrRule(ruleId: string, input: UpdateMdrRuleDto): Promise<Record<string, unknown>> {
-    return this.contractsService.updateMdrRule(ruleId, input);
+  updateMdrRule(
+    ruleId: string,
+    input: UpdateMdrRuleDto,
+    user: AuthUser,
+  ): Promise<Record<string, unknown>> {
+    return this.contractsService.updateMdrRule(ruleId, input, user);
   }
 
   listContracts(): Promise<Record<string, unknown>[]> {
@@ -277,10 +281,11 @@ export class B2BSalesCrmService {
   async createCaseMdrRule(
     onboardingCaseId: string,
     input: CreateCaseMdrRuleDto,
+    user: AuthUser,
   ): Promise<Record<string, unknown>> {
     const contractVersionId =
       await this.onboardingService.requireCaseContractVersionId(onboardingCaseId);
-    return this.contractsService.createMdrRule({ ...input, contractVersionId });
+    return this.contractsService.createMdrRule({ ...input, contractVersionId }, user);
   }
 
   getOnboardingCase(onboardingCaseId: string): Promise<Record<string, unknown>> {

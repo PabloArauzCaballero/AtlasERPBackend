@@ -12,6 +12,7 @@ import type { AuthUser } from '../../../common/types/auth-context.types';
 import {
   AccountLifecycleStatus,
   ApprovalStatus,
+  MDR_BELOW_MINIMUM_APPROVAL,
   OpportunityStage,
   ProposalStatus,
   TermType,
@@ -118,6 +119,8 @@ export class B2BPipelineService extends B2BSalesCrmUseCaseBase {
       id: approval.id,
       proposalId: approval.proposalId,
       contractVersionId: approval.contractVersionId,
+      /* La regla de comision que espera esta aprobacion; nulo si es de una propuesta. */
+      mdrRuleId: approval.mdrRuleId,
       approvalType: approval.approvalType,
       reason: approval.reason,
       status: approval.status,
@@ -276,7 +279,7 @@ export class B2BPipelineService extends B2BSalesCrmUseCaseBase {
           {
             proposalId: proposal.id,
             requestedByUserId: user.sub,
-            approvalType: 'MDR_BELOW_MINIMUM',
+            approvalType: MDR_BELOW_MINIMUM_APPROVAL,
             reason: input.pricingExceptionReason ?? 'MDR menor al mínimo configurado.',
             status: ApprovalStatus.PENDING,
           },
@@ -470,43 +473,62 @@ export class B2BPipelineService extends B2BSalesCrmUseCaseBase {
     this.logger.infoContext(B2BPipelineService.name, 'B2B CRM use case started', {
       useCase: 'decideApproval',
     });
-    const approval = await this.repository.approvalRequests.findByPk(approvalId);
+    /* Una sola transaccion: la aprobacion y lo que ella activa cambian juntas. Si la regla no se
+       activara, quedaria una aprobacion «decidida» que ya no se puede volver a decidir. */
+    return this.repository.transaction(async (transaction) => {
+      const approval = await this.repository.approvalRequests.findByPk(approvalId, { transaction });
 
-    if (!approval) {
-      throw new NotFoundException('Solicitud de aprobación no encontrada.');
-    }
+      if (!approval) {
+        throw new NotFoundException('Solicitud de aprobación no encontrada.');
+      }
 
-    if (approval.status !== ApprovalStatus.PENDING) {
-      throw new ConflictException('La solicitud de aprobación ya fue decidida.');
-    }
+      if (approval.status !== ApprovalStatus.PENDING) {
+        throw new ConflictException('La solicitud de aprobación ya fue decidida.');
+      }
 
-    await approval.update({
-      status: input.status,
-      approvedByUserId: user.sub,
-      decidedAt: new Date(),
-      reason: input.reason,
+      await approval.update(
+        {
+          status: input.status,
+          approvedByUserId: user.sub,
+          decidedAt: new Date(),
+          reason: input.reason,
+        },
+        { transaction },
+      );
+
+      if (approval.proposalId && input.status === ApprovalStatus.APPROVED) {
+        await this.repository.proposals.update(
+          { status: ProposalStatus.DRAFT },
+          {
+            where: { id: approval.proposalId, status: ProposalStatus.PENDING_APPROVAL },
+            transaction,
+          },
+        );
+      }
+
+      if (approval.proposalId && input.status === ApprovalStatus.REJECTED) {
+        await this.repository.proposals.update(
+          { status: ProposalStatus.REJECTED, rejectedAt: new Date() },
+          { where: { id: approval.proposalId }, transaction },
+        );
+      }
+
+      /* Una regla de comision por debajo del minimo espera aqui: aprobada, empieza a cobrar;
+         rechazada, se queda inactiva —como una propuesta rechazada— y no cobra nunca asi. */
+      if (approval.mdrRuleId && input.status === ApprovalStatus.APPROVED) {
+        await this.repository.mdrRules.update(
+          { isActive: true },
+          { where: { id: approval.mdrRuleId }, transaction },
+        );
+      }
+
+      return {
+        id: approval.id,
+        proposalId: approval.proposalId,
+        status: approval.status,
+        approvedByUserId: approval.approvedByUserId,
+        decidedAt: approval.decidedAt,
+      };
     });
-
-    if (approval.proposalId && input.status === ApprovalStatus.APPROVED) {
-      await this.repository.proposals.update(
-        { status: ProposalStatus.DRAFT },
-        { where: { id: approval.proposalId, status: ProposalStatus.PENDING_APPROVAL } },
-      );
-    }
-
-    if (approval.proposalId && input.status === ApprovalStatus.REJECTED) {
-      await this.repository.proposals.update(
-        { status: ProposalStatus.REJECTED, rejectedAt: new Date() },
-        { where: { id: approval.proposalId } },
-      );
-    }
-
-    return {
-      id: approval.id,
-      proposalId: approval.proposalId,
-      status: approval.status,
-      approvedByUserId: approval.approvedByUserId,
-      decidedAt: approval.decidedAt,
-    };
   }
 }

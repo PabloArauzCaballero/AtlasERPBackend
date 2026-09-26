@@ -64,3 +64,11 @@ migración avisa (`WARNING P-06: …`) y no lo crea. El `down` sólo retira índ
 P-07. Instantánea del MDR cobrado en cada compra BNPL (`mdr_rate_percent`, `mdr_amount`, `mdr_rule_id`,
 `mdr_pricing_source`): las reglas MDR se editan en sitio y sin ella la comisión no se reconstruía.
 Columnas NULLABLE; las compras anteriores quedan en NULL. El `down` conserva los datos.
+
+## 20260925120000-approval-requests-mdr-rule.sql
+
+`atlas_sales.approval_requests.mdr_rule_id`: la regla de comisión (`mdr_rules`) que espera una
+aprobación `MDR_BELOW_MINIMUM`. Hasta ahora sólo las propuestas pasaban por aprobación cuando su MDR
+bajaba del mínimo global, y las reglas —que son lo que de verdad se cobra— aceptaban cualquier
+tarifa de 0 a 100 sin nadie que la firmara. Una regla por debajo del mínimo nace inactiva y se activa
+al aprobarse. Columna aditiva y nula: no toca filas.
