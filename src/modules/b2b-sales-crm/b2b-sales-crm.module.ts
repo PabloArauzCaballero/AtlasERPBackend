@@ -43,6 +43,7 @@ import { B2BSalesCrmService } from './services/b2b-sales-crm.service';
 import { MerchantAccountingBridgeService } from './services/merchant-accounting-bridge.service';
 import { BusinessActionLogsModule } from '../business-action-logs/business-action-logs.module';
 import { AccountingModule } from '../accounting/accounting.module';
+import { FiscalSiatModule } from '../fiscal/siat/fiscal-siat.module';
 import { PortalModule } from '../portal/portal.module';
 import { AuthGatewayModule } from '../auth-gateway/auth-gateway.module';
 import { PartnerOnboardingGatewayModule } from '../partner-onboarding-gateway/partner-onboarding-gateway.module';
@@ -61,6 +62,8 @@ import { CoreSignatureGuard } from './integration/core-signature.guard';
     ]),
     BusinessActionLogsModule,
     AccountingModule,
+    /* Facturación electrónica: la factura de comercio emite su documento fiscal (SIAT). */
+    FiscalSiatModule,
     /* Para que el canal del comercio no pueda registrar compras de otra cuenta. */
     PortalModule,
     /* Para encolar en Atlas el alta de identidad del usuario de comercio: el ERP pide, Atlas concede. */

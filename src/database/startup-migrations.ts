@@ -71,6 +71,11 @@ export const STARTUP_MIGRATION_FILES = [
   'src/database/migrations/20260925120000-approval-requests-mdr-rule.sql',
   // T-11: la última banda de riesgo que Core conoce por cliente (credit.decision.recorded).
   'src/database/migrations/20260926100000-banda-riesgo-cliente-por-decision-de-core.sql',
+  // Facturación electrónica SIAT: núcleo fiscal (perfil emisor, CUIS/CUFD, serie, contingencia,
+  // catálogos, bitácora) y documento fiscal v2 para las tres fuentes.
+  'src/database/migrations/20260926200000-siat-fiscal.sql',
+  // Datos fiscales en los maestros de ventas (receptor, producto SIN, moneda de la factura).
+  'src/database/migrations/20260926200100-siat-maestros.sql',
 ] as const;
 
 export interface LegacySqlProbe {

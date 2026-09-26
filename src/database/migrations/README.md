@@ -80,3 +80,18 @@ banda de riesgo de crédito que Core decidió por cliente (`credit.decision.reco
 `registerPurchase` dejaba que el propio comercio declarara `riskTierAtOrigination` en el cuerpo de
 la petición — le permitía elegir la tarifa MDR que más le convenga. Tabla nueva, sin efecto sobre
 filas existentes; sin fila para un cliente, sigue sin banda conocida, tal cual hoy.
+
+## 20260926200000-siat-fiscal.sql
+
+Núcleo fiscal SIAT (esquema `atlas_accounting`): emisor ante el SIN, CUIS/CUFD con historia, serie
+fiscal, eventos de contingencia y paquetes, catálogos sincronizados, bitácora de llamadas y el
+documento fiscal v2 (fuente general `source_type`/`source_id`, CHECK de estados, unicidad sólo de los
+documentos vivos para poder reemplazar uno rechazado o anulado). Rellena la fuente de las filas
+existentes con un UPDATE re-ejecutable. El `down` no borra documentos emitidos.
+
+## 20260926200100-siat-maestros.sql
+
+Datos fiscales en los maestros de ventas: tipo de documento, complemento y correo de facturación
+del comercio; producto, unidad y actividad del SIN en el catálogo de productos facturables; moneda y
+entidad emisora en la factura de comercio. Va en `db:migrate:portal` porque necesita
+`billing_products`.

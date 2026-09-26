@@ -73,6 +73,9 @@ comercio · ❌ 403 · — no aplica. «Todas» = sin restricción por recurso (
 | Facturas AR: listar / leer (descarga) / editar / borrar / emitir                 | ✅    | 🔒E            | ❌             | ❌             | —                                                                            | ❌                                 | ❌       | ❌               |
 | Recibos: listar / editar / borrar / registrar                                    | ✅    | 🔒E            | ❌             | 🔒E            | —                                                                            | ❌                                 | ❌       | ❌               |
 | Contratos contables: listar / editar / borrar / crear / términos                 | ✅    | 🔒E            | 🔒E            | ❌             | —                                                                            | ❌                                 | ❌       | ❌               |
+| Facturación electrónica: emisores ante el SIN (listar / crear / editar / estado) | ✅    | 🔒E            | ❌             | ❌             | vacío / ❌                                                                   | ❌                                 | ❌       | ❌               |
+| Facturación electrónica: CUIS, CUFD, sincronizar catálogos del SIN               | ✅    | 🔒E            | ❌             | ❌             | ❌ 404                                                                       | ❌                                 | ❌       | ❌               |
+| Documentos fiscales: listar / leer / XML / reintentar / anular ante el SIN       | ✅    | 🔒E            | ❌             | ❌             | vacío / ❌ 404                                                               | ❌                                 | ❌       | ❌               |
 | Cierre / reapertura de período                                                   | ✅    | ❌             | 🔒E            | ❌             | —                                                                            | ❌                                 | ❌       | ❌               |
 | Outbox contable: estado, muertos, reenvío                                        | ✅    | ❌             | ✅             | ❌             | ✅ (FINANCE)                                                                 | ❌                                 | ❌       | ❌               |
 
@@ -132,6 +135,9 @@ pruebas: 33 fallos de aislamiento/tokens + 1 de logs en rojo, 0 en verde (ver in
 ## 6. Redacción de datos en logs y trazas
 
 - Logs: `test/authz-log-redaction.e2e-spec.ts` (aplicación completa en `LOG_LEVEL=debug`).
+- Token delegado del SIN (`apikey: TokenApi …`): redactado en `sensitiveLogPaths`
+  (`test/fiscal-siat-log-redaction.spec.ts`); `siat_transaction_log` nunca guarda cabeceras y
+  sustituye el `archivo` de la factura por su tamaño y hash (`test/fiscal-siat-mock.integration.spec.ts`).
 - Trazas: `RedactingSpanProcessor` ya borraba `url.query` y la consulta de `url.full`/`http.url`
   y los literales SQL (`src/observability/__pruebas__/redacting-span-processor.spec.ts`).
 
