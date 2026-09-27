@@ -292,8 +292,11 @@ export class B2BSalesCrmService {
     return this.onboardingService.getOnboardingCase(onboardingCaseId);
   }
 
-  createOnboardingCase(input: CreateOnboardingCaseDto): Promise<Record<string, unknown>> {
-    return this.onboardingService.createOnboardingCase(input);
+  createOnboardingCase(
+    input: CreateOnboardingCaseDto,
+    accessToken?: string,
+  ): Promise<Record<string, unknown>> {
+    return this.onboardingService.createOnboardingCase(input, accessToken);
   }
 
   listBranches(filtro: {

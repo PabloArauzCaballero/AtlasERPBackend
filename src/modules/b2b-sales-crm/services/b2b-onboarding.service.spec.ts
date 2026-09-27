@@ -34,6 +34,7 @@ function build(
     users?: Fila[];
     forward?: jest.Mock;
     provisioning?: jest.Mock;
+    folder?: jest.Mock;
   } = {},
 ) {
   const caso = fila({
@@ -60,7 +61,10 @@ function build(
     contractVersions: { findOne: jest.fn(async () => null) },
     contracts: {},
     checklistItems: {},
-    accounts: {},
+    accounts: {
+      findByPk: jest.fn(async () => caso.account),
+      update: jest.fn(async () => [1]),
+    },
     findActiveContractVersion: jest.fn(async () => null),
     transaction: jest.fn(async (fn: (t: unknown) => Promise<unknown>) => fn(undefined)),
   };
@@ -68,14 +72,25 @@ function build(
   const identityClient = { getMerchantUserProvisioning: overrides.provisioning ?? jest.fn() };
   const logs = { record: jest.fn() };
   const partnerClient = { forward: overrides.forward ?? jest.fn() };
+  const merchantFolder = {
+    tryEnsureForAccount:
+      overrides.folder ??
+      jest.fn(async () => ({
+        partnerId: 'p-9',
+        expedienteId: 'e-1',
+        created: false,
+        reason: null,
+      })),
+  };
   const service = new B2BOnboardingService(
     repository as never,
     logger as never,
     identityClient as never,
     logs as never,
     partnerClient as never,
+    merchantFolder as never,
   );
-  return { service, caso, repository, partnerClient, logs, identityClient };
+  return { service, caso, repository, partnerClient, logs, identityClient, merchantFolder };
 }
 
 describe('B2BOnboardingService · el tramo del Motor', () => {
@@ -383,6 +398,7 @@ describe('B2BOnboardingService · pedir credenciales', () => {
       { enqueueMerchantUserProvisioning: enqueue } as never,
       { record: jest.fn() } as never,
       { forward: jest.fn() } as never,
+      { tryEnsureForAccount: jest.fn() } as never,
     );
     return { service, repository, user };
   }
@@ -571,5 +587,58 @@ describe('B2BOnboardingService · evidencia de los requisitos', () => {
       )
       .catch(() => undefined);
     expect(item.update).toHaveBeenCalledWith(expect.objectContaining({ status: 'COMPLETED' }));
+  });
+});
+
+/*
+ * La carpeta del comercio en Atlas nace con el onboarding (Pablo, 2026-09-26): ahí cae el contrato
+ * firmado. Se asegura después de abrir el caso y sin poder tumbarlo.
+ */
+describe('B2BOnboardingService · la carpeta del comercio al abrir el caso', () => {
+  function conAlta(folder?: jest.Mock) {
+    const ctx = build({
+      folder,
+      caso: { account: { id: 'acc-1', taxId: '123', partnerProfileId: null, update: jest.fn() } },
+    });
+    Object.assign(ctx.repository.onboardingCases, {
+      findOne: jest.fn(async () => null),
+      create: jest.fn(async () => ({ id: 'caso-1' })),
+    });
+    Object.assign(ctx.repository.checklistItems, { create: jest.fn(async () => ({})) });
+    return ctx;
+  }
+  const entrada = {
+    accountId: 'acc-1',
+    ownerUserId: 'u-1',
+    checklistItems: [{ itemType: 'nit', description: 'NIT vigente' }],
+  };
+
+  it('asegura la carpeta con el token de la sesión, guarda el puente y lo cuenta en la respuesta', async () => {
+    const { service, merchantFolder, repository } = conAlta();
+
+    const respuesta = await service.createOnboardingCase(entrada, 'tok');
+
+    expect(merchantFolder.tryEnsureForAccount).toHaveBeenCalledWith('acc-1', 'tok');
+    expect(repository.accounts.update).toHaveBeenCalledWith(
+      { partnerProfileId: 'p-9' },
+      { where: { id: 'acc-1', partnerProfileId: null } },
+    );
+    expect(respuesta.carpetaDelComercio).toMatchObject({ expedienteId: 'e-1' });
+  });
+
+  it('si Atlas no deja carpeta, el caso se abre igual y la respuesta dice por qué', async () => {
+    const folder = jest.fn(async () => ({
+      partnerId: null,
+      expedienteId: null,
+      created: false,
+      reason: 'SIN_CORREO_DE_CONTACTO',
+    }));
+    const { service, repository } = conAlta(folder);
+
+    const respuesta = await service.createOnboardingCase(entrada);
+
+    expect(respuesta.id).toBe('caso-1');
+    expect(repository.accounts.update).not.toHaveBeenCalled();
+    expect(respuesta.carpetaDelComercio).toMatchObject({ reason: 'SIN_CORREO_DE_CONTACTO' });
   });
 });
