@@ -35,7 +35,7 @@ export const SENSITIVE_LOG_PATHS = [
   '*.challengeToken',
 ];
 
-const sensitiveLogPaths = [
+export const sensitiveLogPaths = [
   ...SENSITIVE_LOG_PATHS,
   'req.headers.authorization',
   'req.headers.cookie',
@@ -43,6 +43,12 @@ const sensitiveLogPaths = [
   'request.headers.cookie',
   'headers.authorization',
   'headers.cookie',
+  // Token delegado del SIN (cabecera `apikey: TokenApi …`).
+  'req.headers.apikey',
+  'request.headers.apikey',
+  'headers.apikey',
+  'apikey',
+  '*.apikey',
   'body.password',
   'body.passwordHash',
   'body.accessToken',

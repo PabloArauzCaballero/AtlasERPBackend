@@ -11,6 +11,9 @@ export interface GeneratedPdf {
 /** Plantilla por defecto: título, cifras, avisos, secciones con campos y tablas. */
 const DEFAULT_TEMPLATE_ID = 'generic-result-report';
 
+/** Plantillas del worker que sólo pide el servidor (nunca el cuerpo de una petición). */
+export type InternalTemplateId = 'factura-fiscal';
+
 /**
  * Puerta del ERP hacia el generador documental.
  *
@@ -29,6 +32,31 @@ export class DocumentsService {
   }
 
   async generate(input: GenerateDocumentDto): Promise<GeneratedPdf> {
+    return this.render(
+      input.templateId ?? DEFAULT_TEMPLATE_ID,
+      input.payload,
+      input.filename ?? 'documento.pdf',
+    );
+  }
+
+  /**
+   * Plantillas que sólo el SERVIDOR puede pedir, con datos que él mismo arma. La factura fiscal
+   * vive aquí y no en `generateDocumentSchema`: abrirla al navegador dejaría fabricar un PDF con
+   * apariencia de factura del SIN sin documento fiscal detrás.
+   */
+  generateInternal(
+    templateId: InternalTemplateId,
+    payload: Record<string, unknown>,
+    filename: string,
+  ): Promise<GeneratedPdf> {
+    return this.render(templateId, payload, filename);
+  }
+
+  private async render(
+    templateId: string,
+    payload: unknown,
+    rawFilename: string,
+  ): Promise<GeneratedPdf> {
     const baseUrl = env.PDF_WORKER_URL;
     const serviceKey = env.PDF_WORKER_SERVICE_KEY;
     if (!baseUrl || !serviceKey) {
@@ -39,7 +67,7 @@ export class DocumentsService {
       });
     }
 
-    const filename = sanitizeFilename(input.filename ?? 'documento.pdf');
+    const filename = sanitizeFilename(rawFilename);
     const url = new URL('/pdf/generate', baseUrl);
 
     let response: Response;
@@ -54,11 +82,11 @@ export class DocumentsService {
           [env.PDF_WORKER_SERVICE_HEADER]: serviceKey,
         },
         body: JSON.stringify({
-          templateId: input.templateId ?? DEFAULT_TEMPLATE_ID,
+          templateId,
           // Quién firma el documento. Sin esto el worker pone su membrete por defecto, que es
           // el del motor de decisión, sobre facturas y listados que nunca pasaron por él.
           brandId: env.PDF_WORKER_BRAND_ID,
-          payload: input.payload,
+          payload,
           options: { filename, returnContent: true },
         }),
       });

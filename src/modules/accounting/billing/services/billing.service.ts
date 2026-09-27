@@ -3,10 +3,12 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Op, Transaction, type WhereOptions } from 'sequelize';
 import { Sequelize } from 'sequelize-typescript';
+import { env } from '../../../../config/env';
 import {
   ArInvoiceLineModel,
   ArInvoiceModel,
@@ -280,6 +282,8 @@ export class BillingService {
         await this.electronicTaxDocumentModel.create(
           {
             arInvoiceId: invoice.id,
+            sourceType: 'AR_INVOICE',
+            sourceId: invoice.id,
             cuf: input.electronicTaxDocument.cuf,
             cufd: input.electronicTaxDocument.cufd,
             siatStatus: input.electronicTaxDocument.siatStatus,
@@ -438,6 +442,18 @@ export class BillingService {
       throw new BadRequestException({
         code: 'TAX_ACCOUNT_WITHOUT_TAX_AMOUNT',
         message: 'No informes cuenta fiscal si la factura no tiene impuesto.',
+      });
+    }
+
+    /*
+     * FND-ERPB-09: con facturación electrónica activa el estado fiscal lo escribe SÓLO el ERP a
+     * partir de lo que responde el SIN. Un cliente que lo afirma en el cuerpo se rechaza.
+     */
+    if (env.SIAT_MODE !== 'disabled' && input.electronicTaxDocument) {
+      throw new UnprocessableEntityException({
+        code: 'FISCAL_STATUS_NOT_CLIENT_ASSERTED',
+        message:
+          'El estado fiscal de una factura lo da Impuestos Nacionales a través del ERP; no se envía en la petición.',
       });
     }
 
