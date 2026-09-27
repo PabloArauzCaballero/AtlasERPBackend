@@ -1,3 +1,7 @@
 # Copia byte a byte del contrato de AtlasBackend (P-14): no se reformatea aquí, la compara
 # `yarn contracts:check-sync` de Core y test/contracts/atlas-integration-v1.contract.spec.ts.
 contracts/atlas-integration-v1/
+
+# Generado desde AtlasBackend (workflow-catalog/definitions) y regenerado en cada corrida: no se
+# reformatea aquí o la próxima regeneración lo deshace.
+docs/processes/
