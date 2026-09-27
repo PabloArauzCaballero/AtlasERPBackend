@@ -31,6 +31,17 @@ export class BusinessPartnerModel extends Model {
   @Column({ type: DataType.STRING(40), field: 'tax_id', allowNull: true })
   declare taxId: string | null;
 
+  /** codigoTipoDocumentoIdentidad del SIN (1 CI, 2 CEX, 3 PAS, 4 OD, 5 NIT). */
+  @Column({ type: DataType.SMALLINT, field: 'tax_document_type', allowNull: true })
+  declare taxDocumentType: number | null;
+
+  @Column({ type: DataType.STRING(5), field: 'tax_id_complement', allowNull: true })
+  declare taxIdComplement: string | null;
+
+  /** Correo al que se envían la factura fiscal y sus anulaciones. */
+  @Column({ type: DataType.STRING(180), field: 'billing_email', allowNull: true })
+  declare billingEmail: string | null;
+
   @Column({ type: DataType.CHAR(2), field: 'country_code', allowNull: false, defaultValue: 'BO' })
   declare countryCode: string;
 

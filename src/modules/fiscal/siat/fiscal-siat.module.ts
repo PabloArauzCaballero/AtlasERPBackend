@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { LegalEntityAccessService } from '../../../common/services/legal-entity-access.service';
 import { ElectronicTaxDocumentModel, LegalEntityModel, siatModels } from '../../../database/models';
@@ -23,7 +23,7 @@ import { FiscalSiatController } from './controllers/fiscal-siat.controller';
 @Module({
   imports: [
     SequelizeModule.forFeature([...siatModels, ElectronicTaxDocumentModel, LegalEntityModel]),
-    AccountingModule,
+    forwardRef(() => AccountingModule),
     DocumentsModule,
   ],
   controllers: [FiscalSiatController, FiscalDocumentsController],

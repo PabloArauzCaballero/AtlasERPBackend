@@ -137,6 +137,7 @@ describeWithMock(
           codigoModalidad: 2,
           actividadEconomica: '451010',
           usuarioEmisor: 'atlas-erp',
+          unidadMedidaDefault: 58,
         },
         ADMIN,
       );

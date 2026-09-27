@@ -116,6 +116,7 @@ describeWithMock('SIAT: núcleo fiscal del ERP ↔ emulador del SIN (PostgreSQL 
         codigoModalidad: 2,
         actividadEconomica: '451010',
         usuarioEmisor: 'atlas-erp',
+        unidadMedidaDefault: 58,
       },
       ADMIN,
     );

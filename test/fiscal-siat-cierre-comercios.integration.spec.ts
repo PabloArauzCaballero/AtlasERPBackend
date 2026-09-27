@@ -100,6 +100,7 @@ describeWithMock(
           codigoModalidad: 2,
           actividadEconomica: '451010',
           usuarioEmisor: 'atlas-erp',
+          unidadMedidaDefault: 58,
         },
         { sub: 'x', role: 'admin', roles: ['admin'] },
       );
