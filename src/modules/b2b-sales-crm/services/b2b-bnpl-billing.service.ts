@@ -4,8 +4,15 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  Optional,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 import { Op, Transaction } from 'sequelize';
+import {
+  EmisionPreparada,
+  SiatEmissionService,
+  TIPO_DOCUMENTO_NIT,
+} from '../../fiscal/siat/application/siat-emission.service';
 import { env } from '../../../config/env';
 import { PinoLoggerService } from '../../../common/logging/pino-logger.service';
 import { nextDocumentNumber } from '../../../common/numbering/document-numbering';
@@ -31,7 +38,7 @@ import {
 import { B2BSalesCrmRepository } from '../repositories/b2b-sales-crm.repository';
 import { B2BSalesCrmUseCaseBase } from './b2b-sales-crm-use-case.base';
 import { linkCoreInstallment } from './core-installment-link.support';
-import type { BillingProductModel } from '../models/b2b-sales-crm.models';
+import type { BillingProductModel, MerchantInvoiceModel } from '../models/b2b-sales-crm.models';
 import {
   fromMinorUnits,
   parseMoney,
@@ -46,7 +53,12 @@ import {
 
 @Injectable()
 export class B2BBnplBillingService extends B2BSalesCrmUseCaseBase {
-  constructor(repository: B2BSalesCrmRepository, logger: PinoLoggerService) {
+  constructor(
+    repository: B2BSalesCrmRepository,
+    logger: PinoLoggerService,
+    /* Opcional: sin el módulo fiscal (pruebas, instalaciones sin SIAT) la factura sale como antes. */
+    @Optional() private readonly fiscal?: SiatEmissionService,
+  ) {
     super(repository, logger);
   }
 
@@ -212,6 +224,7 @@ export class B2BBnplBillingService extends B2BSalesCrmUseCaseBase {
     this.logger.infoContext(B2BBnplBillingService.name, 'B2B CRM use case started', {
       useCase: 'issueInvoice',
     });
+    const fiscal = await this.prepararEmisionFiscal(input);
     return this.repository.transaction(async (transaction) => {
       const receivables = await this.repository.receivables.findAll({
         where: { id: { [Op.in]: input.receivableIds }, accountId: input.accountId },
@@ -307,11 +320,119 @@ export class B2BBnplBillingService extends B2BSalesCrmUseCaseBase {
         await receivable.update({ invoiceId: invoice.id }, { transaction });
       }
 
+      const fiscalDocument = fiscal
+        ? await this.emitirDocumentoFiscal(fiscal, invoice, receivables, lineTotals, transaction)
+        : null;
+
       const created = await this.repository.findInvoiceWithLines(invoice.id, transaction);
-      return toInvoiceResponse(
-        this.requireEntity(created, 'Factura no encontrada luego de crear.'),
-      );
+      return {
+        ...toInvoiceResponse(this.requireEntity(created, 'Factura no encontrada luego de crear.')),
+        fiscalDocument,
+      };
     });
+  }
+
+  /**
+   * Antes de la transacción: con SIAT activo se decide emisor, CUFD y si se emite en línea o
+   * fuera de línea (llamadas de red), y se exige que la fecha de la factura sea la de emisión.
+   */
+  private async prepararEmisionFiscal(input: IssueInvoiceDto): Promise<EmisionPreparada | null> {
+    if (!this.fiscal?.activo) return null;
+    if (input.externalTaxRef) {
+      throw new UnprocessableEntityException({
+        code: 'FISCAL_EXTERNAL_REF_NOT_ALLOWED',
+        message:
+          'Con facturación electrónica activa la referencia fiscal la da Impuestos Nacionales: no se escribe a mano.',
+      });
+    }
+    const account = await this.repository.accounts.findByPk(input.accountId);
+    const preparada = await this.fiscal.preparar(
+      input.legalEntityId ?? null,
+      account?.taxId
+        ? {
+            codigoTipoDocumentoIdentidad: account.taxDocumentType ?? TIPO_DOCUMENTO_NIT,
+            numeroDocumento: account.taxId,
+          }
+        : undefined,
+    );
+    if (preparada && input.invoiceDate !== this.fiscal.fechaDeEmisionHoy(preparada)) {
+      throw new UnprocessableEntityException({
+        code: 'FISCAL_INVOICE_DATE_MUST_BE_TODAY',
+        message: `Con facturación electrónica la factura se fecha el día en que se emite (${this.fiscal.fechaDeEmisionHoy(preparada)}).`,
+        field: 'invoiceDate',
+      });
+    }
+    return preparada;
+  }
+
+  /** Dentro de la transacción: el documento fiscal de la factura, con sus importes CON IVA. */
+  private async emitirDocumentoFiscal(
+    fiscal: EmisionPreparada,
+    invoice: MerchantInvoiceModel,
+    receivables: ReadonlyArray<{ id: string; productId: string | null; sourceType: string }>,
+    lineTotals: ReadonlyMap<string, { total: string }>,
+    transaction: Transaction,
+  ): Promise<Record<string, unknown>> {
+    const account = await this.repository.accounts.findByPk(invoice.accountId, { transaction });
+    const bySource = await this.findProductsBySourceType(
+      receivables.map((r) => r.sourceType),
+      transaction,
+    );
+    const ids = receivables.map((r) => r.productId).filter((id): id is string => Boolean(id));
+    const byId = new Map(
+      (ids.length
+        ? await this.repository.billingProducts.findAll({
+            where: { id: { [Op.in]: ids } },
+            transaction,
+          })
+        : []
+      ).map((p) => [p.id, p]),
+    );
+    const lineas = receivables.map((receivable) => {
+      const product =
+        (receivable.productId ? byId.get(receivable.productId) : undefined) ??
+        bySource.get(receivable.sourceType);
+      if (!product?.sinProductCode) {
+        throw new UnprocessableEntityException({
+          code: 'FISCAL_PRODUCT_NOT_HOMOLOGATED',
+          message: `El producto «${product?.name ?? receivable.sourceType}» no tiene código de producto del SIN: configúralo en el catálogo de productos facturables.`,
+        });
+      }
+      return {
+        codigoProducto: product.code,
+        descripcion: product.name,
+        cantidad: '1',
+        precioUnitario: lineTotals.get(receivable.id)!.total,
+        codigoProductoSin: Number(product.sinProductCode),
+        unidadMedida: product.sinUnitCode ?? 58,
+        actividadEconomica: product.sinActivityCode,
+      };
+    });
+    await invoice.update({ legalEntityId: fiscal.perfil.legalEntityId }, { transaction });
+    const documento = await this.fiscal!.emitirEnTransaccion(
+      fiscal,
+      {
+        sourceType: 'MERCHANT_INVOICE',
+        sourceId: invoice.id,
+        receptor: {
+          codigoTipoDocumentoIdentidad: account?.taxDocumentType ?? TIPO_DOCUMENTO_NIT,
+          numeroDocumento: account?.taxId ?? '',
+          complemento: account?.taxIdComplement ?? null,
+          nombreRazonSocial: account?.legalName ?? '',
+          codigoCliente: account?.id ?? invoice.accountId,
+          correo: account?.billingEmail ?? null,
+        },
+        lineas,
+        totalEsperado: invoice.totalAmount,
+      },
+      transaction,
+    );
+    return {
+      id: documento.id,
+      siatStatus: documento.siatStatus,
+      numeroFactura: documento.numeroFactura,
+      cuf: documento.cuf,
+    };
   }
 
   async registerMerchantPayment(
@@ -459,7 +580,8 @@ export class B2BBnplBillingService extends B2BSalesCrmUseCaseBase {
     });
     const invoice = await this.repository.invoices.findByPk(invoiceId, { transaction });
 
-    if (!invoice || receivables.length === 0) {
+    // Una factura anulada no vuelve a ISSUED/PAID por un cobro: la anulación es definitiva.
+    if (!invoice || receivables.length === 0 || invoice.status === InvoiceStatus.CANCELLED) {
       return;
     }
 

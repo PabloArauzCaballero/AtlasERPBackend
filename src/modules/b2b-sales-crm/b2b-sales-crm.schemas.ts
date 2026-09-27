@@ -575,7 +575,10 @@ export const issueInvoiceSchema = z
     invoiceDate: dateOnly,
     dueDate: dateOnly,
     receivableIds: z.array(uuid).min(1),
+    /** Referencia fiscal escrita a mano: sólo sin facturación electrónica (SIAT_MODE=disabled). */
     externalTaxRef: z.string().trim().max(180).optional(),
+    /** Entidad legal que factura; sin ella, el único emisor activo ante el SIN. */
+    legalEntityId: uuid.optional(),
   })
   .superRefine((input, context) => {
     if (input.dueDate < input.invoiceDate) {

@@ -248,6 +248,81 @@ const envSchema = z
      * conservadora pendiente de ratificar por Riesgo/Finanzas (docs/compliance/decisions.md, P-04).
      */
     BNPL_PAYMENT_NOTICE_REVIEW_HOURS: z.coerce.number().int().positive().max(720).default(72),
+
+    /*
+     * Facturación electrónica con el SIAT (SIN Bolivia). Plan: `_plan-facturacion-siat-2026-09-26`.
+     *
+     * `disabled` (por defecto): las facturas se emiten como siempre y SIN documento fiscal; el PDF
+     * dice «representación interna». `mock_server`: habla con el emulador del SIN que vive en el
+     * mock de proveedores (JSON). `piloto` / `produccion`: SOAP contra el SIN (F7; el transporte
+     * responde `SIAT_SOAP_TRANSPORT_NOT_READY` hasta entonces).
+     *
+     * TODAS con `emptyAsUndefined`: el compose de Coolify del ERP no declara variables a propósito,
+     * y una que llegara vacía haría que `z.enum(...).default(...)` rechazara la cadena y la API no
+     * arrancara en ningún entorno.
+     */
+    SIAT_MODE: z.preprocess(
+      emptyAsUndefined,
+      z.enum(['disabled', 'mock_server', 'piloto', 'produccion']).default('disabled'),
+    ),
+    SIAT_MOCK_BASE_URL: z.preprocess(emptyAsUndefined, z.string().trim().url().optional()),
+    SIAT_SOAP_BASE_URL: z.preprocess(emptyAsUndefined, z.string().trim().url().optional()),
+    /** Token delegado del SIN (secreto). En `mock_server` basta cualquier valor; hay uno por defecto. */
+    SIAT_TOKEN_DELEGADO: z.preprocess(emptyAsUndefined, z.string().min(8).optional()),
+    SIAT_CODIGO_SISTEMA: z.preprocess(
+      emptyAsUndefined,
+      z.string().trim().min(1).max(100).optional(),
+    ),
+    SIAT_QR_BASE_URL: z.preprocess(emptyAsUndefined, z.string().trim().url().optional()),
+    SIAT_HTTP_TIMEOUT_MS: z.preprocess(
+      emptyAsUndefined,
+      z.coerce.number().int().positive().max(120_000).default(15_000),
+    ),
+    SIAT_PROCESSOR_INTERVAL_MS: z.preprocess(
+      emptyAsUndefined,
+      z.coerce.number().int().positive().default(5_000),
+    ),
+    SIAT_ONLINE_MAX_ATTEMPTS: z.preprocess(
+      emptyAsUndefined,
+      z.coerce.number().int().positive().max(20).default(3),
+    ),
+    SIAT_ONLINE_WINDOW_S: z.preprocess(
+      emptyAsUndefined,
+      z.coerce.number().int().positive().max(3600).default(180),
+    ),
+    SIAT_PACKAGE_MAX_BYTES: z.preprocess(
+      emptyAsUndefined,
+      z.coerce
+        .number()
+        .int()
+        .positive()
+        .max(8 * 1024 * 1024)
+        .default(1_500_000),
+    ),
+    SIAT_CLOCK_DRIFT_ALERT_S: z.preprocess(
+      emptyAsUndefined,
+      z.coerce.number().int().positive().default(60),
+    ),
+    /* Cierre automático de facturación de comercios (F6): apagado por defecto. */
+    MERCHANT_BILLING_AUTO_ENABLED: z.preprocess(
+      emptyAsUndefined,
+      z
+        .enum(['true', 'false'])
+        .default('false')
+        .transform((value) => value === 'true'),
+    ),
+    MERCHANT_BILLING_CLOSE_HOUR_LOCAL: z.preprocess(
+      emptyAsUndefined,
+      z.coerce.number().int().min(0).max(23).default(0),
+    ),
+    MERCHANT_BILLING_DUE_DAYS: z.preprocess(
+      emptyAsUndefined,
+      z.coerce.number().int().min(0).max(120).default(15),
+    ),
+    SIAT_OFFLINE_PROBE_INTERVAL_MS: z.preprocess(
+      emptyAsUndefined,
+      z.coerce.number().int().positive().default(120_000),
+    ),
   })
   .superRefine((value, context) => {
     const globalPrefixes = [
@@ -303,6 +378,40 @@ const envSchema = z
           'DB_SSL_REJECT_UNAUTHORIZED no puede ser false en producción: el cifrado sin ' +
           'validar el certificado no protege frente a un intermediario. Declara la CA en ' +
           'DB_SSL_CA o DB_SSL_CA_FILE si el certificado no lo firma una autoridad pública.',
+      });
+    }
+    if (value.SIAT_MODE === 'mock_server' && !value.SIAT_MOCK_BASE_URL) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['SIAT_MOCK_BASE_URL'],
+        message: 'SIAT_MOCK_BASE_URL es obligatoria con SIAT_MODE=mock_server.',
+      });
+    }
+    if (value.SIAT_MODE === 'piloto' || value.SIAT_MODE === 'produccion') {
+      for (const key of [
+        'SIAT_SOAP_BASE_URL',
+        'SIAT_TOKEN_DELEGADO',
+        'SIAT_CODIGO_SISTEMA',
+      ] as const) {
+        if (!value[key]) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: [key],
+            message: `${key} es obligatoria con SIAT_MODE=${value.SIAT_MODE}.`,
+          });
+        }
+      }
+    }
+    // El emulador es el ambiente piloto (2): una instalación de producción no puede facturar contra él.
+    if (
+      value.NODE_ENV === 'production' &&
+      value.SIAT_MODE === 'produccion' &&
+      value.SIAT_MOCK_BASE_URL
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['SIAT_MOCK_BASE_URL'],
+        message: 'SIAT_MOCK_BASE_URL no puede convivir con SIAT_MODE=produccion.',
       });
     }
     // Una URL de entrega sin secreto obligaría a enviar sin firma: el receptor no podría

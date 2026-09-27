@@ -763,36 +763,130 @@ export const documentTypeDomain = defineDomain(
   }),
 );
 
-/* Estados del SIAT (Servicio de Impuestos Nacionales) para la factura electrónica. */
+/*
+ * Estados del documento fiscal ante el SIAT (Servicio de Impuestos Nacionales). Los escribe SÓLO
+ * el servicio de emisión del ERP a partir de lo que responde el SIN; el cliente nunca los afirma.
+ */
 export const siatStatusDomain = defineDomain(
   'accounting.siatStatus',
-  'Estado de la factura electrónica ante el SIAT.',
-  labelled(['PENDING', 'SENT', 'ACCEPTED', 'OBSERVED', 'REJECTED', 'VOIDED'] as const, {
-    PENDING: {
-      label: 'Pendiente de envío',
-      help: 'Emitida en el ERP pero todavía no transmitida a Impuestos.',
+  'Estado del documento fiscal ante el SIAT.',
+  labelled(
+    [
+      'PENDING',
+      'QUEUED',
+      'SENT',
+      'ACCEPTED',
+      'OBSERVED',
+      'REJECTED',
+      'OFFLINE',
+      'PACKAGED',
+      'ERROR',
+      'VOIDED',
+    ] as const,
+    {
+      PENDING: {
+        label: 'Pendiente',
+        help: 'Registro heredado de antes de la integración: nunca se transmitió a Impuestos.',
+      },
+      QUEUED: {
+        label: 'En cola de envío',
+        help: 'Emitida en el ERP con su CUF; el procesador la enviará al SIAT en segundos.',
+      },
+      SENT: {
+        label: 'Enviada',
+        help: 'Transmitida al SIAT; falta su respuesta. Si no llega, el ERP consulta el estado por CUF.',
+      },
+      ACCEPTED: {
+        label: 'Validada por Impuestos',
+        help: 'El SIAT la validó (908): es factura fiscal y respalda crédito fiscal.',
+      },
+      OBSERVED: {
+        label: 'Observada',
+        help: 'El SIAT la registró con observaciones (904). Si son sólo advertencias vale; si son errores, se anula y se emite otra.',
+      },
+      REJECTED: {
+        label: 'Rechazada',
+        help: 'Impuestos no la admitió (902): no vale como factura. Se emite un documento nuevo para la misma venta.',
+      },
+      OFFLINE: {
+        label: 'Emitida fuera de línea',
+        help: 'Emitida durante una contingencia con el último CUFD válido; vale como factura y se enviará en un paquete al recuperar la conexión.',
+      },
+      PACKAGED: {
+        label: 'Enviada en paquete',
+        help: 'Viajó en un paquete de contingencia; falta que el SIAT termine de validarlo.',
+      },
+      ERROR: {
+        label: 'Error de envío',
+        help: 'No se pudo transmitir o el SIAT respondió algo no previsto. Se reintenta sola; si persiste, revisar el detalle.',
+      },
+      VOIDED: {
+        label: 'Anulada ante el SIAT',
+        help: 'El SIAT confirmó su anulación (905) dentro del plazo que fija la norma.',
+      },
     },
-    SENT: {
-      label: 'Enviada',
-      help: 'Transmitida al SIAT; falta la respuesta de validación.',
+  ),
+  [{ check: 'chk_einvoice_siat_status' }],
+);
+
+/* De qué factura del ERP sale un documento fiscal. */
+export const fiscalSourceTypeDomain = defineDomain(
+  'fiscal.sourceType',
+  'Factura del ERP que respalda un documento fiscal.',
+  labelled(['AR_INVOICE', 'MERCHANT_INVOICE', 'AD_INVOICE'] as const, {
+    AR_INVOICE: {
+      label: 'Factura de cuentas por cobrar',
+      help: 'Factura contable emitida desde Contabilidad a un socio de negocio.',
     },
-    ACCEPTED: {
-      label: 'Aceptada',
-      help: 'Impuestos la validó; tiene CUF vigente y respalda crédito fiscal.',
+    MERCHANT_INVOICE: {
+      label: 'Factura a comercio',
+      help: 'Factura de comisiones y cargos a un comercio afiliado (serie FAC-CM).',
     },
-    OBSERVED: {
-      label: 'Observada',
-      help: 'El SIAT halló inconsistencias; hay que corregir y reenviar.',
-    },
-    REJECTED: {
-      label: 'Rechazada',
-      help: 'Impuestos no la admitió; no vale como respaldo tributario.',
-    },
-    VOIDED: {
-      label: 'Anulada ante el SIAT',
-      help: 'Se comunicó su anulación dentro del plazo que fija la norma.',
+    AD_INVOICE: {
+      label: 'Factura de publicidad',
+      help: 'Factura de campañas de publicidad a un anunciante (serie FAC-AD).',
     },
   }),
+  [{ check: 'chk_einvoice_source_type' }],
+);
+
+/* Si el emisor ante el SIN está en uso. */
+export const fiscalIssuerStatusDomain = defineDomain(
+  'fiscal.issuerStatus',
+  'Si un perfil de emisor ante el SIN está en uso.',
+  labelled(['ACTIVE', 'INACTIVE'] as const, {
+    ACTIVE: { label: 'Activo', help: 'Se usa para emitir facturas fiscales.' },
+    INACTIVE: {
+      label: 'Inactivo',
+      help: 'Conservado por historia; no emite. Sus facturas ya emitidas siguen siendo válidas.',
+    },
+  }),
+  [{ check: 'ck_siat_issuer_profile_status' }],
+);
+
+/* Ciclo de vida de un evento significativo (contingencia) ante el SIN. */
+export const fiscalEventStatusDomain = defineDomain(
+  'fiscal.eventStatus',
+  'Estado de una contingencia ante el SIN.',
+  labelled(['OPEN', 'CLOSED', 'REGISTERED', 'DISPATCHED'] as const, {
+    OPEN: {
+      label: 'Abierta',
+      help: 'El SIN no responde: las facturas se emiten fuera de línea con el último CUFD válido.',
+    },
+    CLOSED: {
+      label: 'Cerrada',
+      help: 'La conexión volvió; falta registrar el evento ante el SIN.',
+    },
+    REGISTERED: {
+      label: 'Registrada',
+      help: 'El SIN aceptó el evento; falta enviar los paquetes con las facturas emitidas en él.',
+    },
+    DISPATCHED: {
+      label: 'Paquetes enviados',
+      help: 'Todas las facturas del evento viajaron al SIN.',
+    },
+  }),
+  [{ check: 'ck_siat_significant_event_status' }],
 );
 
 export const periodCloseTypeDomain = defineDomain(
@@ -872,6 +966,9 @@ export const ACCOUNTING_DOMAINS = [
   documentSourceTypeDomain,
   documentTypeDomain,
   siatStatusDomain,
+  fiscalSourceTypeDomain,
+  fiscalIssuerStatusDomain,
+  fiscalEventStatusDomain,
   periodCloseTypeDomain,
   paymentTermModalityDomain,
   paymentTermBaseDomain,

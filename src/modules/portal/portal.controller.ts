@@ -1,4 +1,16 @@
-import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Res,
+  StreamableFile,
+} from '@nestjs/common';
+import type { Response } from 'express';
+import { PortalFiscalService } from './portal-fiscal.service';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
@@ -46,7 +58,10 @@ import {
  */
 @Controller('portal')
 export class PortalController {
-  constructor(private readonly service: PortalService) {}
+  constructor(
+    private readonly service: PortalService,
+    private readonly fiscal: PortalFiscalService,
+  ) {}
 
   @Roles(...PORTAL_ROLES)
   @Get('plans')
@@ -206,7 +221,43 @@ export class PortalController {
     @CurrentUser() user: AuthUser,
   ) {
     const scope = await this.service.resolveScope(user);
-    return this.service.getInvoiceDocument(scope, id, query.merchantAccountId);
+    const [documento, fiscal] = await Promise.all([
+      this.service.getInvoiceDocument(scope, id, query.merchantAccountId),
+      this.fiscal.resumen(scope, id, query.merchantAccountId),
+    ]);
+    return { ...documento, fiscalDocument: fiscal };
+  }
+
+  /** La factura fiscal (representación gráfica) que el SIN obliga a entregar al comprador. */
+  @Roles(...PORTAL_ROLES)
+  @Get('billing/invoices/:id/fiscal/pdf')
+  async getFiscalPdf(
+    @Param('id') id: string,
+    @Query(new ZodValidationPipe(subscriptionQuerySchema)) query: SubscriptionQueryDto,
+    @CurrentUser() user: AuthUser,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    const scope = await this.service.resolveScope(user);
+    const { buffer, filename } = await this.fiscal.pdf(scope, id, query.merchantAccountId);
+    res.setHeader('content-type', 'application/pdf');
+    res.setHeader('content-disposition', `attachment; filename="${filename}"`);
+    return new StreamableFile(buffer);
+  }
+
+  /** El XML de la factura tal como se envió al SIN. */
+  @Roles(...PORTAL_ROLES)
+  @Get('billing/invoices/:id/fiscal/xml')
+  async getFiscalXml(
+    @Param('id') id: string,
+    @Query(new ZodValidationPipe(subscriptionQuerySchema)) query: SubscriptionQueryDto,
+    @CurrentUser() user: AuthUser,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    const scope = await this.service.resolveScope(user);
+    const { xml, filename } = await this.fiscal.xml(scope, id, query.merchantAccountId);
+    res.setHeader('content-type', 'application/xml; charset=utf-8');
+    res.setHeader('content-disposition', `attachment; filename="${filename}"`);
+    return new StreamableFile(xml);
   }
 
   @Roles(...PORTAL_ROLES)

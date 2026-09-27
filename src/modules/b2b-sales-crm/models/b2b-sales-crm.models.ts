@@ -109,6 +109,17 @@ export class B2BAccountModel extends Model {
   @Column({ type: DataType.STRING(60), field: 'tax_id' })
   declare taxId: string | null;
 
+  /** codigoTipoDocumentoIdentidad del SIN (1 CI, 2 CEX, 3 PAS, 4 OD, 5 NIT). */
+  @Column({ type: DataType.SMALLINT, field: 'tax_document_type' })
+  declare taxDocumentType: number | null;
+
+  @Column({ type: DataType.STRING(5), field: 'tax_id_complement' })
+  declare taxIdComplement: string | null;
+
+  /** Correo al que se envían la factura fiscal (PDF + XML) y sus anulaciones. */
+  @Column({ type: DataType.STRING(180), field: 'billing_email' })
+  declare billingEmail: string | null;
+
   @AllowNull(false)
   @Default(AccountType.MERCHANT)
   @Column({ type: DataType.ENUM(...Object.values(AccountType)), field: 'account_type' })
@@ -1086,6 +1097,14 @@ export class MerchantInvoiceModel extends Model {
   @Column({ type: DataType.UUID, field: 'accounting_document_id' })
   declare accountingDocumentId: string | null;
 
+  @Default('BOB')
+  @Column({ type: DataType.CHAR(3), field: 'currency_code' })
+  declare currencyCode: string;
+
+  /** Entidad legal emisora (la del perfil fiscal con que se facturó). */
+  @Column({ type: DataType.UUID, field: 'legal_entity_id' })
+  declare legalEntityId: string | null;
+
   @HasMany(() => MerchantInvoiceLineModel)
   declare lines?: MerchantInvoiceLineModel[];
 }
@@ -1138,6 +1157,19 @@ export class BillingProductModel extends Model {
   @Default('BOB')
   @Column(DataType.CHAR(3))
   declare currency: string;
+
+  /** codigoProductoSin homologado ante el SIN. Sin él no se emite factura fiscal de este producto. */
+  @Column({ type: DataType.BIGINT, field: 'sin_product_code' })
+  declare sinProductCode: string | null;
+
+  /** unidadMedida del SIN; 58 = UNIDAD (SERVICIOS). */
+  @Default(58)
+  @Column({ type: DataType.SMALLINT, field: 'sin_unit_code' })
+  declare sinUnitCode: number;
+
+  /** Actividad económica (CAEB) con que se factura; sin ella, la del emisor. */
+  @Column({ type: DataType.STRING(10), field: 'sin_activity_code' })
+  declare sinActivityCode: string | null;
 
   @Default('ACTIVE')
   @Column(DataType.STRING(20))
