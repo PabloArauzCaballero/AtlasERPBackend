@@ -83,6 +83,8 @@ export interface SiatInvocacionOpciones {
 
 export interface SiatTransport {
   readonly modo: string;
+  /** URL base del emulador (sólo el transporte JSON): de ella cuelga su buzón QA. */
+  readonly baseUrl?: string;
   invocar(
     operacion: SiatOperacion,
     solicitud: Record<string, unknown>,

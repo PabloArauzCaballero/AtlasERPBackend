@@ -22,6 +22,9 @@ import { SiatDispatchService } from '../src/modules/fiscal/siat/application/siat
 import { SiatEmissionService } from '../src/modules/fiscal/siat/application/siat-emission.service';
 import { SiatGatewayService } from '../src/modules/fiscal/siat/application/siat-gateway.service';
 import { SiatIssuerProfileService } from '../src/modules/fiscal/siat/application/siat-issuer-profile.service';
+import { FiscalMailService } from '../src/modules/fiscal/siat/application/fiscal-mail.service';
+import { FiscalPdfService } from '../src/modules/fiscal/siat/application/fiscal-pdf.service';
+import { DocumentsService } from '../src/modules/documents/documents.service';
 import { JsonMockSiatTransport } from '../src/modules/fiscal/siat/infrastructure/json-mock-siat.transport';
 import { createMigratedDatabase } from './support/coverage-integration-db';
 import { arrancarEmulador, describeWithMock, silentLogger } from './support/siat-emulador';
@@ -71,6 +74,9 @@ describeWithMock(
           SiatContingencyService,
           SiatEmissionService,
           SiatDispatchService,
+          FiscalMailService,
+          FiscalPdfService,
+          { provide: DocumentsService, useValue: { generateInternal: jest.fn() } },
           LegalEntityAccessService,
           { provide: PinoLoggerService, useValue: silentLogger },
         ],

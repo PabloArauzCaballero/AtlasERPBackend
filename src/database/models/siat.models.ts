@@ -280,6 +280,44 @@ export class SiatTransactionLogModel extends Model {
   declare createdAt: Date;
 }
 
+@Table({
+  tableName: 'siat_email_delivery',
+  schema: 'atlas_accounting',
+  timestamps: false,
+  underscored: true,
+})
+export class SiatEmailDeliveryModel extends Model {
+  @Column({ ...uuidPk, field: 'id' }) declare id: string;
+  @Column({ type: DataType.UUID, field: 'document_id', allowNull: false })
+  declare documentId: string;
+  @Column({ type: DataType.STRING(20), field: 'kind', allowNull: false }) declare kind: string;
+  @Column({ type: DataType.STRING(180), field: 'recipient', allowNull: false })
+  declare recipient: string;
+  @Column({ type: DataType.STRING(20), field: 'status', allowNull: false, defaultValue: 'PENDING' })
+  declare status: string;
+  @Column({ type: DataType.INTEGER, field: 'attempt_count', allowNull: false, defaultValue: 0 })
+  declare attemptCount: number;
+  @Column({
+    type: DataType.DATE,
+    field: 'scheduled_at',
+    allowNull: false,
+    defaultValue: DataType.NOW,
+  })
+  declare scheduledAt: Date;
+  @Column({ type: DataType.DATE, field: 'sent_at', allowNull: true }) declare sentAt: Date | null;
+  @Column({ type: DataType.STRING(200), field: 'provider_message_id', allowNull: true })
+  declare providerMessageId: string | null;
+  @Column({ type: DataType.TEXT, field: 'last_error', allowNull: true })
+  declare lastError: string | null;
+  @Column({
+    type: DataType.DATE,
+    field: 'created_at',
+    allowNull: false,
+    defaultValue: DataType.NOW,
+  })
+  declare createdAt: Date;
+}
+
 export const siatModels = [
   SiatIssuerProfileModel,
   SiatCuisModel,
@@ -290,4 +328,5 @@ export const siatModels = [
   SiatCatalogItemModel,
   SiatCatalogSyncRunModel,
   SiatTransactionLogModel,
+  SiatEmailDeliveryModel,
 ];

@@ -1511,7 +1511,7 @@ entidad responde 404, no 403, para no confirmar que existe.
 | `POST /accounting/fiscal/issuer-profiles/:id/catalogs/sync`   | Sincroniza los 17 catálogos del SIN (o `{ "catalogo": "LEYENDAS" }`).                                                                             |
 | `GET /accounting/fiscal/catalogs/:code`                       | Filas sincronizadas de un catálogo (`simulated: true` si vienen del emulador).                                                                    |
 | `GET /accounting/fiscal/documents`                            | Documentos fiscales; filtros `status`, `sourceType`, `sourceId`, `page`, `pageSize`.                                                              |
-| `GET /accounting/fiscal/documents/:id` · `…/xml`              | Detalle (sin el XML) y el XML tal como se envió.                                                                                                  |
+| `GET /accounting/fiscal/documents/:id` · `…/xml`              | Detalle (sin el XML, con los `correos` enviados al comprador) y el XML tal como se envió.                                                         |
 | `POST /accounting/fiscal/documents/:id/retry`                 | Sólo adelanta el próximo intento de un documento en `ERROR`; nunca llama al SIN.                                                                  |
 | `POST /accounting/fiscal/documents/:id/annul`                 | `{ "codigoMotivo": 1 }`. Anula ante el SIN (905) hasta el día 9 del mes siguiente y sin cobros aplicados; anula la factura y revierte su asiento. |
 | `GET /accounting/fiscal/events` · `POST …/events/dispatch`    | Contingencias con sus paquetes; despacho manual.                                                                                                  |
@@ -1556,3 +1556,11 @@ Roles del portal (`PORTAL_ROLES`), acotado a las cuentas del comercio (`PortalSc
 | `GET /portal/billing/invoices/:id`            | Además de la factura, `fiscalDocument`: N° fiscal, CUF, estado y si ya se puede descargar (o `null`).                                                  |
 | `GET /portal/billing/invoices/:id/fiscal/pdf` | Representación gráfica de la factura fiscal (validada, observada, fuera de línea o anulada). 404 `FISCAL_DOCUMENT_NOT_AVAILABLE` si todavía no la hay. |
 | `GET /portal/billing/invoices/:id/fiscal/xml` | El XML tal como se envió al SIN.                                                                                                                       |
+
+## Correo al comprador (D-8)
+
+Al validarse una factura (908/904), al emitirse fuera de línea y al anularse, el ERP le envía al
+comprador —si tiene `billing_email`— la factura (PDF + XML) o el aviso de anulación. Cola propia
+`siat_email_delivery` (una fila por documento y tipo: no se repite), reclamada con CAS y con hasta
+5 intentos. Transporte: SendGrid con adjuntos (`EMAIL_PROVIDER_MODE=sendgrid`); con el emulador del
+SIN, el buzón QA del mock (sin adjuntos: el cuerpo lleva CUF y huella del XML); si no, simulado.

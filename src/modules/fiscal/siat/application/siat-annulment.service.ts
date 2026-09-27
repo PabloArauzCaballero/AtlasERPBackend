@@ -18,6 +18,7 @@ import { SiatCatalogSyncService } from './siat-catalog-sync.service';
 import { SiatCredentialsService } from './siat-credentials.service';
 import { rechazoDelSin, sinNoDisponible } from './siat-errors';
 import { SiatGatewayService } from './siat-gateway.service';
+import { FiscalMailService } from './fiscal-mail.service';
 
 /** Motivos que el SIN admite si todavía no se sincronizó el catálogo (a confirmar en F7). */
 const MOTIVOS_POR_DEFECTO = ['1', '2', '3', '4'];
@@ -49,6 +50,7 @@ export class SiatAnnulmentService {
     private readonly catalogs: SiatCatalogSyncService,
     private readonly access: LegalEntityAccessService,
     private readonly accountingDocuments: AccountingDocumentsService,
+    private readonly mail: FiscalMailService,
     @InjectModel(ElectronicTaxDocumentModel)
     private readonly documentModel: typeof ElectronicTaxDocumentModel,
     @InjectModel(SiatIssuerProfileModel)
@@ -157,6 +159,8 @@ export class SiatAnnulmentService {
       }
       return null;
     });
+    // Toda anulación se notifica al comprador (SIN).
+    await this.mail.encolar(documento, 'ANULACION');
 
     const contabilidad = await this.revertirAsiento(asiento, hoy, user, documento.id);
     return { id: documento.id, siatStatus: 'VOIDED', contabilidad };

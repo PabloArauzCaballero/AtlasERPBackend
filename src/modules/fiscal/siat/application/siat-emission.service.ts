@@ -24,6 +24,7 @@ import { OPERACIONES, SiatTransportError } from '../infrastructure/siat-transpor
 import { SiatContingencyService } from './siat-contingency.service';
 import { SiatCredentialsService } from './siat-credentials.service';
 import { SiatGatewayService } from './siat-gateway.service';
+import { FiscalMailService } from './fiscal-mail.service';
 
 export type FuenteFiscal = 'AR_INVOICE' | 'MERCHANT_INVOICE' | 'AD_INVOICE';
 
@@ -97,6 +98,7 @@ export class SiatEmissionService {
     private readonly gateway: SiatGatewayService,
     private readonly credentials: SiatCredentialsService,
     private readonly contingency: SiatContingencyService,
+    private readonly mail: FiscalMailService,
     @InjectModel(SiatIssuerProfileModel)
     private readonly profileModel: typeof SiatIssuerProfileModel,
     @InjectModel(SiatCuisModel) private readonly cuisModel: typeof SiatCuisModel,
@@ -333,7 +335,7 @@ export class SiatEmissionService {
     );
     const archivo = comprimir(xml);
 
-    return this.documentModel.create(
+    const creado = await this.documentModel.create(
       {
         arInvoiceId: documento.sourceType === 'AR_INVOICE' ? documento.sourceId : null,
         sourceType: documento.sourceType,
@@ -364,6 +366,9 @@ export class SiatEmissionService {
       },
       { transaction },
     );
+    // Fuera de línea la factura ya vale: el comprador la recibe ahora, no cuando vuelva el SIN.
+    if (codigoEmision === 2) await this.mail.encolar(creado, 'EMISION', transaction);
+    return creado;
   }
 }
 
