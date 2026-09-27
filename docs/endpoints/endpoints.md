@@ -1500,3 +1500,81 @@ status ('ACTIVE' | 'PAUSED'), reason? (8 a 500 caracteres)
 ### Business action log
 
 `MERCHANT_CAMPAIGN_CONTROL` / `PORTAL_UPDATE_CAMPAIGN_STATUS`, con estado previo y posterior.
+
+## Facturación electrónica SIAT (`/api/v1/accounting/fiscal/*`)
+
+### Responsabilidad
+
+Emisión de documentos fiscales ante el SIN (Bolivia): emisor, CUIS/CUFD, catálogos, cola de envío,
+contingencia y anulación. Todo detrás de `SIAT_MODE` (`disabled` por defecto: sin documento fiscal).
+Plan: `_plan-facturacion-siat-2026-09-26/PLAN.md`; módulo `src/modules/fiscal/siat/README.md`.
+
+### Roles
+
+`admin`, `accountant`, acotado por entidad legal (`LegalEntityAccessService`): un recurso de otra
+entidad responde 404, no 403, para no confirmar que existe.
+
+| Método y ruta                                                 | Qué hace                                                                                                                                          |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /accounting/fiscal/status`                               | Modo (`SIAT_MODE`) y si la facturación electrónica está activa.                                                                                   |
+| `GET /accounting/fiscal/issuer-profiles`                      | Emisores visibles.                                                                                                                                |
+| `POST /accounting/fiscal/issuer-profiles`                     | Crea el emisor (NIT, sucursal/POS del SIN, actividad) y su serie fiscal. 409 `FISCAL_ISSUER_ALREADY_EXISTS`.                                      |
+| `PATCH /accounting/fiscal/issuer-profiles/:id`                | Edita datos no identificativos o lo desactiva.                                                                                                    |
+| `GET /accounting/fiscal/issuer-profiles/:id/status`           | Comunicación con el SIN (926), vigencias de CUIS/CUFD, última sincronización, contingencia abierta.                                               |
+| `POST /accounting/fiscal/issuer-profiles/:id/cuis` · `…/cufd` | Pide un código nuevo al SIN. Devuelve sólo la vigencia; el código no sale del servidor.                                                           |
+| `POST /accounting/fiscal/issuer-profiles/:id/catalogs/sync`   | Sincroniza los 17 catálogos del SIN (o `{ "catalogo": "LEYENDAS" }`).                                                                             |
+| `GET /accounting/fiscal/catalogs/:code`                       | Filas sincronizadas de un catálogo (`simulated: true` si vienen del emulador).                                                                    |
+| `GET /accounting/fiscal/documents`                            | Documentos fiscales; filtros `status`, `sourceType`, `sourceId`, `page`, `pageSize`.                                                              |
+| `GET /accounting/fiscal/documents/:id` · `…/xml`              | Detalle (sin el XML, con los `correos` enviados al comprador) y el XML tal como se envió.                                                         |
+| `POST /accounting/fiscal/documents/:id/retry`                 | Sólo adelanta el próximo intento de un documento en `ERROR`; nunca llama al SIN.                                                                  |
+| `POST /accounting/fiscal/documents/:id/annul`                 | `{ "codigoMotivo": 1 }`. Anula ante el SIN (905) hasta el día 9 del mes siguiente y sin cobros aplicados; anula la factura y revierte su asiento. |
+| `GET /accounting/fiscal/events` · `POST …/events/dispatch`    | Contingencias con sus paquetes; despacho manual.                                                                                                  |
+
+### Errores esperados
+
+- `409 FISCAL_DISABLED` con `SIAT_MODE=disabled` en rutas que hablan con el SIN.
+- `422 FISCAL_SIN_REJECTED` (con los `mensajes` del SIN) · `503 FISCAL_SIN_UNAVAILABLE`.
+- Emisión de factura de comercio (`POST /b2b/billing/invoices`) con SIAT activo:
+  `422 FISCAL_INVOICE_DATE_MUST_BE_TODAY`, `FISCAL_EXTERNAL_REF_NOT_ALLOWED`,
+  `FISCAL_PRODUCT_NOT_HOMOLOGATED`, `FISCAL_RECEIVER_INCOMPLETE`, `FISCAL_TOTAL_MISMATCH`,
+  `FISCAL_ISSUER_NOT_CONFIGURED`; `503 FISCAL_UNAVAILABLE_NO_CUFD`.
+- Factura AR con SIAT activo que trae `electronicTaxDocument`: `422 FISCAL_STATUS_NOT_CLIENT_ASSERTED`.
+- Factura AR (`POST /accounting/billing/ar-invoices`) con SIAT activo: emite su documento fiscal
+  (una línea por el importe bruto, con el «producto del SIN por defecto» del emisor:
+  `productoSinDefault` en `POST/PATCH /accounting/fiscal/issuer-profiles`). `422
+FISCAL_INVOICE_DATE_MUST_BE_TODAY` y `FISCAL_PRODUCT_NOT_HOMOLOGATED` si el emisor no lo tiene.
+  El receptor sale del business partner (`tax_id`, `tax_document_type`, `tax_id_complement`,
+  `billing_email`). Anularla ante el SIN deja la factura `VOID` y revierte su asiento.
+
+## Cierre de facturación de comercios (`/api/v1/b2b/billing/runs`)
+
+Roles `FINANCE`, `ADMIN`. El día 1 (hora de Bolivia, desde `MERCHANT_BILLING_CLOSE_HOUR_LOCAL`) y
+sólo con `MERCHANT_BILLING_AUTO_ENABLED=true`, factura los cargos CxC `PENDING` sin factura
+anteriores al día 1, una factura por comercio y moneda en tandas de ≤ 500 líneas, con vencimiento a
+`MERCHANT_BILLING_DUE_DAYS`. Con facturación electrónica activa cada factura sale con su documento
+fiscal. Idempotente por ciclo (`cycle_key` única): repetirla responde `ALREADY_RUN`.
+
+| Método y ruta            | Qué hace                                                                                            |
+| ------------------------ | --------------------------------------------------------------------------------------------------- |
+| `GET /b2b/billing/runs`  | Últimas 50 corridas: estado (`DONE`, `PARTIAL`, `FAILED`), facturas creadas y errores por comercio. |
+| `POST /b2b/billing/runs` | Lanza a mano el cierre del último mes cerrado.                                                      |
+
+La contabilización al mayor sigue siendo `PATCH /b2b/billing/invoices/:id/post-to-gl`.
+
+## Factura fiscal en el portal del comercio
+
+Roles del portal (`PORTAL_ROLES`), acotado a las cuentas del comercio (`PortalScopeService`).
+
+| Método y ruta                                 | Qué hace                                                                                                                                               |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `GET /portal/billing/invoices/:id`            | Además de la factura, `fiscalDocument`: N° fiscal, CUF, estado y si ya se puede descargar (o `null`).                                                  |
+| `GET /portal/billing/invoices/:id/fiscal/pdf` | Representación gráfica de la factura fiscal (validada, observada, fuera de línea o anulada). 404 `FISCAL_DOCUMENT_NOT_AVAILABLE` si todavía no la hay. |
+| `GET /portal/billing/invoices/:id/fiscal/xml` | El XML tal como se envió al SIN.                                                                                                                       |
+
+## Correo al comprador (D-8)
+
+Al validarse una factura (908/904), al emitirse fuera de línea y al anularse, el ERP le envía al
+comprador —si tiene `billing_email`— la factura (PDF + XML) o el aviso de anulación. Cola propia
+`siat_email_delivery` (una fila por documento y tipo: no se repite), reclamada con CAS y con hasta
+5 intentos. Transporte: SendGrid con adjuntos (`EMAIL_PROVIDER_MODE=sendgrid`); con el emulador del
+SIN, el buzón QA del mock (sin adjuntos: el cuerpo lleva CUF y huella del XML); si no, simulado.

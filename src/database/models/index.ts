@@ -58,6 +58,7 @@ import { BudgetLineModel } from './budget_line.model';
 import { EventOutboxModel } from './event_outbox.model';
 import { ErpFileModel } from './erp_file.model';
 import { BusinessActionLogModel } from './business_action_log.model';
+import { siatModels } from './siat.models';
 
 export { LegalEntityModel } from './legal_entity.model';
 export { BranchModel } from './branch.model';
@@ -118,6 +119,7 @@ export { BudgetModel } from './budget.model';
 export { BudgetLineModel } from './budget_line.model';
 export { EventOutboxModel } from './event_outbox.model';
 export { ErpFileModel } from './erp_file.model';
+export * from './siat.models';
 export { BusinessActionLogModel } from './business_action_log.model';
 
 export const accountingModels = [
@@ -179,6 +181,7 @@ export const accountingModels = [
   BudgetModel,
   BudgetLineModel,
   EventOutboxModel,
+  ...siatModels,
 ];
 
 export const filesModels = [ErpFileModel];

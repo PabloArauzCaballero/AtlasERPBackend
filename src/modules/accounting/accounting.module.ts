@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { accountingModels } from '../../database/models';
 import { AccountGroupsController } from './account-groups/controllers/account-groups.controller';
@@ -27,12 +27,18 @@ import { PostingRuleSnapshotService } from './posting/services/posting-rule-snap
 import { AccountingDefaultsService } from './shared/services/accounting-defaults.service';
 import { LegalEntityAccessService } from '../../common/services/legal-entity-access.service';
 import { BusinessActionLogsModule } from '../business-action-logs/business-action-logs.module';
+import { FiscalSiatModule } from '../fiscal/siat/fiscal-siat.module';
 
 import { SupplierPaymentTermsController } from './supplier-payment-terms/supplier-payment-terms.controller';
 import { SupplierPaymentTermsService } from './supplier-payment-terms/supplier-payment-terms.service';
 
 @Module({
-  imports: [SequelizeModule.forFeature(accountingModels), BusinessActionLogsModule],
+  imports: [
+    SequelizeModule.forFeature(accountingModels),
+    BusinessActionLogsModule,
+    // Documento fiscal de la factura AR. Dependencia mutua con el módulo fiscal: forwardRef.
+    forwardRef(() => FiscalSiatModule),
+  ],
   controllers: [
     AccountGroupsController,
     AccountingDocumentsController,

@@ -87,6 +87,11 @@ jobs:
       # La salida JSON es la evidencia que lee el evaluador de cumplimiento (P-02); el sello la ata
       # al SHA de esta ejecución. Las pruebas `*.integration.spec.ts` NO corren aquí: necesitan la
       # base migrada del job `db-integration`.
+      # test/fiscal-siat-domain.spec.ts valida el XML de la factura contra el XSD del SIN con
+      # `xmllint`; sin él la prueba FALLA (una validación que se salta no vale nada).
+      - name: xmllint para validar facturas contra el XSD del SIN
+        run: command -v xmllint || (sudo apt-get update -qq && sudo apt-get install -y -qq libxml2-utils)
+
       - name: Pruebas unitarias
         id: unit
         run: |
@@ -260,6 +265,26 @@ jobs:
         env:
           DATABASE_URL: ${{ env.PG_ROOT }}/atlas_erp_ci
         run: corepack yarn db:migrate:prod
+
+      # Emulador del SIN (proveedor `siat` del mock de proveedores) para
+      # test/fiscal-siat-*.integration.spec.ts. El repo del mock es PRIVADO: hace falta el secreto
+      # PROVIDERS_MOCK_READ_TOKEN (lectura de contenido). Con él la integración es obligatoria
+      # (ERP_REQUIRE_PROVIDERS_MOCK=1); sin él se salta y el resumen del job lo dice.
+      - name: Emulador del SIN (mock de proveedores)
+        id: providers-mock
+        env:
+          TOKEN: ${{ secrets.PROVIDERS_MOCK_READ_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then
+            echo "::warning::Sin PROVIDERS_MOCK_READ_TOKEN: la integración ERP ↔ emulador del SIN se SALTA."
+            echo "⚠️ Integración ERP ↔ emulador del SIN SALTADA: falta el secreto PROVIDERS_MOCK_READ_TOKEN." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          git clone --depth 1 --branch "${PROVIDERS_MOCK_REF:-dev}" \
+            "https://x-access-token:${TOKEN}@github.com/PabloArauzCaballero/AtlasExternalProvidersMock.git" \
+            "$RUNNER_TEMP/providers-mock"
+          echo "ERP_PROVIDERS_MOCK_DIR=$RUNNER_TEMP/providers-mock" >> "$GITHUB_ENV"
+          echo "ERP_REQUIRE_PROVIDERS_MOCK=1" >> "$GITHUB_ENV"
 
       # CI=true: sin DATABASE_URL la suite FALLA en vez de saltarse (test/integration/database.ts).
       - name: Pruebas de integración (PostgreSQL real)

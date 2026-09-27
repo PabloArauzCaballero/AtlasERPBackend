@@ -29,6 +29,9 @@ import { CrmSegmentsService } from './services/crm-segments.service';
 import { ActivitiesService } from './services/activities.service';
 import { B2BAccountsService } from './services/b2b-accounts.service';
 import { B2BBnplBillingService } from './services/b2b-bnpl-billing.service';
+import { MerchantBillingCycleService } from './billing-cycle/merchant-billing-cycle.service';
+import { MerchantBillingCycleProcessor } from './billing-cycle/merchant-billing-cycle.processor';
+import { BillingRunsController } from './controllers/billing-runs.controller';
 import { B2BContractsService } from './services/b2b-contracts.service';
 import { B2BCreditRatingService } from './services/b2b-credit-rating.service';
 import { B2BCreditRatingQueryService } from './services/b2b-credit-rating-query.service';
@@ -43,6 +46,7 @@ import { B2BSalesCrmService } from './services/b2b-sales-crm.service';
 import { MerchantAccountingBridgeService } from './services/merchant-accounting-bridge.service';
 import { BusinessActionLogsModule } from '../business-action-logs/business-action-logs.module';
 import { AccountingModule } from '../accounting/accounting.module';
+import { FiscalSiatModule } from '../fiscal/siat/fiscal-siat.module';
 import { PortalModule } from '../portal/portal.module';
 import { AuthGatewayModule } from '../auth-gateway/auth-gateway.module';
 import { PartnerOnboardingGatewayModule } from '../partner-onboarding-gateway/partner-onboarding-gateway.module';
@@ -61,6 +65,8 @@ import { CoreSignatureGuard } from './integration/core-signature.guard';
     ]),
     BusinessActionLogsModule,
     AccountingModule,
+    /* Facturación electrónica: la factura de comercio emite su documento fiscal (SIAT). */
+    FiscalSiatModule,
     /* Para que el canal del comercio no pueda registrar compras de otra cuenta. */
     PortalModule,
     /* Para encolar en Atlas el alta de identidad del usuario de comercio: el ERP pide, Atlas concede. */
@@ -69,6 +75,7 @@ import { CoreSignatureGuard } from './integration/core-signature.guard';
     PartnerOnboardingGatewayModule,
   ],
   controllers: [
+    BillingRunsController,
     AccountTagsController,
     ActivitiesController,
     CatalogsController,
@@ -98,6 +105,8 @@ import { CoreSignatureGuard } from './integration/core-signature.guard';
     B2BContractsService,
     B2BOnboardingService,
     B2BBnplBillingService,
+    MerchantBillingCycleService,
+    MerchantBillingCycleProcessor,
     B2BCoverageService,
     B2BCoverageReviewService,
     B2BOverdueSweepService,

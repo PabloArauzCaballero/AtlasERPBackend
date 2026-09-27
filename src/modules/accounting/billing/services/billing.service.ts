@@ -1,12 +1,22 @@
 import {
   BadRequestException,
   ConflictException,
+  forwardRef,
+  Inject,
   Injectable,
   NotFoundException,
+  Optional,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Op, Transaction, type WhereOptions } from 'sequelize';
 import { Sequelize } from 'sequelize-typescript';
+import { env } from '../../../../config/env';
+import {
+  type EmisionPreparada,
+  SiatEmissionService,
+  TIPO_DOCUMENTO_NIT,
+} from '../../../fiscal/siat/application/siat-emission.service';
 import {
   ArInvoiceLineModel,
   ArInvoiceModel,
@@ -65,6 +75,13 @@ export class BillingService {
     @InjectModel(BusinessPartnerModel)
     private readonly businessPartnerModel: typeof BusinessPartnerModel,
     @InjectModel(LegalEntityModel) private readonly legalEntityModel: typeof LegalEntityModel,
+    /*
+     * Facturación electrónica. Opcional y por forwardRef: el módulo fiscal depende de contabilidad
+     * (reverso del asiento al anular) y contabilidad de él (documento fiscal de la factura AR).
+     */
+    @Optional()
+    @Inject(forwardRef(() => SiatEmissionService))
+    private readonly fiscal?: SiatEmissionService,
   ) {}
 
   /**
@@ -216,7 +233,7 @@ export class BillingService {
     });
   }
 
-  issueInvoice(rawInput: IssueArInvoiceDto, user: AuthUser) {
+  async issueInvoice(rawInput: IssueArInvoiceDto, user: AuthUser) {
     this.logger.info('Emitiendo factura AR.', {
       layer: 'service',
       module: 'billing',
@@ -225,6 +242,8 @@ export class BillingService {
       customerBpId: rawInput.customerBpId,
       userId: user.sub,
     });
+    this.legalEntityAccessService.assertCanAccessLegalEntity(user, rawInput.legalEntityId);
+    const fiscal = await this.prepararEmisionFiscal(rawInput);
     return this.sequelize.transaction(async (transaction) => {
       this.legalEntityAccessService.assertCanAccessLegalEntity(user, rawInput.legalEntityId);
       const input = await this.resolveInvoiceDefaults(rawInput, transaction);
@@ -280,6 +299,8 @@ export class BillingService {
         await this.electronicTaxDocumentModel.create(
           {
             arInvoiceId: invoice.id,
+            sourceType: 'AR_INVOICE',
+            sourceId: invoice.id,
             cuf: input.electronicTaxDocument.cuf,
             cufd: input.electronicTaxDocument.cufd,
             siatStatus: input.electronicTaxDocument.siatStatus,
@@ -291,6 +312,16 @@ export class BillingService {
           { transaction },
         );
       }
+
+      const fiscalDocument = fiscal
+        ? await this.emitirDocumentoFiscal(
+            fiscal,
+            invoice,
+            input.description,
+            grossAmount,
+            transaction,
+          )
+        : null;
 
       const journalLines = this.buildInvoiceJournalLines(input, grossAmount, invoice.id, invoiceNo);
       const accounting = await this.accountingDocumentsService.createDraftInTransaction(
@@ -328,8 +359,88 @@ export class BillingService {
         invoiceNo: invoice.invoiceNo,
         accountingDocumentId: accounting.document.id,
       });
-      return { invoice, accountingDocumentId: accounting.document.id };
+      return { invoice, accountingDocumentId: accounting.document.id, fiscalDocument };
     });
+  }
+
+  /**
+   * Antes de la transacción: con SIAT activo se decide emisor, CUFD y en línea / fuera de línea, y
+   * la factura tiene que llevar la fecha en que se emite (la de `fechaEmision`).
+   */
+  private async prepararEmisionFiscal(input: IssueArInvoiceDto): Promise<EmisionPreparada | null> {
+    if (!this.fiscal?.activo) return null;
+    const cliente = await this.businessPartnerModel.findByPk(input.customerBpId);
+    const preparada = await this.fiscal.preparar(
+      input.legalEntityId,
+      cliente?.taxId
+        ? {
+            codigoTipoDocumentoIdentidad: cliente.taxDocumentType ?? TIPO_DOCUMENTO_NIT,
+            numeroDocumento: cliente.taxId,
+          }
+        : undefined,
+    );
+    if (!preparada) return null;
+    const hoy = this.fiscal.fechaDeEmisionHoy(preparada);
+    if (new Date(input.invoiceDate).toISOString().slice(0, 10) !== hoy) {
+      throw new UnprocessableEntityException({
+        code: 'FISCAL_INVOICE_DATE_MUST_BE_TODAY',
+        message: `Con facturación electrónica la factura se fecha el día en que se emite (${hoy}).`,
+        field: 'invoiceDate',
+      });
+    }
+    if (!preparada.perfil.productoSinDefault) {
+      throw new UnprocessableEntityException({
+        code: 'FISCAL_PRODUCT_NOT_HOMOLOGATED',
+        message:
+          'El emisor no tiene «producto del SIN por defecto» para las facturas de contabilidad: configúralo en Facturación electrónica › Emisor.',
+      });
+    }
+    return preparada;
+  }
+
+  /** Dentro de la transacción: el documento fiscal de la factura AR, una línea por su importe bruto. */
+  private async emitirDocumentoFiscal(
+    fiscal: EmisionPreparada,
+    invoice: ArInvoiceModel,
+    descripcion: string,
+    grossAmount: number,
+    transaction: Transaction,
+  ): Promise<Record<string, unknown>> {
+    const cliente = await this.businessPartnerModel.findByPk(invoice.customerBpId, { transaction });
+    const total = grossAmount.toFixed(2);
+    const documento = await this.fiscal!.emitirEnTransaccion(
+      fiscal,
+      {
+        sourceType: 'AR_INVOICE',
+        sourceId: invoice.id,
+        receptor: {
+          codigoTipoDocumentoIdentidad: cliente?.taxDocumentType ?? TIPO_DOCUMENTO_NIT,
+          numeroDocumento: cliente?.taxId ?? '',
+          complemento: cliente?.taxIdComplement ?? null,
+          nombreRazonSocial: cliente?.legalName ?? '',
+          codigoCliente: cliente?.partnerNo ?? invoice.customerBpId,
+          correo: cliente?.billingEmail ?? null,
+        },
+        lineas: [
+          {
+            codigoProducto: invoice.invoiceNo,
+            descripcion,
+            cantidad: '1',
+            precioUnitario: total,
+            codigoProductoSin: Number(fiscal.perfil.productoSinDefault),
+            unidadMedida: fiscal.perfil.unidadMedidaDefault ?? 58,
+          },
+        ],
+        totalEsperado: total,
+      },
+      transaction,
+    );
+    return {
+      id: documento.id,
+      siatStatus: documento.siatStatus,
+      numeroFactura: documento.numeroFactura,
+      cuf: documento.cuf,
+    };
   }
 
   /**
@@ -438,6 +549,18 @@ export class BillingService {
       throw new BadRequestException({
         code: 'TAX_ACCOUNT_WITHOUT_TAX_AMOUNT',
         message: 'No informes cuenta fiscal si la factura no tiene impuesto.',
+      });
+    }
+
+    /*
+     * FND-ERPB-09: con facturación electrónica activa el estado fiscal lo escribe SÓLO el ERP a
+     * partir de lo que responde el SIN. Un cliente que lo afirma en el cuerpo se rechaza.
+     */
+    if (env.SIAT_MODE !== 'disabled' && input.electronicTaxDocument) {
+      throw new UnprocessableEntityException({
+        code: 'FISCAL_STATUS_NOT_CLIENT_ASSERTED',
+        message:
+          'El estado fiscal de una factura lo da Impuestos Nacionales a través del ERP; no se envía en la petición.',
       });
     }
 
