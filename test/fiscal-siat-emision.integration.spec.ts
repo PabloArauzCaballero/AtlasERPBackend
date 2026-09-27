@@ -32,6 +32,7 @@ import type { DocumentoAEmitir } from '../src/modules/fiscal/siat/application/si
 import { SiatEmissionService } from '../src/modules/fiscal/siat/application/siat-emission.service';
 import { AccountingDocumentsService } from '../src/modules/accounting/documents/services/accounting-documents.service';
 import { FiscalPdfService } from '../src/modules/fiscal/siat/application/fiscal-pdf.service';
+import { FiscalMailService } from '../src/modules/fiscal/siat/application/fiscal-mail.service';
 import { DocumentsService } from '../src/modules/documents/documents.service';
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -43,7 +44,13 @@ import type {
 import { ElectronicTaxDocumentModel } from '../src/database/models';
 import { JsonMockSiatTransport } from '../src/modules/fiscal/siat/infrastructure/json-mock-siat.transport';
 import { createMigratedDatabase } from './support/coverage-integration-db';
-import { ADMIN, arrancarEmulador, describeWithMock, silentLogger } from './support/siat-emulador';
+import {
+  ADMIN,
+  arrancarEmulador,
+  describeWithMock,
+  silentLogger,
+  buzonDe,
+} from './support/siat-emulador';
 
 import type { MigratedDatabase } from './support/coverage-integration-db';
 
@@ -53,6 +60,9 @@ class TransporteConEscenario implements SiatTransport {
   escenario: string | null = null;
   soloOperacion: string | null = null;
   constructor(private readonly real: JsonMockSiatTransport) {}
+  get baseUrl() {
+    return this.real.baseUrl;
+  }
   invocar(
     operacion: SiatOperacion,
     solicitud: Record<string, unknown>,
@@ -106,6 +116,7 @@ describeWithMock(
           SiatAnnulmentService,
           LegalEntityAccessService,
           FiscalPdfService,
+          FiscalMailService,
           { provide: DocumentsService, useValue: { generateInternal: jest.fn() } },
           { provide: AccountingDocumentsService, useValue: { reverseDocument: jest.fn() } },
           { provide: PinoLoggerService, useValue: silentLogger },
@@ -137,6 +148,7 @@ describeWithMock(
           codigoModalidad: 2,
           actividadEconomica: '451010',
           usuarioEmisor: 'atlas-erp',
+          unidadMedidaDefault: 58,
         },
         ADMIN,
       );
@@ -333,6 +345,41 @@ describeWithMock(
         writeFileSync(join(salida, 'payload-valida.json'), JSON.stringify(valida, null, 2));
         writeFileSync(join(salida, 'payload-interna.json'), JSON.stringify(interno, null, 2));
       }
+    });
+
+    it('el comprador recibe su factura por correo al validarse, y el aviso al anularla', async () => {
+      const correo = `comprador-${randomUUID().slice(0, 8)}@atlas.test`;
+      const doc = documento('58.00');
+      doc.receptor.correo = correo;
+      const emitido = await emitir(doc);
+      await despacho.procesar(); // 908 → encola el correo → lo envía en la misma pasada
+      const factura = await buzonDe(emulador.url, correo);
+      expect(factura).toHaveLength(1);
+      expect(factura[0]!.subject).toBe(`Su factura N° ${emitido.numeroFactura}`);
+      expect(factura[0]!.body).toContain(String(emitido.cuf));
+      expect(factura[0]!.body).toContain(String(emitido.xmlSha256));
+      expect(factura[0]!.body).toMatch(/Adjuntos: factura-\d+\.xml/);
+      // Otra pasada no manda otro correo: uno por documento y tipo.
+      await despacho.procesar();
+      expect(await buzonDe(emulador.url, correo)).toHaveLength(1);
+
+      await anulacion.anular(emitido.id, 1, ADMIN);
+      await despacho.procesar();
+      const todos = await buzonDe(emulador.url, correo);
+      expect(todos.map((m) => m.subject)).toEqual([
+        `Su factura N° ${emitido.numeroFactura}`,
+        `Factura N° ${emitido.numeroFactura} anulada ante Impuestos Nacionales`,
+      ]);
+    });
+
+    it('sin correo del comprador no se encola nada', async () => {
+      const emitido = await emitir();
+      await despacho.procesar();
+      const [fila] = await sequelize.query<{ n: string }>(
+        'SELECT count(*)::text AS n FROM atlas_accounting.siat_email_delivery WHERE document_id = $1',
+        { bind: [emitido.id], type: QueryTypes.SELECT },
+      );
+      expect(fila!.n).toBe('0');
     });
 
     it('anular: 905 → VOIDED; una segunda vez ya no se puede', async () => {

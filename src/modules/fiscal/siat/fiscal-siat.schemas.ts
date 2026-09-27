@@ -30,6 +30,9 @@ export const createIssuerProfileSchema = z
       .trim()
       .regex(/^[0-9]{1,10}$/),
     leyendaDefault: z.string().trim().max(200).optional(),
+    /** Producto del SIN de las facturas AR (servicios sin catálogo propio). */
+    productoSinDefault: z.number().int().positive().max(99_999_999).optional(),
+    unidadMedidaDefault: z.number().int().min(1).max(200).default(58),
     usuarioEmisor: z.string().trim().min(1).max(100).default('atlas-erp'),
   })
   .strict();

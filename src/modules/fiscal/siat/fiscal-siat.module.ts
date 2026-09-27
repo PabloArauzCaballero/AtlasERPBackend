@@ -1,10 +1,11 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { LegalEntityAccessService } from '../../../common/services/legal-entity-access.service';
 import { ElectronicTaxDocumentModel, LegalEntityModel, siatModels } from '../../../database/models';
 import { AccountingModule } from '../../accounting/accounting.module';
 import { DocumentsModule } from '../../documents/documents.module';
 import { FiscalPdfService } from './application/fiscal-pdf.service';
+import { FiscalMailService } from './application/fiscal-mail.service';
 import { FiscalDocumentProcessor } from './application/fiscal-document.processor';
 import { FiscalDocumentsService } from './application/fiscal-documents.service';
 import { SiatAnnulmentService } from './application/siat-annulment.service';
@@ -23,7 +24,7 @@ import { FiscalSiatController } from './controllers/fiscal-siat.controller';
 @Module({
   imports: [
     SequelizeModule.forFeature([...siatModels, ElectronicTaxDocumentModel, LegalEntityModel]),
-    AccountingModule,
+    forwardRef(() => AccountingModule),
     DocumentsModule,
   ],
   controllers: [FiscalSiatController, FiscalDocumentsController],
@@ -40,6 +41,7 @@ import { FiscalSiatController } from './controllers/fiscal-siat.controller';
     FiscalDocumentsService,
     FiscalDocumentProcessor,
     FiscalPdfService,
+    FiscalMailService,
     LegalEntityAccessService,
   ],
   exports: [

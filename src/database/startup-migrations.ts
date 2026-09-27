@@ -78,6 +78,10 @@ export const STARTUP_MIGRATION_FILES = [
   'src/database/migrations/20260926200100-siat-maestros.sql',
   // Corridas del cierre de facturación de comercios (una por ciclo: sin doble facturación).
   'src/database/migrations/20260926200200-merchant-billing-runs.sql',
+  // Producto del SIN por defecto del emisor: con él se emite el documento fiscal de la factura AR.
+  'src/database/migrations/20260927100000-siat-producto-por-defecto.sql',
+  // Cola de correos al comprador de cada documento fiscal (factura y anulación).
+  'src/database/migrations/20260927110000-siat-correo-comprador.sql',
 ] as const;
 
 export interface LegacySqlProbe {
