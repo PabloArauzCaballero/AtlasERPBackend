@@ -55,6 +55,16 @@ export class SiatIssuerProfileModel extends Model {
   declare actividadEconomica: string;
   @Column({ type: DataType.STRING(200), field: 'leyenda_default', allowNull: true })
   declare leyendaDefault: string | null;
+  /** codigoProductoSin de las facturas AR (servicios sin catálogo propio). */
+  @Column({ type: DataType.BIGINT, field: 'producto_sin_default', allowNull: true })
+  declare productoSinDefault: string | null;
+  @Column({
+    type: DataType.SMALLINT,
+    field: 'unidad_medida_default',
+    allowNull: false,
+    defaultValue: 58,
+  })
+  declare unidadMedidaDefault: number;
   @Column({ type: DataType.STRING(100), field: 'usuario_emisor', allowNull: false })
   declare usuarioEmisor: string;
   @Column({ type: DataType.STRING(20), field: 'status', allowNull: false, defaultValue: 'ACTIVE' })

@@ -101,3 +101,8 @@ entidad emisora en la factura de comercio. Va en `db:migrate:portal` porque nece
 `atlas_sales.merchant_billing_runs`: una fila por corrida del cierre de facturación de comercios,
 con `cycle_key` única (`MONTHLY:2026-09`) para que dos instancias de la API no facturen el mismo
 ciclo. Sólo añade una tabla.
+
+## 20260927100000-siat-producto-por-defecto.sql
+
+`siat_issuer_profile.producto_sin_default` y `unidad_medida_default`: el producto del SIN con que
+se emiten las facturas AR del emisor, que no tienen catálogo de productos. Sólo añade columnas.

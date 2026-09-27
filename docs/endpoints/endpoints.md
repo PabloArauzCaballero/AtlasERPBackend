@@ -1525,6 +1525,12 @@ entidad responde 404, no 403, para no confirmar que existe.
   `FISCAL_PRODUCT_NOT_HOMOLOGATED`, `FISCAL_RECEIVER_INCOMPLETE`, `FISCAL_TOTAL_MISMATCH`,
   `FISCAL_ISSUER_NOT_CONFIGURED`; `503 FISCAL_UNAVAILABLE_NO_CUFD`.
 - Factura AR con SIAT activo que trae `electronicTaxDocument`: `422 FISCAL_STATUS_NOT_CLIENT_ASSERTED`.
+- Factura AR (`POST /accounting/billing/ar-invoices`) con SIAT activo: emite su documento fiscal
+  (una línea por el importe bruto, con el «producto del SIN por defecto» del emisor:
+  `productoSinDefault` en `POST/PATCH /accounting/fiscal/issuer-profiles`). `422
+FISCAL_INVOICE_DATE_MUST_BE_TODAY` y `FISCAL_PRODUCT_NOT_HOMOLOGATED` si el emisor no lo tiene.
+  El receptor sale del business partner (`tax_id`, `tax_document_type`, `tax_id_complement`,
+  `billing_email`). Anularla ante el SIN deja la factura `VOID` y revierte su asiento.
 
 ## Cierre de facturación de comercios (`/api/v1/b2b/billing/runs`)
 
