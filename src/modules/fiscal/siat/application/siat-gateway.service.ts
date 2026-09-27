@@ -65,6 +65,12 @@ export class SiatGatewayService {
     return this.modo !== 'disabled';
   }
 
+  /** URL del emulador en uso (la del transporte inyectado o `SIAT_MOCK_BASE_URL`). */
+  get mockBaseUrl(): string | null {
+    if (this.modo !== 'mock_server') return null;
+    return this.transportCache?.baseUrl ?? env.SIAT_MOCK_BASE_URL ?? null;
+  }
+
   /** 1 producción, 2 piloto. El emulador ES el piloto. */
   get codigoAmbiente(): number {
     return this.modo === 'produccion' ? 1 : 2;

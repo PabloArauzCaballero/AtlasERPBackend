@@ -19,6 +19,7 @@ import { gunzipSync } from 'node:zlib';
 import { OPERACIONES, SiatMensaje, SiatTransportError } from '../infrastructure/siat-transport';
 import { SiatCredentialsService } from './siat-credentials.service';
 import { SiatGatewayService } from './siat-gateway.service';
+import { FiscalMailService } from './fiscal-mail.service';
 
 /** 2 = «Inaccesibilidad al servicio web de la Administración Tributaria» (a confirmar en F7). */
 export const EVENTO_INACCESIBILIDAD_SIN = 2;
@@ -37,6 +38,7 @@ export class SiatContingencyService {
   constructor(
     private readonly gateway: SiatGatewayService,
     private readonly credentials: SiatCredentialsService,
+    private readonly mail: FiscalMailService,
     @InjectModel(SiatSignificantEventModel)
     private readonly eventModel: typeof SiatSignificantEventModel,
     @InjectModel(SiatPackageModel) private readonly packageModel: typeof SiatPackageModel,
@@ -330,6 +332,7 @@ export class SiatContingencyService {
           },
           { transaction },
         );
+        if (siatStatus !== 'REJECTED') await this.mail.encolar(documento, 'EMISION', transaction);
       }
       await paquete.update({ codigoEstado, mensajes, validatedAt: new Date() }, { transaction });
     });

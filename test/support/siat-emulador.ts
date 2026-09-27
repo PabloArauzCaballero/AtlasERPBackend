@@ -54,6 +54,19 @@ export function puertoLibre(): Promise<number> {
   });
 }
 
+/** Token del plano de control del emulador de pruebas: con él se lee el buzón QA. */
+export const TOKEN_CONTROL_EMULADOR = 'token-de-control-de-pruebas-siat';
+
+/** Correos que el ERP dejó en el buzón QA del emulador para un destinatario. */
+export async function buzonDe(url: string, destinatario: string) {
+  const respuesta = await fetch(
+    `${url}/mock/control/inbox?to=${encodeURIComponent(destinatario)}`,
+    { headers: { authorization: `Bearer ${TOKEN_CONTROL_EMULADOR}` } },
+  );
+  const cuerpo = (await respuesta.json()) as { messages?: { subject: string; body: string }[] };
+  return cuerpo.messages ?? [];
+}
+
 export async function arrancarEmulador(): Promise<{ url: string; proceso: ChildProcess }> {
   const port = await puertoLibre();
   const proceso = spawn(process.execPath, [MOCK_SERVER], {
@@ -63,6 +76,7 @@ export async function arrancarEmulador(): Promise<{ url: string; proceso: ChildP
       MOCK_PROVIDERS_DEFAULT_LATENCY_MS: '0',
       MOCK_PROVIDERS_MAX_LATENCY_MS: '0',
       MOCK_PROVIDERS_MAX_BODY_BYTES: String(2 * 1024 * 1024),
+      MOCK_PROVIDERS_CONTROL_TOKEN: TOKEN_CONTROL_EMULADOR,
     },
     stdio: 'ignore',
   });

@@ -16,7 +16,7 @@ export class JsonMockSiatTransport implements SiatTransport {
   readonly modo = 'mock_server';
 
   constructor(
-    private readonly baseUrl: string,
+    readonly baseUrl: string,
     private readonly token: string,
     private readonly timeoutMs: number,
     private readonly fetchImpl: typeof fetch = fetch,

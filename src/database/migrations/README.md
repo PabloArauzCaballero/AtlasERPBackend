@@ -106,3 +106,8 @@ ciclo. Sólo añade una tabla.
 
 `siat_issuer_profile.producto_sin_default` y `unidad_medida_default`: el producto del SIN con que
 se emiten las facturas AR del emisor, que no tienen catálogo de productos. Sólo añade columnas.
+
+## 20260927110000-siat-correo-comprador.sql
+
+`atlas_accounting.siat_email_delivery`: la cola de correos al comprador de cada documento fiscal
+(factura emitida y anulación), única por documento y tipo. Sólo añade una tabla.

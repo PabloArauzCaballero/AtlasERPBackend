@@ -11,6 +11,7 @@ import {
   SiatSignificantEventModel,
 } from '../../../../database/models';
 import type { ListFiscalDocumentsQuery } from '../fiscal-siat.schemas';
+import { FiscalMailService } from './fiscal-mail.service';
 
 const COLUMNAS_LISTADO = [
   'id',
@@ -47,6 +48,7 @@ export class FiscalDocumentsService {
     private readonly eventModel: typeof SiatSignificantEventModel,
     @InjectModel(SiatPackageModel) private readonly packageModel: typeof SiatPackageModel,
     private readonly access: LegalEntityAccessService,
+    private readonly mail: FiscalMailService,
   ) {}
 
   private async perfilesVisibles(user: AuthUser): Promise<string[] | null> {
@@ -96,7 +98,8 @@ export class FiscalDocumentsService {
   async detalle(id: string, user: AuthUser) {
     const documento = await this.obtener(id, user);
     const { xmlGzip: _xml, ...resto } = documento.toJSON() as Record<string, unknown>;
-    return resto;
+    // Qué se le mandó al comprador y cuándo: el SIN exige entregarle la factura y el XML.
+    return { ...resto, correos: await this.mail.listar(documento.id) };
   }
 
   /** El XML tal como se envió al SIN (lo que el comprador tiene derecho a recibir). */

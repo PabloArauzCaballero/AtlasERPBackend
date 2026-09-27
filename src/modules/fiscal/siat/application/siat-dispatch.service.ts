@@ -25,6 +25,7 @@ import {
 import { TIPO_DOCUMENTO_NIT } from './siat-emission.service';
 import { SiatContingencyService } from './siat-contingency.service';
 import { SiatGatewayService } from './siat-gateway.service';
+import { FiscalMailService } from './fiscal-mail.service';
 
 const LOTE = 10;
 const ESPERA_MAXIMA_MS = 60_000;
@@ -58,6 +59,7 @@ export class SiatDispatchService {
   constructor(
     private readonly gateway: SiatGatewayService,
     private readonly contingency: SiatContingencyService,
+    private readonly mail: FiscalMailService,
     @InjectModel(ElectronicTaxDocumentModel)
     private readonly documentModel: typeof ElectronicTaxDocumentModel,
     @InjectModel(SiatIssuerProfileModel)
@@ -75,6 +77,7 @@ export class SiatDispatchService {
     const ids = await this.reclamar();
     for (const id of ids) await this.enviar(id);
     await this.contingency.procesar();
+    await this.mail.procesar();
     return { enviados: ids.length };
   }
 
@@ -242,6 +245,9 @@ export class SiatDispatchService {
         lastError: null,
         nextAttemptAt: null,
       });
+      if (desenlace.estado === 'ACCEPTED' || desenlace.estado === 'OBSERVED') {
+        await this.mail.encolar(documento, 'EMISION');
+      }
       return;
     }
     if (desenlace.estado === 'REGENERAR' || this.ventanaAgotada(documento)) {

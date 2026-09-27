@@ -5,6 +5,7 @@ import { ElectronicTaxDocumentModel, LegalEntityModel, siatModels } from '../../
 import { AccountingModule } from '../../accounting/accounting.module';
 import { DocumentsModule } from '../../documents/documents.module';
 import { FiscalPdfService } from './application/fiscal-pdf.service';
+import { FiscalMailService } from './application/fiscal-mail.service';
 import { FiscalDocumentProcessor } from './application/fiscal-document.processor';
 import { FiscalDocumentsService } from './application/fiscal-documents.service';
 import { SiatAnnulmentService } from './application/siat-annulment.service';
@@ -40,6 +41,7 @@ import { FiscalSiatController } from './controllers/fiscal-siat.controller';
     FiscalDocumentsService,
     FiscalDocumentProcessor,
     FiscalPdfService,
+    FiscalMailService,
     LegalEntityAccessService,
   ],
   exports: [
