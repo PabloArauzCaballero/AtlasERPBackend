@@ -9,7 +9,12 @@ import { NIT_VALIDO } from '../b2b-sales-crm.schemas';
 import { Op, Transaction } from 'sequelize';
 import { PinoLoggerService } from '../../../common/logging/pino-logger.service';
 import type { AuthUser } from '../../../common/types/auth-context.types';
-import { AccountLifecycleStatus, BranchStatus, ChecklistStatus } from '../b2b-sales-crm.enums';
+import {
+  AccountLifecycleStatus,
+  BranchStatus,
+  ChecklistStatus,
+  OpportunityStage,
+} from '../b2b-sales-crm.enums';
 import type {
   CompleteChecklistItemDto,
   ChecklistEvidenceUploadUrlDto,
@@ -161,6 +166,18 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
         throw new NotFoundException('Cuenta B2B no encontrada.');
       }
       await this.assertAccountReadyForFolder(account, transaction);
+
+      // Predecesora: el onboarding prepara al comercio de un negocio en curso. Sin oportunidad
+      // viva (ni perdida) no hay nada que activar.
+      const oportunidadViva = await this.repository.opportunities.count({
+        where: { accountId: input.accountId, stage: { [Op.ne]: OpportunityStage.CLOSED_LOST } },
+        transaction,
+      });
+      if (oportunidadViva === 0) {
+        throw new ConflictException(
+          'Crea una oportunidad para la cuenta antes de iniciar su onboarding.',
+        );
+      }
 
       const existingOpenCase = await this.repository.onboardingCases.findOne({
         where: {
@@ -1330,7 +1347,14 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
 
   /**
    * Permiso de subida para el archivo de un requisito. Lo emite AtlasBackend: la ruta del objeto
-   * la impone él (`<tenant>/erp-onboarding_case-<caso>/<tipo>/…`) y firma tipo y tamaño.
+   * la impone él (`<tenant>/erp-<dueño>-<id>/<clase>/…`) y firma tipo y tamaño.
+   *
+   * El dueño en el almacén es la CUENTA del caso, no el caso. AtlasBackend sólo sabe atar a un
+   * comercio la cuenta B2B (`partner_profiles.erp_account_id`); con el caso como dueño, el NIT o el
+   * poder que se subían aquí quedaban en el almacén y no aparecían en Operaciones › Archivos
+   * (medido en TEST el 2026-09-28: cinco objetos `erp-onboarding_case-…`, cero en ningún
+   * expediente). Antes se asegura la carpeta, como con el contrato: un caso abierto antes de
+   * existir la carpeta, o sin NIT en su día, no la tenía. La fila sigue siendo del requisito.
    */
   async createChecklistEvidenceUploadUrl(
     onboardingCaseId: string,
@@ -1339,14 +1363,17 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
     accessToken: string,
   ): Promise<Record<string, unknown>> {
     const item = await this.findChecklistItem(onboardingCaseId, checklistItemId);
+    const caso = await this.repository.onboardingCases.findByPk(onboardingCaseId);
+    const accountId = caso?.accountId ?? null;
+    if (accountId) await this.merchantFolder.tryEnsureForAccount(accountId, accessToken);
     return this.partnerClient.forward<Record<string, unknown>>({
       method: 'POST',
       path: 'operations/erp-documents/upload-url',
       accessToken,
       body: {
-        ownerType: 'ONBOARDING_CASE',
-        ownerId: onboardingCaseId,
-        documentKind: item.itemType,
+        ownerType: accountId ? 'b2b_account' : 'ONBOARDING_CASE',
+        ownerId: accountId ?? onboardingCaseId,
+        documentKind: claseDelRequisito(item.description, item.itemType),
         contentType: input.contentType,
         sizeBytes: input.sizeBytes,
       },
@@ -1576,4 +1603,23 @@ function describeChecklistItem(item: {
     evidenceSizeBytes: item.evidenceSizeBytes ?? null,
     evidenceUploadedAt: item.evidenceUploadedAt ?? null,
   };
+}
+
+/**
+ * El nombre con el que el archivo de un requisito aparece en la carpeta del comercio: su
+ * descripción («NIT vigente del comercio» → `NIT-vigente-del-comercio`), que es lo que un operador
+ * reconoce; el tipo (`LEGAL`) si no la hay. AtlasBackend sólo admite `[A-Za-z0-9_-]`: es un tramo
+ * de la ruta del objeto.
+ */
+export function claseDelRequisito(
+  description: string | null | undefined,
+  itemType: string,
+): string {
+  const legible = (description ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^A-Za-z0-9_-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80);
+  return legible || itemType;
 }

@@ -504,9 +504,41 @@ export class B2BAccountsService extends B2BSalesCrmUseCaseBase {
       const nextStatus = input.hasCommercialFit
         ? AccountLifecycleStatus.QUALIFIED
         : AccountLifecycleStatus.DISQUALIFIED;
+      const clasificacion = input.hasCommercialFit ? input.classification : {};
+
+      // Una cuenta calificada tiene que decir qué ofrece: es lo que el comercial lee antes de
+      // abrir una oportunidad. Vale la que ya tuviera la cuenta.
+      if (
+        input.hasCommercialFit &&
+        !clasificacion.businessDescription &&
+        !account.businessDescription?.trim()
+      ) {
+        throw new BadRequestException(
+          'Para calificar la cuenta describe qué ofrece el negocio (mínimo 10 caracteres).',
+        );
+      }
 
       await account.update(
         {
+          ...(clasificacion.industry !== undefined && { industry: clasificacion.industry }),
+          ...(clasificacion.category !== undefined && { category: clasificacion.category }),
+          ...(clasificacion.businessLine !== undefined && {
+            businessLine: clasificacion.businessLine,
+          }),
+          ...(clasificacion.businessDescription !== undefined && {
+            businessDescription: clasificacion.businessDescription,
+          }),
+          ...(clasificacion.websiteUrl !== undefined && { websiteUrl: clasificacion.websiteUrl }),
+          ...(clasificacion.employeeCount !== undefined && {
+            employeeCount: clasificacion.employeeCount,
+          }),
+          ...(clasificacion.annualRevenue !== undefined && {
+            annualRevenue: clasificacion.annualRevenue.toFixed(2),
+          }),
+          ...(clasificacion.expectedMonthlyVolume !== undefined && {
+            expectedMonthlyVolume: clasificacion.expectedMonthlyVolume.toFixed(2),
+          }),
+          ...(clasificacion.riskTier !== undefined && { riskTier: clasificacion.riskTier }),
           lifecycleStatus: nextStatus,
           notes: input.hasCommercialFit
             ? account.notes
@@ -552,7 +584,7 @@ export class B2BAccountsService extends B2BSalesCrmUseCaseBase {
           entityId: account.id,
           action: input.hasCommercialFit ? 'QUALIFY' : 'DISQUALIFY',
           changedByUserId: user.sub,
-          newValues: { lifecycleStatus: nextStatus, opportunity },
+          newValues: { lifecycleStatus: nextStatus, classification: clasificacion, opportunity },
         },
         transaction,
       );

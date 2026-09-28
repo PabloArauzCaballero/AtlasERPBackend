@@ -12,6 +12,7 @@ import type { AuthUser } from '../../../common/types/auth-context.types';
 import {
   AccountLifecycleStatus,
   ApprovalStatus,
+  ContractStatus,
   MDR_BELOW_MINIMUM_APPROVAL,
   OpportunityStage,
   ProposalStatus,
@@ -50,6 +51,12 @@ export class B2BPipelineService extends B2BSalesCrmUseCaseBase {
       throw new ConflictException(
         'Una cuenta descalificada no puede tener propuesta u oportunidad activa sin reapertura aprobada.',
       );
+    }
+
+    // Predecesora (Pablo, 2026-09-28): calificar → oportunidad → onboarding. Un prospecto sin
+    // calificar todavía no tiene negocio que perseguir.
+    if (account.lifecycleStatus === AccountLifecycleStatus.LEAD) {
+      throw new ConflictException('Califica la cuenta antes de crear una oportunidad.');
     }
 
     const opportunity = await this.repository.opportunities.create({
@@ -194,6 +201,20 @@ export class B2BPipelineService extends B2BSalesCrmUseCaseBase {
       if (!acceptedProposal) {
         throw new ConflictException(
           'La oportunidad no puede pasar a CONTRACTING sin propuesta aceptada.',
+        );
+      }
+    }
+
+    // «Ganada» = contrato firmado. Moverla a mano (p. ej. arrastrando en el tablero desde
+    // Descubrimiento) se saltaba propuesta y contratación.
+    if (input.stage === OpportunityStage.CLOSED_WON) {
+      const signedContract = await this.repository.contracts.findOne({
+        where: { opportunityId: id, status: ContractStatus.ACTIVE },
+      });
+
+      if (!signedContract) {
+        throw new ConflictException(
+          'La oportunidad se gana al firmar su contrato: pásala por contratación y firma el contrato.',
         );
       }
     }

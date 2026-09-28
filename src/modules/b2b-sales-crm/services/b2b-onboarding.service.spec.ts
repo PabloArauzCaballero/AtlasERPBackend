@@ -1,5 +1,5 @@
 import { ConflictException, ForbiddenException } from '@nestjs/common';
-import { B2BOnboardingService } from './b2b-onboarding.service';
+import { B2BOnboardingService, claseDelRequisito } from './b2b-onboarding.service';
 
 /**
  * El tramo del Motor y el del portal, con AtlasBackend FINGIDO con la forma exacta que publica
@@ -614,13 +614,32 @@ describe('B2BOnboardingService · la carpeta del comercio al abrir el caso', () 
       create: jest.fn(async () => ({ id: 'caso-1' })),
     });
     Object.assign(ctx.repository.checklistItems, { create: jest.fn(async () => ({})) });
+    Object.assign(ctx.repository, { opportunities: { count: jest.fn(async () => oportunidades) } });
     return ctx;
   }
+  let oportunidades = 1;
+  beforeEach(() => {
+    oportunidades = 1;
+  });
   const entrada = {
     accountId: 'acc-1',
     ownerUserId: 'u-1',
     checklistItems: [{ itemType: 'nit', description: 'NIT vigente' }],
   };
+
+  // Predecesora (Pablo, 2026-09-28): calificar → oportunidad → onboarding.
+  it('sin ninguna oportunidad viva no abre el caso (409) ni toca la carpeta', async () => {
+    oportunidades = 0;
+    const { service, merchantFolder, repository } = conAlta();
+
+    await expect(service.createOnboardingCase(entrada, 'tok')).rejects.toThrow(
+      'Crea una oportunidad para la cuenta antes de iniciar su onboarding.',
+    );
+    expect(
+      (repository.onboardingCases as unknown as { create: jest.Mock }).create,
+    ).not.toHaveBeenCalled();
+    expect(merchantFolder.tryEnsureForAccount).not.toHaveBeenCalled();
+  });
 
   it('asegura la carpeta con el token de la sesión, guarda el puente y lo cuenta en la respuesta', async () => {
     const { service, merchantFolder, repository } = conAlta();
@@ -674,5 +693,93 @@ describe('B2BOnboardingService · la carpeta del comercio al abrir el caso', () 
       (repository.onboardingCases as unknown as { create: jest.Mock }).create,
     ).not.toHaveBeenCalled();
     expect(merchantFolder.tryEnsureForAccount).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * Pablo (2026-09-28): «se suben supuestamente los archivos pero no aparecen en el portal
+ * administrativo». El NIT del requisito se guardaba bajo el CASO (`erp-onboarding_case-…`), un
+ * dueño que AtlasBackend no sabe atar a ningún comercio: el objeto existía y ninguna carpeta lo
+ * enseñaba. Ahora se guarda bajo la cuenta del caso, con la carpeta asegurada antes.
+ */
+describe('B2BOnboardingService · el archivo del requisito cae en la carpeta del comercio', () => {
+  const requisito = fila({
+    id: 'item-1',
+    onboardingCaseId: 'caso-1',
+    itemType: 'LEGAL',
+    description: 'NIT vigente del comercio',
+  });
+
+  function conRequisito(
+    caso: Record<string, unknown> | null = { id: 'caso-1', accountId: 'acc-1' },
+  ) {
+    const forward = jest.fn(async () => ({ storageKey: 'k', uploadUrl: 'u' }));
+    const ctx = build({ forward });
+    Object.assign(ctx.repository.checklistItems, { findOne: jest.fn(async () => requisito) });
+    ctx.repository.onboardingCases.findByPk = jest.fn(async () => caso) as never;
+    return { ...ctx, forward };
+  }
+
+  it('pide el permiso bajo la cuenta B2B del caso, con la descripción como nombre, y asegura antes la carpeta', async () => {
+    const { service, forward, merchantFolder } = conRequisito();
+
+    await service.createChecklistEvidenceUploadUrl(
+      'caso-1',
+      'item-1',
+      { contentType: 'application/pdf', sizeBytes: 100 } as never,
+      'tok',
+    );
+
+    expect(merchantFolder.tryEnsureForAccount).toHaveBeenCalledWith('acc-1', 'tok');
+    expect(forward).toHaveBeenCalledWith({
+      method: 'POST',
+      path: 'operations/erp-documents/upload-url',
+      accessToken: 'tok',
+      body: {
+        ownerType: 'b2b_account',
+        ownerId: 'acc-1',
+        documentKind: 'NIT-vigente-del-comercio',
+        contentType: 'application/pdf',
+        sizeBytes: 100,
+      },
+    });
+    // La carpeta se asegura ANTES de firmar: si no, el archivo llegaría a un comercio sin carpeta.
+    const ordenCarpeta = merchantFolder.tryEnsureForAccount.mock.invocationCallOrder[0];
+    expect(ordenCarpeta).toBeLessThan(forward.mock.invocationCallOrder[0] ?? 0);
+  });
+
+  it('sin cuenta en el caso se guarda bajo el caso, como antes, y no pide carpeta', async () => {
+    const { service, forward, merchantFolder } = conRequisito({ id: 'caso-1', accountId: null });
+
+    await service.createChecklistEvidenceUploadUrl(
+      'caso-1',
+      'item-1',
+      { contentType: 'image/png', sizeBytes: 10 } as never,
+      'tok',
+    );
+
+    expect(merchantFolder.tryEnsureForAccount).not.toHaveBeenCalled();
+    expect(forward).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: expect.objectContaining({ ownerType: 'ONBOARDING_CASE', ownerId: 'caso-1' }),
+      }),
+    );
+  });
+
+  it.each([
+    ['NIT vigente del comercio', 'LEGAL', 'NIT-vigente-del-comercio'],
+    [
+      'Poder del representante legal (notariado)',
+      'LEGAL',
+      'Poder-del-representante-legal-notariado',
+    ],
+    ['Matrícula de comercio · SEPREC', 'LEGAL', 'Matricula-de-comercio-SEPREC'],
+    ['', 'BANKING', 'BANKING'],
+    [null, 'BANKING', 'BANKING'],
+  ])('claseDelRequisito(%p, %p) → %p', (descripcion, tipo, esperado) => {
+    const clase = claseDelRequisito(descripcion, tipo);
+    expect(clase).toBe(esperado);
+    // Es un tramo de la ruta del objeto: AtlasBackend rechaza cualquier otra cosa.
+    expect(clase).toMatch(/^[A-Za-z0-9_-]{1,80}$/);
   });
 });
