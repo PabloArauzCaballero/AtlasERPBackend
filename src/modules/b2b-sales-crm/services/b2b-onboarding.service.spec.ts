@@ -614,13 +614,32 @@ describe('B2BOnboardingService · la carpeta del comercio al abrir el caso', () 
       create: jest.fn(async () => ({ id: 'caso-1' })),
     });
     Object.assign(ctx.repository.checklistItems, { create: jest.fn(async () => ({})) });
+    Object.assign(ctx.repository, { opportunities: { count: jest.fn(async () => oportunidades) } });
     return ctx;
   }
+  let oportunidades = 1;
+  beforeEach(() => {
+    oportunidades = 1;
+  });
   const entrada = {
     accountId: 'acc-1',
     ownerUserId: 'u-1',
     checklistItems: [{ itemType: 'nit', description: 'NIT vigente' }],
   };
+
+  // Predecesora (Pablo, 2026-09-28): calificar → oportunidad → onboarding.
+  it('sin ninguna oportunidad viva no abre el caso (409) ni toca la carpeta', async () => {
+    oportunidades = 0;
+    const { service, merchantFolder, repository } = conAlta();
+
+    await expect(service.createOnboardingCase(entrada, 'tok')).rejects.toThrow(
+      'Crea una oportunidad para la cuenta antes de iniciar su onboarding.',
+    );
+    expect(
+      (repository.onboardingCases as unknown as { create: jest.Mock }).create,
+    ).not.toHaveBeenCalled();
+    expect(merchantFolder.tryEnsureForAccount).not.toHaveBeenCalled();
+  });
 
   it('asegura la carpeta con el token de la sesión, guarda el puente y lo cuenta en la respuesta', async () => {
     const { service, merchantFolder, repository } = conAlta();

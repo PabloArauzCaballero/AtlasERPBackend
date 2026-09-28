@@ -52,6 +52,12 @@ export class B2BPipelineService extends B2BSalesCrmUseCaseBase {
       );
     }
 
+    // Predecesora (Pablo, 2026-09-28): calificar → oportunidad → onboarding. Un prospecto sin
+    // calificar todavía no tiene negocio que perseguir.
+    if (account.lifecycleStatus === AccountLifecycleStatus.LEAD) {
+      throw new ConflictException('Califica la cuenta antes de crear una oportunidad.');
+    }
+
     const opportunity = await this.repository.opportunities.create({
       accountId: input.accountId,
       ownerUserId: input.ownerUserId,

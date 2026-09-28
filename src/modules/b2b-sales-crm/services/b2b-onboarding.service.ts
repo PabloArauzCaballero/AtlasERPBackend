@@ -9,7 +9,12 @@ import { NIT_VALIDO } from '../b2b-sales-crm.schemas';
 import { Op, Transaction } from 'sequelize';
 import { PinoLoggerService } from '../../../common/logging/pino-logger.service';
 import type { AuthUser } from '../../../common/types/auth-context.types';
-import { AccountLifecycleStatus, BranchStatus, ChecklistStatus } from '../b2b-sales-crm.enums';
+import {
+  AccountLifecycleStatus,
+  BranchStatus,
+  ChecklistStatus,
+  OpportunityStage,
+} from '../b2b-sales-crm.enums';
 import type {
   CompleteChecklistItemDto,
   ChecklistEvidenceUploadUrlDto,
@@ -161,6 +166,18 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
         throw new NotFoundException('Cuenta B2B no encontrada.');
       }
       await this.assertAccountReadyForFolder(account, transaction);
+
+      // Predecesora: el onboarding prepara al comercio de un negocio en curso. Sin oportunidad
+      // viva (ni perdida) no hay nada que activar.
+      const oportunidadViva = await this.repository.opportunities.count({
+        where: { accountId: input.accountId, stage: { [Op.ne]: OpportunityStage.CLOSED_LOST } },
+        transaction,
+      });
+      if (oportunidadViva === 0) {
+        throw new ConflictException(
+          'Crea una oportunidad para la cuenta antes de iniciar su onboarding.',
+        );
+      }
 
       const existingOpenCase = await this.repository.onboardingCases.findOne({
         where: {

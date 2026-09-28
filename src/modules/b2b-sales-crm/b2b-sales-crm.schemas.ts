@@ -192,10 +192,28 @@ export const bulkCreateAccountsSchema = z
     });
   });
 
+/**
+ * Calificar es CLASIFICAR la cuenta y dejarle los datos que el CRM usa para segmentar y priorizar
+ * (Pablo, 2026-09-28): sector, categoría, rubro, qué ofrece el negocio, tamaño y volumen. Se
+ * escriben en la cuenta; los que no se envían conservan lo que la cuenta ya tenía.
+ */
+export const accountClassificationSchema = z.object({
+  industry: z.string().trim().min(2).max(120).optional(),
+  category: z.string().trim().min(2).max(120).optional(),
+  businessLine: z.string().trim().min(2).max(160).optional(),
+  businessDescription: z.string().trim().min(10).max(2000).optional(),
+  websiteUrl: z.string().url().max(500).optional(),
+  employeeCount: z.coerce.number().int().min(0).max(10000000).optional(),
+  annualRevenue: money.optional(),
+  expectedMonthlyVolume: money.optional(),
+  riskTier: zodEnum(riskTierDomain).optional(),
+});
+
 export const qualifyAccountSchema = z
   .object({
     hasCommercialFit: z.boolean(),
     disqualificationReason: z.string().trim().min(3).max(500).optional(),
+    classification: accountClassificationSchema.default({}),
     createOpportunity: z.boolean().default(false),
     opportunity: z
       .object({
