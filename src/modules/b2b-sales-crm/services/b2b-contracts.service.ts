@@ -117,10 +117,9 @@ export class B2BContractsService extends B2BSalesCrmUseCaseBase {
         );
       }
 
-      await this.repository.opportunities.update(
-        { stage: OpportunityStage.CLOSED_WON, updatedAt: new Date() },
-        { where: { id: proposal.opportunityId }, transaction },
-      );
+      // La oportunidad sigue en CONTRATACIÓN: el contrato nace pendiente de firma. Antes se marcaba
+      // GANADA aquí, con el contrato sin firmar, y la etapa de contratación no llegaba a verse.
+      // Se gana al firmar (`signAndActivateContract`).
 
       return {
         contract: {
@@ -150,6 +149,10 @@ export class B2BContractsService extends B2BSalesCrmUseCaseBase {
         throw new NotFoundException('Contrato no encontrado.');
       }
 
+      if (contract.status !== ContractStatus.PENDING_SIGNATURE) {
+        throw new ConflictException('Solo un contrato pendiente de firma puede firmarse.');
+      }
+
       const version = await this.repository.contractVersions.findOne({
         where: { contractId, versionNumber: 1 },
         transaction,
@@ -171,6 +174,14 @@ export class B2BContractsService extends B2BSalesCrmUseCaseBase {
         },
         { transaction },
       );
+
+      // Firmado el contrato, la oportunidad está GANADA: es lo que dice la etapa en el tablero.
+      if (contract.opportunityId) {
+        await this.repository.opportunities.update(
+          { stage: OpportunityStage.CLOSED_WON, updatedAt: new Date() },
+          { where: { id: contract.opportunityId }, transaction },
+        );
+      }
 
       // T-10: al activarse el contrato, Core se entera del MDR pactado (si ya hay una regla general).
       await publishMdrUpdatedForContractVersion(
