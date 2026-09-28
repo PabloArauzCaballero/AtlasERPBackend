@@ -21,6 +21,7 @@ import {
   ONBOARDING_SCOPES,
 } from '../../b2b-sales-crm/domain/onboarding-lifecycle';
 import { SEGMENT_SUBJECTS } from '../../b2b-sales-crm/domain/crm-segments';
+import { ACTIVITY_STATUSES } from '../../b2b-sales-crm/domain/activity-status';
 
 /**
  * Vocabulario del CRM comercial B2B.
@@ -662,6 +663,26 @@ export const activityTypeDomain = defineDomain(
   }),
 );
 
+export const activityStatusDomain = defineDomain(
+  'crm.activityStatus',
+  'En qué punto está una actividad comercial.',
+  labelled(ACTIVITY_STATUSES, {
+    PENDING: {
+      label: 'Pendiente',
+      help: 'Está por hacerse; aparece en la lista de pendientes de su responsable.',
+    },
+    DONE: {
+      label: 'Hecha',
+      help: 'Ya ocurrió o se cumplió; queda como constancia en la cuenta.',
+    },
+    CANCELLED: {
+      label: 'Cancelada',
+      help: 'No se va a hacer; se conserva para saber que se decidió no hacerla.',
+    },
+  }),
+  [{ check: 'ck_commercial_activities_status' }],
+);
+
 export const segmentSubjectDomain = defineDomain(
   'crm.segmentSubject',
   'A quién agrupa un segmento comercial.',
@@ -1104,6 +1125,7 @@ export const CRM_DOMAINS = [
   checklistStatusDomain,
   checklistItemTypeDomain,
   activityTypeDomain,
+  activityStatusDomain,
   segmentSubjectDomain,
   segmentStatusDomain,
   segmentOperatorDomain,

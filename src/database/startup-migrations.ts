@@ -82,6 +82,8 @@ export const STARTUP_MIGRATION_FILES = [
   'src/database/migrations/20260927100000-siat-producto-por-defecto.sql',
   // Cola de correos al comprador de cada documento fiscal (factura y anulación).
   'src/database/migrations/20260927110000-siat-correo-comprador.sql',
+  // Actividades comerciales con estado (pendiente / hecha / cancelada) e índices de la ficha.
+  'src/database/migrations/20260928160000-actividades-comerciales-estado.sql',
 ] as const;
 
 export interface LegacySqlProbe {

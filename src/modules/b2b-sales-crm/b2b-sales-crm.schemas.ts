@@ -3,6 +3,7 @@ import { parseExactPositiveAmount } from '../../common/money/exact-amount-input.
 import { zodEnum } from '../../common/catalog/domain';
 import { paymentMethodDomain } from '../catalog/domains/accounting.domains';
 import {
+  activityStatusDomain,
   branchStatusDomain,
   contractBillingCycleDomain,
   contractSettlementPolicyDomain,
@@ -799,6 +800,8 @@ export const activityTypeEnum = z.enum([
   'OTHER',
 ]);
 
+export const activityStatusEnum = zodEnum(activityStatusDomain);
+
 export const createActivitySchema = z.object({
   accountId: uuid,
   opportunityId: uuid.optional(),
@@ -807,6 +810,8 @@ export const createActivitySchema = z.object({
   subject: z.string().trim().min(1).max(220),
   description: z.string().trim().max(4000).optional(),
   dueAt: z.coerce.date().optional(),
+  /** Si no se dice, lo deduce el dominio: tarea o con vencimiento → PENDING; lo demás → DONE. */
+  status: activityStatusEnum.optional(),
 });
 
 export const updateActivitySchema = z
@@ -815,7 +820,9 @@ export const updateActivitySchema = z
     subject: z.string().trim().min(1).max(220).optional(),
     description: z.string().trim().max(4000).nullable().optional(),
     dueAt: z.coerce.date().nullable().optional(),
+    /** Heredado: con fecha equivale a `status: DONE`; con `null`, a `status: PENDING`. */
     completedAt: z.coerce.date().nullable().optional(),
+    status: activityStatusEnum.optional(),
   })
   .refine((input) => Object.keys(input).length > 0, {
     message: 'Debe enviar al menos un campo para actualizar.',
@@ -826,7 +833,12 @@ export const listActivitiesQuerySchema = z
     accountId: uuid.optional(),
     opportunityId: uuid.optional(),
     activityType: activityTypeEnum.optional(),
+    status: activityStatusEnum.optional(),
+    /** Heredado: `true` equivale a `status=PENDING`, ordenado por vencimiento. */
     pending: z.enum(['true', 'false']).optional(),
+    search: z.string().trim().min(1).max(120).optional(),
+    page: z.coerce.number().int().positive().default(1),
+    limit: z.coerce.number().int().positive().max(100).default(25),
   })
   .refine((input) => Boolean(input.accountId || input.opportunityId), {
     message: 'Debe indicar accountId u opportunityId.',
