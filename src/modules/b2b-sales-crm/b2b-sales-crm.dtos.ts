@@ -34,6 +34,7 @@ import type {
   contractIdParamsSchema,
   bulkCreateAccountsSchema,
   createAccountSchema,
+  setAccountTaxIdSchema,
   branchIdParamsSchema,
   createBranchSchema,
   createMdrRuleSchema,
@@ -78,6 +79,7 @@ export type RecoveryIdParamsDto = z.infer<typeof recoveryIdParamsSchema>;
 export type ListAccountsQueryDto = z.infer<typeof listAccountsQuerySchema>;
 export type BulkCreateAccountsDto = z.infer<typeof bulkCreateAccountsSchema>;
 export type CreateAccountDto = z.infer<typeof createAccountSchema>;
+export type SetAccountTaxIdDto = z.infer<typeof setAccountTaxIdSchema>;
 export type QualifyAccountDto = z.infer<typeof qualifyAccountSchema>;
 export type CreateContactDto = z.infer<typeof createContactSchema>;
 export type CreateOpportunityDto = z.infer<typeof createOpportunitySchema>;

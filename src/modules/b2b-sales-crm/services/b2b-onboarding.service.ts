@@ -3,7 +3,9 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
+import { NIT_VALIDO } from '../b2b-sales-crm.schemas';
 import { Op, Transaction } from 'sequelize';
 import { PinoLoggerService } from '../../../common/logging/pino-logger.service';
 import type { AuthUser } from '../../../common/types/auth-context.types';
@@ -158,6 +160,7 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
       if (!account) {
         throw new NotFoundException('Cuenta B2B no encontrada.');
       }
+      await this.assertAccountReadyForFolder(account, transaction);
 
       const existingOpenCase = await this.repository.onboardingCases.findOne({
         where: {
@@ -194,6 +197,34 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
 
       return this.getOnboardingCase(caseRecord.id, transaction);
     });
+  }
+
+  /**
+   * Lo que Atlas exige para abrir la carpeta del comercio, comprobado ANTES de abrir el caso.
+   *
+   * La carpeta se intenta después del caso y sin poder tumbarlo, así que una cuenta sin NIT abría el
+   * onboarding y se quedaba sin carpeta: el contrato firmado y la evidencia no aparecían en Archivos
+   * y sólo lo decía un aviso (Pablo, 2026-09-28). La regla es la misma que aplica Atlas.
+   */
+  private async assertAccountReadyForFolder(
+    account: { id: string; taxId: string | null; legalName: string },
+    transaction: Transaction,
+  ): Promise<void> {
+    const faltan: string[] = [];
+    if (!NIT_VALIDO.test(account.taxId?.trim() ?? '')) {
+      faltan.push('el NIT (7 a 15 dígitos, sin puntos ni guiones)');
+    }
+    if ((account.legalName?.trim().length ?? 0) < 3) faltan.push('la razón social');
+    const conCorreo = await this.repository.contacts.count({
+      where: { accountId: account.id, email: { [Op.and]: [{ [Op.ne]: null }, { [Op.ne]: '' }] } },
+      transaction,
+    });
+    if (!conCorreo) faltan.push('un contacto con correo');
+    if (faltan.length) {
+      throw new UnprocessableEntityException(
+        `No se puede abrir el onboarding: a la cuenta le falta ${faltan.join(' y ')}. Sin eso Atlas no crea la carpeta del comercio. Complételo en Cuentas B2B y vuelva a intentarlo.`,
+      );
+    }
   }
 
   /**

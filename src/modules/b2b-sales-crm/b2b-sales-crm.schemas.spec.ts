@@ -5,6 +5,8 @@ import {
   createProposalSchema,
   issueInvoiceSchema,
   qualifyAccountSchema,
+  createAccountSchema,
+  setAccountTaxIdSchema,
   registerMerchantPaymentSchema,
   registerPurchaseSchema,
   updateMdrRuleSchema,
@@ -19,7 +21,7 @@ describe('B2B Sales CRM schemas', () => {
     const baseAccount = {
       legalName: 'Empresa Uno SRL',
       tradeName: 'Empresa Uno',
-      taxId: '123456',
+      taxId: '1234567',
       category: 'RETAIL',
       businessLine: 'Tienda de electrodomésticos',
       primaryContact: { fullName: 'Contacto Uno', email: 'uno@example.com' },
@@ -36,6 +38,22 @@ describe('B2B Sales CRM schemas', () => {
 
     expect(accepted.success).toBe(true);
     expect(rejected.success).toBe(false);
+  });
+
+  /* Sin NIT Atlas no abre la carpeta del comercio: la cuenta no nace sin él (Pablo, 2026-09-28). */
+  it('exige el NIT del comercio, sólo dígitos, al crear la cuenta y al completarlo', () => {
+    const cuenta = {
+      legalName: 'Empresa Uno SRL',
+      tradeName: 'Empresa Uno',
+      category: 'RETAIL',
+      businessLine: 'Tienda de electrodomésticos',
+      primaryContact: { fullName: 'Contacto Uno', email: 'uno@example.com' },
+    };
+    expect(createAccountSchema.safeParse(cuenta).success).toBe(false);
+    expect(createAccountSchema.safeParse({ ...cuenta, taxId: '12345-6' }).success).toBe(false);
+    expect(createAccountSchema.safeParse({ ...cuenta, taxId: ' 1023456789 ' }).success).toBe(true);
+    expect(setAccountTaxIdSchema.safeParse({ taxId: '123' }).success).toBe(false);
+    expect(setAccountTaxIdSchema.safeParse({ taxId: '1023456789' }).success).toBe(true);
   });
 
   it('rechaza propuesta sin líneas', () => {
