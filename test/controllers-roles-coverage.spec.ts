@@ -22,6 +22,9 @@ import type { PinoLoggerService } from '../src/common/logging/pino-logger.servic
  * uno obliga a tocarla.
  */
 const INTENTIONALLY_ANY_AUTHENTICATED = [
+  // El asistente atiende a cualquier sesión; qué catálogo le toca lo decide el tipo de sesión.
+  'AssistGatewayController.chat',
+  'AssistGatewayController.conversacion',
   'AuthGatewayController.requestPasswordChange',
   'AuthGatewayController.confirmPasswordChange',
   'AuthGatewayController.me',
