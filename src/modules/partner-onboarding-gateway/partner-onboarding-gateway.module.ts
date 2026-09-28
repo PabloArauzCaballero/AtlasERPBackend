@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
+import { AssistGatewayController } from './assist-gateway.controller';
 import { AtlasPartnerClient } from './atlas-partner.client';
 import { MerchantFolderService } from './merchant-folder.service';
 import { MerchantCreditGatewayController } from './merchant-credit-gateway.controller';
@@ -20,6 +21,7 @@ import { SupportGatewayController } from './support-gateway.controller';
     PartnerOnboardingGatewayController,
     MerchantCreditGatewayController,
     SupportGatewayController,
+    AssistGatewayController,
   ],
   providers: [AtlasPartnerClient, MerchantFolderService],
   /*
