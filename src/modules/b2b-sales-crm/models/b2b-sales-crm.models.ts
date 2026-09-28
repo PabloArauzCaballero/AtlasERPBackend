@@ -377,9 +377,21 @@ export class CommercialActivityModel extends Model {
   @Column({ type: DataType.DATE, field: 'completed_at' })
   declare completedAt: Date | null;
 
+  /**
+   * PENDING | DONE | CANCELLED (`ck_commercial_activities_status`). Se declara el DEFAULT también
+   * aquí: `allowNull: false` sin `defaultValue` anula el de la tabla y el alta fallaría.
+   */
+  @AllowNull(false)
+  @Default('PENDING')
+  @Column({ type: DataType.STRING(20) })
+  declare status: string;
+
   @Default(DataType.NOW)
   @Column({ type: DataType.DATE, field: 'created_at' })
   declare createdAt: Date;
+
+  @BelongsTo(() => InternalUserModel, 'ownerUserId')
+  declare owner?: InternalUserModel;
 }
 
 @Table({ schema: SALES_SCHEMA, tableName: 'commercial_proposals', timestamps: false })

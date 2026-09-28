@@ -111,3 +111,11 @@ se emiten las facturas AR del emisor, que no tienen catálogo de productos. Sól
 
 `atlas_accounting.siat_email_delivery`: la cola de correos al comprador de cada documento fiscal
 (factura emitida y anulación), única por documento y tipo. Sólo añade una tabla.
+
+## 20260928160000-actividades-comerciales-estado.sql
+
+`atlas_sales.commercial_activities.status` (`PENDING` / `DONE` / `CANCELLED`, CHECK
+`ck_commercial_activities_status`, DEFAULT `PENDING`). Rellena las filas existentes con la regla con
+que la ficha las pintaba: `completed_at` → `DONE`; con `due_at` o de tipo `TASK` → `PENDING`; el
+resto → `DONE`. No toca `completed_at`. Añade dos índices por cuenta para la tabla paginada. El
+`down` retira índices, CHECK y columna.
