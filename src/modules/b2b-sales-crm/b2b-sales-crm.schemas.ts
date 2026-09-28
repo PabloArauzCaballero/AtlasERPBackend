@@ -102,10 +102,26 @@ export const listAccountsQuerySchema = z.object({
   sortOrder: z.enum(['ASC', 'DESC']).default('DESC'),
 });
 
+/**
+ * El NIT de un comercio, con la misma regla que Atlas aplica al abrir su ficha y su carpeta.
+ *
+ * Era opcional y de 3 a 60 caracteres cualesquiera: se creaban cuentas sin NIT, el onboarding se
+ * abría igual y Atlas rechazaba la carpeta del comercio (`DATOS_DE_LA_CUENTA_INVALIDOS`) sin que
+ * nada lo impidiera antes (Pablo, 2026-09-28). Exportado para que la compuerta del onboarding mida
+ * lo mismo que el alta.
+ */
+export const NIT_VALIDO = /^[0-9]{7,15}$/;
+const nitSchema = z
+  .string()
+  .trim()
+  .regex(NIT_VALIDO, 'El NIT debe tener entre 7 y 15 dígitos, sin puntos ni guiones.');
+
+export const setAccountTaxIdSchema = z.object({ taxId: nitSchema });
+
 export const createAccountSchema = z.object({
   legalName: z.string().trim().min(2).max(220),
   tradeName: z.string().trim().min(2).max(220),
-  taxId: z.string().trim().min(3).max(60).optional(),
+  taxId: nitSchema,
   accountType: z.nativeEnum(AccountType).default(AccountType.MERCHANT),
   industry: z.string().trim().min(2).max(120).optional(),
   category: z.string().trim().min(2).max(120),

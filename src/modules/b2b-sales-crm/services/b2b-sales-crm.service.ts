@@ -13,6 +13,7 @@ import type {
   AttachChecklistEvidenceDto,
   BulkCreateAccountsDto,
   CreateAccountDto,
+  SetAccountTaxIdDto,
   CreateBranchDto,
   CreateMdrRuleDto,
   UpdateMdrRuleDto,
@@ -85,6 +86,14 @@ export class B2BSalesCrmService {
 
   getAccount(id: string): Promise<Record<string, unknown>> {
     return this.accountsService.getAccount(id);
+  }
+
+  setAccountTaxId(
+    accountId: string,
+    input: SetAccountTaxIdDto,
+    user: AuthUser,
+  ): Promise<Record<string, unknown>> {
+    return this.accountsService.setAccountTaxId(accountId, input, user);
   }
 
   archiveAccount(accountId: string, user: AuthUser): Promise<Record<string, unknown>> {

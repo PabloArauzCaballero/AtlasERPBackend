@@ -14,6 +14,7 @@ import type {
   CreateContactDto,
   ListAccountsQueryDto,
   QualifyAccountDto,
+  SetAccountTaxIdDto,
 } from '../b2b-sales-crm.dtos';
 import {
   toAccountResponse,
@@ -22,7 +23,7 @@ import {
 } from '../b2b-sales-crm.mapper';
 import { B2BSalesCrmRepository } from '../repositories/b2b-sales-crm.repository';
 import { B2BSalesCrmUseCaseBase } from './b2b-sales-crm-use-case.base';
-import type { Transaction } from 'sequelize';
+import { Op, type Transaction } from 'sequelize';
 
 @Injectable()
 export class B2BAccountsService extends B2BSalesCrmUseCaseBase {
@@ -366,6 +367,54 @@ export class B2BAccountsService extends B2BSalesCrmUseCaseBase {
   }
 
   /** Deshace el archivado: la cuenta vuelve a aparecer en los listados con su estado intacto. */
+  /**
+   * El NIT de una cuenta creada cuando todavía era opcional. Sin él no se abre el onboarding ni la
+   * carpeta del comercio en Atlas, y no había ninguna otra forma de ponérselo.
+   */
+  async setAccountTaxId(
+    accountId: string,
+    input: SetAccountTaxIdDto,
+    user: AuthUser,
+  ): Promise<Record<string, unknown>> {
+    this.logger.infoContext(B2BAccountsService.name, 'B2B CRM use case started', {
+      useCase: 'setAccountTaxId',
+    });
+    return this.repository.transaction(async (transaction) => {
+      const account = await this.repository.accounts.findByPk(accountId, { transaction });
+      if (!account) {
+        throw new NotFoundException('Cuenta B2B no encontrada.');
+      }
+      const otra = await this.repository.accounts.findOne({
+        where: { taxId: input.taxId, id: { [Op.ne]: accountId } },
+        transaction,
+      });
+      if (otra) {
+        throw new ConflictException(
+          `El NIT ${input.taxId} ya pertenece a la cuenta «${otra.tradeName}». Revise si la cuenta está duplicada.`,
+        );
+      }
+
+      const oldValues = { taxId: account.taxId };
+      account.taxId = input.taxId;
+      await account.save({ transaction });
+      await account.reload({ include: [this.repository.accountTags], transaction });
+
+      await this.repository.audit(
+        {
+          entityName: 'b2b_accounts',
+          entityId: account.id,
+          action: 'UPDATE',
+          changedByUserId: user.sub,
+          oldValues,
+          newValues: toAccountResponse(account),
+        },
+        transaction,
+      );
+
+      return toAccountResponse(account);
+    });
+  }
+
   async restoreAccount(accountId: string, user: AuthUser): Promise<Record<string, unknown>> {
     this.logger.infoContext(B2BAccountsService.name, 'B2B CRM use case started', {
       useCase: 'restoreAccount',

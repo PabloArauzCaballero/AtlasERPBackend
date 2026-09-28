@@ -11,6 +11,7 @@ import type {
   IdParamsDto,
   ListAccountsQueryDto,
   QualifyAccountDto,
+  SetAccountTaxIdDto,
 } from '../b2b-sales-crm.dtos';
 import {
   accountIdParamsSchema,
@@ -20,6 +21,7 @@ import {
   idParamsSchema,
   listAccountsQuerySchema,
   qualifyAccountSchema,
+  setAccountTaxIdSchema,
 } from '../b2b-sales-crm.schemas';
 import { B2BSalesCrmService } from '../services/b2b-sales-crm.service';
 
@@ -68,6 +70,18 @@ export class B2BAccountsController {
     @Body(new ZodValidationPipe(createContactSchema)) body: CreateContactDto,
   ): Promise<Record<string, unknown>> {
     return this.service.createContact(params.accountId, body);
+  }
+
+  // Completar el NIT de una cuenta que se creó sin él, cuando todavía era opcional: sin NIT no se
+  // abre el onboarding ni la carpeta del comercio en Atlas. Lo corrige quien puede crear la cuenta.
+  @Roles('COMMERCIAL_EXECUTIVE', 'COMMERCIAL_MANAGER', 'ADMIN')
+  @Patch(':accountId/tax-id')
+  setAccountTaxId(
+    @Param(new ZodValidationPipe(accountIdParamsSchema)) params: AccountIdParamsDto,
+    @Body(new ZodValidationPipe(setAccountTaxIdSchema)) body: SetAccountTaxIdDto,
+    @CurrentUser() user: AuthUser,
+  ): Promise<Record<string, unknown>> {
+    return this.service.setAccountTaxId(params.accountId, body, user);
   }
 
   // Archivar/restaurar mueve una cuenta fuera o dentro de los listados: decisión de gestión, no de
