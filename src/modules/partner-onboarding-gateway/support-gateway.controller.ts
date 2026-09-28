@@ -278,7 +278,8 @@ export class SupportGatewayController {
     }
 
     const control = new AbortController();
-    req.on('close', () => control.abort());
+    const abortarAlCerrar = () => control.abort();
+    res.once('close', abortarAlCerrar);
 
     const upstream = await fetch(
       `${env.ATLAS_IDENTITY_BASE_URL}/support/channels/${encodeURIComponent(channelId)}/stream`,
@@ -293,6 +294,9 @@ export class SupportGatewayController {
     ).catch(() => null);
 
     if (!upstream?.ok || !upstream.body) {
+      res.off('close', abortarAlCerrar);
+      control.abort();
+      if (res.destroyed) return;
       res.status(502).json({
         error: {
           code: 'SUPPORT_STREAM_UNAVAILABLE',
@@ -312,12 +316,27 @@ export class SupportGatewayController {
       for (;;) {
         const { done, value } = await lector.read();
         if (done) break;
-        res.write(Buffer.from(value));
+        if (!res.write(Buffer.from(value))) {
+          // Un navegador lento llena el buffer de salida. No leer el siguiente trozo del upstream
+          // hasta `drain`, para que el gateway no acumule la conversación entera en RAM.
+          await new Promise<void>((resolve) => {
+            const continuar = () => {
+              res.off('drain', continuar);
+              res.off('close', continuar);
+              resolve();
+            };
+            res.once('drain', continuar);
+            res.once('close', continuar);
+          });
+          if (res.destroyed) break;
+        }
       }
     } catch {
       // Cortar la conexión al cerrar la pestaña entra por aquí y no es un fallo.
     } finally {
-      res.end();
+      res.off('close', abortarAlCerrar);
+      control.abort();
+      if (!res.destroyed) res.end();
     }
   }
 }
