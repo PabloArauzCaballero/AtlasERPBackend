@@ -32,6 +32,21 @@ export class DoubleEntryValidator {
   }
 
   validate(lines: JournalLineAmount[]): void {
+    // Un asiento con menos de dos líneas no es partida doble: `[]` cuadraba (0 = 0) y una sola
+    // línea nunca puede cuadrar. El mínimo vivía sólo en el esquema Zod del endpoint manual y los
+    // flujos internos (factura, recibo, reversión, puente del comercio) no pasan por ahí.
+    if (lines.length < 2) {
+      this.activeLogger.warn('Asiento con menos de dos líneas.', {
+        layer: 'validator',
+        validator: 'DoubleEntryValidator',
+        lineCount: lines.length,
+      });
+      throw new BadRequestException({
+        code: 'JOURNAL_TOO_FEW_LINES',
+        message: 'Un asiento necesita al menos dos líneas (partida doble).',
+        details: { lineCount: lines.length },
+      });
+    }
     let totalDebit = 0n;
     let totalCredit = 0n;
 
