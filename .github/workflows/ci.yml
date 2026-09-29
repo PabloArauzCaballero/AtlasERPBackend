@@ -4,7 +4,7 @@
 # (gitleaks)», «Base migrada, integración y E2E», «Auditoría de dependencias», «CodeQL (SAST)»,
 # «Escaneo de imagen (Trivy)», «Matriz de cumplimiento (evidencia)».
 #
-# Este backend mueve la contabilidad, la facturación y el portal del comercio —249 endpoints— y
+# Este backend mueve la contabilidad, la facturación y el portal del comercio y
 # era, junto al frontend del ERP y la app móvil, el único sin ninguna comprobación automática al
 # fusionar. No es que las pruebas fallaran: es que nadie las corría. Esto arranca por lo barato y
 # verificable (tipos, lint, unidad); ampliar la cobertura es trabajo aparte y está en el backlog.
@@ -77,6 +77,11 @@ jobs:
       - name: Listas de migraciones coherentes
         run: corepack yarn check:migration-lists
 
+      # Toda variable del esquema de entorno (src/config/env.ts) nombrada en .env.example: una que el
+      # código lee y la plantilla calla la decide en silencio su valor por defecto (P2-4, 2026-09-29).
+      - name: .env.example nombra todas las variables
+        run: corepack yarn check:env-example
+
       # Un documento que manda ejecutar un script que ya no existe (`db:prepare`, `db:rollback`…)
       # hace que quien lo sigue crea que el repositorio o la base están rotos (B17).
       - name: Comandos documentados existen
@@ -86,10 +91,7 @@ jobs:
       - name: Smoke de despliegue (contrato HTTP)
         run: node --test .github/tests/post-deploy-smoke.test.mjs
 
-      - name: Smoke de despliegue (contrato HTTP)
-        run: node --test .github/tests/post-deploy-smoke.test.mjs
-
-      # `--passWithNoTests` NO se usa a propósito: hoy hay 30 ficheros de prueba y el día que
+      # `--passWithNoTests` NO se usa a propósito: el día que
       # alguien los borre o rompa el patrón de nombres, esto tiene que ponerse rojo y no verde.
       # La salida JSON es la evidencia que lee el evaluador de cumplimiento (P-02); el sello la ata
       # al SHA de esta ejecución. Las pruebas `*.integration.spec.ts` NO corren aquí: necesitan la
@@ -120,7 +122,7 @@ jobs:
 
       # NINGUNA prueba unitaria levanta el árbol de Nest, así que un fallo de resolución de
       # dependencias —un proveedor que un controlador inyecta y que su módulo no provee— compila,
-      # pasa las 333 pruebas, produce un build verde y REVIENTA al arrancar el proceso. Pasó el
+      # pasa todas las pruebas, produce un build verde y REVIENTA al arrancar el proceso. Pasó el
       # 2026-09-10: el ERP de dev estuvo veinte minutos en bucle de reinicio con todo en verde.
       #
       # Esto es lo único que lo caza sin desplegar: arrancar de verdad y esperar la línea que sólo

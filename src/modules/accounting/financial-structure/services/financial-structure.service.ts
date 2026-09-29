@@ -12,6 +12,7 @@ import {
   AccountingPeriodModel,
   BankAccountModel,
   BranchModel,
+  BusinessPartnerModel,
   ChartOfAccountsModel,
   CostCenterModel,
   FiscalYearModel,
@@ -59,6 +60,8 @@ export class FinancialStructureService {
     @InjectModel(CostCenterModel) private readonly costCenterModel: typeof CostCenterModel,
     @InjectModel(ProfitCenterModel) private readonly profitCenterModel: typeof ProfitCenterModel,
     @InjectModel(BankAccountModel) private readonly bankAccountModel: typeof BankAccountModel,
+    @InjectModel(BusinessPartnerModel)
+    private readonly businessPartnerModel: typeof BusinessPartnerModel,
   ) {}
 
   createLegalEntity(input: CreateLegalEntityDto) {
@@ -308,10 +311,32 @@ export class FinancialStructureService {
       order: [['code', 'ASC']],
     });
   }
-  listBankAccounts(user: AuthUser) {
-    return this.bankAccountModel.findAll({
+  /**
+   * Cuentas bancarias con el NOMBRE del banco (su socio de negocio, `bankBpId`) y SIN
+   * `accountNoHash`: una huella del número no le sirve a nadie en pantalla y no debe salir de aquí.
+   * No hay `accountNumberMasked`: el número en claro no se guarda en ningún sitio, y la huella no se
+   * puede desenmascarar; inventar los últimos dígitos sería mentir.
+   */
+  async listBankAccounts(user: AuthUser) {
+    const rows = await this.bankAccountModel.findAll({
       where: this.entityScope(user),
       order: [['accountName', 'ASC']],
+      attributes: { exclude: ['accountNoHash'] },
+    });
+    const bankIds = [
+      ...new Set(rows.map((row) => row.bankBpId).filter((id): id is string => !!id)),
+    ];
+    const banks = bankIds.length
+      ? await this.businessPartnerModel.findAll({
+          where: { id: { [Op.in]: bankIds } },
+          attributes: ['id', 'legalName', 'tradeName'],
+        })
+      : [];
+    const bankName = new Map(banks.map((bank) => [bank.id, bank.tradeName ?? bank.legalName]));
+    return rows.map((row) => {
+      const plain = row.get({ plain: true }) as Record<string, unknown>;
+      delete plain.accountNoHash;
+      return { ...plain, bankName: row.bankBpId ? (bankName.get(row.bankBpId) ?? null) : null };
     });
   }
 

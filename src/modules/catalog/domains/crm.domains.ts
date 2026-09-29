@@ -229,28 +229,28 @@ export const coverageReviewQueueFilterDomain = defineDomain(
 
 export const termTypeDomain = defineDomain(
   'crm.termType',
-  'Clase de término comercial de una propuesta o contrato.',
+  'Clase de término comercial pactado. Hoy sólo el MDR genera cobros; los demás se guardan como condición pactada.',
   labelled(Object.values(TermType), {
     MDR: { label: 'Comisión por venta (MDR)', help: 'Porcentaje sobre lo que vende el comercio.' },
     SUBSCRIPTION: {
       label: 'Suscripción',
-      help: 'Cuota periódica fija por tener el servicio habilitado.',
+      help: 'Cuota periódica fija pactada. Se guarda en el contrato; hoy el sistema no la cobra solo.',
     },
     SETUP_FEE: {
       label: 'Cargo de alta',
-      help: 'Cobro único por la habilitación inicial del comercio.',
+      help: 'Cargo único de habilitación pactado. Se guarda; hoy el sistema no lo cobra solo.',
     },
     SERVICE_FEE: {
       label: 'Cargo por servicio',
-      help: 'Prestación puntual facturada aparte del plan contratado.',
+      help: 'Prestación puntual pactada aparte del plan. Se guarda; hoy no genera cobro automático.',
     },
     PENALTY: {
       label: 'Penalidad',
-      help: 'Importe por incumplir el contrato, como una baja anticipada.',
+      help: 'Importe pactado por incumplir el contrato. Se guarda; hoy no genera cobro automático.',
     },
     MINIMUM_MONTHLY_FEE: {
       label: 'Mínimo mensual',
-      help: 'Piso que se cobra aunque la comisión del mes quede por debajo.',
+      help: 'Piso mensual pactado. Se guarda; hoy el cierre no completa la comisión hasta ese piso.',
     },
   }),
   [{ enumType: 'atlas_sales.term_type' }],
@@ -258,23 +258,23 @@ export const termTypeDomain = defineDomain(
 
 export const billingTimingDomain = defineDomain(
   'crm.billingTiming',
-  'Cuándo se factura un término comercial.',
+  'Cuándo se pactó facturar un término. Se guarda como condición; hoy la facturación es el cierre mensual del MDR.',
   labelled(Object.values(BillingTiming), {
     PER_TRANSACTION: {
       label: 'Por transacción',
-      help: 'Se liquida en cada venta; para comercios con volumen diario.',
+      help: 'Pactado por venta. Hoy el MDR se devenga en cada venta y se factura en el cierre mensual.',
     },
     MONTHLY: {
       label: 'Mensual',
-      help: 'Se acumula y se cobra una vez al cierre de cada mes.',
+      help: 'Pactado mensual: coincide con el cierre de facturación del día 1, que factura el MDR.',
     },
     ONE_TIME: {
       label: 'Una sola vez',
-      help: 'Se cobra al activar el término y no se repite.',
+      help: 'Pactado como cobro único. Se guarda; hoy el sistema no lo cobra solo.',
     },
     ON_DEMAND: {
       label: 'Bajo demanda',
-      help: 'Se factura sólo cuando alguien lo solicita expresamente.',
+      help: 'Pactado para facturarse cuando se solicite. Se guarda; hoy no genera cobro automático.',
     },
   }),
   [{ enumType: 'atlas_sales.billing_timing' }],
@@ -288,23 +288,23 @@ export const billingTimingDomain = defineDomain(
  */
 export const contractBillingCycleDomain = defineDomain(
   'crm.contractBillingCycle',
-  'Cada cuánto se factura un contrato comercial.',
+  'Ciclo de facturación pactado en el contrato. Se guarda; el cierre de facturación es mensual para todos.',
   labelled(['MONTHLY', 'QUARTERLY', 'SEMIANNUAL', 'ANNUAL'] as const, {
     MONTHLY: {
       label: 'Mensual',
-      help: 'Doce facturas al año; es el ciclo por defecto de los comercios.',
+      help: 'Doce facturas al año; es el ciclo por defecto y el único que aplica el cierre de hoy.',
     },
     QUARTERLY: {
       label: 'Trimestral',
-      help: 'Cuatro facturas al año, cada tres meses de servicio.',
+      help: 'Pactado cada tres meses. Se guarda; el cierre de facturación es siempre mensual.',
     },
     SEMIANNUAL: {
       label: 'Semestral',
-      help: 'Dos facturas al año; suele venir con descuento por anticipo.',
+      help: 'Pactado cada seis meses. Se guarda; el cierre de facturación es siempre mensual.',
     },
     ANNUAL: {
       label: 'Anual',
-      help: 'Una factura por gestión, cobrada por adelantado.',
+      help: 'Pactado una vez por gestión. Se guarda; el cierre de facturación es siempre mensual.',
     },
   }),
   [{ check: 'ck_b2b_contracts_billing_cycle' }],
@@ -312,13 +312,19 @@ export const contractBillingCycleDomain = defineDomain(
 
 export const contractSettlementPolicyDomain = defineDomain(
   'crm.contractSettlementPolicy',
-  'Cómo se agrupa la liquidación al comercio.',
+  'Cómo se pactó agrupar la liquidación. Se guarda; hoy el cierre agrupa por cuenta y moneda.',
   labelled(['PER_CONTRACT', 'PER_BRANCH', 'PER_ACCOUNT'] as const, {
-    PER_CONTRACT: { label: 'Por contrato', help: 'Una liquidación por cada contrato.' },
-    PER_BRANCH: { label: 'Por sucursal', help: 'Una liquidación por cada sucursal del comercio.' },
+    PER_CONTRACT: {
+      label: 'Por contrato',
+      help: 'Pactada una por contrato. Se guarda; hoy el cierre agrupa por cuenta y moneda.',
+    },
+    PER_BRANCH: {
+      label: 'Por sucursal',
+      help: 'Pactada una por sucursal. Se guarda; hoy el cierre agrupa por cuenta y moneda.',
+    },
     PER_ACCOUNT: {
       label: 'Consolidada por cuenta',
-      help: 'Una sola liquidación con todos los contratos de la cuenta.',
+      help: 'Una sola liquidación por cuenta; es lo que hace hoy el cierre (por cuenta y moneda).',
     },
   }),
   [{ check: 'ck_b2b_contracts_settlement_policy' }],

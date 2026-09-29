@@ -18,7 +18,7 @@ Es una sonda de **liveness**: no consulta la base ni las dependencias, así que 
 «el proceso responde», no «todo el ERP funciona».
 
 ```bash
-curl -s http://127.0.0.1:3020/api/v1/health
+curl -s http://127.0.0.1:3007/api/v1/health
 ```
 
 ## Quién la consume

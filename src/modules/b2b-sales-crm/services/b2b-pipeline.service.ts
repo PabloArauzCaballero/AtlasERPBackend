@@ -104,7 +104,10 @@ export class B2BPipelineService extends B2BSalesCrmUseCaseBase {
   async listProposals(): Promise<Record<string, unknown>[]> {
     const proposals = await this.repository.proposals.findAll({
       include: [this.repository.accounts],
-      order: [['createdAt', 'DESC']],
+      order: [
+        ['createdAt', 'DESC'],
+        ['id', 'DESC'],
+      ],
       limit: 200,
     });
     return proposals.map((proposal) => ({
@@ -124,7 +127,10 @@ export class B2BPipelineService extends B2BSalesCrmUseCaseBase {
   async listApprovals(onlyPending = true): Promise<Record<string, unknown>[]> {
     const approvals = await this.repository.approvalRequests.findAll({
       where: (onlyPending ? { status: 'PENDING' } : {}) as WhereOptions,
-      order: [['createdAt', 'DESC']],
+      order: [
+        ['createdAt', 'DESC'],
+        ['id', 'DESC'],
+      ],
       limit: 200,
     });
     return approvals.map((approval) => ({
@@ -160,7 +166,10 @@ export class B2BPipelineService extends B2BSalesCrmUseCaseBase {
   async listContracts(): Promise<Record<string, unknown>[]> {
     const contracts = await this.repository.contracts.findAll({
       include: [this.repository.accounts, this.repository.contractVersions],
-      order: [['createdAt', 'DESC']],
+      order: [
+        ['createdAt', 'DESC'],
+        ['id', 'DESC'],
+      ],
       limit: 200,
     });
     return contracts.map((contract) => {

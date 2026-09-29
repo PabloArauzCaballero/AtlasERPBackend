@@ -17,10 +17,14 @@ Contiene scripts operativos ejecutables fuera del ciclo HTTP de NestJS.
 
 Elimina `dist` y archivos `*.tsbuildinfo` antes de compilar. Esto evita bloqueos intermitentes cuando `type-check`, `lint` y `build` se ejecutan en cadena dentro de scripts de CI/CD.
 
-## check-deploy.cjs
+## check-env-example.cjs
 
-Ejecuta la verificación completa de despliegue con pasos aislados: type-check, lint, build, auditoría de casos de uso, auditoría de dependencias, unit tests y e2e. Usa binarios locales de `node_modules/.bin` para evitar diferencias entre entornos.
+`yarn check:env-example`: falla si una variable del esquema de `src/config/env.ts` no aparece
+nombrada (con o sin valor, comentada o no) en `.env.example`. Sin dependencias; corre en CI.
 
-## check-deploy.sh
+## Verificación de despliegue
 
-Script de verificación de compilación para entornos Linux/CI: ejecuta type-check, lint, limpieza de build y compilación TypeScript.
+`yarn check:deploy` (`run-many.cjs`: type-check, lint, format:check, test, test:e2e y build). Los
+antiguos `check-deploy.cjs` y `check-deploy.sh` se retiraron el 2026-09-29: ningún script ni flujo
+los llamaba y el primero ejecutaba `npm audit`, que no es la auditoría del repositorio
+(`yarn audit:dependencies`).

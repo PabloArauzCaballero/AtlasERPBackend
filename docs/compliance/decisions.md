@@ -244,3 +244,14 @@ Retención propuesta (conservadora; no es una afirmación sobre la ley aplicable
 
 Contrato: `contracts/atlas-integration-v1/` es copia byte a byte del de AtlasBackend (ver `ORIGIN.json`);
 `prettier` la ignora a propósito (`.prettierignore`) para no romper la comparación.
+
+## P2-5 · Guardarraíles «en producción» y el despliegue real (2026-09-29)
+
+Las guardas de arranque de `src/config/env.ts` condicionadas a `NODE_ENV=production` (autenticación
+desactivada, CORS `*`, TLS de la base, secretos JWT por defecto o compartidos, emulador SIAT con
+`SIAT_MODE=produccion`), la cookie `secure` del login y la censura del `stack` en los errores **no
+rigen en el despliegue Coolify de hoy**: `docker-compose.coolify.yml` construye `Dockerfile.dev`,
+que fija `NODE_ENV=development` para tener Swagger y logs útiles en pruebas. Sólo la imagen
+`Dockerfile` (producción) las activa. Decisión pendiente del dueño (S): o el entorno productivo usa
+`Dockerfile`, o esas guardas pasan a depender de una variable de entorno de despliegue explícita en
+vez de `NODE_ENV`. Mientras tanto, ningún documento debe citarlas como protección de DEV/TEST.

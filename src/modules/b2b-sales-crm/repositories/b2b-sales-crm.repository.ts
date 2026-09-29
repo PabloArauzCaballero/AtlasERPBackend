@@ -40,6 +40,7 @@ import {
   ReconciliationRunModel,
   SalesOpportunityModel,
 } from '../models/b2b-sales-crm.models';
+import { containsPattern } from '../../../common/persistence/sql/like-pattern';
 
 @Injectable()
 export class B2BSalesCrmRepository {
@@ -197,18 +198,24 @@ export class B2BSalesCrmRepository {
     if (input.status) {
       whereParts.push({ lifecycleStatus: input.status });
     }
-    if (input.category) whereParts.push({ category: { [Op.iLike]: input.category } });
-    if (input.businessLine) whereParts.push({ businessLine: { [Op.iLike]: input.businessLine } });
+    /* Categoría, rubro y etiqueta CONTIENEN lo escrito (antes: igualdad sin comodines, así que
+       «restaur» no encontraba «Restaurantes»). El valor exacto que manda un select sigue casando.
+       `%` y `_` del usuario se escapan: son texto, no comodines. */
+    if (input.category)
+      whereParts.push({ category: { [Op.iLike]: containsPattern(input.category) } });
+    if (input.businessLine)
+      whereParts.push({ businessLine: { [Op.iLike]: containsPattern(input.businessLine) } });
 
     if (input.search) {
+      const pattern = containsPattern(input.search);
       whereParts.push({
         [Op.or]: [
-          { legalName: { [Op.iLike]: `%${input.search}%` } },
-          { tradeName: { [Op.iLike]: `%${input.search}%` } },
-          { taxId: { [Op.iLike]: `%${input.search}%` } },
-          { category: { [Op.iLike]: `%${input.search}%` } },
-          { businessLine: { [Op.iLike]: `%${input.search}%` } },
-          { city: { [Op.iLike]: `%${input.search}%` } },
+          { legalName: { [Op.iLike]: pattern } },
+          { tradeName: { [Op.iLike]: pattern } },
+          { taxId: { [Op.iLike]: pattern } },
+          { category: { [Op.iLike]: pattern } },
+          { businessLine: { [Op.iLike]: pattern } },
+          { city: { [Op.iLike]: pattern } },
         ],
       });
     }
@@ -231,7 +238,9 @@ export class B2BSalesCrmRepository {
           model: this.accountTags,
           attributes: ['id', 'name'],
           through: { attributes: [] },
-          ...(input.tag ? { required: true, where: { name: { [Op.iLike]: input.tag } } } : {}),
+          ...(input.tag
+            ? { required: true, where: { name: { [Op.iLike]: containsPattern(input.tag) } } }
+            : {}),
         },
       ],
       where,

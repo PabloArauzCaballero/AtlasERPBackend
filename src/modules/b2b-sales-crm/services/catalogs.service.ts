@@ -31,7 +31,10 @@ export class CatalogsService {
   listReceivables(accountId?: string) {
     return this.receivableModel.findAll({
       where: (accountId ? { accountId } : {}) as WhereOptions,
-      order: [['issuedAt', 'DESC']],
+      order: [
+        ['issuedAt', 'DESC'],
+        ['id', 'DESC'],
+      ],
       limit: 200,
     });
   }

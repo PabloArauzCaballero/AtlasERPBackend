@@ -570,12 +570,19 @@ paths:
           description: Cuenta de comercio fuera del alcance del usuario
   /b2b/onboarding/merchant-users:
     post:
-      summary: Crear usuario de comercio
+      summary: Pedir las credenciales de un usuario de comercio
+      description: >-
+        Registra al usuario en el CRM con estado `INVITED` y encola en AtlasBackend la petición de
+        su identidad (`identityRequestId`, `identityStatus`). NO crea una cuenta con la que entrar:
+        el usuario queda INVITADO hasta que Atlas aprueba la petición. El caso de onboarding abierto
+        de la cuenta pasa a `ALTA_PENDIENTE`. Si Atlas rechaza la petición, no queda nada escrito.
       tags:
         - Onboarding
       responses:
         '201':
-          description: Usuario creado
+          description: Usuario registrado como INVITED y petición de identidad encolada en Atlas
+        '409':
+          description: Ya existe un usuario comercio con ese email en la cuenta
   /b2b/onboarding/cases/{onboardingCaseId}/checklist:
     patch:
       summary: Completar checklist de onboarding
@@ -589,6 +596,11 @@ paths:
   /b2b/onboarding/cases/{onboardingCaseId}/activate:
     patch:
       summary: Activar comercio tras onboarding
+      description: >-
+        Exige, en este orden, que el Motor de decisiones haya APROBADO al comercio
+        (`decisionOutcome == 'APROBADO'`; sin verificación o con otro desenlace es 409), el checklist
+        completo o eximido y un contrato activo y vigente. Cierra el caso (`COMPLETED`), pasa la cuenta
+        a `CUSTOMER` y activa sus sucursales pendientes. Un caso ya cerrado no se reactiva (409).
       tags:
         - Onboarding
       parameters:
@@ -596,6 +608,8 @@ paths:
       responses:
         '200':
           description: Comercio activado
+        '409':
+          description: Sin APROBADO del Motor, checklist pendiente, sin contrato activo o ya activado
   /b2b/bnpl/purchases:
     post:
       summary: Registrar compra BNPL y cargo MDR
@@ -913,12 +927,19 @@ paths:
           description: El cobro ya fue revertido o la referencia ya se usó
   /b2b/reconciliation/runs:
     post:
-      summary: Ejecutar conciliación por periodo
+      summary: Detectar inconsistencias internas de la cartera B2B del periodo
+      description: >-
+        Detecta inconsistencias INTERNAS entre registros del ERP (compras confirmadas sin cargo MDR,
+        CxC vencidas sin pago completo, cuotas vencidas sin CxP al comercio, CxP pagadas sin CxC de
+        recuperación). No cuadra nada contra dinero recibido: el ERP no ingiere extractos bancarios.
+        Idempotente por (`itemType`, `sourceRef`): una inconsistencia que ya tiene un ítem ABIERTO de
+        una corrida anterior no se duplica; se cuenta en `alreadyOpenItemCount` y deja la corrida en
+        `OPEN_ITEMS`. `items` trae sólo los ítems nuevos de esta corrida.
       tags:
         - Reconciliation
       responses:
         '201':
-          description: Conciliación ejecutada
+          description: Corrida registrada con sus ítems nuevos y `alreadyOpenItemCount`
   /accounting/financial-structure/legal-entities:
     post:
       summary: Crear entidad legal
@@ -1007,6 +1028,41 @@ paths:
           description: Cuenta creada
         '400':
           description: Naturaleza inválida
+      tags:
+        - Contabilidad
+  /accounting/financial-structure/gl-accounts/{id}:
+    patch:
+      summary: Editar cuenta GL
+      description: >-
+        Admite `name`, `parentAccountId`, `isControlAccount`, `requiresCostCenter`,
+        `requiresProfitCenter`, `requiresPartner`, `requiresTaxCode`, `accountGroupId` y `status`.
+        `accountType` y `normalBalance` NO se modifican: si llegan en el cuerpo se descartan sin
+        error (cambiarlos alteraría la naturaleza de saldos ya contabilizados).
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Cuenta actualizada
+        '400':
+          description: Cuerpo vacío o inválido
+      tags:
+        - Contabilidad
+  /accounting/financial-structure/bank-accounts:
+    get:
+      summary: Listar cuentas bancarias
+      description: >-
+        Cuentas de las entidades legales del token (ADMIN: todas), por nombre. Cada fila trae
+        `bankName` (nombre del socio de negocio `bankBpId`, `null` si no tiene) y NO trae
+        `accountNoHash`. No hay número de cuenta: el número en claro no se guarda y la huella no se
+        puede desenmascarar.
+      responses:
+        '200':
+          description: Lista (sin paginar) de cuentas bancarias
       tags:
         - Contabilidad
   /accounting/financial-structure/tax-codes:
@@ -1756,12 +1812,14 @@ paths:
       parameters:
         - name: page
           in: query
+          description: Página (desde 1).
           schema:
             type: integer
             minimum: 1
             default: 1
         - name: pageSize
           in: query
+          description: Filas por página (máximo 100).
           schema:
             type: integer
             minimum: 1
@@ -1769,28 +1827,70 @@ paths:
             default: 25
         - name: moduleCode
           in: query
+          description: Módulo que registró la acción (igualdad exacta).
           schema:
             type: string
         - name: businessProcess
           in: query
+          description: Proceso de negocio (igualdad exacta).
           schema:
             type: string
         - name: actionCode
           in: query
+          description: Código de la acción (igualdad exacta).
           schema:
             type: string
         - name: status
           in: query
+          description: Resultado de la acción.
           schema:
             type: string
             enum: [SUCCESS, FAILED, PARTIAL]
-        - name: correlationId
+        - name: aggregateType
           in: query
+          description: Tipo del registro afectado (igualdad exacta).
           schema:
             type: string
+        - name: aggregateId
+          in: query
+          description: Id del registro afectado (igualdad exacta; no es una búsqueda libre).
+          schema:
+            type: string
+        - name: actorUserId
+          in: query
+          description: Uuid de la persona que ejecutó la acción.
+          schema:
+            type: string
+            format: uuid
+        - name: correlationId
+          in: query
+          description: Correlación de la petición o del lote.
+          schema:
+            type: string
+        - name: sourceSystem
+          in: query
+          description: >-
+            De dónde nació el registro. Hoy sólo se escribe `ATLAS`; `ERP_PAPER` existe en filas
+            anteriores al 2026-09-18.
+          schema:
+            type: string
+        - name: from
+          in: query
+          description: Fecha inicial (AAAA-MM-DD, día UTC), inclusive.
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          description: Fecha final (AAAA-MM-DD, día UTC), inclusive; no puede ser anterior a `from`.
+          schema:
+            type: string
+            format: date
       responses:
         '200':
-          description: Lista paginada de acciones de negocio
+          description: >-
+            Lista paginada de acciones de negocio. No hay búsqueda libre (`search`): sólo estos
+            filtros, todos por igualdad salvo el rango de fechas.
   /portal/plans:
     get:
       summary: Catálogo de planes comerciales

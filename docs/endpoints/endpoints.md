@@ -283,7 +283,9 @@ Registra sucursal. Nace sin capacidad de originar BNPL hasta completar onboardin
 
 ### Responsabilidad
 
-Registra usuario corporativo del comercio.
+Pide las credenciales de un usuario del comercio: lo registra en el CRM como `INVITED` y encola en
+AtlasBackend la petición de su identidad. No crea una cuenta con la que entrar: queda INVITADO hasta
+que Atlas aprueba la petición. El caso de onboarding abierto de la cuenta pasa a `ALTA_PENDIENTE`.
 
 ## PATCH /api/v1/b2b/onboarding/cases/:onboardingCaseId/checklist
 
@@ -299,9 +301,12 @@ Completa onboarding, cambia cuenta a `CUSTOMER` y activa sucursales pendientes.
 
 ### Reglas aplicadas
 
+- Requiere que el Motor de decisiones haya APROBADO al comercio (`decisionOutcome == 'APROBADO'`);
+  sin verificación, o con otro desenlace, responde 409 y lo dice.
 - Requiere checklist completo o waived.
-- Requiere contrato activo.
+- Requiere contrato activo y vigente.
 - Activa sucursales con `can_originate_bnpl=true`.
+- Un caso ya cerrado no se reactiva (409).
 
 ## POST /api/v1/b2b/bnpl/purchases
 
@@ -439,7 +444,11 @@ Cobros y reversos de una recuperación, en orden de registro (FINANCE, COLLECTIO
 
 ### Responsabilidad
 
-Ejecuta conciliación interna por periodo.
+Detecta **inconsistencias internas** de la cartera B2B del periodo. No cuadra nada contra dinero
+recibido: el ERP no ingiere extractos bancarios. Idempotente por (`itemType`, `sourceRef`): una
+inconsistencia con un ítem ABIERTO de una corrida anterior no se duplica; se cuenta en
+`alreadyOpenItemCount` (campo nuevo) y deja la corrida en `OPEN_ITEMS`. `items` trae sólo los
+ítems nuevos de esta corrida.
 
 ### Compara
 
@@ -447,6 +456,23 @@ Ejecuta conciliación interna por periodo.
 - CxC B2B vencidas.
 - Cuotas vencidas vs CxP comercio.
 - CxP pagadas vs recuperaciones consumidor.
+
+## Listados B2B con tope de 200 filas
+
+Estos listados devuelven un array (sin `meta`) y como máximo 200 filas. El corte es determinista
+(la fecha indicada y, a igualdad, el `id`), así que la pantalla debe rotularlos como «las 200 …»:
+
+| Ruta                                                | Orden del corte                                                          |
+| --------------------------------------------------- | ------------------------------------------------------------------------ |
+| `GET /b2b/coverage/installments`                    | Pendientes (`OVERDUE`, `SCHEDULED`) primero; por vencimiento ascendente. |
+| `GET /b2b/coverage/payables`                        | Fecha de alta descendente (antes: por uuid, es decir, al azar).          |
+| `GET /b2b/coverage/recoveries`                      | Fecha de alta descendente (antes: por uuid).                             |
+| `GET /b2b/billing/invoices`                         | Fecha de factura descendente.                                            |
+| `GET /b2b/proposals`                                | Fecha de alta descendente.                                               |
+| `GET /b2b/proposals/approvals`                      | Fecha de alta descendente.                                               |
+| `GET /b2b/contracts` · `GET /b2b/contracts-catalog` | Fecha de alta descendente.                                               |
+| `GET /b2b/contracts/mdr-rules`                      | Fecha de alta descendente.                                               |
+| `GET /b2b/receivables`                              | Fecha de emisión descendente.                                            |
 
 # Endpoints integrados - Contabilidad
 
@@ -516,6 +542,17 @@ Crea una cuenta contable.
 ### GET /api/v1/accounting/financial-structure/gl-accounts?page=1&pageSize=20
 
 Lista cuentas contables con paginación.
+
+### PATCH /api/v1/accounting/financial-structure/gl-accounts/:id
+
+Edita nombre, cuenta padre, grupo, estado y las marcas `isControlAccount` y `requires*`.
+`accountType` y `normalBalance` **no se modifican**: si llegan en el cuerpo se descartan sin error.
+
+### GET /api/v1/accounting/financial-structure/bank-accounts
+
+Cuentas bancarias de las entidades del token. Cada fila trae `bankName` (el socio de negocio
+`bankBpId`; `null` si no tiene) y ya no trae `accountNoHash`. No hay número de cuenta ni número
+enmascarado: el número en claro no se guarda y la huella no se puede desenmascarar.
 
 ### POST /api/v1/accounting/financial-structure/tax-codes
 

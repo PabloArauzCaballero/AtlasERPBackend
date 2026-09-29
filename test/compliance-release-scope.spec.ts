@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { UseCaseInput } from '../scripts/compliance/evaluator';
+import { validateUseCase, type UseCaseInput } from '../scripts/compliance/evaluator';
 
 /**
  * Alcance del release (P-02 / B04): los 258 IDs del catálogo contable siguen todos presentes, con
@@ -26,17 +26,35 @@ describe('Alcance del release contra el catálogo de casos de uso', () => {
     expect([...scopeIds].sort()).toEqual([...catalogIds].sort());
   });
 
-  it('conserva la clasificación histórica 46/109/54/49 como dato declarado', () => {
+  it('conserva la clasificación histórica 46/109/54/49 como dato, aparte de la de hoy', () => {
     const counts: Record<string, number> = {};
-    scope.useCases.forEach(
-      (u) => (counts[u.declaredClassification] = (counts[u.declaredClassification] ?? 0) + 1),
-    );
+    scope.useCases.forEach((u) => {
+      const historical = u.historicalClassification ?? '(falta)';
+      counts[historical] = (counts[historical] ?? 0) + 1;
+    });
     expect(counts).toEqual({
       PRODUCTION_COVERED: 46,
       MODEL_SUPPORTED: 109,
       EXCLUDED_INTEGRATION_SCOPE: 54,
       DOCUMENTED_EXTENSION_POINT: 49,
     });
+  });
+
+  it('ningún caso afirma cobertura sin pruebas ni pasa por hecho lo que no tiene código', () => {
+    scope.useCases.forEach((u) => expect(validateUseCase(u, u.id)).toEqual([]));
+    const covered = scope.useCases.filter((u) => u.declaredClassification === 'PRODUCTION_COVERED');
+    covered.forEach((u) => expect(u.tests?.length).toBeGreaterThan(0));
+    const notImplemented = scope.useCases
+      .filter((u) => u.declaredClassification === 'NOT_IMPLEMENTED')
+      .map((u) => u.id)
+      .sort();
+    expect(notImplemented).toEqual(['UC_ConciliarARGL', 'UC_EmitirFacturaSIN']);
+  });
+
+  it('la reapertura de período no promete una aprobación que no existe', () => {
+    const reopen = scope.useCases.find((u) => u.id === 'UC_ReabrirPeriodo');
+    expect(reopen?.name).not.toMatch(/con aprobación/);
+    expect(reopen?.name).toMatch(/sin doble aprobación/);
   });
 
   it('no hereda la exclusión de integración: los 54 quedan pendientes de decisión, no excluidos', () => {

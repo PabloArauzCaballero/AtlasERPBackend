@@ -116,6 +116,11 @@ export const listGlAccountsQuerySchema = paginationQuerySchema.extend({
   status: recordStatusEnum.optional(),
 });
 
+/*
+ * `accountType` y `normalBalance` NO se editan a propósito: cambiar la naturaleza de una cuenta con
+ * saldos contabilizados los reinterpreta. Si llegan en el cuerpo, zod los descarta sin error
+ * (documentado en endpoints.md y openapi.yaml; el modal de edición del frontend no los ofrece).
+ */
 export const updateGlAccountSchema = z
   .object({
     name: z.string().min(1).max(160).optional(),

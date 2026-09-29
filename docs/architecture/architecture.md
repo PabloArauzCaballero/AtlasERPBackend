@@ -6,9 +6,40 @@ Se integraron tres backends NestJS en un único proceso HTTP y una única conexi
 
 ## Módulos registrados
 
-- `B2BSalesCrmModule`: cuentas B2B, oportunidades, propuestas, contratos, onboarding, BNPL, billing, cobertura y conciliación comercial.
-- `AccountingModule`: estructura financiera, socios de negocio, documentos contables, facturación, contratos, recibos y cierre contable.
-- `AdsModule`: administración de anunciantes, campañas, moderación, inventario, políticas, delivery, eventos, billing y auditoría.
+Los que importa `src/app.module.ts` (revisado el 2026-09-29), además de la infraestructura común
+(configuración, logs, observabilidad, `DatabaseModule`, JWT y límite de peticiones):
+
+- `HealthModule` (`modules/health`): `GET /health` y `GET /ready` (este último comprueba PostgreSQL).
+- `AuthGatewayModule` (`modules/auth-gateway`): `/auth/*`. Login, sesión, PIN y contraseñas de las
+  personas internas y de los usuarios de comercio contra AtlasBackend, que es la fuente de la
+  identidad (`ATLAS_IDENTITY_BASE_URL`); este backend no tiene usuarios propios.
+- `PartnerOnboardingGatewayModule` (`modules/partner-onboarding-gateway`): reenvía a AtlasBackend,
+  ya autenticadas, las llamadas del expediente del comercio (`/partner-onboarding/*`), del crédito
+  del comercio (`/merchant-credit/*`), del soporte y del asistente (`/internal/assist/*`).
+- `NotificationCampaignsGatewayModule` (`modules/notification-campaigns-gateway`):
+  `/admin/notification-campaigns/*`, pasarela de las campañas de notificación de AtlasBackend.
+- `B2BSalesCrmModule` (`modules/b2b-sales-crm`): cuentas B2B, oportunidades, propuestas, contratos,
+  onboarding, BNPL, facturación, cobertura y conciliación comercial.
+- `AccountingModule` (`modules/accounting`): estructura financiera, socios de negocio, documentos
+  contables, facturación AR, contratos, recibos y cierre contable.
+- `FiscalSiatModule` (`modules/fiscal/siat`): `/accounting/fiscal/*`, facturación electrónica SIAT.
+  Transporte real sólo contra el emulador (`SIAT_MODE=mock_server`); el SOAP al SIN (piloto y
+  producción) responde `SIAT_SOAP_TRANSPORT_NOT_READY`; por defecto `disabled`.
+- `OutboxOperationsModule` (`modules/accounting/outbox`): `/accounting/outbox/*`, estado del outbox,
+  eventos DEAD y su reenvío autorizado. La entrega la hace el proceso aparte `worker-outbox`.
+- `AdsModule` (`modules/ads`): anunciantes, campañas, moderación, inventario, políticas, entrega,
+  eventos, facturación y auditoría de publicidad.
+- `FilesModule` (`modules/files`): `/files/*`, archivos en el almacén de evidencia de Atlas a través
+  de la pasarela (subida por el mismo origen, contenido y borrado).
+- `DocumentsModule` (`modules/documents`): `/documents/generate`, puerta hacia el worker de PDF
+  compartido (`PDF_WORKER_*`); sin modelos propios.
+- `PortalModule` (`modules/portal`): `/portal/*`, el portal del comercio afiliado.
+- `BusinessActionLogsModule` (`modules/business-action-logs`): `/audit/business-actions`, registro
+  de acciones de negocio (quién, qué proceso, qué tablas, correlación).
+- `PlatformCatalogModule` (`modules/platform-catalog`): `/platform/*`, el manifiesto con el que el
+  portal de ATLAS cataloga este bloque (`PLATFORM_CATALOG_API_KEY`); lee el router ya montado.
+- `CatalogModule` (`modules/catalog`): `/catalog/*`, dominios cerrados (valores y etiquetas de los
+  campos cerrados) que consumen los esquemas y los selects del frontend.
 
 ## Integraciones transversales corregidas
 
@@ -245,9 +276,10 @@ Los documentos y asientos publicados no se actualizan. Cualquier corrección deb
 
 `ClosingControlService` ejecuta controles mínimos antes de cerrar un período:
 
-- documentos en DRAFT;
-- conciliaciones abiertas;
-- líneas bancarias sin matching aprobado.
+- documentos en DRAFT: **bloquea de verdad**;
+- conciliaciones abiertas y líneas bancarias sin matching: control preparado, pero **sin ingestión de
+  extractos ni conciliación bancaria** que alimente `reconciliation_item` y `bank_statement_line`
+  de contabilidad: hoy siempre cuentan 0 y nunca bloquean.
 
 El resultado queda persistido en `close_run.control_report_json`.
 
@@ -270,21 +302,22 @@ Y archivos de despliegue local:
 - `docker-compose.yml`
 - `.dockerignore`
 
-La auditoría completa está en `docs/audit/deployment-readiness-audit.md`.
+La auditoría de julio de 2026 está en `docs/audit/deployment-readiness-audit.md` (HISTÓRICA: sus
+comandos y conclusiones no describen el estado actual).
 
 ## Hardening de despliegue agregado
 
 ### Build de producción
 
-El proyecto usa `tsconfig.build.json`, que compila `src/` **y** `scripts/` hacia `dist/`: por eso la API queda en `dist/src/main.js` (lo que ejecuta `npm run start:prod`), el worker en `dist/src/workers/outbox/outbox.worker.js` y el migrador en `dist/scripts/db/run-sql.js`. (Corregido el 2026-09-24: la ruta `dist/main.js` citada antes no existe.)
+El proyecto usa `tsconfig.build.json`, que compila `src/` **y** `scripts/` hacia `dist/`: por eso la API queda en `dist/src/main.js` (lo que ejecuta `yarn start:prod`), el worker en `dist/src/workers/outbox/outbox.worker.js` y el migrador en `dist/scripts/db/run-sql.js`. (Corregido el 2026-09-24: la ruta `dist/main.js` citada antes no existe.)
 
 ### Migraciones versionadas
 
 Las migraciones viven en `src/database/migrations` y se aplican con:
 
 ```bash
-npm run db:migrate          # desarrollo (guiones por dominio)
-npm run db:migrate:prod     # despliegue: ejecuta dist/, tras `npm run build`
+yarn db:migrate          # desarrollo (guiones por dominio)
+yarn db:migrate:prod     # despliegue: ejecuta dist/, tras `yarn build`
 ```
 
 El runner (`scripts/db/run-sql.ts`) guarda estado en `public.atlas_sql_migrations` con el checksum de cada

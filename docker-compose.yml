@@ -10,7 +10,7 @@
 # ## Forma
 #
 #   docker compose up -d                      # sólo PostgreSQL
-#   docker compose --profile app up -d --build  # migraciones (one-shot) → API
+#   docker compose --profile app up -d --build  # migraciones (one-shot) → API + worker del outbox
 #
 # `migrate` es un servicio propio y no un paso del arranque de la API: migrar muta el esquema, y
 # con más de una réplica sería una carrera. Un fallo de migración debe impedir que la API arranque,
@@ -107,7 +107,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    command: ['npm', 'run', 'db:migrate:prod']
+    # `node --run` y no `npm run`: la imagen de producción BORRA npm (ver Dockerfile) y con `npm`
+    # este servicio moría con «executable file not found», dejando la API sin arrancar.
+    command: ['node', '--run', 'db:migrate:prod']
     restart: 'no'
 
   api:
@@ -128,6 +130,27 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
+    restart: unless-stopped
+
+  # Worker del outbox: el mismo que despliega docker-compose.coolify.yml. Sin él los eventos del
+  # ERP (`accounting.*`, `b2b.*`) se quedan PENDING para siempre. Sin OUTBOX_DELIVERY_URL arranca,
+  # no entrega nada y lo avisa cada minuto; los pendientes se ven en /accounting/outbox/status.
+  worker-outbox:
+    <<: *erp-build
+    profiles: ['app']
+    init: true
+    environment:
+      <<: *erp-env
+      OUTBOX_WORKER_ENABLED: 'true'
+      OUTBOX_DELIVERY_URL: ${OUTBOX_DELIVERY_URL:-}
+      OUTBOX_DELIVERY_SIGNING_SECRET: ${OUTBOX_DELIVERY_SIGNING_SECRET:-}
+    command: ['node', 'dist/src/workers/outbox/outbox.worker.js']
+    # El HEALTHCHECK de la imagen es HTTP y este proceso no escucha.
+    healthcheck:
+      disable: true
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
     restart: unless-stopped
 
 volumes:

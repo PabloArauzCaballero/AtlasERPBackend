@@ -218,6 +218,67 @@ describe('Evaluador de cumplimiento basado en evidencia', () => {
     expect(result.summary.strictPass).toBe(false);
   });
 
+  it('PRODUCTION_COVERED sin pruebas mapeadas es inválido: afirma una cobertura que nada demuestra', () => {
+    const covered = (tests: UseCaseInput['tests']): UseCaseInput => ({
+      id: 'UC_Y',
+      name: 'Caso',
+      module: 'Módulo',
+      declaredClassification: 'PRODUCTION_COVERED',
+      releaseIncluded: true,
+      tests,
+    });
+    const sinPruebas = run({ useCases: [covered([])] });
+    expect(sinPruebas.invalid).toEqual([expect.stringContaining('UC_Y')]);
+    expect(sinPruebas.useCases[0]!.status).toBe('DECLARED');
+    expect(sinPruebas.summary.strictPass).toBe(false);
+
+    const conPruebas = run({
+      useCases: [covered([{ file: FILE, name: 'suite caso A' }])],
+      sources: [jestSource({ 'suite caso A': 'passed' })],
+    });
+    expect(conPruebas.invalid).toEqual([]);
+    expect(conPruebas.useCases[0]!.status).toBe('VERIFIED');
+  });
+
+  it('DECLARED_OPERATIVE es válido pero no cuenta como cubierto', () => {
+    const result = run({
+      useCases: [
+        {
+          id: 'UC_Z',
+          name: 'Caso',
+          module: 'Módulo',
+          declaredClassification: 'DECLARED_OPERATIVE',
+          historicalClassification: 'PRODUCTION_COVERED',
+          releaseIncluded: true,
+          tests: [],
+        },
+      ],
+    });
+    expect(result.invalid).toEqual([]);
+    expect(result.useCases[0]!.status).toBe('DECLARED');
+    expect(result.summary.useCases).toMatchObject({ included: 1, verifiedIncluded: 0 });
+  });
+
+  it('NOT_IMPLEMENTED nunca es VERIFIED aunque le mapeen pruebas que pasan, y exige su nota', () => {
+    const base: UseCaseInput = {
+      id: 'UC_N',
+      name: 'Caso',
+      module: 'Módulo',
+      declaredClassification: 'NOT_IMPLEMENTED',
+      implementationNote: 'no hay servicio que lo haga',
+      releaseIncluded: true,
+      tests: [{ file: FILE, name: 'suite caso A' }],
+    };
+    const result = run({ useCases: [base], sources: [jestSource({ 'suite caso A': 'passed' })] });
+    expect(result.invalid).toEqual([]);
+    expect(result.useCases[0]!.status).toBe('DECLARED');
+    expect(result.useCases[0]!.reasons[0]).toMatch(/^NO_IMPLEMENTADO: no hay servicio/);
+    expect(result.summary.useCases.verifiedIncluded).toBe(0);
+
+    const sinNota = run({ useCases: [{ ...base, implementationNote: '  ' }] });
+    expect(sinNota.invalid).toEqual([expect.stringContaining('implementationNote')]);
+  });
+
   it('una decisión de alcance pendiente queda fuera del denominador pero hace fallar el modo estricto', () => {
     const result = run({ requirements: [requirement({ releaseIncluded: null, tests: [] })] });
     expect(result.summary.requirements).toMatchObject({ included: 0, pendingScopeDecision: 1 });

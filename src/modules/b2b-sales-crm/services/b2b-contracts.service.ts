@@ -236,7 +236,10 @@ export class B2BContractsService extends B2BSalesCrmUseCaseBase {
     });
     const rules = await this.repository.mdrRules.findAll({
       where: (contractVersionId ? { contractVersionId } : {}) as WhereOptions,
-      order: [['created_at', 'DESC']],
+      order: [
+        ['created_at', 'DESC'],
+        ['id', 'DESC'],
+      ],
       limit: 200,
     });
 

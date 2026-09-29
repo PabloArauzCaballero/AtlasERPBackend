@@ -99,6 +99,28 @@ services:
         limits:
           memory: 768m
 
+  # Worker del outbox: el mismo que despliega docker-compose.coolify.yml (mismo artefacto que `api`
+  # con otro comando). Lee OUTBOX_DELIVERY_URL y OUTBOX_DELIVERY_SIGNING_SECRET del mismo erp.env;
+  # sin URL arranca, no entrega nada y lo avisa cada minuto.
+  worker-outbox:
+    init: true
+    <<: [*common, *build]
+    env_file: ['${ATLAS_ENV_DIR:-/opt/atlas/env}/erp.env']
+    environment:
+      OUTBOX_WORKER_ENABLED: 'true'
+    command: ['node', 'dist/src/workers/outbox/outbox.worker.js']
+    healthcheck:
+      disable: true
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    networks: [atlas_vps]
+    stop_grace_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 384m
+
 networks:
   atlas_vps:
     external: true
