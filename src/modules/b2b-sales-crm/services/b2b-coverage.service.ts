@@ -38,6 +38,7 @@ import {
 } from '../models/coverage.models';
 import type { CoverageReviewReason } from '../models/coverage.models';
 import { B2BSalesCrmRepository } from '../repositories/b2b-sales-crm.repository';
+import { BusinessActionLogsService } from '../../business-action-logs/business-action-logs.service';
 import { B2BSalesCrmUseCaseBase } from './b2b-sales-crm-use-case.base';
 import {
   findEvidenceFileStatus,
@@ -83,6 +84,7 @@ export class B2BCoverageService extends B2BSalesCrmUseCaseBase {
     private readonly recoveryMovements: typeof ConsumerRecoveryMovementModel,
     @InjectModel(CoverageReviewItemModel)
     private readonly reviewItems: typeof CoverageReviewItemModel,
+    private readonly businessActionLogs: BusinessActionLogsService,
   ) {
     super(repository, logger);
   }
@@ -323,6 +325,14 @@ export class B2BCoverageService extends B2BSalesCrmUseCaseBase {
             },
             { transaction },
           );
+          await this.registrarLiquidacion(
+            'REGISTER_PAYABLE_SETTLEMENT',
+            payable.id,
+            settlement.id,
+            actor,
+            { settlementReference: input.settlementReference, amount: String(input.amount) },
+            transaction,
+          );
           return this.settlementResult(payable, settlement, transaction, false);
         }),
     );
@@ -440,7 +450,40 @@ export class B2BCoverageService extends B2BSalesCrmUseCaseBase {
         transaction,
       );
 
+      await this.registrarLiquidacion(
+        'APPROVE_PAYABLE_SETTLEMENT',
+        payable.id,
+        settlement.id,
+        actor,
+        { note: input.note ?? null },
+        transaction,
+      );
       return this.settlementResult(payable, settlement, transaction, false, recovery);
+    });
+  }
+
+  /** Liquidación de cobertura en el registro de actividad: quién registró o decidió, y sobre qué. */
+  private async registrarLiquidacion(
+    actionCode: string,
+    payableId: string,
+    settlementId: string,
+    actor: CoverageActor,
+    inputSummary: Record<string, unknown>,
+    transaction: Transaction,
+  ): Promise<void> {
+    await this.businessActionLogs.record({
+      moduleCode: 'CRM',
+      businessProcess: 'COVERAGE_SETTLEMENT',
+      actionCode,
+      actorUserId: actor.userId,
+      aggregateType: 'MERCHANT_PAYABLE',
+      aggregateId: payableId,
+      affectedTables: ['atlas_sales.merchant_payable_settlements'],
+      affectedRecordCount: 1,
+      status: 'SUCCESS',
+      inputSummary,
+      outputSummary: { settlementId },
+      transaction,
     });
   }
 
@@ -474,6 +517,14 @@ export class B2BCoverageService extends B2BSalesCrmUseCaseBase {
           decisionNote: input.note,
         },
         { transaction },
+      );
+      await this.registrarLiquidacion(
+        'REJECT_PAYABLE_SETTLEMENT',
+        payable.id,
+        settlement.id,
+        actor,
+        { note: input.note },
+        transaction,
       );
       return this.settlementResult(payable, settlement, transaction, false);
     });

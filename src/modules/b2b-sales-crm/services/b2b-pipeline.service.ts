@@ -30,10 +30,15 @@ import type {
 import { toOpportunityResponse, toProposalResponse } from '../b2b-sales-crm.mapper';
 import { B2BSalesCrmRepository } from '../repositories/b2b-sales-crm.repository';
 import { B2BSalesCrmUseCaseBase } from './b2b-sales-crm-use-case.base';
+import { BusinessActionLogsService } from '../../business-action-logs/business-action-logs.service';
 
 @Injectable()
 export class B2BPipelineService extends B2BSalesCrmUseCaseBase {
-  constructor(repository: B2BSalesCrmRepository, logger: PinoLoggerService) {
+  constructor(
+    repository: B2BSalesCrmRepository,
+    logger: PinoLoggerService,
+    private readonly businessActionLogs: BusinessActionLogsService,
+  ) {
     super(repository, logger);
   }
 
@@ -183,6 +188,7 @@ export class B2BPipelineService extends B2BSalesCrmUseCaseBase {
   async moveOpportunityStage(
     id: string,
     input: MoveOpportunityStageDto,
+    user: AuthUser,
   ): Promise<Record<string, unknown>> {
     this.logger.infoContext(B2BPipelineService.name, 'B2B CRM use case started', {
       useCase: 'moveOpportunityStage',
@@ -223,10 +229,27 @@ export class B2BPipelineService extends B2BSalesCrmUseCaseBase {
       throw new BadRequestException('Debe registrar motivo de pérdida para CLOSED_LOST.');
     }
 
-    await opportunity.update({
-      stage: input.stage,
-      lossReason: input.lossReason ?? null,
-      updatedAt: new Date(),
+    const fromStage = opportunity.stage;
+    await this.repository.transaction(async (transaction) => {
+      await opportunity.update(
+        { stage: input.stage, lossReason: input.lossReason ?? null, updatedAt: new Date() },
+        { transaction },
+      );
+      // «Queda registrado con quién»: el movimiento de etapa va al registro de actividad.
+      await this.businessActionLogs.record({
+        moduleCode: 'CRM',
+        businessProcess: 'SALES_PIPELINE',
+        actionCode: 'MOVE_OPPORTUNITY_STAGE',
+        actorUserId: user.sub,
+        actorRole: user.role ?? null,
+        aggregateType: 'OPPORTUNITY',
+        aggregateId: id,
+        affectedTables: ['atlas_sales.b2b_opportunities'],
+        affectedRecordCount: 1,
+        status: 'SUCCESS',
+        inputSummary: { fromStage, toStage: input.stage, lossReason: input.lossReason ?? null },
+        transaction,
+      });
     });
     return toOpportunityResponse(opportunity);
   }
@@ -542,6 +565,25 @@ export class B2BPipelineService extends B2BSalesCrmUseCaseBase {
           { where: { id: approval.mdrRuleId }, transaction },
         );
       }
+
+      await this.businessActionLogs.record({
+        moduleCode: 'CRM',
+        businessProcess: 'COMMERCIAL_APPROVALS',
+        actionCode: 'DECIDE_APPROVAL_REQUEST',
+        actorUserId: user.sub,
+        actorRole: user.role ?? null,
+        aggregateType: 'APPROVAL_REQUEST',
+        aggregateId: approval.id,
+        affectedTables: ['atlas_sales.approval_requests'],
+        affectedRecordCount: 1,
+        status: 'SUCCESS',
+        inputSummary: { decision: input.status, reason: input.reason ?? null },
+        outputSummary: {
+          proposalId: approval.proposalId ?? null,
+          mdrRuleId: approval.mdrRuleId ?? null,
+        },
+        transaction,
+      });
 
       return {
         id: approval.id,

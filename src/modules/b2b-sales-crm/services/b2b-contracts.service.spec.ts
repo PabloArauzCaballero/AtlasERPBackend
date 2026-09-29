@@ -78,7 +78,11 @@ const build = ({
     eventOutbox: { create: jest.fn(async (fila: Record<string, unknown>) => ({ id: 1, ...fila })) },
   };
   const logger = { infoContext: jest.fn() };
-  const service = new B2BContractsService(repository as never, logger as never);
+  const service = new B2BContractsService(
+    repository as never,
+    logger as never,
+    { record: jest.fn(async () => undefined) } as never,
+  );
   return { service, repository };
 };
 

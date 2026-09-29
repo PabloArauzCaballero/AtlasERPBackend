@@ -119,7 +119,14 @@ describe('crear oportunidad exige la cuenta calificada', () => {
         create: jest.fn(async (d: Record<string, unknown>) => ({ id: 'op-1', ...d })),
       },
     };
-    return { repo, service: new B2BPipelineService(repo as never, logger as never) };
+    return {
+      repo,
+      service: new B2BPipelineService(
+        repo as never,
+        logger as never,
+        { record: jest.fn(async () => undefined) } as never,
+      ),
+    };
   }
   const entrada = {
     accountId: 'acc-1',

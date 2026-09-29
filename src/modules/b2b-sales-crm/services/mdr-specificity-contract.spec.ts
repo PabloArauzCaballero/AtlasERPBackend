@@ -152,7 +152,11 @@ const ganadoraAlCobrar = (reglas: ReglaDeCaso[]): string => {
 /** Los ids en el orden en que `listMdrRules` los enseña. */
 const ordenEnPantalla = async (reglas: ReglaDeCaso[]): Promise<string[]> => {
   const repository = { mdrRules: { findAll: jest.fn(async () => reglas.map(comoFila)) } };
-  const service = new B2BContractsService(repository as never, { infoContext: jest.fn() } as never);
+  const service = new B2BContractsService(
+    repository as never,
+    { infoContext: jest.fn() } as never,
+    { record: jest.fn(async () => undefined) } as never,
+  );
   const listado = await service.listMdrRules('version-1');
   return listado.map((fila) => String(fila.id));
 };
@@ -242,6 +246,7 @@ describe('MDR_DIMENSION_WEIGHT · la constante que ambos lados usan', () => {
       {
         infoContext: jest.fn(),
       } as never,
+      { record: jest.fn(async () => undefined) } as never,
     );
 
     const listado = await service.listMdrRules('version-1');

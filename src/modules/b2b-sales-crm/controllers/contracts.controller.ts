@@ -83,7 +83,8 @@ export class ContractsController {
   signAndActivate(
     @Param(new ZodValidationPipe(contractIdParamsSchema)) params: ContractIdParamsDto,
     @Body(new ZodValidationPipe(signContractSchema)) body: SignContractDto,
+    @CurrentUser() user: AuthUser,
   ): Promise<Record<string, unknown>> {
-    return this.service.signAndActivateContract(params.contractId, body);
+    return this.service.signAndActivateContract(params.contractId, body, user);
   }
 }

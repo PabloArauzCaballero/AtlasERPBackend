@@ -127,8 +127,9 @@ export class B2BSalesCrmService {
   moveOpportunityStage(
     id: string,
     input: MoveOpportunityStageDto,
+    user: AuthUser,
   ): Promise<Record<string, unknown>> {
-    return this.pipelineService.moveOpportunityStage(id, input);
+    return this.pipelineService.moveOpportunityStage(id, input, user);
   }
 
   createProposal(input: CreateProposalDto, user: AuthUser): Promise<Record<string, unknown>> {
@@ -172,8 +173,9 @@ export class B2BSalesCrmService {
   signAndActivateContract(
     contractId: string,
     input: SignContractDto,
+    user: AuthUser,
   ): Promise<Record<string, unknown>> {
-    return this.contractsService.signAndActivateContract(contractId, input);
+    return this.contractsService.signAndActivateContract(contractId, input, user);
   }
 
   listInstallments(): Promise<Record<string, unknown>[]> {

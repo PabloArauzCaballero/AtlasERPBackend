@@ -256,6 +256,25 @@ describeWithDatabase('P-05 liquidación y recuperación (PostgreSQL real)', () =
     expect(await outboxOf(s.payableId)).toBe(1);
   });
 
+  it('registrar y aprobar la liquidación quedan en el registro de actividad, una vez cada una', async () => {
+    const s = await coveredInstallment();
+    const body = settlementFor(s);
+    await h.coverage.markPayablePaid(s.payableId, body, REGISTRAR);
+    await h.coverage.markPayablePaid(s.payableId, body, REGISTRAR);
+    await h.coverage.approvePayableSettlement(s.payableId, {}, APPROVER);
+    await h.coverage.approvePayableSettlement(s.payableId, {}, APPROVER);
+
+    const rows = await h.sequelize.query<{ action_code: string; actor_user_id: string }>(
+      `SELECT action_code, actor_user_id FROM atlas_audit.business_action_logs
+        WHERE aggregate_type = 'MERCHANT_PAYABLE' AND aggregate_id = $1 ORDER BY created_at`,
+      { bind: [s.payableId], type: QueryTypes.SELECT },
+    );
+    expect(rows).toEqual([
+      { action_code: 'REGISTER_PAYABLE_SETTLEMENT', actor_user_id: REGISTRAR.userId },
+      { action_code: 'APPROVE_PAYABLE_SETTLEMENT', actor_user_id: APPROVER.userId },
+    ]);
+  });
+
   it('la referencia de liquidación repetida en otra CxP se rechaza', async () => {
     const a = await coveredInstallment();
     const b = await coveredInstallment();
