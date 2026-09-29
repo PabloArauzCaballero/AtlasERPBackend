@@ -638,7 +638,7 @@ Todos los endpoints protegidos del módulo contable quedan bajo JWT Bearer y rol
 ### Cambios relevantes por endpoint
 
 - `POST /api/v1/accounting/documents`: ahora ejecuta `SapPostingValidationService` además de `DoubleEntryValidator`.
-- `POST /api/v1/accounting/billing/ar-invoices`: ahora valida rol BP, contrato, impuestos y trazabilidad SIAT cuando el documento fiscal está aceptado.
+- `POST /api/v1/accounting/billing/ar-invoices`: valida rol BP, contrato e impuestos. El documento fiscal NO viaja en el cuerpo: `electronicTaxDocument` se rechaza con `422 FISCAL_STATUS_NOT_CLIENT_ASSERTED` en cualquier `SIAT_MODE` (el estado fiscal sólo lo escribe el ERP a partir de la respuesta del SIN).
 - `POST /api/v1/accounting/receipts`: ahora valida suma exacta de asignaciones, saldo abierto AR y actualiza estado de facturas.
 - `POST /api/v1/accounting/closings/periods/close`: ahora bloquea cierre por documentos DRAFT, conciliaciones abiertas o extractos bancarios sin matching aprobado.
 
@@ -1538,7 +1538,7 @@ entidad responde 404, no 403, para no confirmar que existe.
   `422 FISCAL_INVOICE_DATE_MUST_BE_TODAY`, `FISCAL_EXTERNAL_REF_NOT_ALLOWED`,
   `FISCAL_PRODUCT_NOT_HOMOLOGATED`, `FISCAL_RECEIVER_INCOMPLETE`, `FISCAL_TOTAL_MISMATCH`,
   `FISCAL_ISSUER_NOT_CONFIGURED`; `503 FISCAL_UNAVAILABLE_NO_CUFD`.
-- Factura AR con SIAT activo que trae `electronicTaxDocument`: `422 FISCAL_STATUS_NOT_CLIENT_ASSERTED`.
+- Factura AR que trae `electronicTaxDocument` (en cualquier `SIAT_MODE`, también `disabled`): `422 FISCAL_STATUS_NOT_CLIENT_ASSERTED`.
 - Factura AR (`POST /accounting/billing/ar-invoices`) con SIAT activo: emite su documento fiscal
   (una línea por el importe bruto, con el «producto del SIN por defecto» del emisor:
   `productoSinDefault` en `POST/PATCH /accounting/fiscal/issuer-profiles`). `422

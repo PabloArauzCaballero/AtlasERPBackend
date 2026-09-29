@@ -233,7 +233,25 @@ export class BillingService {
     });
   }
 
+  /**
+   * FND-ERPB-09 / WP14-ERPB P1-2: el estado fiscal (CUF, CUFD, hash del XML, «aceptada») sólo lo
+   * puede dar Impuestos Nacionales, y el ERP lo escribe a partir de lo que responde el SIN. Un
+   * cliente que lo afirma en el cuerpo se rechaza SIEMPRE, también con `SIAT_MODE=disabled`: antes,
+   * en ese modo —el defecto— se persistía tal cual, y una factura podía figurar `ACCEPTED` con un
+   * CUF inventado sin haber pasado nunca por el SIN. Se comprueba antes de tocar la base.
+   */
+  private rechazarEstadoFiscalAfirmado(input: IssueArInvoiceDto): void {
+    if (input.electronicTaxDocument) {
+      throw new UnprocessableEntityException({
+        code: 'FISCAL_STATUS_NOT_CLIENT_ASSERTED',
+        message:
+          'El estado fiscal de una factura lo da Impuestos Nacionales a través del ERP; no se envía en la petición.',
+      });
+    }
+  }
+
   async issueInvoice(rawInput: IssueArInvoiceDto, user: AuthUser) {
+    this.rechazarEstadoFiscalAfirmado(rawInput);
     this.logger.info('Emitiendo factura AR.', {
       layer: 'service',
       module: 'billing',
@@ -294,24 +312,6 @@ export class BillingService {
         },
         { transaction },
       );
-
-      if (input.electronicTaxDocument) {
-        await this.electronicTaxDocumentModel.create(
-          {
-            arInvoiceId: invoice.id,
-            sourceType: 'AR_INVOICE',
-            sourceId: invoice.id,
-            cuf: input.electronicTaxDocument.cuf,
-            cufd: input.electronicTaxDocument.cufd,
-            siatStatus: input.electronicTaxDocument.siatStatus,
-            xmlHash: input.electronicTaxDocument.xmlHash,
-            graphicRepresentationUrl: input.electronicTaxDocument.graphicRepresentationUrl,
-            contingencyFlag: input.electronicTaxDocument.contingencyFlag,
-            emittedAt: input.electronicTaxDocument.emittedAt,
-          },
-          { transaction },
-        );
-      }
 
       const fiscalDocument = fiscal
         ? await this.emitirDocumentoFiscal(
@@ -550,29 +550,6 @@ export class BillingService {
         code: 'TAX_ACCOUNT_WITHOUT_TAX_AMOUNT',
         message: 'No informes cuenta fiscal si la factura no tiene impuesto.',
       });
-    }
-
-    /*
-     * FND-ERPB-09: con facturación electrónica activa el estado fiscal lo escribe SÓLO el ERP a
-     * partir de lo que responde el SIN. Un cliente que lo afirma en el cuerpo se rechaza.
-     */
-    if (env.SIAT_MODE !== 'disabled' && input.electronicTaxDocument) {
-      throw new UnprocessableEntityException({
-        code: 'FISCAL_STATUS_NOT_CLIENT_ASSERTED',
-        message:
-          'El estado fiscal de una factura lo da Impuestos Nacionales a través del ERP; no se envía en la petición.',
-      });
-    }
-
-    if (input.electronicTaxDocument?.siatStatus === 'ACCEPTED') {
-      const taxDocument = input.electronicTaxDocument;
-      if (!taxDocument.cuf || !taxDocument.cufd || !taxDocument.xmlHash || !taxDocument.emittedAt) {
-        throw new BadRequestException({
-          code: 'ACCEPTED_EINVOICE_REQUIRES_TRACEABILITY',
-          message:
-            'Un documento fiscal aceptado por SIAT requiere CUF, CUFD, hash XML y fecha de emisión.',
-        });
-      }
     }
   }
 

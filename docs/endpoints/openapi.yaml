@@ -1199,8 +1199,7 @@ paths:
   /accounting/billing/ar-invoices:
     post:
       summary: Emitir factura AR y asiento automático
-      description: Mantiene separado billing, factura comercial, documento fiscal
-        y documento contable. Valida trazabilidad SIAT cuando el documento está aceptado.
+      description: 'Mantiene separado billing, factura comercial, documento fiscal y documento contable. El documento fiscal no viaja en el cuerpo: lo escribe el ERP a partir de la respuesta del SIN.'
       responses:
         '201':
           description: Factura emitida y contabilizada
@@ -1208,6 +1207,8 @@ paths:
           description: Datos tributarios incompletos
         '409':
           description: Contrato no activo o incompatibilidad
+        '422':
+          description: 'FISCAL_STATUS_NOT_CLIENT_ASSERTED: el cuerpo trae electronicTaxDocument (en cualquier SIAT_MODE).'
       tags:
         - Contabilidad
   /accounting/receipts:

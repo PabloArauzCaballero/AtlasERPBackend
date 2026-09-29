@@ -167,7 +167,7 @@ Todos los endpoints protegidos del módulo contable quedan bajo JWT Bearer y rol
 ### Cambios relevantes por endpoint
 
 - `POST /api/v1/accounting/documents`: ahora ejecuta `SapPostingValidationService` además de `DoubleEntryValidator`.
-- `POST /api/v1/accounting/billing/ar-invoices`: ahora valida rol BP, contrato, impuestos y trazabilidad SIAT cuando el documento fiscal está aceptado.
+- `POST /api/v1/accounting/billing/ar-invoices`: valida rol BP, contrato e impuestos. `electronicTaxDocument` en el cuerpo se rechaza con `422 FISCAL_STATUS_NOT_CLIENT_ASSERTED`: el estado fiscal sólo lo escribe el ERP a partir de la respuesta del SIN.
 - `POST /api/v1/accounting/receipts`: ahora valida suma exacta de asignaciones, saldo abierto AR y actualiza estado de facturas.
 - `POST /api/v1/accounting/closings/periods/close`: ahora bloquea cierre por documentos DRAFT, conciliaciones abiertas o extractos bancarios sin matching aprobado.
 
