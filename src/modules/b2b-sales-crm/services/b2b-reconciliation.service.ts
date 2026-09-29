@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
-import { Op, Transaction, WhereOptions } from 'sequelize';
+import { Op, Transaction, WhereOptions, literal } from 'sequelize';
 import { PinoLoggerService } from '../../../common/logging/pino-logger.service';
 import type { AuthUser } from '../../../common/types/auth-context.types';
 import {
@@ -39,8 +39,15 @@ export class B2BReconciliationService extends B2BSalesCrmUseCaseBase {
    * llamada, asi que el flujo era inoperable para quien tenia que usarlo.
    */
   async listInstallments(): Promise<Record<string, unknown>[]> {
+    /* Tope de 200 (la pantalla dice «las N primeras»): primero lo que sigue por cobrar —vencido o
+       programado—, por vencimiento ascendente; sin eso las cuotas viejas ya cerradas llenaban el
+       tope y las pendientes no salían. `id` desempata para que el corte sea siempre el mismo. */
     const rows = await this.repository.installments.findAll({
-      order: [['dueDate', 'ASC']],
+      order: [
+        [literal(`CASE WHEN status IN ('OVERDUE', 'SCHEDULED') THEN 0 ELSE 1 END`), 'ASC'],
+        ['dueDate', 'ASC'],
+        ['id', 'ASC'],
+      ],
       limit: 200,
     });
     return rows.map((row) => ({
@@ -71,7 +78,10 @@ export class B2BReconciliationService extends B2BSalesCrmUseCaseBase {
     });
     const rows = await this.repository.receivables.findAll({
       where: { accountId, sourceType: 'MDR' } as WhereOptions,
-      order: [['issued_at', 'DESC']],
+      order: [
+        ['issued_at', 'DESC'],
+        ['id', 'DESC'],
+      ],
       limit: 200,
     });
 
@@ -101,7 +111,10 @@ export class B2BReconciliationService extends B2BSalesCrmUseCaseBase {
 
   async listMerchantInvoices(): Promise<Record<string, unknown>[]> {
     const rows = await this.repository.invoices.findAll({
-      order: [['invoiceDate', 'DESC']],
+      order: [
+        ['invoiceDate', 'DESC'],
+        ['id', 'DESC'],
+      ],
       limit: 200,
     });
     return rows.map((row) => ({
@@ -156,7 +169,14 @@ export class B2BReconciliationService extends B2BSalesCrmUseCaseBase {
    * Campos AÑADIDOS: los que ya había no cambian.
    */
   async listPayables(viewerUserId?: string): Promise<Record<string, unknown>[]> {
-    const rows = await this.repository.payables.findAll({ order: [['id', 'DESC']], limit: 200 });
+    /* Las 200 más recientes por fecha de alta; antes el orden era el del uuid, es decir, al azar. */
+    const rows = await this.repository.payables.findAll({
+      order: [
+        ['created_at', 'DESC'],
+        ['id', 'DESC'],
+      ],
+      limit: 200,
+    });
     const live = new Map<string, MerchantPayableSettlementModel>();
     if (this.settlements && rows.length > 0) {
       const settlements = await this.settlements.findAll({
@@ -196,7 +216,13 @@ export class B2BReconciliationService extends B2BSalesCrmUseCaseBase {
 
   /** `currency` y los enlaces a cuota/cobertura se AÑADEN: la pantalla fijaba BOB a ciegas. */
   async listRecoveries(): Promise<Record<string, unknown>[]> {
-    const rows = await this.repository.recoveries.findAll({ order: [['id', 'DESC']], limit: 200 });
+    const rows = await this.repository.recoveries.findAll({
+      order: [
+        ['created_at', 'DESC'],
+        ['id', 'DESC'],
+      ],
+      limit: 200,
+    });
     return rows.map((row) => ({
       id: row.id,
       consumerId: row.consumerId,
@@ -210,6 +236,15 @@ export class B2BReconciliationService extends B2BSalesCrmUseCaseBase {
     }));
   }
 
+  /**
+   * Busca INCONSISTENCIAS INTERNAS de la cartera B2B del período: compras confirmadas sin cargo MDR,
+   * CxC vencidas sin pago completo, cuotas vencidas sin CxP al comercio y CxP pagadas sin CxC de
+   * recuperación. No cuadra nada contra dinero recibido (no hay extractos bancarios en el ERP).
+   *
+   * Idempotente por clave natural (`itemType`, `sourceRef`): si una inconsistencia ya tiene un ítem
+   * ABIERTO de una corrida anterior no se vuelve a crear —antes cada corrida duplicaba todos los
+   * pendientes—; se cuenta en `alreadyOpenItemCount` y deja la corrida en `OPEN_ITEMS`.
+   */
   async runReconciliation(
     input: RunReconciliationDto,
     user: AuthUser,
@@ -218,6 +253,7 @@ export class B2BReconciliationService extends B2BSalesCrmUseCaseBase {
       useCase: 'runReconciliation',
     });
     return this.repository.transaction(async (transaction) => {
+      const tally = { alreadyOpen: 0 };
       const run = await this.repository.reconciliationRuns.create(
         {
           periodStart: input.periodStart,
@@ -256,6 +292,7 @@ export class B2BReconciliationService extends B2BSalesCrmUseCaseBase {
             purchase.id,
             'Compra confirmada sin cargo MDR B2B.',
             transaction,
+            tally,
           );
         }
       }
@@ -277,6 +314,7 @@ export class B2BReconciliationService extends B2BSalesCrmUseCaseBase {
           receivable.id,
           'CxC B2B vencida sin pago completo.',
           transaction,
+          tally,
         );
       }
 
@@ -300,6 +338,7 @@ export class B2BReconciliationService extends B2BSalesCrmUseCaseBase {
             installment.id,
             'Cuota vencida sin CxP ATLAS→comercio programada.',
             transaction,
+            tally,
           );
         }
       }
@@ -330,6 +369,7 @@ export class B2BReconciliationService extends B2BSalesCrmUseCaseBase {
             payable.id,
             'CxP pagada sin CxC de recuperación contra consumidor.',
             transaction,
+            tally,
           );
         }
       }
@@ -339,13 +379,20 @@ export class B2BReconciliationService extends B2BSalesCrmUseCaseBase {
         transaction,
       });
       await run.update(
-        { status: openItems > 0 ? 'OPEN_ITEMS' : 'COMPLETED', completedAt: new Date() },
+        {
+          status: openItems + tally.alreadyOpen > 0 ? 'OPEN_ITEMS' : 'COMPLETED',
+          completedAt: new Date(),
+        },
         { transaction },
       );
       const created = await this.repository.findReconciliationRunWithItems(run.id, transaction);
-      return toReconciliationRunResponse(
-        this.requireEntity(created, 'Conciliación no encontrada luego de crear.'),
-      );
+      return {
+        ...toReconciliationRunResponse(
+          this.requireEntity(created, 'Conciliación no encontrada luego de crear.'),
+        ),
+        // Inconsistencias que siguen abiertas en corridas anteriores y no se duplicaron aquí.
+        alreadyOpenItemCount: tally.alreadyOpen,
+      };
     });
   }
 
@@ -357,7 +404,17 @@ export class B2BReconciliationService extends B2BSalesCrmUseCaseBase {
     sourceRef: string,
     description: string,
     transaction: Transaction,
+    tally: { alreadyOpen: number },
   ): Promise<void> {
+    const open = await this.repository.reconciliationItems.findOne({
+      where: { itemType, sourceRef, status: 'OPEN' },
+      attributes: ['id'],
+      transaction,
+    });
+    if (open) {
+      tally.alreadyOpen += 1;
+      return;
+    }
     await this.repository.reconciliationItems.create(
       { runId, itemType, severity, accountId, sourceRef, description, status: 'OPEN' },
       { transaction },
