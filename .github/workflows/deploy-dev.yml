@@ -74,7 +74,7 @@ jobs:
     timeout-minutes: 120
     steps:
       - name: Connect to Tailscale
-        uses: tailscale/github-action@v4
+        uses: tailscale/github-action@d1b6cd204f8dceda5b3eaad7f1f767be390056cd # v4.2.0
         with:
           authkey: ${{ secrets.PABLO_H310_TAILSCALE_AUTHKEY }}
 
