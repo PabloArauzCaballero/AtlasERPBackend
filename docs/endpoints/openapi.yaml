@@ -290,6 +290,197 @@ paths:
           description: Contraseña actualizada.
         '401':
           description: Código inválido o expirado.
+  # --- Sesión y gestión de usuarios internos, detectadas por CONTRACT_DRIFT ----------------------
+  # Existían en el controller (login, logout, alta/roles de usuarios internos, canal del comercio)
+  # y nunca se agregaron al contrato.
+  /auth/logout:
+    post:
+      summary: Cerrar sesión (personal interno)
+      description: >-
+        Público a propósito: revoca el token de refresco upstream vía la cookie httpOnly, no
+        necesita un access token vigente para poder cerrar una sesión ya vencida. Limpia ambas
+        cookies upstream en la respuesta.
+      tags:
+        - Portal del comercio
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                allDevices:
+                  type: boolean
+                  default: false
+      responses:
+        '201':
+          description: Sesión cerrada.
+  /auth/merchant/login:
+    post:
+      summary: Iniciar sesión (comercio afiliado)
+      description: >-
+        Canal separado del login interno a propósito: son dos poblaciones distintas. Al iniciar
+        sesión fija las cookies httpOnly de acceso y refresco upstream.
+      tags:
+        - Portal del comercio
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  maxLength: 180
+                password:
+                  type: string
+                  minLength: 1
+                  maxLength: 128
+      responses:
+        '201':
+          description: Sesión iniciada.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+                  tokenType:
+                    type: string
+                  expiresIn:
+                    type: integer
+                  user:
+                    type: object
+        '401':
+          description: Credenciales inválidas.
+  /auth/merchant/logout:
+    post:
+      summary: Cerrar sesión (comercio afiliado)
+      description: >-
+        Mismo contrato que /auth/logout para la población del comercio; público por la misma razón.
+      tags:
+        - Portal del comercio
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                allDevices:
+                  type: boolean
+                  default: false
+      responses:
+        '201':
+          description: Sesión cerrada.
+  /auth/users/{id}:
+    patch:
+      summary: Editar usuario interno
+      description: >-
+        Sólo rol ADMIN. `reason` es obligatorio (motivo de auditoría, 8-500 caracteres); el resto de
+        campos son opcionales y sólo se actualiza lo enviado.
+      tags:
+        - Portal del comercio
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Id numérico del usuario interno.
+          schema:
+            type: string
+            pattern: '^[1-9][0-9]*$'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                fullName:
+                  type: string
+                  minLength: 3
+                  maxLength: 180
+                department:
+                  type: string
+                  enum:
+                    - OPERATIONS
+                    - RISK
+                    - COLLECTIONS
+                    - COMPLIANCE
+                    - FINANCE
+                    - SUPPORT
+                    - SYSTEMS
+                    - AUDIT
+                    - EXECUTIVE
+                jobTitle:
+                  type: string
+                  nullable: true
+                  maxLength: 120
+                status:
+                  type: string
+                  enum: [active, invited, suspended, locked, disabled]
+                mustChangePassword:
+                  type: boolean
+                reason:
+                  type: string
+                  minLength: 8
+                  maxLength: 500
+      responses:
+        '200':
+          description: Usuario actualizado.
+        '403':
+          description: Rol insuficiente.
+        '404':
+          description: Usuario no existe.
+  /auth/users/{id}/roles:
+    patch:
+      summary: Reemplazar los roles de un usuario interno
+      description: >-
+        Sólo rol ADMIN. Sustituye la lista completa de roles del usuario (no la combina con la
+        anterior). `reason` obligatorio para auditoría.
+      tags:
+        - Portal del comercio
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Id numérico del usuario interno.
+          schema:
+            type: string
+            pattern: '^[1-9][0-9]*$'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [roles, reason]
+              properties:
+                roles:
+                  type: array
+                  minItems: 1
+                  maxItems: 8
+                  items:
+                    type: string
+                reason:
+                  type: string
+                  minLength: 8
+                  maxLength: 500
+      responses:
+        '200':
+          description: Roles reemplazados.
+        '403':
+          description: Rol insuficiente.
+        '404':
+          description: Usuario no existe.
   /b2b/accounts:
     post:
       summary: Crear cuenta B2B lead con contacto principal
@@ -1891,6 +2082,44 @@ paths:
           description: >-
             Lista paginada de acciones de negocio. No hay búsqueda libre (`search`): sólo estos
             filtros, todos por igualdad salvo el rango de fechas.
+  # --- Anulación de documento fiscal (SIAT), detectada por CONTRACT_DRIFT ------------------------
+  /accounting/fiscal/documents/{id}/annul:
+    post:
+      summary: Anular un documento fiscal
+      description: >-
+        Sólo roles admin y accountant. Única ruta de este controller que llama al SIN desde la
+        propia petición (aparte del despacho manual de contingencias): es una orden explícita del
+        operador, no un reintento automático.
+      tags:
+        - Contabilidad
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [codigoMotivo]
+              properties:
+                codigoMotivo:
+                  type: integer
+                  minimum: 1
+                  maximum: 99
+                  description: Código de motivo de anulación según catálogo SIAT.
+      responses:
+        '200':
+          description: Documento anulado ante el SIN.
+        '403':
+          description: Rol insuficiente.
+        '404':
+          description: Documento fiscal no existe.
   /portal/plans:
     get:
       summary: Catálogo de planes comerciales
@@ -2067,6 +2296,434 @@ paths:
             CAMPAIGN_BUDGET_EXHAUSTED o CAMPAIGN_SCHEDULE_EXPIRED
       tags:
         - Portal del comercio
+  # --- Expediente del comercio (pasarela hacia AtlasBackend), detectadas por CONTRACT_DRIFT ------
+  # Reenvían tal cual a AtlasBackend, que es donde vive la validación de dominio y la evidencia:
+  # este backend sólo valida sesión y rol (la puerta de ESTE servicio), por eso el cuerpo se declara
+  # como objeto abierto y no con el detalle exacto de campos, que vive en AtlasBackend.
+  /partner-onboarding/start:
+    post:
+      summary: Iniciar el expediente de onboarding de un comercio
+      tags:
+        - Portal del comercio
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Expediente iniciado.
+  /partner-onboarding/{partnerId}/commercial-profile:
+    patch:
+      summary: Corregir nombre de fachada, rubro y teléfono del comercio
+      description: Admite el expediente ya aprobado.
+      tags:
+        - Portal del comercio
+      parameters:
+        - name: partnerId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Perfil comercial actualizado.
+  /partner-onboarding/{partnerId}/commercial-registry:
+    post:
+      summary: Registrar la matrícula de comercio del expediente
+      tags:
+        - Portal del comercio
+      parameters:
+        - name: partnerId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Matrícula registrada.
+  /partner-onboarding/{partnerId}/legal-representative:
+    post:
+      summary: Agregar representante legal al expediente
+      tags:
+        - Portal del comercio
+      parameters:
+        - name: partnerId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Representante legal agregado.
+  /partner-onboarding/{partnerId}/documents/upload-url:
+    post:
+      summary: Pedir permiso de subida para un documento del expediente
+      description: >-
+        Hoy sirve para el poder notarial del representante legal. La ruta del objeto en el
+        almacén la decide AtlasBackend, no el cliente.
+      tags:
+        - Portal del comercio
+      parameters:
+        - name: partnerId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Permiso de subida emitido.
+  /partner-onboarding/{partnerId}/submit:
+    post:
+      summary: Enviar el expediente a revisión
+      tags:
+        - Portal del comercio
+      parameters:
+        - name: partnerId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: Expediente enviado a revisión.
+  /partner-onboarding/{partnerId}/branches:
+    post:
+      summary: Declarar una sucursal del comercio
+      tags:
+        - Portal del comercio
+      parameters:
+        - name: partnerId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Sucursal declarada.
+  /partner-onboarding/{partnerId}/branches/{branchId}:
+    patch:
+      summary: Enlazar una sucursal declarada con su sucursal del ERP
+      description: >-
+        Sin este tramo, una sucursal declarada antes de que existiera el puente `erpBranchId` sólo
+        podía enlazarse volviendo a declararla, dejando dos filas para el mismo mostrador.
+      tags:
+        - Portal del comercio
+      parameters:
+        - name: partnerId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: branchId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Sucursal enlazada.
+  /partner-onboarding/{partnerId}/qr-codes/upload-url:
+    post:
+      summary: Pedir permiso de subida para la imagen del QR de cobro
+      tags:
+        - Portal del comercio
+      parameters:
+        - name: partnerId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Permiso de subida emitido.
+  /partner-onboarding/{partnerId}/qr-codes:
+    post:
+      summary: Registrar un QR de cobro del comercio
+      tags:
+        - Portal del comercio
+      parameters:
+        - name: partnerId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: QR registrado.
+  /partner-onboarding/{partnerId}/branches/{branchId}/pos-terminals:
+    post:
+      summary: Registrar un terminal POS de una sucursal
+      tags:
+        - Portal del comercio
+      parameters:
+        - name: partnerId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: branchId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Terminal POS registrado.
+  /partner-onboarding/{partnerId}/pos-terminals/{terminalId}:
+    patch:
+      summary: Cambiar el estado de un terminal POS
+      tags:
+        - Portal del comercio
+      parameters:
+        - name: partnerId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: terminalId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Estado del terminal actualizado.
+  # --- Crédito al comercio (aceptación de solicitudes y verificación de comprobantes) ------------
+  /merchant-credit/{partnerId}/applications/{applicationId}/acceptance:
+    post:
+      summary: Aceptar o rechazar una solicitud de compra a crédito
+      description: >-
+        El comercio sólo puede decir sí o no: nunca editar importe ni calendario de pagos, que son
+        la decisión del motor de riesgo.
+      tags:
+        - Portal del comercio
+      parameters:
+        - name: partnerId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [accepted]
+              properties:
+                accepted:
+                  type: boolean
+                reasonCode:
+                  type: string
+                notes:
+                  type: string
+      responses:
+        '201':
+          description: Decisión registrada.
+  /merchant-credit/{partnerId}/payment-claims/{claimId}/verification:
+    post:
+      summary: Confirmar o rechazar un comprobante de transferencia
+      description: >-
+        El dinero entra en la cuenta del comercio, no en la de Atlas: es el único que puede decir
+        si llegó. Confirmar registra el pago contra el préstamo en AtlasBackend.
+      tags:
+        - Portal del comercio
+      parameters:
+        - name: partnerId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: claimId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [accepted]
+              properties:
+                accepted:
+                  type: boolean
+                notes:
+                  type: string
+      responses:
+        '201':
+          description: Verificación registrada.
+  # --- Soporte del comercio (pasarela hacia AtlasBackend) -----------------------------------------
+  /merchant/support/cases:
+    post:
+      summary: Abrir un caso de soporte
+      tags:
+        - Portal del comercio
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Caso abierto.
+  /support/channels:
+    post:
+      summary: Abrir una conversación de soporte
+      tags:
+        - Portal del comercio
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Conversación abierta.
+  /support/channels/{channelId}/messages:
+    post:
+      summary: Enviar un mensaje en un canal de soporte
+      tags:
+        - Portal del comercio
+      parameters:
+        - name: channelId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Mensaje enviado.
+  /support/channels/{channelId}/read:
+    post:
+      summary: Marcar como leído un canal de soporte
+      tags:
+        - Portal del comercio
+      parameters:
+        - name: channelId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Canal marcado como leído.
+  /support/channels/{channelId}/typing:
+    post:
+      summary: Avisar que el comercio está escribiendo
+      tags:
+        - Portal del comercio
+      parameters:
+        - name: channelId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: Aviso de escritura enviado.
+  /support/channels/{channelId}/close:
+    post:
+      summary: Cerrar un canal de soporte
+      tags:
+        - Portal del comercio
+      parameters:
+        - name: channelId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Canal cerrado.
 components:
   securitySchemes:
     bearerAuth:
