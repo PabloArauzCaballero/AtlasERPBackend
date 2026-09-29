@@ -77,14 +77,16 @@ jobs:
       - name: Listas de migraciones coherentes
         run: corepack yarn check:migration-lists
 
+      # Toda variable del esquema de entorno (src/config/env.ts) nombrada en .env.example: una que el
+      # código lee y la plantilla calla la decide en silencio su valor por defecto (P2-4, 2026-09-29).
+      - name: .env.example nombra todas las variables
+        run: corepack yarn check:env-example
+
       # Un documento que manda ejecutar un script que ya no existe (`db:prepare`, `db:rollback`…)
       # hace que quien lo sigue crea que el repositorio o la base están rotos (B17).
       - name: Comandos documentados existen
         id: doc-commands
         run: corepack yarn check:doc-commands
-
-      - name: Smoke de despliegue (contrato HTTP)
-        run: node --test .github/tests/post-deploy-smoke.test.mjs
 
       - name: Smoke de despliegue (contrato HTTP)
         run: node --test .github/tests/post-deploy-smoke.test.mjs

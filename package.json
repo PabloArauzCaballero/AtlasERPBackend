@@ -47,6 +47,7 @@
     "db:seed:pull": "tsx scripts/db/seed-pull.ts pull",
     "db:seed:status": "tsx scripts/db/seed-pull.ts status",
     "check:migration-lists": "tsx scripts/db/check-migration-lists.ts",
+    "check:env-example": "node scripts/check-env-example.cjs",
     "check:doc-commands": "tsx scripts/docs/check-doc-commands.ts",
     "check:upgrade-path": "bash scripts/db/check-upgrade-path.sh",
     "check:accounting-gate": "tsx scripts/db/gate-self-test.ts",
