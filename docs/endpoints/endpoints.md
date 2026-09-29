@@ -595,13 +595,29 @@ Registra recibo, aplica cobros y genera asiento automático.
 
 ## Cierres
 
+Roles: `admin`, `cfo` (el `cfo` necesita la entidad legal en su token).
+
 ### POST /api/v1/accounting/closings/periods/close
 
-Cierra período si no hay documentos `DRAFT`.
+Congela el período si pasa los controles. Hoy **sólo bloquea un control**: documentos contables del
+período en `DRAFT`. Los de conciliación contable y extractos bancarios están preparados pero el ERP
+no tiene ingestión que los alimente (siempre 0), y los eventos del outbox sin publicar se informan
+sin bloquear: cada control lo dice en `controlReportJson.controls[]` (`evaluation`:
+`ENFORCED` | `NO_DATA_SOURCE` | `INFORMATIVE`, y `description`). `closeType` (`MONTHLY` | `ANNUAL`)
+es una etiqueta: los dos hacen lo mismo. El cierre anual **no** liquida el IUE ni traslada el
+resultado. Volver a cerrar tras una reapertura reutiliza el `close_run` del mismo tipo y guarda los
+cierres anteriores en `controlReportJson.previousCloses`; cada cierre publica su propio evento
+(`period-closed-<closeRunId>-<n>`). Queda en el registro de actividad (`CLOSE_ACCOUNTING_PERIOD`).
+`409 ACCOUNTING_PERIOD_ALREADY_CLOSED`, `409 PERIOD_CLOSE_CONTROLS_FAILED` (con el informe).
 
 ### PATCH /api/v1/accounting/closings/periods/reopen
 
-Reabre período con motivo documentado.
+Reabre el período **un solo rol autorizado** (`admin` o `cfo`) con motivo obligatorio
+(`reason`, 5–240). **No hay doble aprobación.** El cierre deshecho queda `VOID` en su `close_run` con
+quién reabrió, cuándo y por qué; `closedBy` del período vuelve a `null` (antes pasaba a nombre de
+quien reabría). Queda en el registro de actividad (`REOPEN_ACCOUNTING_PERIOD`, con quién había
+cerrado). Respuesta: el período más `reopen { reopenedBy, reason, approval:
+'SINGLE_AUTHORIZED_ROLE', voidedCloseRunIds }`. `409 ACCOUNTING_PERIOD_ALREADY_OPEN`.
 
 ## Outbox contable (operación)
 

@@ -891,15 +891,15 @@ export const fiscalEventStatusDomain = defineDomain(
 
 export const periodCloseTypeDomain = defineDomain(
   'accounting.periodCloseType',
-  'Alcance de un cierre contable.',
+  'Etiqueta de un cierre contable. Los dos tipos hacen lo mismo: congelan el período tras los controles.',
   labelled(['MONTHLY', 'ANNUAL'] as const, {
     MONTHLY: {
       label: 'Mensual',
-      help: 'Bloquea el mes para que nadie altere lo ya informado.',
+      help: 'Congela el período para que nadie altere lo ya informado.',
     },
     ANNUAL: {
       label: 'Anual',
-      help: 'Cierra la gestión, liquida el IUE y traslada el resultado.',
+      help: 'Congela el período igual que el mensual. No liquida el IUE ni traslada el resultado: esos asientos se registran aparte.',
     },
   }),
 );
