@@ -1,5 +1,12 @@
 # Auditoría de calidad de despliegue y endurecimiento SAP-like
 
+> **HISTÓRICO (julio de 2026), no vigente.** Describe el módulo contable antes de la integración y
+> cita comandos que ya no existen (`db:prepare`, `db:rollback`, `db:seed`, `db:migrate:status`,
+> `npm run check:deploy`). Hoy: migrar es `yarn db:migrate:prod` tras `yarn build`, la batería es la de
+> `.github/workflows/ci.yml` y la arquitectura vigente está en `docs/architecture/architecture.md`.
+> Dos afirmaciones de aquí son falsas y están corregidas en su línea: la factura AR NO valida ninguna
+> «trazabilidad SIAT aceptada», y el cierre sólo bloquea de verdad por documentos en DRAFT.
+
 ## 1. Resultado ejecutivo
 
 El módulo fue auditado y endurecido para despliegue como backend NestJS independiente. El objetivo del ciclo fue elevarlo desde una implementación funcional a una base más cercana a un estándar SAP-like liviano: mayor universal, submayores, BP central, períodos cerrables, controles de posting, inmutabilidad contable y separación entre origen operativo, documento fiscal y asiento.
@@ -12,10 +19,10 @@ Estado actual: **apto para revisión técnica de despliegue**. En este ciclo se 
 | -------------------------------------------------------------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
 | El modelo tenía validación de doble partida en service, pero no en base de datos | Un bypass al API podía insertar líneas descuadradas                         | Se agregó trigger diferido `trg_journal_balanced` en `002_hardening_atlas_accounting.sql`                                            |
 | La inmutabilidad dependía principalmente de la capa de servicio                  | Un acceso directo a DB podía alterar asientos publicados                    | Se agregaron triggers de bloqueo para documentos/asientos/líneas publicados y bitácora                                               |
-| El cierre solo bloqueaba documentos DRAFT                                        | Podía cerrar con conciliaciones bancarias abiertas                          | Se agregó `ClosingControlService` con bloqueo por documentos DRAFT, conciliaciones abiertas y líneas bancarias unmatched             |
+| El cierre solo bloqueaba documentos DRAFT                                        | Podía cerrar con conciliaciones bancarias abiertas                          | `ClosingControlService` bloquea por documentos DRAFT; conciliaciones y líneas bancarias: control preparado, sin ingestión: siempre 0 |
 | Ledger, entidad legal y período se validaban parcialmente                        | Riesgo de asientos en ledger/período incorrecto                             | Se agregó `SapPostingValidationService` y trigger `fn_assert_accounting_document_context`                                            |
 | Las cuentas GL no exigían dimensiones SAP-like desde DB                          | Se podían omitir partner, centro de costo, profit center o tax code         | Se agregó validación en service y trigger `fn_assert_journal_line_dimensions`                                                        |
-| Facturación AR no validaba suficientemente BP/contrato/impuestos                 | Riesgo de facturas contra contraparte o contrato incorrecto                 | Se validan roles BP, contrato, impuesto y trazabilidad SIAT aceptada                                                                 |
+| Facturación AR no validaba suficientemente BP/contrato/impuestos                 | Riesgo de facturas contra contraparte o contrato incorrecto                 | Se validan roles BP, contrato e impuesto. (Corregido 2026-09-29: NO hay validación SIAT de la factura AR; el SIN no se consulta.)    |
 | Recibos no verificaban que las asignaciones sumaran el monto ni saldos abiertos  | Riesgo de sobrepago o diferencias AR                                        | Se valida suma exacta, factura abierta, saldo disponible y actualización de estado                                                   |
 | Faltaba ruta operativa versionada para preparar DB                               | Riesgo de despliegue manual inconsistente y re-ejecución de SQL estructural | Se agregó runner de migraciones con `db:migrate`, `db:migrate:status`, `db:rollback`, `db:seed` y `db:prepare`                       |
 | Variables de entorno aceptaban secretos débiles en producción                    | Riesgo de configuración insegura                                            | `env.ts` ahora rechaza secreto por defecto, wildcard CORS y DB sin SSL en producción                                                 |
@@ -130,7 +137,7 @@ yarn smoke:accounting
 
 - Se ejecutó `npm run check:deploy` correctamente en este entorno. No se ejecutó `db:prepare` porque no hay PostgreSQL de destino configurado en el sandbox.
 - El worker outbox publica localmente y marca `published_at`. Si ATLAS define Kafka, SNS, webhooks o pg-boss, solo debe reemplazarse `publishEvent` en `src/workers/outbox/outbox.worker.ts`.
-- La integración SIAT externa real requiere credenciales, endpoints y política de contingencia del ambiente tributario. Esta entrega valida trazabilidad fiscal cuando se registra un documento aceptado, pero no firma ni transmite XML a SIAT sin esa información externa.
+- La integración SIAT externa real requiere credenciales, endpoints y política de contingencia del ambiente tributario. Esta entrega no firma ni transmite XML a SIAT y no valida ninguna aceptación del SIN (corregido 2026-09-29: decía «valida trazabilidad fiscal cuando se registra un documento aceptado»).
 
 ## 7. Veredicto
 

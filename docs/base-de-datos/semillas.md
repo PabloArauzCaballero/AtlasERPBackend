@@ -8,8 +8,8 @@ usuarios de prueba— se publica en una **base separada** (`seed_atlas_erp`) del
 propio (`atlas-postgres`) y se trae con un comando:
 
 ```bash
-npm run db:migrate     # el esquema lo siguen definiendo las migraciones versionadas
-npm run db:seed:pull   # los datos los trae la base de semillas
+yarn db:migrate        # el esquema lo siguen definiendo las migraciones versionadas
+yarn db:seed:pull      # los datos los trae la base de semillas
 ```
 
 Antes eran `src/database/seeders/`, de los cuales 1,5 MB era un solo archivo:
@@ -26,7 +26,7 @@ bases de semillas viven en el mismo host (`atlas-postgres`), cambiar de perfil e
 `SEED_SOURCE_DB`, no el host.
 
 Esa lista, además, era un sitio donde las cosas se caían: la política de calificación ASFI llevaba
-desde agosto en disco sin estar en ella ni tener guion de npm, así que `rating_policy_versions` y
+desde agosto en disco sin estar en ella ni tener guion en package.json, así que `rating_policy_versions` y
 `rating_policy_bands` estaban vacías en toda base creada desde entonces y el calificador devolvía
 `RATING_POLICY_NOT_ACTIVE`. Un conjunto publicado no tiene lista que actualizar: lo que está en la
 base de semillas, llega.
@@ -41,11 +41,11 @@ Dos formas, en este orden de precedencia (ver `src/database/seed-source.ts`):
 
 ## Comandos
 
-| Comando                  | Qué hace                                                                     |
-| ------------------------ | ---------------------------------------------------------------------------- |
-| `npm run db:seed:pull`   | Trae el conjunto publicado. **Destructivo** sobre las tablas del manifiesto. |
-| `npm run db:seed:status` | Compara lo publicado con lo que hay aquí. No escribe nada.                   |
-| `npm run db:seed:demo`   | Sin cambios: genera operación transaccional de demostración (no es semilla). |
+| Comando               | Qué hace                                                                     |
+| --------------------- | ---------------------------------------------------------------------------- |
+| `yarn db:seed:pull`   | Trae el conjunto publicado. **Destructivo** sobre las tablas del manifiesto. |
+| `yarn db:seed:status` | Compara lo publicado con lo que hay aquí. No escribe nada.                   |
+| `yarn db:seed:demo`   | Sin cambios: genera operación transaccional de demostración (no es semilla). |
 
 ## Cómo carga
 

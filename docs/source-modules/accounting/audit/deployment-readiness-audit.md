@@ -1,5 +1,10 @@
 # Auditoría de calidad de despliegue y endurecimiento SAP-like
 
+> **HISTÓRICO (julio de 2026), no vigente.** Copia de la documentación original del módulo contable.
+> Es falso que la factura AR valide una «trazabilidad SIAT aceptada» y que el cierre bloquee por
+> conciliaciones o líneas bancarias (no hay ingestión de extractos). Estado vigente:
+> `docs/architecture/architecture.md`.
+
 ## 1. Resultado ejecutivo
 
 El módulo fue auditado y endurecido para despliegue como backend NestJS independiente. El objetivo del ciclo fue elevarlo desde una implementación funcional a una base más cercana a un estándar SAP-like liviano: mayor universal, submayores, BP central, períodos cerrables, controles de posting, inmutabilidad contable y separación entre origen operativo, documento fiscal y asiento.

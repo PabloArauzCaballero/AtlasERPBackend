@@ -84,14 +84,9 @@ corepack yarn test:e2e
 corepack yarn build
 ```
 
-Estado verificado en esta entrega:
-
-- Type-check aprobado.
-- Lint aprobado.
-- Unit tests aprobados: 17 suites, 121 tests.
-- E2E tests aprobados: 1 suite, 2 tests.
-- Build aprobado.
-- Audit producción: 0 vulnerabilidades.
+El estado verificado es el del último CI en verde de la rama (`.github/workflows/ci.yml`): allí se
+ven las suites y pruebas de ese SHA. Aquí no se copian cifras: una cifra escrita a mano deja de ser
+cierta con el siguiente commit.
 
 ## Smoke tests
 

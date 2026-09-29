@@ -5,6 +5,15 @@ decoradores `@Roles` de cada controlador y las comprobaciones POR RECURSO de los
 documentación previa. Cada fila dice quién entra (rol), sobre qué recurso concreto puede actuar y
 qué prueba lo demuestra contra HTTP + PostgreSQL real.
 
+> **Los guardarraíles de `NODE_ENV=production` no aplican al despliegue Coolify actual.**
+> `docker-compose.coolify.yml` construye `Dockerfile.dev`, que fija `NODE_ENV=development`. En DEV y
+> TEST no se comprueban, por tanto, las guardas de `src/config/env.ts` que sólo miran producción:
+> `AUTH_DISABLED_FOR_LOCAL_TESTING` prohibido, CORS sin `*`, `DB_SSL` con certificado validado,
+> `JWT_ACCESS_SECRET` sin `change-this`, `JWT_INTERNAL_SECRET` obligatorio y distinto, y el emulador
+> del SIN fuera de `SIAT_MODE=produccion`; tampoco la cookie `secure` del login ni la censura de trazas
+> de error. Las reglas de esta matriz (roles, alcance por recurso) sí rigen en cualquier `NODE_ENV`.
+> Revisado el 2026-09-29.
+
 ## 1. Cómo se autentica y autoriza una petición
 
 | Paso                  | Pieza                                                          | Regla                                                                                                                                                                                                                                                                                                                                                                                                             |
