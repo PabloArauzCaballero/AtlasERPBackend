@@ -12,12 +12,19 @@ name: CI
 
 on:
   pull_request:
-    branches: [main, dev]
+    branches: [main, dev, test]
   push:
-    branches: [main, dev]
+    branches: [main, dev, test]
 
 permissions:
   contents: read
+
+# Una corrida por rama. En pull_request la nueva cancela la anterior; en push a dev/test NO: esa
+# corrida es la evidencia del SHA promovido y cancelarla deja al commit sin veredicto (medido en el
+# portal el 2026-09-28: tres «cancelled» seguidos).
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   static:
@@ -503,15 +510,31 @@ jobs:
         continue-on-error: true
         run: corepack yarn -s compliance:evaluate --results-dir compliance-results --out /tmp/strict.json --strict
 
+  # ÚNICO trabajo que se exige como check requerido en dev/test/main. Corre siempre y sólo es verde
+  # si TODOS los trabajos obligatorios lo son: `skipped` o `cancelled` en cualquiera es rojo aquí.
+  release-gate:
+    name: release-gate
+    if: always()
+    needs: [static, secret-scan, db-integration, dependency-audit, codeql, image-scan, compliance]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Todos los trabajos obligatorios en success
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          echo "$RESULTS" | jq -r 'to_entries[] | "\(.value.result)\t\(.key)"'
+          if echo "$RESULTS" | jq -e '[.[] | .result] | all(. == "success")' >/dev/null; then
+            echo "release-gate: success"
+          else
+            echo "::error::Algún trabajo obligatorio no terminó en success"; exit 1
+          fi
+
   deploy-dev:
     name: Desplegar DEV sólo después de los quality gates
     if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
     # `db-integration` es gate: sin base migrada y controles contables en verde no se despliega.
     # dependency-audit, codeql, image-scan y compliance NO bloquean todavía el despliegue a DEV
     # (ver docs/compliance/decisions.md, P-12); sí deben ser required checks del PR.
-    needs:
-      - static
-      - secret-scan
-      - db-integration
+    needs: [release-gate]
     uses: ./.github/workflows/deploy-dev.yml
     secrets: inherit
