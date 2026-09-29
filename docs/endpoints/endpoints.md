@@ -585,13 +585,30 @@ Registra evento facturable.
 
 ### POST /api/v1/accounting/billing/ar-invoices
 
-Emite factura AR y genera asiento automático.
+Emite factura AR y genera asiento automático. Queda en el registro de actividad (`ISSUE_AR_INVOICE`).
+
+### DELETE /api/v1/accounting/billing/ar-invoices/:id
+
+Sólo borra una factura **sin rastro contable**: `DRAFT`, sin asiento, sin cobros aplicados y sin
+documento fiscal (`DELETE_DRAFT_AR_INVOICE` en el registro de actividad). Si no,
+`409 AR_INVOICE_HAS_ACCOUNTING_TRACE` con `details.reasons` (`STATUS_<estado>`,
+`HAS_ACCOUNTING_DOCUMENT`, `HAS_RECEIPT_ALLOCATIONS`, `HAS_FISCAL_DOCUMENT`) y
+`details.accountingDocumentId`: una factura contabilizada se anula (ante Impuestos, si tiene
+documento fiscal) o se reversa su asiento con `POST /accounting/documents/:id/reverse`.
 
 ## Recibos
 
 ### POST /api/v1/accounting/receipts
 
-Registra recibo, aplica cobros y genera asiento automático.
+Registra recibo, aplica cobros y genera asiento automático. Queda en el registro de actividad
+(`RECORD_RECEIPT`).
+
+### DELETE /api/v1/accounting/receipts/:id
+
+Sólo borra un recibo **sin rastro contable**: `DRAFT`, sin asiento y sin cobros aplicados
+(`DELETE_DRAFT_RECEIPT` en el registro de actividad). Si no, `409 RECEIPT_HAS_ACCOUNTING_TRACE` con
+`details.reasons` y `details.accountingDocumentId`: un recibo contabilizado se reversa con
+`POST /accounting/documents/:id/reverse` sobre su asiento.
 
 ## Cierres
 

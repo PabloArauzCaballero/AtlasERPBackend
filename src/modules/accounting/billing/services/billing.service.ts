@@ -9,7 +9,7 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
-import { Op, Transaction, type WhereOptions } from 'sequelize';
+import { Op, QueryTypes, Transaction, type WhereOptions } from 'sequelize';
 import { Sequelize } from 'sequelize-typescript';
 import {
   type EmisionPreparada,
@@ -37,6 +37,7 @@ import { LegalEntityAccessService } from '../../../../common/services/legal-enti
 import { BusinessPartnerRoleValidationService } from '../../business-partners/services/business-partner-role-validation.service';
 import { PinoLoggerService } from '../../../../common/logger/pino-logger.service';
 import { nextDocumentNumber } from '../../../../common/numbering/document-numbering';
+import { BusinessActionLogsService } from '../../../business-action-logs/business-action-logs.service';
 
 /**
  * La factura con lo que el sistema ya sabía resuelto.
@@ -74,6 +75,7 @@ export class BillingService {
     @InjectModel(BusinessPartnerModel)
     private readonly businessPartnerModel: typeof BusinessPartnerModel,
     @InjectModel(LegalEntityModel) private readonly legalEntityModel: typeof LegalEntityModel,
+    private readonly businessActionLogsService: BusinessActionLogsService,
     /*
      * Facturación electrónica. Opcional y por forwardRef: el módulo fiscal depende de contabilidad
      * (reverso del asiento al anular) y contabilidad de él (documento fiscal de la factura AR).
@@ -186,6 +188,13 @@ export class BillingService {
     return row;
   }
 
+  /**
+   * Sólo se borra una factura que no dejó rastro contable: en borrador, sin asiento, sin cobros y
+   * sin documento fiscal. Antes se borraba cualquiera: el asiento publicado seguía en el mayor, los
+   * recibos quedaban aplicados a una factura inexistente y nada se recalculaba. Una factura
+   * contabilizada no se borra: se anula (ante Impuestos, si tiene documento fiscal) o se reversa su
+   * asiento (`POST /accounting/documents/:id/reverse`).
+   */
   async deleteInvoice(id: string, user: AuthUser) {
     const row = await this.arInvoiceModel.findByPk(id);
     if (!row)
@@ -194,8 +203,45 @@ export class BillingService {
         message: 'La factura no existe.',
       });
     this.legalEntityAccessService.assertCanAccessLegalEntity(user, row.legalEntityId);
-    await row.destroy();
-    return { id, deleted: true };
+    return this.sequelize.transaction(async (transaction) => {
+      const [rastro] = await this.sequelize.query<{ cobros: string; fiscal: string }>(
+        `SELECT
+           (SELECT count(*) FROM atlas_accounting.receipt_allocation WHERE ar_invoice_id = :id)::text AS cobros,
+           (SELECT count(*) FROM atlas_accounting.electronic_tax_document WHERE ar_invoice_id = :id)::text AS fiscal`,
+        { replacements: { id }, type: QueryTypes.SELECT, transaction },
+      );
+      const motivos = [
+        ...(row.status !== 'DRAFT' ? [`STATUS_${row.status}`] : []),
+        ...(row.accountingDocumentId ? ['HAS_ACCOUNTING_DOCUMENT'] : []),
+        ...(Number(rastro?.cobros ?? 0) > 0 ? ['HAS_RECEIPT_ALLOCATIONS'] : []),
+        ...(Number(rastro?.fiscal ?? 0) > 0 ? ['HAS_FISCAL_DOCUMENT'] : []),
+      ];
+      if (motivos.length > 0) {
+        throw new ConflictException({
+          code: 'AR_INVOICE_HAS_ACCOUNTING_TRACE',
+          message:
+            'Una factura contabilizada no se borra: se anula (ante Impuestos, si tiene documento fiscal) o se reversa su asiento.',
+          details: { reasons: motivos, accountingDocumentId: row.accountingDocumentId ?? null },
+        });
+      }
+      await this.arInvoiceLineModel.destroy({ where: { arInvoiceId: id }, transaction });
+      await row.destroy({ transaction });
+      await this.businessActionLogsService.record({
+        moduleCode: 'ACCOUNTING',
+        businessProcess: 'ACCOUNTS_RECEIVABLE',
+        actionCode: 'DELETE_DRAFT_AR_INVOICE',
+        actorUserId: user.sub,
+        actorRole: user.role ?? null,
+        aggregateType: 'AR_INVOICE',
+        aggregateId: id,
+        affectedTables: ['atlas_accounting.ar_invoice', 'atlas_accounting.ar_invoice_line'],
+        affectedRecordCount: 1,
+        status: 'SUCCESS',
+        inputSummary: { invoiceNo: row.invoiceNo, legalEntityId: row.legalEntityId },
+        transaction,
+      });
+      return { id, deleted: true };
+    });
   }
 
   createBillingEvent(input: CreateBillingEventDto, user: AuthUser) {
@@ -349,6 +395,30 @@ export class BillingService {
         transaction,
       );
       await invoice.update({ accountingDocumentId: accounting.document.id }, { transaction });
+
+      await this.businessActionLogsService.record({
+        moduleCode: 'ACCOUNTING',
+        businessProcess: 'ACCOUNTS_RECEIVABLE',
+        actionCode: 'ISSUE_AR_INVOICE',
+        actorUserId: user.sub,
+        actorRole: user.role ?? null,
+        aggregateType: 'AR_INVOICE',
+        aggregateId: invoice.id,
+        affectedTables: [
+          'atlas_accounting.ar_invoice',
+          'atlas_accounting.ar_invoice_line',
+          'atlas_accounting.accounting_document',
+        ],
+        affectedRecordCount: 3,
+        status: 'SUCCESS',
+        inputSummary: { legalEntityId: input.legalEntityId, grossAmount: String(grossAmount) },
+        outputSummary: {
+          invoiceNo: invoice.invoiceNo,
+          accountingDocumentId: accounting.document.id,
+          fiscalDocument: fiscalDocument !== null,
+        },
+        transaction,
+      });
 
       this.logger.info('Factura AR emitida y contabilizada.', {
         layer: 'service',
