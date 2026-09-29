@@ -97,7 +97,8 @@ export class FiscalSiatController {
 
   @Get('status')
   modeStatus() {
-    return { mode: this.gateway.modo, activo: this.gateway.activo };
+    // `mode` y `activo` como siempre; `transporteReal` y `nota` dicen si algo llega al SIN de verdad.
+    return this.gateway.estadoDelModo;
   }
 
   private exigirActivo() {

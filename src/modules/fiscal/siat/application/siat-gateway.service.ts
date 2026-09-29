@@ -65,6 +65,22 @@ export class SiatGatewayService {
     return this.modo !== 'disabled';
   }
 
+  /**
+   * Lo que el modo significa para quien mira la pantalla (WP14-ERPB): si alguna factura llega de
+   * verdad a Impuestos Nacionales. Hoy ninguno lo hace: `mock_server` es el emulador y el transporte
+   * SOAP de `piloto`/`produccion` responde `SIAT_SOAP_TRANSPORT_NOT_READY`.
+   */
+  get estadoDelModo(): { mode: string; activo: boolean; transporteReal: boolean; nota: string } {
+    const mode = this.modo;
+    const nota =
+      mode === 'disabled'
+        ? 'Facturación electrónica apagada: las facturas se emiten sin documento fiscal (el PDF dice «representación interna») y nada se envía a Impuestos Nacionales.'
+        : mode === 'mock_server'
+          ? 'Emulador del SIN (pruebas): nada llega a Impuestos Nacionales; CUF, validaciones y anulaciones son simulados.'
+          : `El envío al SIN (${mode}) todavía no está implementado (SIAT_SOAP_TRANSPORT_NOT_READY): ninguna factura se envía a Impuestos Nacionales.`;
+    return { mode, activo: this.activo, transporteReal: false, nota };
+  }
+
   /** URL del emulador en uso (la del transporte inyectado o `SIAT_MOCK_BASE_URL`). */
   get mockBaseUrl(): string | null {
     if (this.modo !== 'mock_server') return null;

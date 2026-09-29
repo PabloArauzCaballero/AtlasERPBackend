@@ -1547,21 +1547,21 @@ Plan: `_plan-facturacion-siat-2026-09-26/PLAN.md`; módulo `src/modules/fiscal/s
 `admin`, `accountant`, acotado por entidad legal (`LegalEntityAccessService`): un recurso de otra
 entidad responde 404, no 403, para no confirmar que existe.
 
-| Método y ruta                                                 | Qué hace                                                                                                                                          |
-| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /accounting/fiscal/status`                               | Modo (`SIAT_MODE`) y si la facturación electrónica está activa.                                                                                   |
-| `GET /accounting/fiscal/issuer-profiles`                      | Emisores visibles.                                                                                                                                |
-| `POST /accounting/fiscal/issuer-profiles`                     | Crea el emisor (NIT, sucursal/POS del SIN, actividad) y su serie fiscal. 409 `FISCAL_ISSUER_ALREADY_EXISTS`.                                      |
-| `PATCH /accounting/fiscal/issuer-profiles/:id`                | Edita datos no identificativos o lo desactiva.                                                                                                    |
-| `GET /accounting/fiscal/issuer-profiles/:id/status`           | Comunicación con el SIN (926), vigencias de CUIS/CUFD, última sincronización, contingencia abierta.                                               |
-| `POST /accounting/fiscal/issuer-profiles/:id/cuis` · `…/cufd` | Pide un código nuevo al SIN. Devuelve sólo la vigencia; el código no sale del servidor.                                                           |
-| `POST /accounting/fiscal/issuer-profiles/:id/catalogs/sync`   | Sincroniza los 17 catálogos del SIN (o `{ "catalogo": "LEYENDAS" }`).                                                                             |
-| `GET /accounting/fiscal/catalogs/:code`                       | Filas sincronizadas de un catálogo (`simulated: true` si vienen del emulador).                                                                    |
-| `GET /accounting/fiscal/documents`                            | Documentos fiscales; filtros `status`, `sourceType`, `sourceId`, `page`, `pageSize`.                                                              |
-| `GET /accounting/fiscal/documents/:id` · `…/xml`              | Detalle (sin el XML, con los `correos` enviados al comprador) y el XML tal como se envió.                                                         |
-| `POST /accounting/fiscal/documents/:id/retry`                 | Sólo adelanta el próximo intento de un documento en `ERROR`; nunca llama al SIN.                                                                  |
-| `POST /accounting/fiscal/documents/:id/annul`                 | `{ "codigoMotivo": 1 }`. Anula ante el SIN (905) hasta el día 9 del mes siguiente y sin cobros aplicados; anula la factura y revierte su asiento. |
-| `GET /accounting/fiscal/events` · `POST …/events/dispatch`    | Contingencias con sus paquetes; despacho manual.                                                                                                  |
+| Método y ruta                                                 | Qué hace                                                                                                                                                                    |
+| ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /accounting/fiscal/status`                               | `mode` (`SIAT_MODE`), `activo`, `transporteReal` (hoy siempre `false`: `mock_server` es el emulador y el SOAP de `piloto`/`produccion` es NOT_READY) y `nota` para mostrar. |
+| `GET /accounting/fiscal/issuer-profiles`                      | Emisores visibles.                                                                                                                                                          |
+| `POST /accounting/fiscal/issuer-profiles`                     | Crea el emisor (NIT, sucursal/POS del SIN, actividad) y su serie fiscal. 409 `FISCAL_ISSUER_ALREADY_EXISTS`.                                                                |
+| `PATCH /accounting/fiscal/issuer-profiles/:id`                | Edita datos no identificativos o lo desactiva.                                                                                                                              |
+| `GET /accounting/fiscal/issuer-profiles/:id/status`           | Comunicación con el SIN (926), vigencias de CUIS/CUFD, última sincronización, contingencia abierta.                                                                         |
+| `POST /accounting/fiscal/issuer-profiles/:id/cuis` · `…/cufd` | Pide un código nuevo al SIN. Devuelve sólo la vigencia; el código no sale del servidor.                                                                                     |
+| `POST /accounting/fiscal/issuer-profiles/:id/catalogs/sync`   | Sincroniza los 17 catálogos del SIN (o `{ "catalogo": "LEYENDAS" }`).                                                                                                       |
+| `GET /accounting/fiscal/catalogs/:code`                       | Filas sincronizadas de un catálogo (`simulated: true` si vienen del emulador).                                                                                              |
+| `GET /accounting/fiscal/documents`                            | Documentos fiscales; filtros `status`, `sourceType`, `sourceId`, `page`, `pageSize`.                                                                                        |
+| `GET /accounting/fiscal/documents/:id` · `…/xml`              | Detalle (sin el XML, con los `correos` enviados al comprador) y el XML tal como se envió.                                                                                   |
+| `POST /accounting/fiscal/documents/:id/retry`                 | Sólo adelanta el próximo intento de un documento en `ERROR`; nunca llama al SIN.                                                                                            |
+| `POST /accounting/fiscal/documents/:id/annul`                 | `{ "codigoMotivo": 1 }`. Anula ante el SIN (905) hasta el día 9 del mes siguiente y sin cobros aplicados; anula la factura y revierte su asiento.                           |
+| `GET /accounting/fiscal/events` · `POST …/events/dispatch`    | Contingencias con sus paquetes; despacho manual.                                                                                                                            |
 
 ### Errores esperados
 
