@@ -307,11 +307,15 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
       pendingItems: countPendingItems(row.checklistItems ?? []),
       ...describeCaseChain(row),
       ...this.describeCredentialsOf(credentialsByAccount.get(row.accountId) ?? []),
+      /* `requiresEvidence`/`hasEvidence`, como en el detalle: el modal de evidencia abre desde la
+         cola y sin ellos no sabía si el requisito pide archivo ni si ya lo tiene. */
       checklistItems: (row.checklistItems ?? []).map((item) => ({
         id: item.id,
         itemType: item.itemType,
         description: item.description,
         status: item.status,
+        requiresEvidence: requiresEvidence(item.itemType),
+        hasEvidence: Boolean(item.evidenceStorageKey),
       })),
     }));
 
