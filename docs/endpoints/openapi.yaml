@@ -1199,8 +1199,7 @@ paths:
   /accounting/billing/ar-invoices:
     post:
       summary: Emitir factura AR y asiento automático
-      description: Mantiene separado billing, factura comercial, documento fiscal
-        y documento contable. Valida trazabilidad SIAT cuando el documento está aceptado.
+      description: 'Mantiene separado billing, factura comercial, documento fiscal y documento contable. El documento fiscal no viaja en el cuerpo: lo escribe el ERP a partir de la respuesta del SIN.'
       responses:
         '201':
           description: Factura emitida y contabilizada
@@ -1208,6 +1207,8 @@ paths:
           description: Datos tributarios incompletos
         '409':
           description: Contrato no activo o incompatibilidad
+        '422':
+          description: 'FISCAL_STATUS_NOT_CLIENT_ASSERTED: el cuerpo trae electronicTaxDocument (en cualquier SIAT_MODE).'
       tags:
         - Contabilidad
   /accounting/receipts:
@@ -1224,8 +1225,7 @@ paths:
   /accounting/closings/periods/close:
     post:
       summary: Cerrar período
-      description: Valida que período y entidad legal coincidan, ejecuta controles
-        y congela período.
+      description: 'Valida que período y entidad legal coincidan, ejecuta controles y congela el período. Sólo bloquea de verdad el control de documentos en borrador; conciliación y extractos no tienen ingestión (siempre 0) y lo dicen en controlReportJson.controls[]. closeType (MONTHLY/ANNUAL) es una etiqueta: el anual no liquida el IUE ni traslada el resultado.'
       responses:
         '201':
           description: Cierre completado
@@ -1236,7 +1236,7 @@ paths:
   /accounting/closings/periods/reopen:
     patch:
       summary: Reabrir período
-      description: Deriva entidad legal desde el período y exige motivo.
+      description: 'Reabre el período un solo rol autorizado (admin o cfo) con motivo obligatorio; sin doble aprobación. El cierre deshecho queda VOID con quién reabrió y por qué, y closedBy vuelve a null. Respuesta: el período más reopen.'
       responses:
         '200':
           description: Período reabierto

@@ -1,3 +1,5 @@
+import type { AuthUser } from '../../../common/types/auth-context.types';
+import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
@@ -40,7 +42,8 @@ export class OpportunitiesController {
   moveStage(
     @Param(new ZodValidationPipe(idParamsSchema)) params: IdParamsDto,
     @Body(new ZodValidationPipe(moveOpportunityStageSchema)) body: MoveOpportunityStageDto,
+    @CurrentUser() user: AuthUser,
   ): Promise<Record<string, unknown>> {
-    return this.service.moveOpportunityStage(params.id, body);
+    return this.service.moveOpportunityStage(params.id, body, user);
   }
 }

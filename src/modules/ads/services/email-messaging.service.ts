@@ -100,12 +100,15 @@ export class EmailMessagingService {
 
   private async deliver(message: EmailMessageModel): Promise<void> {
     try {
+      // En `mock` no sale ningún correo: el mensaje queda SIMULATED, nunca SENT, y sin `sentAt`
+      // (nadie lo envió). Así el seguimiento no afirma una entrega que no ocurrió.
       if (env.EMAIL_PROVIDER_MODE === 'mock') {
         await message.update({
-          status: 'SENT',
+          status: 'SIMULATED',
           providerMessageId: `mock-${message.id}`,
-          sentAt: new Date(),
+          sentAt: null,
           attemptCount: message.attemptCount + 1,
+          lastError: null,
         });
         return;
       }

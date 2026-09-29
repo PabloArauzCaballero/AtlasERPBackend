@@ -5,19 +5,40 @@ import { Sequelize } from 'sequelize-typescript';
 import { AccountingDocumentModel, AccountingPeriodModel } from '../../../../database/models';
 import { PinoLoggerService } from '../../../../common/logger/pino-logger.service';
 
+/**
+ * Cómo se evalúa cada control, dicho a quien lee el informe (WP14-ERPB).
+ * - `ENFORCED`: se cuenta de verdad y bloquea el cierre si hay algo.
+ * - `NO_DATA_SOURCE`: la consulta existe, pero el ERP no tiene ingestión que alimente esas tablas
+ *   (extractos bancarios, conciliación contable): hoy siempre da 0 y no protege nada.
+ * - `INFORMATIVE`: se cuenta, pero no bloquea.
+ */
+export type CloseControlEvaluation = 'ENFORCED' | 'NO_DATA_SOURCE' | 'INFORMATIVE';
+
+export interface CloseControl {
+  code: string;
+  evaluation: CloseControlEvaluation;
+  blocking: boolean;
+  count: number;
+  description: string;
+}
+
 export interface CloseControlReport {
   draftDocumentCount: number;
   openReconciliationItemCount: number;
   unmatchedBankStatementLineCount: number;
   pendingOutboxEventCount: number;
   blockers: string[];
+  controls: CloseControl[];
 }
 
 /**
- * Ejecuta controles mínimos de cierre antes de congelar un período.
+ * Controles previos a congelar un período.
  *
- * No reemplaza el cierre contable completo, pero impide cerrar con partidas obvias abiertas
- * en mayor, conciliación y bancos.
+ * Sólo uno protege de verdad: los documentos contables en borrador del período. Los de
+ * conciliación contable y extractos bancarios están preparados, pero ninguna parte del ERP escribe
+ * `atlas_accounting.reconciliation_item` ni `bank_statement_line` (no hay ingestión de extractos),
+ * así que hoy siempre cuentan 0. Los eventos del outbox sin publicar se informan y no bloquean.
+ * Cada control lo dice en `controls[].evaluation` y `controls[].description`.
  */
 @Injectable()
 export class ClosingControlService {
@@ -89,6 +110,40 @@ export class ClosingControlService {
       unmatchedBankStatementLineCount,
       pendingOutboxEventCount,
       blockers,
+      controls: [
+        {
+          code: 'PERIOD_HAS_DRAFT_DOCUMENTS',
+          evaluation: 'ENFORCED',
+          blocking: true,
+          count: draftDocumentCount,
+          description:
+            'Documentos contables del período en borrador. Se evalúa y bloquea el cierre.',
+        },
+        {
+          code: 'PERIOD_HAS_OPEN_RECONCILIATION_ITEMS',
+          evaluation: 'NO_DATA_SOURCE',
+          blocking: true,
+          count: openReconciliationItemCount,
+          description:
+            'Control preparado; sin conciliación contable que lo alimente: hoy siempre 0. No garantiza que el período esté conciliado.',
+        },
+        {
+          code: 'PERIOD_HAS_UNMATCHED_BANK_STATEMENT_LINES',
+          evaluation: 'NO_DATA_SOURCE',
+          blocking: true,
+          count: unmatchedBankStatementLineCount,
+          description:
+            'Control preparado; sin ingestión de extractos bancarios: hoy siempre 0. No garantiza que los bancos cuadren.',
+        },
+        {
+          code: 'PENDING_OUTBOX_EVENTS',
+          evaluation: 'INFORMATIVE',
+          blocking: false,
+          count: pendingOutboxEventCount,
+          description:
+            'Eventos contables aún sin publicar (de todos los períodos). Se informa; no bloquea el cierre.',
+        },
+      ],
     };
   }
 

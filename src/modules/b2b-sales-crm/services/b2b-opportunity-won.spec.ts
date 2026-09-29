@@ -39,10 +39,18 @@ describe('mover una oportunidad a Ganada a mano', () => {
     const repo = repositorio({
       opportunities: { findByPk: jest.fn(async () => op), update: jest.fn() },
     });
-    const service = new B2BPipelineService(repo as never, logger as never);
+    const service = new B2BPipelineService(
+      repo as never,
+      logger as never,
+      { record: jest.fn(async () => undefined) } as never,
+    );
 
     await expect(
-      service.moveOpportunityStage('op-1', { stage: OpportunityStage.CLOSED_WON } as never),
+      service.moveOpportunityStage(
+        'op-1',
+        { stage: OpportunityStage.CLOSED_WON } as never,
+        { sub: '11111111-1111-4111-8111-111111111111', role: 'ADMIN' } as never,
+      ),
     ).rejects.toThrow(ConflictException);
     expect(repo.contracts.findOne).toHaveBeenCalledWith({
       where: { opportunityId: 'op-1', status: ContractStatus.ACTIVE },
@@ -56,12 +64,21 @@ describe('mover una oportunidad a Ganada a mano', () => {
       opportunities: { findByPk: jest.fn(async () => op), update: jest.fn() },
       contracts: { findOne: jest.fn(async () => ({ id: 'ctr-1', status: ContractStatus.ACTIVE })) },
     });
-    const service = new B2BPipelineService(repo as never, logger as never);
+    const service = new B2BPipelineService(
+      repo as never,
+      logger as never,
+      { record: jest.fn(async () => undefined) } as never,
+    );
 
-    await service.moveOpportunityStage('op-1', { stage: OpportunityStage.CLOSED_WON } as never);
+    await service.moveOpportunityStage(
+      'op-1',
+      { stage: OpportunityStage.CLOSED_WON } as never,
+      { sub: '11111111-1111-4111-8111-111111111111', role: 'ADMIN' } as never,
+    );
 
     expect(op.update).toHaveBeenCalledWith(
       expect.objectContaining({ stage: OpportunityStage.CLOSED_WON }),
+      { transaction: TX },
     );
   });
 });
@@ -82,7 +99,11 @@ describe('contrato y etapa', () => {
       },
       contractVersions: { create: jest.fn(async () => ({ id: 'v-1', versionNumber: 1 })) },
     });
-    const service = new B2BContractsService(repo as never, logger as never);
+    const service = new B2BContractsService(
+      repo as never,
+      logger as never,
+      { record: jest.fn(async () => undefined) } as never,
+    );
 
     await service.createContractFromProposal({
       proposalId: 'pr-1',
@@ -103,9 +124,17 @@ describe('contrato y etapa', () => {
       contracts: { findByPk: jest.fn(async () => contrato) },
       contractVersions: { findOne: jest.fn(async () => ({ id: 'v-1', update: jest.fn() })) },
     });
-    const service = new B2BContractsService(repo as never, logger as never);
+    const service = new B2BContractsService(
+      repo as never,
+      logger as never,
+      { record: jest.fn(async () => undefined) } as never,
+    );
 
-    await service.signAndActivateContract('ctr-1', { approvedByUserId: 'u-1' } as never);
+    await service.signAndActivateContract(
+      'ctr-1',
+      { approvedByUserId: 'u-1' } as never,
+      { sub: '11111111-1111-4111-8111-111111111111', role: 'ADMIN' } as never,
+    );
 
     expect(repo.opportunities.update).toHaveBeenCalledWith(
       expect.objectContaining({ stage: OpportunityStage.CLOSED_WON }),
@@ -121,11 +150,19 @@ describe('contrato y etapa', () => {
       update: jest.fn(),
     };
     const repo = repositorio({ contracts: { findByPk: jest.fn(async () => contrato) } });
-    const service = new B2BContractsService(repo as never, logger as never);
-
-    await expect(service.signAndActivateContract('ctr-1', {} as never)).rejects.toThrow(
-      ConflictException,
+    const service = new B2BContractsService(
+      repo as never,
+      logger as never,
+      { record: jest.fn(async () => undefined) } as never,
     );
+
+    await expect(
+      service.signAndActivateContract(
+        'ctr-1',
+        {} as never,
+        { sub: '11111111-1111-4111-8111-111111111111', role: 'ADMIN' } as never,
+      ),
+    ).rejects.toThrow(ConflictException);
     expect(contrato.update).not.toHaveBeenCalled();
   });
 });

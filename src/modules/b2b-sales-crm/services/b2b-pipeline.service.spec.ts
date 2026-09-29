@@ -20,7 +20,11 @@ const build = (contratos: unknown[]) => {
     contractVersions: {},
   };
   const logger = { infoContext: jest.fn() };
-  const service = new B2BPipelineService(repository as never, logger as never);
+  const service = new B2BPipelineService(
+    repository as never,
+    logger as never,
+    { record: jest.fn(async () => undefined) } as never,
+  );
   return { service, repository };
 };
 
@@ -100,7 +104,11 @@ const buildAprobaciones = (aprobacion: Record<string, unknown> | null) => {
     mdrRules: { update: jest.fn(async () => [1]) },
   };
   const logger = { infoContext: jest.fn() };
-  const service = new B2BPipelineService(repository as never, logger as never);
+  const service = new B2BPipelineService(
+    repository as never,
+    logger as never,
+    { record: jest.fn(async () => undefined) } as never,
+  );
   return { service, repository, fila };
 };
 

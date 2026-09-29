@@ -449,6 +449,28 @@ const envSchema = z
         message: 'SENDGRID_API_KEY y EMAIL_FROM son requeridos para SendGrid.',
       });
     }
+    // `mock` no envía nada: el correo queda `SIMULATED`. Es lo correcto en desarrollo y en TEST
+    // (con el emulador del SIN va al buzón QA del mock), pero no en una instalación de producción
+    // ni cuando las facturas van al SIN de verdad (`piloto`/`produccion`): el SIN obliga a entregar
+    // la factura al comprador, y un correo simulado no se la entrega. `mock_server` queda fuera a
+    // propósito: su transporte de correo ES el buzón del emulador.
+    if (value.EMAIL_PROVIDER_MODE === 'mock') {
+      if (value.NODE_ENV === 'production') {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['EMAIL_PROVIDER_MODE'],
+          message:
+            'EMAIL_PROVIDER_MODE=mock no envía correos (quedan SIMULATED): no se admite con NODE_ENV=production. Usa EMAIL_PROVIDER_MODE=sendgrid.',
+        });
+      }
+      if (value.SIAT_MODE === 'piloto' || value.SIAT_MODE === 'produccion') {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['EMAIL_PROVIDER_MODE'],
+          message: `EMAIL_PROVIDER_MODE=mock no entrega la factura al comprador: no se admite con SIAT_MODE=${value.SIAT_MODE}. Usa EMAIL_PROVIDER_MODE=sendgrid.`,
+        });
+      }
+    }
 
     if (value.NODE_ENV === 'production' && value.JWT_ACCESS_SECRET.includes('change-this')) {
       context.addIssue({

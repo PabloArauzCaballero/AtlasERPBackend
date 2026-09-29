@@ -28,13 +28,18 @@ import { mdrRuleSpecificity } from '../domain/mdr-rule-specificity';
 import { B2BSalesCrmRepository } from '../repositories/b2b-sales-crm.repository';
 import { publishMdrUpdatedForContractVersion } from './mdr-updated-publisher.support';
 import { B2BSalesCrmUseCaseBase } from './b2b-sales-crm-use-case.base';
+import { BusinessActionLogsService } from '../../business-action-logs/business-action-logs.service';
 
 const MDR_RULE_EXCEPTION_REQUIRED =
   'La regla tiene una comisión menor al mínimo y requiere justificación de excepción.';
 
 @Injectable()
 export class B2BContractsService extends B2BSalesCrmUseCaseBase {
-  constructor(repository: B2BSalesCrmRepository, logger: PinoLoggerService) {
+  constructor(
+    repository: B2BSalesCrmRepository,
+    logger: PinoLoggerService,
+    private readonly businessActionLogs: BusinessActionLogsService,
+  ) {
     super(repository, logger);
   }
 
@@ -138,6 +143,7 @@ export class B2BContractsService extends B2BSalesCrmUseCaseBase {
   async signAndActivateContract(
     contractId: string,
     input: SignContractDto,
+    user: AuthUser,
   ): Promise<Record<string, unknown>> {
     this.logger.infoContext(B2BContractsService.name, 'B2B CRM use case started', {
       useCase: 'signAndActivateContract',
@@ -190,6 +196,25 @@ export class B2BContractsService extends B2BSalesCrmUseCaseBase {
         new Date(),
         transaction,
       );
+
+      await this.businessActionLogs.record({
+        moduleCode: 'CRM',
+        businessProcess: 'CONTRACTS',
+        actionCode: 'SIGN_AND_ACTIVATE_CONTRACT',
+        actorUserId: user.sub,
+        actorRole: user.role ?? null,
+        aggregateType: 'CONTRACT',
+        aggregateId: contract.id,
+        affectedTables: ['atlas_sales.b2b_contracts', 'atlas_sales.b2b_contract_versions'],
+        affectedRecordCount: 2,
+        status: 'SUCCESS',
+        inputSummary: {
+          signedAt: contract.signedAt,
+          approvedByUserId: input.approvedByUserId ?? null,
+        },
+        outputSummary: { contractVersionId: version.id },
+        transaction,
+      });
 
       return {
         contractId: contract.id,

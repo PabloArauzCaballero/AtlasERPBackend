@@ -16,6 +16,7 @@ import { AccountingDocumentsService } from '../../documents/services/accounting-
 import { BusinessPartnerRoleValidationService } from '../../business-partners/services/business-partner-role-validation.service';
 import { LegalEntityAccessService } from '../../../../common/services/legal-entity-access.service';
 import { PinoLoggerService } from '../../../../common/logger/pino-logger.service';
+import { BusinessActionLogsService } from '../../../business-action-logs/business-action-logs.service';
 
 /**
  * El recibo con lo que el sistema ya sabía resuelto: la cuenta contable del banco, la de control
@@ -44,6 +45,7 @@ export class ReceiptsService {
     @InjectModel(ReceiptAllocationModel)
     private readonly receiptAllocationModel: typeof ReceiptAllocationModel,
     @InjectModel(ArInvoiceModel) private readonly arInvoiceModel: typeof ArInvoiceModel,
+    private readonly businessActionLogsService: BusinessActionLogsService,
   ) {}
 
   async list(user: AuthUser) {
@@ -71,14 +73,52 @@ export class ReceiptsService {
     return row;
   }
 
+  /**
+   * Sólo se borra un recibo que no dejó rastro contable: en borrador, sin asiento y sin cobros
+   * aplicados. Antes se borraba cualquiera: el asiento del cobro seguía en el mayor y las facturas
+   * quedaban `PAID`/`PARTIALLY_PAID` sin el recibo que las pagó. Un recibo contabilizado se reversa
+   * (`POST /accounting/documents/:id/reverse` sobre su asiento), no se borra.
+   */
   async remove(id: string, user: AuthUser) {
     const row = await this.receiptModel.findByPk(id);
     if (!row)
       throw new NotFoundException({ code: 'RECEIPT_NOT_FOUND', message: 'El recibo no existe.' });
     this.legalEntityAccessService.assertCanAccessLegalEntity(user, row.legalEntityId);
-    await this.receiptAllocationModel.destroy({ where: { receiptId: id } });
-    await row.destroy();
-    return { id, deleted: true };
+    return this.sequelize.transaction(async (transaction) => {
+      const cobros = await this.receiptAllocationModel.count({
+        where: { receiptId: id },
+        transaction,
+      });
+      const motivos = [
+        ...(row.status !== 'DRAFT' ? [`STATUS_${row.status}`] : []),
+        ...(row.accountingDocumentId ? ['HAS_ACCOUNTING_DOCUMENT'] : []),
+        ...(cobros > 0 ? ['HAS_RECEIPT_ALLOCATIONS'] : []),
+      ];
+      if (motivos.length > 0) {
+        throw new ConflictException({
+          code: 'RECEIPT_HAS_ACCOUNTING_TRACE',
+          message:
+            'Un recibo contabilizado no se borra: se reversa su asiento para que las facturas vuelvan a quedar pendientes.',
+          details: { reasons: motivos, accountingDocumentId: row.accountingDocumentId ?? null },
+        });
+      }
+      await row.destroy({ transaction });
+      await this.businessActionLogsService.record({
+        moduleCode: 'ACCOUNTING',
+        businessProcess: 'ACCOUNTS_RECEIVABLE',
+        actionCode: 'DELETE_DRAFT_RECEIPT',
+        actorUserId: user.sub,
+        actorRole: user.role ?? null,
+        aggregateType: 'RECEIPT',
+        aggregateId: id,
+        affectedTables: ['atlas_accounting.receipt'],
+        affectedRecordCount: 1,
+        status: 'SUCCESS',
+        inputSummary: { receiptNo: row.receiptNo, legalEntityId: row.legalEntityId },
+        transaction,
+      });
+      return { id, deleted: true };
+    });
   }
 
   record(rawInput: RecordReceiptDto, user: AuthUser) {
@@ -183,6 +223,33 @@ export class ReceiptsService {
         transaction,
       );
       await receipt.update({ accountingDocumentId: accounting.document.id }, { transaction });
+
+      await this.businessActionLogsService.record({
+        moduleCode: 'ACCOUNTING',
+        businessProcess: 'ACCOUNTS_RECEIVABLE',
+        actionCode: 'RECORD_RECEIPT',
+        actorUserId: user.sub,
+        actorRole: user.role ?? null,
+        aggregateType: 'RECEIPT',
+        aggregateId: receipt.id,
+        affectedTables: [
+          'atlas_accounting.receipt',
+          'atlas_accounting.receipt_allocation',
+          'atlas_accounting.accounting_document',
+        ],
+        affectedRecordCount: 2 + input.allocations.length,
+        status: 'SUCCESS',
+        inputSummary: {
+          legalEntityId: input.legalEntityId,
+          amount: String(input.amount),
+          allocationCount: input.allocations.length,
+        },
+        outputSummary: {
+          receiptNo: receipt.receiptNo,
+          accountingDocumentId: accounting.document.id,
+        },
+        transaction,
+      });
 
       this.logger.info('Recibo AR registrado y contabilizado.', {
         layer: 'service',

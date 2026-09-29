@@ -370,6 +370,19 @@ describeWithMock(
         `Su factura N° ${emitido.numeroFactura}`,
         `Factura N° ${emitido.numeroFactura} anulada ante Impuestos Nacionales`,
       ]);
+      // El buzón QA del emulador no es el comprador: las entregas quedan SIMULATED, nunca SENT.
+      const entregas = await sequelize.query<{
+        kind: string;
+        status: string;
+        sent_at: Date | null;
+      }>(
+        'SELECT kind, status, sent_at FROM atlas_accounting.siat_email_delivery WHERE document_id = $1 ORDER BY kind',
+        { bind: [emitido.id], type: QueryTypes.SELECT },
+      );
+      expect(entregas).toEqual([
+        { kind: 'ANULACION', status: 'SIMULATED', sent_at: null },
+        { kind: 'EMISION', status: 'SIMULATED', sent_at: null },
+      ]);
     });
 
     it('sin correo del comprador no se encola nada', async () => {
