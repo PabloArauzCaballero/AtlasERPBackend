@@ -30,7 +30,10 @@ interface Adjunto {
  * - `EMAIL_PROVIDER_MODE=sendgrid` → SendGrid, con los dos adjuntos.
  * - Con el emulador del SIN (`mock_server`) → el buzón QA del mock (`/mock/inbox/email`), que no
  *   admite adjuntos: el cuerpo lleva el N° fiscal, el CUF y el SHA-256 del XML para contrastarlo.
- * - Si no, se registra como enviado de prueba (`mock-…`), igual que el correo de campañas.
+ * - Si no, no sale nada (`mock-…`).
+ *
+ * Sólo SendGrid deja la fila en `SENT`. El buzón del emulador y el modo `mock` la dejan en
+ * `SIMULATED`, sin `sentAt`: el comprador NO recibió nada, y la fila no puede afirmar lo contrario.
  */
 @Injectable()
 export class FiscalMailService {
@@ -90,10 +93,10 @@ export class FiscalMailService {
     if (!entrega || !documento) return;
     try {
       const mensaje = await this.componer(documento, entrega.kind as TipoCorreoFiscal);
-      const providerMessageId = await this.transportar(entrega.recipient, mensaje);
+      const { providerMessageId, simulado } = await this.transportar(entrega.recipient, mensaje);
       await entrega.update({
-        status: 'SENT',
-        sentAt: new Date(),
+        status: simulado ? 'SIMULATED' : 'SENT',
+        sentAt: simulado ? null : new Date(),
         providerMessageId,
         lastError: null,
       });
@@ -163,7 +166,7 @@ export class FiscalMailService {
   private async transportar(
     destinatario: string,
     mensaje: { asunto: string; cuerpo: string; adjuntos: Adjunto[] },
-  ): Promise<string> {
+  ): Promise<{ providerMessageId: string; simulado: boolean }> {
     if (env.EMAIL_PROVIDER_MODE === 'sendgrid') {
       if (!env.SENDGRID_API_KEY || !env.EMAIL_FROM)
         throw new Error('SENDGRID_CONFIGURATION_MISSING');
@@ -188,7 +191,10 @@ export class FiscalMailService {
         }),
       });
       if (!response.ok) throw new Error(`SENDGRID_${response.status}`);
-      return response.headers.get('x-message-id') ?? 'sendgrid';
+      return {
+        providerMessageId: response.headers.get('x-message-id') ?? 'sendgrid',
+        simulado: false,
+      };
     }
     const emulador = this.gateway.mockBaseUrl;
     if (emulador) {
@@ -205,9 +211,9 @@ export class FiscalMailService {
         }),
       });
       if (!response.ok) throw new Error(`BUZON_MOCK_${response.status}`);
-      return `mock-inbox-${Date.now()}`;
+      return { providerMessageId: `mock-inbox-${Date.now()}`, simulado: true };
     }
-    return `mock-${Date.now()}`;
+    return { providerMessageId: `mock-${Date.now()}`, simulado: true };
   }
 
   listar(documentId: string) {

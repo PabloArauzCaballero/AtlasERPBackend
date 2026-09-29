@@ -33,6 +33,10 @@ function productionEnv(): void {
   process.env.CORS_ALLOWED_ORIGINS = 'https://atlas.example.com';
   process.env.JWT_ACCESS_SECRET = 'production_secret_with_more_than_32_characters';
   process.env.JWT_INTERNAL_SECRET = 'production_internal_secret_more_than_32_chars';
+  // En producción el correo es real: `mock` no arranca (test/correo-simulado.spec.ts).
+  process.env.EMAIL_PROVIDER_MODE = 'sendgrid';
+  process.env.SENDGRID_API_KEY = 'SG.prueba-sin-uso';
+  process.env.EMAIL_FROM = 'no-reply@atlas.example.com';
   delete process.env.AUTH_DISABLED_FOR_LOCAL_TESTING;
 }
 

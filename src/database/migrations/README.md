@@ -127,3 +127,10 @@ Regla de la base para lo que el contrato funcional ya decía: una actividad `DON
 Antes del CHECK sanea lo que dejó el backfill de 20260928160000 —notas y llamadas marcadas `DONE` sin
 fecha— con `completed_at = created_at`. Idempotente; el `.down.sql` quita la regla y conserva las fechas.
 Probada el 2026-09-28 contra una copia de la base de TEST (Contabo): aplicar, repetir, down y up.
+
+## 20260929120000-correo-simulado-no-es-enviado.sql
+
+Amplía los CHECK de estado de `ad_email_messages` y `siat_email_delivery` con `SIMULATED` y
+reclasifica como `SIMULATED` (sin `sent_at`) las filas `SENT` que dejó el modo `mock`
+(`provider_message_id` con prefijo `mock-`). Un correo que no salió deja de figurar como enviado.
+El CHECK se amplía antes del `UPDATE`; la reversa devuelve esas filas a `SENT` y restaura el CHECK.

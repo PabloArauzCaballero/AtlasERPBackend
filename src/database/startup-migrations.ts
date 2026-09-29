@@ -86,6 +86,8 @@ export const STARTUP_MIGRATION_FILES = [
   'src/database/migrations/20260928160000-actividades-comerciales-estado.sql',
   // Una actividad DONE tiene completed_at: se sanea lo heredado y se hace CHECK.
   'src/database/migrations/20260928230000-actividades-hecha-con-fecha.sql',
+  // Correo que no salió (modo mock, buzón del emulador): SIMULATED, nunca SENT.
+  'src/database/migrations/20260929120000-correo-simulado-no-es-enviado.sql',
 ] as const;
 
 export interface LegacySqlProbe {

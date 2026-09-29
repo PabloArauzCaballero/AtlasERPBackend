@@ -1578,3 +1578,6 @@ comprador —si tiene `billing_email`— la factura (PDF + XML) o el aviso de an
 `siat_email_delivery` (una fila por documento y tipo: no se repite), reclamada con CAS y con hasta
 5 intentos. Transporte: SendGrid con adjuntos (`EMAIL_PROVIDER_MODE=sendgrid`); con el emulador del
 SIN, el buzón QA del mock (sin adjuntos: el cuerpo lleva CUF y huella del XML); si no, simulado.
+Sólo SendGrid deja la entrega en `SENT` con `sentAt`. El buzón del emulador y el modo `mock` la
+dejan en `SIMULATED` y sin `sentAt`: el comprador no recibió nada. `EMAIL_PROVIDER_MODE=mock` no se
+admite con `NODE_ENV=production` ni con `SIAT_MODE=piloto|produccion` (la API no arranca).

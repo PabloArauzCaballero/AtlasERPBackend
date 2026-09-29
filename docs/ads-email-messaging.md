@@ -13,11 +13,16 @@ El envío acepta `subject`, `htmlBody`, `textBody`, `scheduledAt`, variables glo
 
 ## Configuración
 
-Para desarrollo:
+Para desarrollo y TEST:
 
 ```env
 EMAIL_PROVIDER_MODE=mock
 ```
+
+`mock` **no envía nada**: cada mensaje queda en estado `SIMULATED` (nunca `SENT`), sin `sentAt` y
+con `providerMessageId = mock-<id>`. Estados posibles de un mensaje: `PENDING`, `PROCESSING`,
+`SENT` (lo aceptó SendGrid), `SIMULATED` (modo `mock`: no salió) y `FAILED`. La API no arranca con
+`EMAIL_PROVIDER_MODE=mock` si `NODE_ENV=production` o si `SIAT_MODE` es `piloto` o `produccion`.
 
 Para SendGrid:
 
