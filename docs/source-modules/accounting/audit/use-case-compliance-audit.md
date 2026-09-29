@@ -1,5 +1,10 @@
 # Auditoría de cumplimiento de casos de uso
 
+> **HISTÓRICO (2026-07-09), no vigente.** Este informe clasificaba por palabras clave y fijaba
+> «APROBADO» sin ejecutar nada: «cubierto» aquí no significa probado. El estado de hoy lo da
+> `docs/compliance/release-scope.json` (clasificación honesta) y el índice de evidencia que genera
+> `scripts/compliance/evaluate.ts` en CI.
+
 ## Resumen
 
 - Total de casos auditados: 258

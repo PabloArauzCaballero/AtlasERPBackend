@@ -14,6 +14,9 @@
  *   aprobador sigue contando como incluida (y se marca).
  * - `releaseIncluded: null` es una decisión de alcance pendiente: fuera del denominador, pero
  *   visible y bloqueante en modo estricto.
+ * - `PRODUCTION_COVERED` sin pruebas mapeadas es un caso de uso INVÁLIDO: la etiqueta afirma una
+ *   cobertura que nada demuestra (se usa `DECLARED_OPERATIVE`). `NOT_IMPLEMENTED` nunca es
+ *   VERIFIED, aunque alguien le mapee pruebas: no hay código que las respalde.
  *
  * Este módulo es puro (sin E/S) para poder probarlo; la CLI está en `evaluate.ts`.
  */
@@ -58,6 +61,10 @@ export interface UseCaseInput {
   name: string;
   module: string;
   declaredClassification: string;
+  /** Etiqueta de la matriz de 2026-07-09; dato histórico, nunca evidencia. */
+  historicalClassification?: string;
+  /** Por qué el caso no está hecho o en qué difiere de su nombre del catálogo. */
+  implementationNote?: string;
   releaseIncluded: boolean | null;
   pendingDecision?: string | null;
   exclusion?: Exclusion | null;
@@ -166,6 +173,28 @@ export interface EvaluationInput {
 }
 
 const SKIPPED = new Set(['pending', 'skipped', 'todo', 'disabled', 'focused']);
+
+/** Clasificaciones que afirman cobertura: exigen pruebas mapeadas. */
+export const COVERAGE_CLAIMS = new Set(['PRODUCTION_COVERED']);
+/** Clasificación de lo que no tiene código: nunca cuenta como verificado. */
+export const NOT_IMPLEMENTED = 'NOT_IMPLEMENTED';
+
+export function validateUseCase(value: UseCaseInput, where: string): string[] {
+  const errors: string[] = [];
+  if (COVERAGE_CLAIMS.has(value.declaredClassification) && (value.tests ?? []).length === 0) {
+    errors.push(
+      `${where}: «${value.declaredClassification}» sin pruebas mapeadas afirma una cobertura que ` +
+        'nada demuestra; usa DECLARED_OPERATIVE hasta mapear sus pruebas',
+    );
+  }
+  if (
+    value.declaredClassification === NOT_IMPLEMENTED &&
+    !(typeof value.implementationNote === 'string' && value.implementationNote.trim())
+  ) {
+    errors.push(`${where}: NOT_IMPLEMENTED exige «implementationNote» con lo que falta`);
+  }
+  return errors;
+}
 
 export function validateRequirement(value: unknown, where: string): string[] {
   const errors: string[] = [];
@@ -382,6 +411,16 @@ function evaluateItem(
   return { ...item, countedAsIncluded, status, reasons, evidence };
 }
 
+function markNotImplemented(input: UseCaseInput, item: EvaluatedItem): EvaluatedItem {
+  if (input.declaredClassification !== NOT_IMPLEMENTED) return item;
+  const reason = `NO_IMPLEMENTADO: ${input.implementationNote ?? 'sin código que lo haga'}`;
+  return {
+    ...item,
+    status: item.status === 'VERIFIED' || item.status === 'IMPLEMENTED' ? 'DECLARED' : item.status,
+    reasons: [reason, ...item.reasons],
+  };
+}
+
 function summarize(items: EvaluatedItem[]): CountSummary {
   const byStatus: Record<EvidenceStatus, number> = {
     DECLARED: 0,
@@ -416,6 +455,7 @@ export function evaluate(input: EvaluationInput): EvaluationResult {
     if (seen.has(key)) invalid.push(`${r.sourceFile ?? '?'}: requisito duplicado ${key}`);
     seen.add(key);
   }
+  for (const u of input.useCases) invalid.push(...validateUseCase(u, `release-scope ${u.id}`));
   const { accepted, report } = acceptSources(input);
 
   const requirements = input.requirements.map((r) =>
@@ -439,22 +479,25 @@ export function evaluate(input: EvaluationInput): EvaluationResult {
   );
 
   const useCases = input.useCases.map((u) =>
-    evaluateItem(
-      {
-        kind: 'useCase',
-        id: u.id,
-        packageId: null,
-        title: `${u.module} · ${u.name}`,
-        releaseIncluded: u.releaseIncluded,
-        declaredClassification: u.declaredClassification,
-        ownerRole: null,
-        blockedBy: u.blockedBy ?? null,
-        exclusion: u.exclusion ?? null,
-        tests: u.tests ?? [],
-        commands: [],
-      },
-      accepted,
-      input.fileExists,
+    markNotImplemented(
+      u,
+      evaluateItem(
+        {
+          kind: 'useCase',
+          id: u.id,
+          packageId: null,
+          title: `${u.module} · ${u.name}`,
+          releaseIncluded: u.releaseIncluded,
+          declaredClassification: u.declaredClassification,
+          ownerRole: null,
+          blockedBy: u.blockedBy ?? null,
+          exclusion: u.exclusion ?? null,
+          tests: u.tests ?? [],
+          commands: [],
+        },
+        accepted,
+        input.fileExists,
+      ),
     ),
   );
 
