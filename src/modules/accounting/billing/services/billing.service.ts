@@ -11,7 +11,6 @@ import {
 import { InjectModel } from '@nestjs/sequelize';
 import { Op, Transaction, type WhereOptions } from 'sequelize';
 import { Sequelize } from 'sequelize-typescript';
-import { env } from '../../../../config/env';
 import {
   type EmisionPreparada,
   SiatEmissionService,
