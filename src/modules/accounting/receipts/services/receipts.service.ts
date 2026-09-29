@@ -98,7 +98,7 @@ export class ReceiptsService {
         throw new ConflictException({
           code: 'RECEIPT_HAS_ACCOUNTING_TRACE',
           message:
-            'Un recibo contabilizado no se borra: se reversa su asiento para que las facturas vuelvan a quedar pendientes.',
+            'Un recibo contabilizado no se borra: se reversa su asiento. El reverso no devuelve las facturas a pendiente ni cambia sus estados.',
           details: { reasons: motivos, accountingDocumentId: row.accountingDocumentId ?? null },
         });
       }
