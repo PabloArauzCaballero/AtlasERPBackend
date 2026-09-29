@@ -145,6 +145,26 @@ describeWithDatabase('Actividades comerciales con estado (PostgreSQL real)', () 
     expect(reopened.completedAt).toBeNull();
   });
 
+  it('la base rechaza una actividad DONE sin fecha de cierre (ck_commercial_activities_done_has_completed_at)', async () => {
+    await expect(
+      sequelize.query(
+        `UPDATE atlas_sales.commercial_activities SET status = 'DONE', completed_at = NULL WHERE account_id = $1`,
+        { bind: [accountId] },
+      ),
+    ).rejects.toThrow(/ck_commercial_activities_done_has_completed_at/);
+  });
+
+  it('PENDING y CANCELLED sí pueden ir sin fecha de cierre', async () => {
+    for (const status of ['PENDING', 'CANCELLED']) {
+      await expect(
+        sequelize.query(
+          `UPDATE atlas_sales.commercial_activities SET status = $2, completed_at = NULL WHERE account_id = $1`,
+          { bind: [accountId, status] },
+        ),
+      ).resolves.toBeDefined();
+    }
+  });
+
   it('la base rechaza un estado fuera del dominio', async () => {
     await expect(
       sequelize.query(

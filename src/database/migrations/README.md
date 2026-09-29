@@ -119,3 +119,11 @@ se emiten las facturas AR del emisor, que no tienen catálogo de productos. Sól
 que la ficha las pintaba: `completed_at` → `DONE`; con `due_at` o de tipo `TASK` → `PENDING`; el
 resto → `DONE`. No toca `completed_at`. Añade dos índices por cuenta para la tabla paginada. El
 `down` retira índices, CHECK y columna.
+
+## 20260928230000-actividades-hecha-con-fecha.sql
+
+Regla de la base para lo que el contrato funcional ya decía: una actividad `DONE` lleva `completed_at`
+(CHECK `ck_commercial_activities_done_has_completed_at`: `status <> 'DONE' OR completed_at IS NOT NULL`).
+Antes del CHECK sanea lo que dejó el backfill de 20260928160000 —notas y llamadas marcadas `DONE` sin
+fecha— con `completed_at = created_at`. Idempotente; el `.down.sql` quita la regla y conserva las fechas.
+Probada el 2026-09-28 contra una copia de la base de TEST (Contabo): aplicar, repetir, down y up.

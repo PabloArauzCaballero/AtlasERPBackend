@@ -84,6 +84,8 @@ export const STARTUP_MIGRATION_FILES = [
   'src/database/migrations/20260927110000-siat-correo-comprador.sql',
   // Actividades comerciales con estado (pendiente / hecha / cancelada) e índices de la ficha.
   'src/database/migrations/20260928160000-actividades-comerciales-estado.sql',
+  // Una actividad DONE tiene completed_at: se sanea lo heredado y se hace CHECK.
+  'src/database/migrations/20260928230000-actividades-hecha-con-fecha.sql',
 ] as const;
 
 export interface LegacySqlProbe {
