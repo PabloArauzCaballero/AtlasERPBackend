@@ -1,25 +1,46 @@
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { InjectConnection } from '@nestjs/sequelize';
 import { Sequelize } from 'sequelize-typescript';
+import { getServedIdentity } from '../../common/build-info/build-info';
 import { PinoLoggerService } from '../../common/logging/pino-logger.service';
+
+export interface VersionPayload {
+  service: string;
+  version: string;
+  commit: string;
+  builtAt: string | null;
+  environment: string;
+}
 
 @Injectable()
 export class HealthService {
   constructor(
     @InjectConnection() private readonly sequelize: Sequelize,
     private readonly logger: PinoLoggerService,
-  ) {}
+  ) {
+    if (getServedIdentity().runtimeConflict) {
+      this.logger.warnContext(
+        HealthService.name,
+        'APP_COMMIT_SHA contradice el commit compilado; se sirve el compilado',
+        {
+          compiled: getServedIdentity().commit,
+        },
+      );
+    }
+  }
 
   health(): { status: 'ok'; service: string } {
     this.logger.debugContext(HealthService.name, 'Health check requested');
     return { status: 'ok', service: 'atlas-integrated-backend' };
   }
 
-  version(): { service: string; version: string; commit: string; environment: string } {
+  version(): VersionPayload {
+    const identity = getServedIdentity();
     return {
       service: 'atlas-integrated-backend',
       version: process.env.APP_VERSION ?? 'unknown',
-      commit: process.env.APP_COMMIT_SHA ?? 'unknown',
+      commit: identity.commit,
+      builtAt: identity.builtAt,
       environment: process.env.NODE_ENV ?? 'unknown',
     };
   }
