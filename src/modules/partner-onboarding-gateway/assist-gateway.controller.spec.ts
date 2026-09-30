@@ -177,4 +177,112 @@ describe('AssistGatewayController', () => {
     expect(error.getStatus()).toBe(401);
     expect(fetchMock).not.toHaveBeenCalled();
   });
+
+  describe('historial de conversaciones', () => {
+    it('la lista se pide con la superficie de la sesión, no la del navegador', async () => {
+      fetchMock = jest.spyOn(global, 'fetch').mockResolvedValue(
+        respuesta(200, {
+          data: {
+            conversations: [
+              {
+                conversationId: 'c1',
+                title: 'Ventas',
+                updatedAt: '2026-09-29T10:00:00Z',
+                turnCount: 2,
+              },
+            ],
+          },
+        }),
+      );
+
+      const resultado = await new AssistGatewayController().conversaciones(req, comercio, res());
+
+      expect(resultado).toEqual({
+        conversations: [
+          {
+            conversationId: 'c1',
+            title: 'Ventas',
+            updatedAt: '2026-09-29T10:00:00Z',
+            turnCount: 2,
+          },
+        ],
+      });
+      const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(url).toMatch(/\/internal\/assist\/conversations\?surface=merchant-portal$/);
+      expect(init.method).toBe('GET');
+      expect((init.headers as Record<string, string>).Authorization).toBe('Bearer token-del-actor');
+    });
+
+    it('una conversación por id viaja codificada y con la superficie del token', async () => {
+      fetchMock = jest
+        .spyOn(global, 'fetch')
+        .mockResolvedValue(
+          respuesta(200, { data: { conversationId: 'c1', title: 'T', turns: [] } }),
+        );
+
+      const resultado = await new AssistGatewayController().conversacionPorId(
+        req,
+        personal,
+        '../x?y=1',
+        res(),
+      );
+
+      expect(resultado).toEqual({ conversationId: 'c1', title: 'T', turns: [] });
+      const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(url).toMatch(
+        /\/internal\/assist\/conversations\/\.\.%2Fx%3Fy%3D1\?surface=erp-staff$/,
+      );
+    });
+
+    it('borrar usa DELETE y devuelve { deleted }', async () => {
+      fetchMock = jest
+        .spyOn(global, 'fetch')
+        .mockResolvedValue(respuesta(200, { data: { deleted: 1 } }));
+
+      const resultado = await new AssistGatewayController().borrarConversacion(
+        req,
+        personal,
+        'c1',
+        res(),
+      );
+
+      expect(resultado).toEqual({ deleted: 1 });
+      const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(url).toMatch(/\/internal\/assist\/conversations\/c1\?surface=erp-staff$/);
+      expect(init.method).toBe('DELETE');
+      expect(init.body).toBeUndefined();
+    });
+
+    it('el 404 de una conversación inexistente se propaga', async () => {
+      fetchMock = jest
+        .spyOn(global, 'fetch')
+        .mockResolvedValue(
+          respuesta(404, { error: { code: 'ASSIST_NOT_FOUND', message: 'No existe.' } }),
+        );
+
+      const error = (await new AssistGatewayController()
+        .conversacionPorId(req, personal, 'nada', res())
+        .catch((e) => e)) as HttpException;
+
+      expect([error.getStatus(), error.getResponse()]).toEqual([
+        404,
+        { code: 'ASSIST_NOT_FOUND', message: 'No existe.' },
+      ]);
+    });
+
+    it('sin cookie de identidad ninguna de las tres llama a Core', async () => {
+      fetchMock = jest.spyOn(global, 'fetch');
+      const sinCookie = { cookies: {} } as unknown as Request;
+      const c = new AssistGatewayController();
+
+      const errores = (await Promise.all([
+        c.conversaciones(sinCookie, personal, res()).catch((e) => e),
+        c.conversacionPorId(sinCookie, personal, 'c1', res()).catch((e) => e),
+        c.borrarConversacion(sinCookie, personal, 'c1', res()).catch((e) => e),
+      ])) as HttpException[];
+
+      expect(errores.map((e) => e.getStatus())).toEqual([401, 401, 401]);
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+  });
 });
