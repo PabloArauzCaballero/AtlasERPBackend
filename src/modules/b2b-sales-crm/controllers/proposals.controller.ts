@@ -1,4 +1,16 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Res,
+  StreamableFile,
+} from '@nestjs/common';
+import type { Response } from 'express';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
@@ -60,6 +72,19 @@ export class ProposalsController {
     @Param(new ZodValidationPipe(proposalIdParamsSchema)) params: ProposalIdParamsDto,
   ): Promise<Record<string, unknown>[]> {
     return this.service.listProposalRecipients(params.proposalId);
+  }
+
+  /* La propuesta en PDF con membrete de ATLAS: lo mismo que se adjunta al correo. */
+  @Roles('COMMERCIAL_EXECUTIVE', 'COMMERCIAL_MANAGER', 'FINANCE', 'LEGAL', 'ADMIN')
+  @Get(':proposalId/pdf')
+  async getProposalPdf(
+    @Param(new ZodValidationPipe(proposalIdParamsSchema)) params: ProposalIdParamsDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    const { buffer, filename } = await this.service.proposalPdf(params.proposalId);
+    res.setHeader('content-type', 'application/pdf');
+    res.setHeader('content-disposition', `attachment; filename="${filename}"`);
+    return new StreamableFile(buffer);
   }
 
   /* Envía DE VERDAD la propuesta por correo a quienes se eligen; antes sólo cambiaba el estado. */

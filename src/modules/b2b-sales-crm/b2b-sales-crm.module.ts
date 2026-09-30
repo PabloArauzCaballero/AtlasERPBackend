@@ -42,6 +42,8 @@ import { B2BOverdueSweepService } from './services/b2b-overdue-sweep.service';
 import { B2BOnboardingService } from './services/b2b-onboarding.service';
 import { B2BPipelineService } from './services/b2b-pipeline.service';
 import { ProposalDeliveryService } from './services/proposal-delivery.service';
+import { ProposalPdfService } from './services/proposal-pdf.service';
+import { DocumentsModule } from '../documents/documents.module';
 import { B2BReconciliationService } from './services/b2b-reconciliation.service';
 import { B2BSalesCrmService } from './services/b2b-sales-crm.service';
 import { MerchantAccountingBridgeService } from './services/merchant-accounting-bridge.service';
@@ -65,6 +67,8 @@ import { CoreSignatureGuard } from './integration/core-signature.guard';
       EventOutboxModel,
     ]),
     BusinessActionLogsModule,
+    /* El PDF de la propuesta con membrete de ATLAS (worker documental compartido). */
+    DocumentsModule,
     AccountingModule,
     /* Facturación electrónica: la factura de comercio emite su documento fiscal (SIAT). */
     FiscalSiatModule,
@@ -104,6 +108,7 @@ import { CoreSignatureGuard } from './integration/core-signature.guard';
     B2BAccountsService,
     B2BPipelineService,
     ProposalDeliveryService,
+    ProposalPdfService,
     B2BContractsService,
     B2BOnboardingService,
     B2BBnplBillingService,
