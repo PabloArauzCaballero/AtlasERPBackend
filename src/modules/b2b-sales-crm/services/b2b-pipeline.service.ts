@@ -208,6 +208,18 @@ export class B2BPipelineService extends B2BSalesCrmUseCaseBase {
       throw new NotFoundException('Oportunidad no encontrada.');
     }
 
+    // Propuesta y negociación hablan DE una propuesta: sin ninguna creada, arrastrar la tarjeta ahí
+    // dejaba una oportunidad «en propuesta» sin nada que enviar ni negociar.
+    if (input.stage === OpportunityStage.PROPOSAL || input.stage === OpportunityStage.NEGOTIATION) {
+      const proposals = await this.repository.proposals.count({ where: { opportunityId: id } });
+
+      if (proposals === 0) {
+        throw new ConflictException(
+          'La oportunidad no puede pasar a propuesta sin al menos una propuesta creada: crea la propuesta primero.',
+        );
+      }
+    }
+
     if (input.stage === OpportunityStage.CONTRACTING) {
       const acceptedProposal = await this.repository.proposals.findOne({
         where: { opportunityId: id, status: ProposalStatus.ACCEPTED },
@@ -349,30 +361,6 @@ export class B2BPipelineService extends B2BSalesCrmUseCaseBase {
         this.requireEntity(created, 'Propuesta no encontrada luego de crear.'),
       );
     });
-  }
-
-  async sendProposal(proposalId: string): Promise<Record<string, unknown>> {
-    this.logger.infoContext(B2BPipelineService.name, 'B2B CRM use case started', {
-      useCase: 'sendProposal',
-    });
-    const proposal = await this.repository.findProposalWithLines(proposalId);
-
-    if (!proposal) {
-      throw new NotFoundException('Propuesta no encontrada.');
-    }
-
-    const pendingApproval = await this.repository.approvalRequests.findOne({
-      where: { proposalId, status: ApprovalStatus.PENDING },
-    });
-
-    if (pendingApproval) {
-      throw new ConflictException(
-        'La propuesta tiene aprobaciones pendientes y no puede enviarse.',
-      );
-    }
-
-    await proposal.update({ status: ProposalStatus.SENT, sentAt: new Date() });
-    return toProposalResponse(proposal);
   }
 
   async acceptProposal(proposalId: string): Promise<Record<string, unknown>> {

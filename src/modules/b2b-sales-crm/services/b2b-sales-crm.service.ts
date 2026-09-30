@@ -35,6 +35,7 @@ import type {
   RegisterMerchantPaymentDto,
   RegisterPurchaseDto,
   RejectProposalDto,
+  SendProposalDto,
   RunReconciliationDto,
   ScheduleCoverageDto,
   SignContractDto,
@@ -54,6 +55,7 @@ import { B2BOnboardingService } from './b2b-onboarding.service';
 import { B2BPipelineService } from './b2b-pipeline.service';
 import { B2BReconciliationService } from './b2b-reconciliation.service';
 import { B2BCoverageReviewService } from './coverage-review.service';
+import { ProposalDeliveryService } from './proposal-delivery.service';
 
 @Injectable()
 export class B2BSalesCrmService {
@@ -67,6 +69,7 @@ export class B2BSalesCrmService {
     private readonly overdueSweepService: B2BOverdueSweepService,
     private readonly reconciliationService: B2BReconciliationService,
     private readonly coverageReviewService: B2BCoverageReviewService,
+    private readonly proposalDelivery: ProposalDeliveryService,
   ) {}
 
   createAccount(input: CreateAccountDto, user: AuthUser): Promise<Record<string, unknown>> {
@@ -144,8 +147,16 @@ export class B2BSalesCrmService {
     return this.pipelineService.deleteProposal(proposalId);
   }
 
-  sendProposal(proposalId: string): Promise<Record<string, unknown>> {
-    return this.pipelineService.sendProposal(proposalId);
+  listProposalRecipients(proposalId: string): Promise<Record<string, unknown>[]> {
+    return this.proposalDelivery.recipients(proposalId);
+  }
+
+  sendProposal(
+    proposalId: string,
+    input: SendProposalDto,
+    user: AuthUser,
+  ): Promise<Record<string, unknown>> {
+    return this.proposalDelivery.send(proposalId, input, user);
   }
 
   acceptProposal(proposalId: string): Promise<Record<string, unknown>> {

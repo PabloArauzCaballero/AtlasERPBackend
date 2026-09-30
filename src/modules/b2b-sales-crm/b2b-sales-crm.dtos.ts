@@ -63,6 +63,7 @@ import type {
   registerMerchantPaymentSchema,
   registerPurchaseSchema,
   rejectProposalSchema,
+  sendProposalSchema,
   runReconciliationSchema,
   scheduleCoverageSchema,
   signContractSchema,
@@ -89,6 +90,7 @@ export type CreateProposalDto = z.infer<typeof createProposalSchema>;
 export type UpdateProposalDto = z.infer<typeof updateProposalSchema>;
 export type DecideApprovalDto = z.infer<typeof decideApprovalSchema>;
 export type RejectProposalDto = z.infer<typeof rejectProposalSchema>;
+export type SendProposalDto = z.infer<typeof sendProposalSchema>;
 export type CreateContractFromProposalDto = z.infer<typeof createContractFromProposalSchema>;
 export type SignContractDto = z.infer<typeof signContractSchema>;
 export type CreateOnboardingCaseDto = z.infer<typeof createOnboardingCaseSchema>;

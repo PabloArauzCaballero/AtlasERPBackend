@@ -9,6 +9,7 @@ import type {
   IdParamsDto,
   ProposalIdParamsDto,
   RejectProposalDto,
+  SendProposalDto,
   UpdateProposalDto,
 } from '../b2b-sales-crm.dtos';
 import {
@@ -17,6 +18,7 @@ import {
   idParamsSchema,
   proposalIdParamsSchema,
   rejectProposalSchema,
+  sendProposalSchema,
   updateProposalSchema,
 } from '../b2b-sales-crm.schemas';
 import { B2BSalesCrmService } from '../services/b2b-sales-crm.service';
@@ -51,12 +53,24 @@ export class ProposalsController {
     return this.service.createProposal(body, user);
   }
 
+  /* Contactos del comercio con correo: la pantalla pregunta a cuáles enviar antes de enviar. */
+  @Roles('COMMERCIAL_EXECUTIVE', 'COMMERCIAL_MANAGER', 'ADMIN')
+  @Get(':proposalId/recipients')
+  listProposalRecipients(
+    @Param(new ZodValidationPipe(proposalIdParamsSchema)) params: ProposalIdParamsDto,
+  ): Promise<Record<string, unknown>[]> {
+    return this.service.listProposalRecipients(params.proposalId);
+  }
+
+  /* Envía DE VERDAD la propuesta por correo a quienes se eligen; antes sólo cambiaba el estado. */
   @Roles('COMMERCIAL_EXECUTIVE', 'COMMERCIAL_MANAGER', 'ADMIN')
   @Patch(':proposalId/send')
   sendProposal(
     @Param(new ZodValidationPipe(proposalIdParamsSchema)) params: ProposalIdParamsDto,
+    @Body(new ZodValidationPipe(sendProposalSchema)) body: SendProposalDto,
+    @CurrentUser() user: AuthUser,
   ): Promise<Record<string, unknown>> {
-    return this.service.sendProposal(params.proposalId);
+    return this.service.sendProposal(params.proposalId, body, user);
   }
 
   @Roles('COMMERCIAL_EXECUTIVE', 'COMMERCIAL_MANAGER', 'ADMIN')
