@@ -4,6 +4,7 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { Op } from 'sequelize';
 import { env } from '../../../config/env';
@@ -43,8 +44,7 @@ const ENVIABLES = new Set<string>([ProposalStatus.DRAFT, ProposalStatus.SENT, 'A
  * - la propuesta sólo pasa a `SENT` si al menos un correo salió o quedó simulado; si el proveedor
  *   rechaza todos, no cambia nada y responde 502.
  *
- * `SIMULATED` es el caso de `EMAIL_PROVIDER_MODE=mock`: no llega nada al comercio. Se deja avanzar la
- * propuesta para poder probar el ciclo en TEST, pero la respuesta lo dice con todas las letras.
+ * El correo lo manda AtlasBackend con su Gmail (ver `transportar`); el ERP arma el texto y el PDF.
  */
 @Injectable()
 export class ProposalDeliveryService {
@@ -80,7 +80,13 @@ export class ProposalDeliveryService {
     proposalId: string,
     input: SendProposalDto,
     user: AuthUser,
+    atlasToken?: string | undefined,
   ): Promise<Record<string, unknown>> {
+    if (!atlasToken) {
+      throw new UnauthorizedException(
+        'No hay sesión de ATLAS para enviar el correo: vuelve a iniciar sesión en el ERP.',
+      );
+    }
     const proposal = await this.repository.findProposalWithLines(proposalId);
     if (!proposal) throw new NotFoundException('Propuesta no encontrada.');
     if (!ENVIABLES.has(proposal.status)) {
@@ -121,7 +127,12 @@ export class ProposalDeliveryService {
     const deliveries: ProposalDeliveryResult[] = [];
     for (const destinatario of destinatarios) {
       try {
-        const status = await transportar(destinatario.email, mensaje);
+        const status = await transportar(
+          destinatario.email,
+          mensaje,
+          atlasToken,
+          proposal.proposalNumber,
+        );
         deliveries.push({ ...destinatario, status, error: null });
       } catch (error) {
         const detalle = error instanceof Error ? error.message : String(error);
@@ -243,59 +254,59 @@ function componer(
 }
 
 /**
- * Mismo transporte que la factura fiscal (`fiscal-mail.service.ts`): SendGrid si está configurado;
- * si no, el buzón QA del emulador (`/mock/inbox/email`), y si tampoco, nada. Sólo SendGrid es `SENT`.
+ * El correo sale por AtlasBackend, que es donde vive el canal de correo de ATLAS (la Gmail API con
+ * la cuenta de la empresa): `POST /operations/notifications/internal-mail`, con la sesión de quien
+ * envía. El ERP no tiene proveedor propio; antes intentaba SendGrid, que nadie tiene contratado, y
+ * la propuesta quedaba «enviada» sin que saliera nada.
  */
 async function transportar(
   destinatario: string,
   mensaje: MensajePropuesta,
+  atlasToken: string,
+  proposalNumber: string,
 ): Promise<ProposalDeliveryStatus> {
-  if (env.EMAIL_PROVIDER_MODE === 'sendgrid') {
-    if (!env.SENDGRID_API_KEY || !env.EMAIL_FROM) throw new Error('SENDGRID_CONFIGURATION_MISSING');
-    const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
+  const response = await fetch(
+    `${env.ATLAS_IDENTITY_BASE_URL}/operations/notifications/internal-mail`,
+    {
       method: 'POST',
-      signal: AbortSignal.timeout(20_000),
+      signal: AbortSignal.timeout(30_000),
       headers: {
-        authorization: `Bearer ${env.SENDGRID_API_KEY}`,
+        authorization: `Bearer ${atlasToken}`,
+        'x-tenant-id': env.ATLAS_IDENTITY_TENANT_ID,
         'content-type': 'application/json',
+        accept: 'application/json',
       },
-      body: JSON.stringify({
-        personalizations: [{ to: [{ email: destinatario }] }],
-        from: { email: env.EMAIL_FROM },
-        subject: mensaje.asunto,
-        content: [{ type: 'text/plain', value: mensaje.cuerpo }],
-        ...(mensaje.adjunto
-          ? {
-              attachments: [
-                {
-                  content: mensaje.adjunto.buffer.toString('base64'),
-                  filename: mensaje.adjunto.filename,
-                  type: 'application/pdf',
-                  disposition: 'attachment',
-                },
-              ],
-            }
-          : {}),
-      }),
-    });
-    if (!response.ok) throw new Error(`SENDGRID_${response.status}`);
-    return 'SENT';
-  }
-  if (env.SIAT_MOCK_BASE_URL) {
-    const response = await fetch(new URL('/mock/inbox/email', env.SIAT_MOCK_BASE_URL), {
-      method: 'POST',
-      signal: AbortSignal.timeout(10_000),
-      headers: { 'content-type': 'application/json' },
-      // El buzón del emulador no admite adjuntos: se deja constancia del PDF en el cuerpo.
       body: JSON.stringify({
         to: destinatario,
         subject: mensaje.asunto,
-        body: mensaje.adjunto
-          ? `${mensaje.cuerpo}\n\nAdjunto: ${mensaje.adjunto.filename} (${mensaje.adjunto.buffer.length} bytes)`
-          : mensaje.cuerpo,
+        text: mensaje.cuerpo,
+        reference: `proposal:${proposalNumber}`,
+        attachments: mensaje.adjunto
+          ? [
+              {
+                filename: mensaje.adjunto.filename,
+                contentType: 'application/pdf',
+                contentBase64: mensaje.adjunto.buffer.toString('base64'),
+              },
+            ]
+          : [],
       }),
-    });
-    if (!response.ok) throw new Error(`BUZON_MOCK_${response.status}`);
+    },
+  );
+  if (!response.ok) {
+    const detalle = (await response.json().catch(() => null)) as {
+      error?: { code?: string; message?: string };
+      code?: string;
+      message?: string;
+    } | null;
+    const codigo = detalle?.error?.code ?? detalle?.code;
+    throw new Error(
+      codigo === 'MAIL_PROVIDER_NOT_CONFIGURED' || response.status === 503
+        ? 'ATLAS no tiene configurado su correo (Gmail) en este entorno.'
+        : response.status === 401 || response.status === 403
+          ? `ATLAS rechazó el envío con tu sesión (${response.status}): vuelve a iniciar sesión.`
+          : `ATLAS respondió ${response.status} al enviar el correo.`,
+    );
   }
-  return 'SIMULATED';
+  return 'SENT';
 }

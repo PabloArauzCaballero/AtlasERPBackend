@@ -162,8 +162,9 @@ export class B2BSalesCrmService {
     proposalId: string,
     input: SendProposalDto,
     user: AuthUser,
+    atlasToken: string | undefined,
   ): Promise<Record<string, unknown>> {
-    return this.proposalDelivery.send(proposalId, input, user);
+    return this.proposalDelivery.send(proposalId, input, user, atlasToken);
   }
 
   acceptProposal(proposalId: string): Promise<Record<string, unknown>> {

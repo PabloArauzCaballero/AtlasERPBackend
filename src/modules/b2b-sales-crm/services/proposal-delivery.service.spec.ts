@@ -1,4 +1,9 @@
-import { BadGatewayException, BadRequestException, ConflictException } from '@nestjs/common';
+import {
+  BadGatewayException,
+  BadRequestException,
+  ConflictException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { OpportunityStage, ProposalStatus } from '../b2b-sales-crm.enums';
 import { B2BPipelineService } from './b2b-pipeline.service';
 import { ProposalDeliveryService } from './proposal-delivery.service';
@@ -75,27 +80,52 @@ function build(
 }
 
 describe('enviar una propuesta al comercio', () => {
+  const TOKEN = 'token-de-atlas';
+  const ok = () =>
+    jest.spyOn(global, 'fetch').mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ data: { messageId: 'gm-1' } }),
+    } as Response);
   afterEach(() => jest.restoreAllMocks());
 
   it('pide destinatarios: un contacto de OTRA cuenta se rechaza y la propuesta no cambia', async () => {
     const { service, prop } = build(propuesta(), []);
     await expect(
-      service.send('prop-1', { contactIds: [CONTACTO], extraEmails: [] }, USER),
+      service.send('prop-1', { contactIds: [CONTACTO], extraEmails: [] }, USER, TOKEN),
     ).rejects.toThrow(BadRequestException);
     expect(prop.update).not.toHaveBeenCalled();
   });
 
-  it('sin proveedor el envío queda SIMULATED y lo dice; la propuesta pasa a SENT y queda registrada', async () => {
+  it('el correo sale por AtlasBackend con la sesión de quien envía y el PDF adjunto, uno por destinatario', async () => {
+    const fetchSpy = ok();
     const { service, prop, logs } = build();
     const result = await service.send(
       'prop-1',
       { contactIds: [CONTACTO], extraEmails: ['ANA@multicenter.bo', 'gerencia@multicenter.bo'] },
       USER,
+      TOKEN,
     );
-    expect(result.deliveries).toEqual([
-      { email: 'ana@multicenter.bo', contactName: 'Ana Pérez', status: 'SIMULATED', error: null },
-      { email: 'gerencia@multicenter.bo', contactName: null, status: 'SIMULATED', error: null },
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    const [url, init] = fetchSpy.mock.calls[0]! as [string, RequestInit];
+    expect(url).toMatch(/\/operations\/notifications\/internal-mail$/);
+    expect((init.headers as Record<string, string>).authorization).toBe(`Bearer ${TOKEN}`);
+    const body = JSON.parse(String(init.body));
+    expect(body).toMatchObject({
+      to: 'ana@multicenter.bo',
+      reference: 'proposal:PROP-2026-000002',
+    });
+    expect(body.attachments).toEqual([
+      expect.objectContaining({
+        filename: 'propuesta-PROP-2026-000002.pdf',
+        contentType: 'application/pdf',
+      }),
     ]);
+    expect(result.deliveries).toEqual([
+      { email: 'ana@multicenter.bo', contactName: 'Ana Pérez', status: 'SENT', error: null },
+      { email: 'gerencia@multicenter.bo', contactName: null, status: 'SENT', error: null },
+    ]);
+    expect(result.pdf).toEqual({ attached: true, error: null });
     expect(prop.update).toHaveBeenCalledWith(
       expect.objectContaining({ status: ProposalStatus.SENT }),
     );
@@ -104,61 +134,43 @@ describe('enviar una propuesta al comercio', () => {
     );
   });
 
-  it('si el proveedor rechaza todos los correos responde 502 y la propuesta sigue sin enviar', async () => {
-    const { env } = jest.requireMock('../../../config/env') as { env: Record<string, unknown> };
-    Object.assign(env, {
-      EMAIL_PROVIDER_MODE: 'sendgrid',
-      SENDGRID_API_KEY: 'k',
-      EMAIL_FROM: 'crm@atlas.bo',
-    });
-    jest
-      .spyOn(global, 'fetch')
-      .mockResolvedValue({ ok: false, status: 401, headers: new Headers() } as Response);
+  it('sin sesión de ATLAS no intenta nada', async () => {
+    const fetchSpy = ok();
     const { service, prop } = build();
-    try {
-      await expect(
-        service.send('prop-1', { contactIds: [CONTACTO], extraEmails: [] }, USER),
-      ).rejects.toThrow(BadGatewayException);
-      expect(prop.update).not.toHaveBeenCalled();
-    } finally {
-      Object.assign(env, { EMAIL_PROVIDER_MODE: 'mock' });
-    }
+    await expect(
+      service.send('prop-1', { contactIds: [CONTACTO], extraEmails: [] }, USER, undefined),
+    ).rejects.toThrow(UnauthorizedException);
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(prop.update).not.toHaveBeenCalled();
   });
 
-  it('con SendGrid el correo lleva la propuesta en PDF adjunta', async () => {
-    const { env } = jest.requireMock('../../../config/env') as { env: Record<string, unknown> };
-    Object.assign(env, {
-      EMAIL_PROVIDER_MODE: 'sendgrid',
-      SENDGRID_API_KEY: 'k',
-      EMAIL_FROM: 'crm@atlas.bo',
-    });
-    const fetchSpy = jest
-      .spyOn(global, 'fetch')
-      .mockResolvedValue({ ok: true, status: 202, headers: new Headers() } as Response);
-    const { service } = build();
-    try {
-      const result = await service.send(
-        'prop-1',
-        { contactIds: [CONTACTO], extraEmails: [] },
-        USER,
-      );
-      const body = JSON.parse(String((fetchSpy.mock.calls[0]![1] as RequestInit).body));
-      expect(body.attachments).toEqual([
-        expect.objectContaining({
-          filename: 'propuesta-PROP-2026-000002.pdf',
-          type: 'application/pdf',
-        }),
-      ]);
-      expect(result.pdf).toEqual({ attached: true, error: null });
-    } finally {
-      Object.assign(env, { EMAIL_PROVIDER_MODE: 'mock' });
-    }
+  it('si ATLAS no tiene correo configurado responde 502 con el motivo y la propuesta sigue sin enviar', async () => {
+    jest.spyOn(global, 'fetch').mockResolvedValue({
+      ok: false,
+      status: 503,
+      json: async () => ({ error: { code: 'MAIL_PROVIDER_NOT_CONFIGURED' } }),
+    } as Response);
+    const { service, prop } = build();
+    const error = await service
+      .send('prop-1', { contactIds: [CONTACTO], extraEmails: [] }, USER, TOKEN)
+      .catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(BadGatewayException);
+    expect(JSON.stringify((error as BadGatewayException).getResponse())).toContain(
+      'no tiene configurado su correo',
+    );
+    expect(prop.update).not.toHaveBeenCalled();
   });
 
   it('si el generador de PDF falla, el correo sale igual y la respuesta lo dice', async () => {
+    ok();
     const { service, pdf, prop } = build();
     pdf.pdf.mockRejectedValueOnce(new Error('PDF_WORKER_NOT_CONFIGURED'));
-    const result = await service.send('prop-1', { contactIds: [CONTACTO], extraEmails: [] }, USER);
+    const result = await service.send(
+      'prop-1',
+      { contactIds: [CONTACTO], extraEmails: [] },
+      USER,
+      TOKEN,
+    );
     expect(result.pdf).toEqual({ attached: false, error: 'PDF_WORKER_NOT_CONFIGURED' });
     expect(prop.update).toHaveBeenCalled();
   });
@@ -166,7 +178,7 @@ describe('enviar una propuesta al comercio', () => {
   it('una propuesta aceptada no se vuelve a enviar', async () => {
     const { service } = build(propuesta(ProposalStatus.ACCEPTED));
     await expect(
-      service.send('prop-1', { contactIds: [CONTACTO], extraEmails: [] }, USER),
+      service.send('prop-1', { contactIds: [CONTACTO], extraEmails: [] }, USER, TOKEN),
     ).rejects.toThrow(ConflictException);
   });
 

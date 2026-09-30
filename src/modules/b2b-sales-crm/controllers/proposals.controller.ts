@@ -7,10 +7,11 @@ import {
   Patch,
   Post,
   Query,
+  Req,
   Res,
   StreamableFile,
 } from '@nestjs/common';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
@@ -34,6 +35,9 @@ import {
   updateProposalSchema,
 } from '../b2b-sales-crm.schemas';
 import { B2BSalesCrmService } from '../services/b2b-sales-crm.service';
+
+/** Sesión de AtlasBackend de quien opera: con ella se manda el correo por el canal de ATLAS. */
+const UPSTREAM_ACCESS_COOKIE = 'atlas_upstream_at';
 
 @Controller('b2b/proposals')
 export class ProposalsController {
@@ -94,8 +98,12 @@ export class ProposalsController {
     @Param(new ZodValidationPipe(proposalIdParamsSchema)) params: ProposalIdParamsDto,
     @Body(new ZodValidationPipe(sendProposalSchema)) body: SendProposalDto,
     @CurrentUser() user: AuthUser,
+    @Req() req: Request,
   ): Promise<Record<string, unknown>> {
-    return this.service.sendProposal(params.proposalId, body, user);
+    const atlasToken = (req.cookies as Record<string, string> | undefined)?.[
+      UPSTREAM_ACCESS_COOKIE
+    ];
+    return this.service.sendProposal(params.proposalId, body, user, atlasToken);
   }
 
   @Roles('COMMERCIAL_EXECUTIVE', 'COMMERCIAL_MANAGER', 'ADMIN')
