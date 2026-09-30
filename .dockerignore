@@ -3,5 +3,8 @@ dist
 coverage
 .env
 .git
+!.git/HEAD
+!.git/packed-refs
+!.git/refs
 .gitignore
 npm-debug.log*

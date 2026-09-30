@@ -1,6 +1,6 @@
 import { Controller, Get } from '@nestjs/common';
 import { Public } from '../../common/decorators/public.decorator';
-import { HealthService } from './health.service';
+import { HealthService, type VersionPayload } from './health.service';
 
 @Controller()
 export class HealthController {
@@ -32,7 +32,7 @@ export class HealthController {
 
   @Public()
   @Get('version')
-  version(): { service: string; version: string; commit: string; environment: string } {
+  version(): VersionPayload {
     return this.healthService.version();
   }
 }

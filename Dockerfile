@@ -7,7 +7,11 @@ FROM node:22-alpine AS build
 WORKDIR /app
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
-RUN corepack yarn type-check && corepack yarn build
+# Identidad del artefacto: el commit se escribe AQUÍ, dentro de la imagen, no se toma de una variable de
+# runtime. Si SOURCE_COMMIT llega vacío, el script lo saca de .git; si tampoco puede, deja null (sin inventar).
+ARG SOURCE_COMMIT=""
+RUN corepack yarn type-check && corepack yarn build \
+ && node dist/scripts/ops/write-build-info.js
 
 FROM node:22-alpine AS production
 WORKDIR /app

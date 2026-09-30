@@ -7,6 +7,7 @@
  * foto vieja justo después de un despliegue, que es cuando más importa que sea nueva.
  */
 import { Injectable } from '@nestjs/common';
+import { getServedIdentity } from '../../common/build-info/build-info';
 import { env } from '../../config/env';
 import { RouteInventoryService } from './route-inventory.service';
 import { SchemaInventoryService } from './schema-inventory.service';
@@ -30,7 +31,7 @@ export class PlatformCatalogService {
         repository: 'AtlasERPBackend',
         service: 'atlas-erp-backend',
         version: process.env.APP_VERSION ?? 'unknown',
-        commit: process.env.APP_COMMIT_SHA ?? 'unknown',
+        commit: getServedIdentity().commit,
         routePrefix,
         generatedAt: new Date().toISOString(),
       },
