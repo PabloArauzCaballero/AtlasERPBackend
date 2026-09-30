@@ -41,6 +41,7 @@ import { B2BOverdueSweepProcessor } from './services/b2b-overdue-sweep.processor
 import { B2BOverdueSweepService } from './services/b2b-overdue-sweep.service';
 import { B2BOnboardingService } from './services/b2b-onboarding.service';
 import { B2BPipelineService } from './services/b2b-pipeline.service';
+import { ProposalDeliveryService } from './services/proposal-delivery.service';
 import { B2BReconciliationService } from './services/b2b-reconciliation.service';
 import { B2BSalesCrmService } from './services/b2b-sales-crm.service';
 import { MerchantAccountingBridgeService } from './services/merchant-accounting-bridge.service';
@@ -102,6 +103,7 @@ import { CoreSignatureGuard } from './integration/core-signature.guard';
     CatalogsService,
     B2BAccountsService,
     B2BPipelineService,
+    ProposalDeliveryService,
     B2BContractsService,
     B2BOnboardingService,
     B2BBnplBillingService,

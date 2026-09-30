@@ -326,6 +326,18 @@ export const decideApprovalSchema = z.object({
   reason: z.string().trim().min(3).max(1000),
 });
 
+/* A quién va la propuesta: contactos de la cuenta y/o correos sueltos. Al menos uno. */
+export const sendProposalSchema = z
+  .object({
+    contactIds: z.array(uuid).max(20).default([]),
+    extraEmails: z.array(z.string().trim().toLowerCase().email().max(180)).max(10).default([]),
+    message: z.string().trim().max(2000).optional(),
+  })
+  .refine((value) => value.contactIds.length + value.extraEmails.length > 0, {
+    message: 'Elige al menos un destinatario.',
+    path: ['contactIds'],
+  });
+
 export const rejectProposalSchema = z.object({
   reason: z.string().trim().min(3).max(500),
 });
