@@ -31,11 +31,16 @@ export class DocumentsService {
     return Boolean(env.PDF_WORKER_URL && env.PDF_WORKER_SERVICE_KEY);
   }
 
-  async generate(input: GenerateDocumentDto): Promise<GeneratedPdf> {
+  /**
+   * `brandId` sólo lo pasa el SERVIDOR: la propuesta comercial la firma `atlas-comercial`, porque la
+   * recibe un comercio y «ATLAS ERP» es el nombre de una herramienta interna. Sin él, la del entorno.
+   */
+  async generate(input: GenerateDocumentDto, brandId?: string): Promise<GeneratedPdf> {
     return this.render(
       input.templateId ?? DEFAULT_TEMPLATE_ID,
       input.payload,
       input.filename ?? 'documento.pdf',
+      brandId,
     );
   }
 
@@ -56,6 +61,7 @@ export class DocumentsService {
     templateId: string,
     payload: unknown,
     rawFilename: string,
+    brandId: string = env.PDF_WORKER_BRAND_ID,
   ): Promise<GeneratedPdf> {
     const baseUrl = env.PDF_WORKER_URL;
     const serviceKey = env.PDF_WORKER_SERVICE_KEY;
@@ -85,7 +91,7 @@ export class DocumentsService {
           templateId,
           // Quién firma el documento. Sin esto el worker pone su membrete por defecto, que es
           // el del motor de decisión, sobre facturas y listados que nunca pasaron por él.
-          brandId: env.PDF_WORKER_BRAND_ID,
+          brandId,
           payload,
           options: { filename, returnContent: true },
         }),

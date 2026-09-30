@@ -150,8 +150,8 @@ export class B2BSalesCrmService {
     return this.pipelineService.deleteProposal(proposalId);
   }
 
-  proposalPdf(proposalId: string): Promise<GeneratedPdf> {
-    return this.proposalPdfService.pdfById(proposalId);
+  async proposalPdf(proposalId: string, user: AuthUser): Promise<GeneratedPdf> {
+    return this.proposalPdfService.pdfById(proposalId, await this.proposalDelivery.senderOf(user));
   }
 
   listProposalRecipients(proposalId: string): Promise<Record<string, unknown>[]> {

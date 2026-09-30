@@ -57,6 +57,13 @@ function build(
     approvalRequests: { findOne: jest.fn(async () => null) },
     accounts: { findByPk: jest.fn(async () => ({ tradeName: 'Multicenter' })) },
     contacts: { findAll: jest.fn(async () => contactos) },
+    internalUsers: {
+      findByPk: jest.fn(async () => ({
+        fullName: 'Pablo Arauz',
+        email: 'pablo@atlas.bo',
+        roleCode: 'COMMERCIAL_MANAGER',
+      })),
+    },
   };
   const logs = { record: jest.fn(async () => undefined) };
   const pdf = {
@@ -114,7 +121,11 @@ describe('enviar una propuesta al comercio', () => {
     expect(body).toMatchObject({
       to: 'ana@multicenter.bo',
       reference: 'proposal:PROP-2026-000002',
+      fromName: 'Pablo Arauz · ATLAS',
+      replyTo: 'pablo@atlas.bo',
     });
+    expect(body.text.startsWith('Hola, Ana:')).toBe(true);
+    expect(body.html).toContain('Gerente comercial · ATLAS');
     expect(body.attachments).toEqual([
       expect.objectContaining({
         filename: 'propuesta-PROP-2026-000002.pdf',

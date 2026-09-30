@@ -83,9 +83,10 @@ export class ProposalsController {
   @Get(':proposalId/pdf')
   async getProposalPdf(
     @Param(new ZodValidationPipe(proposalIdParamsSchema)) params: ProposalIdParamsDto,
+    @CurrentUser() user: AuthUser,
     @Res({ passthrough: true }) res: Response,
   ): Promise<StreamableFile> {
-    const { buffer, filename } = await this.service.proposalPdf(params.proposalId);
+    const { buffer, filename } = await this.service.proposalPdf(params.proposalId, user);
     res.setHeader('content-type', 'application/pdf');
     res.setHeader('content-disposition', `attachment; filename="${filename}"`);
     return new StreamableFile(buffer);

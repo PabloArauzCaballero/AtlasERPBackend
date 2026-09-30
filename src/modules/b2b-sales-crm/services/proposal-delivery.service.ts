@@ -17,7 +17,13 @@ import type { CommercialProposalModel } from '../models/b2b-sales-crm.models';
 import { B2BSalesCrmRepository } from '../repositories/b2b-sales-crm.repository';
 import { BusinessActionLogsService } from '../../business-action-logs/business-action-logs.service';
 import type { GeneratedPdf } from '../../documents/documents.service';
-import { importe, ProposalPdfService } from './proposal-pdf.service';
+import { ProposalPdfService } from './proposal-pdf.service';
+import {
+  correoDePropuesta,
+  type ProposalEmail,
+  type ProposalSender,
+} from './proposal-email.template';
+import { cargoDe } from './proposal-terms';
 
 /** SENT = lo aceptó el proveedor. SIMULATED = no salió nada (sin proveedor). FAILED = el proveedor lo rechazó. */
 export type ProposalDeliveryStatus = 'SENT' | 'SIMULATED' | 'FAILED';
@@ -103,17 +109,14 @@ export class ProposalDeliveryService {
 
     const destinatarios = await this.resolveRecipients(proposal.accountId, input);
     const account = await this.repository.accounts.findByPk(proposal.accountId);
-    const mensaje = componer(
-      proposal,
-      account?.tradeName ?? account?.legalName ?? null,
-      input.message ?? null,
-    );
+    const sender = await this.senderOf(user);
     // El documento con membrete va adjunto. Si el generador no está, el correo sale igual (con
     // las condiciones en el cuerpo) y la respuesta lo dice: una propuesta no se queda sin enviar
     // porque falle el PDF, pero nadie puede creer que lo llevaba.
+    let adjunto: GeneratedPdf | null = null;
     let pdfError: string | null = null;
     try {
-      mensaje.adjunto = await this.proposalPdf.pdf(proposal, account, input.message ?? null);
+      adjunto = await this.proposalPdf.pdf(proposal, account, input.message ?? null, sender);
     } catch (error) {
       pdfError = error instanceof Error ? error.message : String(error);
       this.logger.warn('La propuesta se envía sin PDF: el generador documental falló.', {
@@ -127,9 +130,18 @@ export class ProposalDeliveryService {
     const deliveries: ProposalDeliveryResult[] = [];
     for (const destinatario of destinatarios) {
       try {
+        const correo = correoDePropuesta({
+          proposal,
+          account,
+          contactName: destinatario.contactName,
+          message: input.message ?? null,
+          sender,
+          pdfAttached: Boolean(adjunto),
+        });
         const status = await transportar(
           destinatario.email,
-          mensaje,
+          correo,
+          adjunto,
           atlasToken,
           proposal.proposalNumber,
         );
@@ -170,7 +182,18 @@ export class ProposalDeliveryService {
     return {
       ...toProposalResponse(proposal),
       deliveries,
-      pdf: { attached: Boolean(mensaje.adjunto), error: pdfError },
+      pdf: { attached: Boolean(adjunto), error: pdfError },
+    };
+  }
+
+  /** Quien envía firma el correo y el PDF, y recibe las respuestas del comercio. */
+  async senderOf(user: AuthUser): Promise<ProposalSender> {
+    const interno = await this.repository.internalUsers.findByPk(user.sub).catch(() => null);
+    const email = interno?.email ?? user.email ?? null;
+    return {
+      fullName: interno?.fullName?.trim() || email?.split('@')[0] || 'Equipo comercial',
+      email,
+      roleLabel: cargoDe(interno?.roleCode ?? user.roleCode ?? user.role),
     };
   }
 
@@ -214,45 +237,6 @@ export class ProposalDeliveryService {
 
 const CORREO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-interface MensajePropuesta {
-  asunto: string;
-  cuerpo: string;
-  adjunto?: GeneratedPdf;
-}
-
-function componer(
-  proposal: CommercialProposalModel,
-  comercio: string | null,
-  nota: string | null,
-): MensajePropuesta {
-  const condiciones = (proposal.lines ?? []).map((line) => {
-    const tasa =
-      line.ratePercent !== null && line.ratePercent !== undefined ? `${line.ratePercent} %` : null;
-    const fijo =
-      line.fixedAmount !== null && line.fixedAmount !== undefined
-        ? importe(line.fixedAmount, line.currency)
-        : null;
-    return `  • ${line.description}: ${[tasa, fijo].filter(Boolean).join(' + ') || '—'}`;
-  });
-  const cuerpo = [
-    `Estimados${comercio ? ` de ${comercio}` : ''}:`,
-    '',
-    `Les hacemos llegar la propuesta comercial ${proposal.proposalNumber} de ATLAS.`,
-    nota ? `\n${nota}\n` : '',
-    'Condiciones:',
-    ...(condiciones.length > 0 ? condiciones : ['  • Sin condiciones detalladas.']),
-    '',
-    `Ingreso mensual estimado: ${importe(proposal.totalEstimatedMonthlyRevenue)}`,
-    `Válida hasta: ${proposal.validUntil ?? 'sin fecha límite'}`,
-    '',
-    'Adjuntamos la propuesta completa en PDF.',
-    'Para aceptarla o hacernos cualquier consulta, respondan a este correo.',
-    '',
-    'Equipo comercial de ATLAS',
-  ].join('\n');
-  return { asunto: `Propuesta comercial ${proposal.proposalNumber} — ATLAS`, cuerpo };
-}
-
 /**
  * El correo sale por AtlasBackend, que es donde vive el canal de correo de ATLAS (la Gmail API con
  * la cuenta de la empresa): `POST /operations/notifications/internal-mail`, con la sesión de quien
@@ -261,7 +245,8 @@ function componer(
  */
 async function transportar(
   destinatario: string,
-  mensaje: MensajePropuesta,
+  correo: ProposalEmail,
+  adjunto: GeneratedPdf | null,
   atlasToken: string,
   proposalNumber: string,
 ): Promise<ProposalDeliveryStatus> {
@@ -278,15 +263,18 @@ async function transportar(
       },
       body: JSON.stringify({
         to: destinatario,
-        subject: mensaje.asunto,
-        text: mensaje.cuerpo,
+        subject: correo.subject,
+        text: correo.text,
+        html: correo.html,
+        fromName: correo.fromName,
+        ...(correo.replyTo ? { replyTo: correo.replyTo } : {}),
         reference: `proposal:${proposalNumber}`,
-        attachments: mensaje.adjunto
+        attachments: adjunto
           ? [
               {
-                filename: mensaje.adjunto.filename,
+                filename: adjunto.filename,
                 contentType: 'application/pdf',
-                contentBase64: mensaje.adjunto.buffer.toString('base64'),
+                contentBase64: adjunto.buffer.toString('base64'),
               },
             ]
           : [],
