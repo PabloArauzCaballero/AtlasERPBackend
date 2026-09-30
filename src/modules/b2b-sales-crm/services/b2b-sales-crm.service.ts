@@ -56,6 +56,8 @@ import { B2BPipelineService } from './b2b-pipeline.service';
 import { B2BReconciliationService } from './b2b-reconciliation.service';
 import { B2BCoverageReviewService } from './coverage-review.service';
 import { ProposalDeliveryService } from './proposal-delivery.service';
+import { ProposalPdfService } from './proposal-pdf.service';
+import type { GeneratedPdf } from '../../documents/documents.service';
 
 @Injectable()
 export class B2BSalesCrmService {
@@ -70,6 +72,7 @@ export class B2BSalesCrmService {
     private readonly reconciliationService: B2BReconciliationService,
     private readonly coverageReviewService: B2BCoverageReviewService,
     private readonly proposalDelivery: ProposalDeliveryService,
+    private readonly proposalPdfService: ProposalPdfService,
   ) {}
 
   createAccount(input: CreateAccountDto, user: AuthUser): Promise<Record<string, unknown>> {
@@ -145,6 +148,10 @@ export class B2BSalesCrmService {
 
   deleteProposal(proposalId: string): Promise<{ id: string; proposalNumber: string }> {
     return this.pipelineService.deleteProposal(proposalId);
+  }
+
+  proposalPdf(proposalId: string): Promise<GeneratedPdf> {
+    return this.proposalPdfService.pdfById(proposalId);
   }
 
   listProposalRecipients(proposalId: string): Promise<Record<string, unknown>[]> {

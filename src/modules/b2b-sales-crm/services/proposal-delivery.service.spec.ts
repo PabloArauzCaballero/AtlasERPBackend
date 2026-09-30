@@ -26,7 +26,16 @@ function propuesta(status: string = ProposalStatus.DRAFT) {
     status,
     validUntil: '2026-10-30',
     totalEstimatedMonthlyRevenue: '50000',
-    lines: [{ description: 'MDR', ratePercent: '2.5', fixedAmount: null, currency: 'BOB' }],
+    lines: [
+      {
+        termType: 'MDR',
+        billingTiming: 'PER_TRANSACTION',
+        description: 'MDR',
+        ratePercent: '2.5',
+        fixedAmount: null,
+        currency: 'BOB',
+      },
+    ],
     update: jest.fn(async function (this: { status: string }, values: { status: string }) {
       this.status = values.status;
     }),
@@ -45,11 +54,23 @@ function build(
     contacts: { findAll: jest.fn(async () => contactos) },
   };
   const logs = { record: jest.fn(async () => undefined) };
+  const pdf = {
+    pdf: jest.fn(async () => ({
+      buffer: Buffer.from('%PDF-1.7 propuesta'),
+      filename: 'propuesta-PROP-2026-000002.pdf',
+    })),
+  };
   return {
-    service: new ProposalDeliveryService(repo as never, logs as never, logger as never),
+    service: new ProposalDeliveryService(
+      repo as never,
+      logs as never,
+      logger as never,
+      pdf as never,
+    ),
     repo,
     logs,
     prop,
+    pdf,
   };
 }
 
@@ -102,6 +123,44 @@ describe('enviar una propuesta al comercio', () => {
     } finally {
       Object.assign(env, { EMAIL_PROVIDER_MODE: 'mock' });
     }
+  });
+
+  it('con SendGrid el correo lleva la propuesta en PDF adjunta', async () => {
+    const { env } = jest.requireMock('../../../config/env') as { env: Record<string, unknown> };
+    Object.assign(env, {
+      EMAIL_PROVIDER_MODE: 'sendgrid',
+      SENDGRID_API_KEY: 'k',
+      EMAIL_FROM: 'crm@atlas.bo',
+    });
+    const fetchSpy = jest
+      .spyOn(global, 'fetch')
+      .mockResolvedValue({ ok: true, status: 202, headers: new Headers() } as Response);
+    const { service } = build();
+    try {
+      const result = await service.send(
+        'prop-1',
+        { contactIds: [CONTACTO], extraEmails: [] },
+        USER,
+      );
+      const body = JSON.parse(String((fetchSpy.mock.calls[0]![1] as RequestInit).body));
+      expect(body.attachments).toEqual([
+        expect.objectContaining({
+          filename: 'propuesta-PROP-2026-000002.pdf',
+          type: 'application/pdf',
+        }),
+      ]);
+      expect(result.pdf).toEqual({ attached: true, error: null });
+    } finally {
+      Object.assign(env, { EMAIL_PROVIDER_MODE: 'mock' });
+    }
+  });
+
+  it('si el generador de PDF falla, el correo sale igual y la respuesta lo dice', async () => {
+    const { service, pdf, prop } = build();
+    pdf.pdf.mockRejectedValueOnce(new Error('PDF_WORKER_NOT_CONFIGURED'));
+    const result = await service.send('prop-1', { contactIds: [CONTACTO], extraEmails: [] }, USER);
+    expect(result.pdf).toEqual({ attached: false, error: 'PDF_WORKER_NOT_CONFIGURED' });
+    expect(prop.update).toHaveBeenCalled();
   });
 
   it('una propuesta aceptada no se vuelve a enviar', async () => {

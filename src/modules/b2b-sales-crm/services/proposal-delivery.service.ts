@@ -15,6 +15,8 @@ import { toProposalResponse } from '../b2b-sales-crm.mapper';
 import type { CommercialProposalModel } from '../models/b2b-sales-crm.models';
 import { B2BSalesCrmRepository } from '../repositories/b2b-sales-crm.repository';
 import { BusinessActionLogsService } from '../../business-action-logs/business-action-logs.service';
+import type { GeneratedPdf } from '../../documents/documents.service';
+import { importe, ProposalPdfService } from './proposal-pdf.service';
 
 /** SENT = lo aceptó el proveedor. SIMULATED = no salió nada (sin proveedor). FAILED = el proveedor lo rechazó. */
 export type ProposalDeliveryStatus = 'SENT' | 'SIMULATED' | 'FAILED';
@@ -50,6 +52,7 @@ export class ProposalDeliveryService {
     private readonly repository: B2BSalesCrmRepository,
     private readonly businessActionLogs: BusinessActionLogsService,
     private readonly logger: PinoLoggerService,
+    private readonly proposalPdf: ProposalPdfService,
   ) {}
 
   /** Contactos activos de la cuenta de la propuesta que tienen correo: los candidatos del envío. */
@@ -99,6 +102,21 @@ export class ProposalDeliveryService {
       account?.tradeName ?? account?.legalName ?? null,
       input.message ?? null,
     );
+    // El documento con membrete va adjunto. Si el generador no está, el correo sale igual (con
+    // las condiciones en el cuerpo) y la respuesta lo dice: una propuesta no se queda sin enviar
+    // porque falle el PDF, pero nadie puede creer que lo llevaba.
+    let pdfError: string | null = null;
+    try {
+      mensaje.adjunto = await this.proposalPdf.pdf(proposal, account, input.message ?? null);
+    } catch (error) {
+      pdfError = error instanceof Error ? error.message : String(error);
+      this.logger.warn('La propuesta se envía sin PDF: el generador documental falló.', {
+        layer: 'service',
+        module: 'b2b-sales-crm',
+        proposalId,
+        error: pdfError,
+      });
+    }
 
     const deliveries: ProposalDeliveryResult[] = [];
     for (const destinatario of destinatarios) {
@@ -138,7 +156,11 @@ export class ProposalDeliveryService {
       status: 'SUCCESS',
       inputSummary: { deliveries: deliveries.map(({ email, status }) => ({ email, status })) },
     });
-    return { ...toProposalResponse(proposal), deliveries };
+    return {
+      ...toProposalResponse(proposal),
+      deliveries,
+      pdf: { attached: Boolean(mensaje.adjunto), error: pdfError },
+    };
   }
 
   private async requireProposal(proposalId: string): Promise<CommercialProposalModel> {
@@ -184,14 +206,7 @@ const CORREO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 interface MensajePropuesta {
   asunto: string;
   cuerpo: string;
-}
-
-function importe(valor: string | null, currency = 'BOB'): string {
-  if (valor === null || valor === undefined || valor === '') return '—';
-  const numero = Number(valor);
-  return Number.isFinite(numero)
-    ? `${currency === 'BOB' ? 'Bs' : currency} ${numero.toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-    : String(valor);
+  adjunto?: GeneratedPdf;
 }
 
 function componer(
@@ -219,6 +234,7 @@ function componer(
     `Ingreso mensual estimado: ${importe(proposal.totalEstimatedMonthlyRevenue)}`,
     `Válida hasta: ${proposal.validUntil ?? 'sin fecha límite'}`,
     '',
+    'Adjuntamos la propuesta completa en PDF.',
     'Para aceptarla o hacernos cualquier consulta, respondan a este correo.',
     '',
     'Equipo comercial de ATLAS',
@@ -248,6 +264,18 @@ async function transportar(
         from: { email: env.EMAIL_FROM },
         subject: mensaje.asunto,
         content: [{ type: 'text/plain', value: mensaje.cuerpo }],
+        ...(mensaje.adjunto
+          ? {
+              attachments: [
+                {
+                  content: mensaje.adjunto.buffer.toString('base64'),
+                  filename: mensaje.adjunto.filename,
+                  type: 'application/pdf',
+                  disposition: 'attachment',
+                },
+              ],
+            }
+          : {}),
       }),
     });
     if (!response.ok) throw new Error(`SENDGRID_${response.status}`);
@@ -258,7 +286,14 @@ async function transportar(
       method: 'POST',
       signal: AbortSignal.timeout(10_000),
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ to: destinatario, subject: mensaje.asunto, body: mensaje.cuerpo }),
+      // El buzón del emulador no admite adjuntos: se deja constancia del PDF en el cuerpo.
+      body: JSON.stringify({
+        to: destinatario,
+        subject: mensaje.asunto,
+        body: mensaje.adjunto
+          ? `${mensaje.cuerpo}\n\nAdjunto: ${mensaje.adjunto.filename} (${mensaje.adjunto.buffer.length} bytes)`
+          : mensaje.cuerpo,
+      }),
     });
     if (!response.ok) throw new Error(`BUZON_MOCK_${response.status}`);
   }
