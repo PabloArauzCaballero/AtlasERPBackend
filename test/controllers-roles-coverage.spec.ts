@@ -25,6 +25,9 @@ const INTENTIONALLY_ANY_AUTHENTICATED = [
   // El asistente atiende a cualquier sesión; qué catálogo le toca lo decide el tipo de sesión.
   'AssistGatewayController.chat',
   'AssistGatewayController.conversacion',
+  'AssistGatewayController.conversaciones',
+  'AssistGatewayController.conversacionPorId',
+  'AssistGatewayController.borrarConversacion',
   'AuthGatewayController.requestPasswordChange',
   'AuthGatewayController.confirmPasswordChange',
   'AuthGatewayController.me',

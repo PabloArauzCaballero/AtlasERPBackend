@@ -1,10 +1,12 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpException,
   HttpStatus,
+  Param,
   Post,
   Req,
   Res,
@@ -132,9 +134,64 @@ export class AssistGatewayController {
     );
   }
 
+  /** El historial de esta persona en su superficie (Core devuelve las 30 más recientes). */
+  @Get('conversations')
+  @AnyAuthenticated()
+  conversaciones(
+    @Req() req: Request,
+    @CurrentUser() user: AuthUser,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    return this.reenviar(
+      {
+        method: 'GET',
+        path: `internal/assist/conversations?surface=${encodeURIComponent(superficieDeLaSesion(user))}`,
+        accessToken: this.token(req),
+      },
+      res,
+    );
+  }
+
+  /** Una conversación del historial con sus turnos. El 404 de Core llega tal cual. */
+  @Get('conversations/:id')
+  @AnyAuthenticated()
+  conversacionPorId(
+    @Req() req: Request,
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    return this.reenviar(
+      {
+        method: 'GET',
+        path: `internal/assist/conversations/${encodeURIComponent(id)}?surface=${encodeURIComponent(superficieDeLaSesion(user))}`,
+        accessToken: this.token(req),
+      },
+      res,
+    );
+  }
+
+  @Delete('conversations/:id')
+  @AnyAuthenticated()
+  borrarConversacion(
+    @Req() req: Request,
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    return this.reenviar(
+      {
+        method: 'DELETE',
+        path: `internal/assist/conversations/${encodeURIComponent(id)}?surface=${encodeURIComponent(superficieDeLaSesion(user))}`,
+        accessToken: this.token(req),
+      },
+      res,
+    );
+  }
+
   private async reenviar(
     input: {
-      method: 'GET' | 'POST';
+      method: 'GET' | 'POST' | 'DELETE';
       path: string;
       accessToken: string | undefined;
       body?: unknown;
