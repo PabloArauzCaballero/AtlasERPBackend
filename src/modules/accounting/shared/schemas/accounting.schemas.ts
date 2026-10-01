@@ -331,8 +331,13 @@ export const createAccountingDocumentSchema = z.object({
   accountingPeriodId: uuid.optional(),
   ledgerId: uuid.optional(),
   currencyCode: currency,
-  /* Era texto libre contra un CHECK de cuatro valores: un valor fuera daba 500. */
-  approvalStatus: zodEnum(documentApprovalStatusDomain).default('NOT_REQUIRED'),
+  /*
+   * Campo de COMPATIBILIDAD, ya sin autoridad (ATL-03 / DEC-10): si la necesidad de aprobación la
+   * eligiera quien crea el documento, podría eximirse a sí mismo. El servidor la decide por política;
+   * aquí sólo se tolera que un cliente anterior la siga enviando, y una contradicción con la decisión
+   * del servidor se rechaza (422) en lugar de ignorarse. Sin valor por defecto: omitirlo es lo correcto.
+   */
+  approvalStatus: zodEnum(documentApprovalStatusDomain).optional(),
   lines: z.array(journalLineSchema).min(2),
 });
 

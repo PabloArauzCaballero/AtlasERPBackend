@@ -37,6 +37,7 @@ describeWithDatabase('Asientos contables por HTTP autenticado sobre base migrada
   let cashAccountId: string;
   let revenueAccountId: string;
   let accountantToken: string;
+  let approverToken: string;
   let runSuffix: string;
   const today = new Date().toISOString().slice(0, 10);
 
@@ -59,6 +60,14 @@ describeWithDatabase('Asientos contables por HTTP autenticado sobre base migrada
     );
     otherLegalEntityId = other.rows[0]!.id;
 
+    // Política FIXTURE (opción conservadora de DEC-10, no una política aprobada): sin ella el servidor
+    // no crea documentos manuales. Este suite prueba el ciclo contable, no la política.
+    env.ACCOUNTING_APPROVAL_POLICY = 'ALL_MANUAL_REQUIRE_APPROVAL';
+    approverToken = tokenFor({
+      sub: 'e2e00000-0000-4000-8000-0000000000aa',
+      roles: ['CFO'],
+      legalEntityIds: [legalEntityId],
+    });
     accountantToken = tokenFor({
       sub: 'e2e00000-0000-4000-8000-000000000001',
       roles: ['ACCOUNTANT'],
@@ -156,6 +165,16 @@ describeWithDatabase('Asientos contables por HTTP autenticado sobre base migrada
       [documentId],
     );
     expect(draft.rows[0]).toEqual({ status: 'DRAFT', debit: '125.50', credit: '125.50' });
+
+    // Lo creó el contable: no se publica hasta que otra persona lo apruebe.
+    await request(app.getHttpServer())
+      .patch(`${documentsPath()}/${documentId}/post`)
+      .set('Authorization', `Bearer ${accountantToken}`)
+      .expect(409);
+    await request(app.getHttpServer())
+      .patch(`${documentsPath()}/${documentId}/approve`)
+      .set('Authorization', `Bearer ${approverToken}`)
+      .expect(200);
 
     await request(app.getHttpServer())
       .patch(`${documentsPath()}/${documentId}/post`)

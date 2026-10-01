@@ -33,6 +33,8 @@ import {
   assertClientApprovalStatus,
   assertDocumentApprovedForPosting,
 } from '../domain/document-approval';
+import { ApprovalOrigin, resolveApprovalForCreation } from '../domain/approval-policy';
+import { env } from '../../../../config/env';
 import { BusinessActionLogsService } from '../../../business-action-logs/business-action-logs.service';
 
 type JournalLineDto = CreateAccountingDocumentDto['lines'][number];
@@ -52,6 +54,15 @@ export type DraftJournalLineInput = Omit<JournalLineDto, 'debit' | 'credit' | 'a
 export type AccountingDraftInput = Omit<CreateAccountingDocumentDto, 'lines'> & {
   lines: DraftJournalLineInput[];
 };
+
+/**
+ * Hechos de la creación que decide el CÓDIGO de quien llama, nunca el body. `origin` por defecto es
+ * MANUAL: sólo los flujos internos que derivan el documento de un hecho de negocio (reverso, recibo,
+ * factura, puente del CRM) declaran SERVER_GENERATED. Un `sourceSystem: 'SYSTEM'` en un body no lo es.
+ */
+export interface CreateDraftOptions {
+  origin?: ApprovalOrigin;
+}
 
 /**
  * El documento con todo lo que el sistema ya sabía resuelto: número, referencia de origen, fecha
@@ -173,6 +184,7 @@ export class AccountingDocumentsService {
     rawInput: AccountingDraftInput,
     user: AuthUser,
     transaction: Transaction,
+    options: CreateDraftOptions = {},
   ) {
     return this.tracing.runInSpan(
       SPAN_NAMES.accountingDocumentDraft,
@@ -181,7 +193,7 @@ export class AccountingDocumentsService {
         [APP_ATTRIBUTES.operation]: 'draft',
         [APP_ATTRIBUTES.entityType]: 'accounting_document',
       },
-      () => this.createDraftInSpan(rawInput, user, transaction),
+      () => this.createDraftInSpan(rawInput, user, transaction, options),
     );
   }
 
@@ -189,6 +201,7 @@ export class AccountingDocumentsService {
     rawInput: AccountingDraftInput,
     user: AuthUser,
     transaction: Transaction,
+    options: CreateDraftOptions,
   ) {
     // El alcance se comprueba ANTES de numerar o deducir período y libro: esas lecturas son de la
     // entidad pedida, y hacerlas primero convertía los errores («esta empresa no tiene ejercicio
@@ -197,6 +210,13 @@ export class AccountingDocumentsService {
     this.legalEntityAccessService.assertCanAccessLegalEntity(user, rawInput.legalEntityId);
     // APPROVED o REJECTED no los elige quien crea el documento: los decide el servidor (ATL-03).
     assertClientApprovalStatus(rawInput.approvalStatus);
+    // La necesidad de aprobación la decide la política del servidor con hechos del servidor. Va antes
+    // de numerar: sin política no se consume un número ni se escribe nada (ACCOUNTING_APPROVAL_POLICY_UNAVAILABLE).
+    const approval = resolveApprovalForCreation(
+      { origin: options.origin ?? 'MANUAL' },
+      env.ACCOUNTING_APPROVAL_POLICY,
+      rawInput.approvalStatus,
+    );
     const numerado = await this.withDocumentNumber(rawInput, transaction);
     const input = await this.withResolvedDefaults(numerado, transaction);
     this.doubleEntryValidator.validate(input.lines);
@@ -221,7 +241,8 @@ export class AccountingDocumentsService {
         ledgerId: input.ledgerId,
         currencyCode: input.currencyCode,
         status: 'DRAFT',
-        approvalStatus: input.approvalStatus,
+        approvalStatus: approval.approvalStatus,
+        approvalPolicyRef: approval.approvalPolicyRef,
         policySnapshotId,
         createdBy: user.sub,
       },
@@ -261,7 +282,15 @@ export class AccountingDocumentsService {
       {
         accountingDocumentId: document.id,
         eventType: 'DRAFT_CREATED',
-        eventPayload: { documentNo: input.documentNo, lineCount: input.lines.length },
+        eventPayload: {
+          documentNo: input.documentNo,
+          lineCount: input.lines.length,
+          approval: {
+            status: approval.approvalStatus,
+            policyRef: approval.approvalPolicyRef,
+            reason: approval.reason,
+          },
+        },
         actorId: user.sub,
       },
       { transaction },
@@ -606,7 +635,6 @@ export class AccountingDocumentsService {
           ...(input.accountingPeriodId ? { accountingPeriodId: input.accountingPeriodId } : {}),
           ledgerId: original.ledgerId,
           currencyCode: original.currencyCode,
-          approvalStatus: 'NOT_REQUIRED',
           lines: originalLines.map((line) => ({
             glAccountId: line.glAccountId,
             debit: String(line.credit),
@@ -624,6 +652,7 @@ export class AccountingDocumentsService {
         },
         user,
         transaction,
+        { origin: 'SERVER_GENERATED' },
       );
 
       await reversal.document.update({ reversalOfId: original.id }, { transaction });

@@ -215,6 +215,18 @@ const envSchema = z
     HTTP_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().max(1_000_000).default(120),
 
     /*
+     * Política de aprobación de documentos contables MANUALES (ATL-03 / DEC-10). Sin valor, un
+     * documento manual NO se crea (409 ACCOUNTING_APPROVAL_POLICY_UNAVAILABLE): la falta de política
+     * nunca equivale a «no requiere aprobación». Único valor hoy: ALL_MANUAL_REQUIRE_APPROVAL, la
+     * opción conservadora y PROVISIONAL de DEC-10 (sin umbrales). Activarla en un entorno es una
+     * decisión de operación/finanzas, no un valor por defecto.
+     */
+    ACCOUNTING_APPROVAL_POLICY: z.preprocess(
+      emptyAsUndefined,
+      z.enum(['ALL_MANUAL_REQUIRE_APPROVAL']).optional(),
+    ),
+
+    /*
      * Entrega del outbox (P-03). El worker envía cada evento por HTTP firmado (HMAC-SHA256) a
      * `OUTBOX_DELIVERY_URL` y SÓLO un 2xx del receptor cuenta como publicado. Sin URL el worker
      * no finge entrega: deja los eventos PENDING y lo dice en cada ciclo. Ver

@@ -59,7 +59,9 @@ describe('contabilidad', () => {
 
   it('el documento contable conserva sus defectos y acepta lo que escriben siembra y humo', () => {
     const parsed = createAccountingDocumentSchema.parse(document);
-    expect(parsed.approvalStatus).toBe('NOT_REQUIRED');
+    // CAMBIO INTENCIONAL (ATL-03 / DEC-10): antes el defecto era NOT_REQUIRED, es decir, quien creaba el
+    // documento se eximía de aprobación por omisión. Ahora no hay defecto: lo decide la política del servidor.
+    expect(parsed.approvalStatus).toBeUndefined();
     expect(
       createAccountingDocumentSchema.safeParse({
         ...document,

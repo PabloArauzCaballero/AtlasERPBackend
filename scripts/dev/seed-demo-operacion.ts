@@ -98,6 +98,29 @@ async function pedir<T = RespuestaApi>(
   return (json?.data ?? json) as T;
 }
 
+/**
+ * Crea un documento manual. Sin política de aprobación configurada el servidor responde 409
+ * ACCOUNTING_APPROVAL_POLICY_UNAVAILABLE (nunca lo exime): se avisa y se sigue, sin ocultar ningún
+ * otro 409 ni crear la política desde aquí.
+ */
+async function crearDocumentoManual(cuerpo: unknown): Promise<RespuestaApi | null> {
+  try {
+    return await post('/accounting/documents', cuerpo);
+  } catch (error) {
+    if (
+      error instanceof ErrorDeApi &&
+      error.estado === 409 &&
+      error.cuerpo.includes('ACCOUNTING_APPROVAL_POLICY_UNAVAILABLE')
+    ) {
+      logger.warn(
+        'Documento manual NO creado: falta ACCOUNTING_APPROVAL_POLICY (DEC-10 sin decidir). Actívala en el entorno si quieres este asiento de demo.',
+      );
+      return null;
+    }
+    throw error;
+  }
+}
+
 const get = <T = RespuestaApi>(ruta: string) => pedir<T>('GET', ruta);
 const post = <T = RespuestaApi>(ruta: string, cuerpo: unknown, opciones = {}) =>
   pedir<T>('POST', ruta, cuerpo, opciones);
@@ -617,7 +640,11 @@ async function sembrarContabilidad(): Promise<void> {
     logger.info({ documento: numeroDocumento }, 'Borrador pendiente publicado');
   }
   if (!documentoExistente) {
-    const borrador = await post('/accounting/documents', {
+    // ATL-03 / DEC-10: el servidor decide si un documento manual exige aprobación y, sin política
+    // configurada, no lo crea. La siembra no la inventa: lo dice y sigue con el resto de la demo.
+    // Con la política activa el documento nace PENDING y publicarlo exige que lo apruebe OTRA persona,
+    // así que aquí queda pendiente de esa decisión (el `patch` de abajo tolera el 409 esperado).
+    const borrador = await crearDocumentoManual({
       legalEntityId: entidad.id,
       sourceSystem: 'ACCOUNTING',
       sourceType: 'MANUAL',

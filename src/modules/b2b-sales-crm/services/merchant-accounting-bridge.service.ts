@@ -162,6 +162,7 @@ export class MerchantAccountingBridgeService {
       this.buildDraft(invoice, input, context),
       user,
       transaction,
+      { origin: 'SERVER_GENERATED' },
     );
     await invoice.update({ accountingDocumentId: created.document.id }, { transaction });
 
@@ -391,7 +392,6 @@ export class MerchantAccountingBridgeService {
       accountingPeriodId: input.accountingPeriodId,
       ledgerId: input.ledgerId,
       currencyCode,
-      approvalStatus: 'NOT_REQUIRED',
       lines,
     };
   }
