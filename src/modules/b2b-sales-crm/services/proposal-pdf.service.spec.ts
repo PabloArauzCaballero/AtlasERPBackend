@@ -1,5 +1,10 @@
 import { generateDocumentSchema } from '../../documents/documents.schemas';
-import { payloadPropuesta, PROPOSAL_BRAND_ID, ProposalPdfService } from './proposal-pdf.service';
+import {
+  payloadPropuesta,
+  payloadPropuestaComercial,
+  PROPOSAL_BRAND_ID,
+  ProposalPdfService,
+} from './proposal-pdf.service';
 
 /**
  * El PDF de la propuesta tiene que pasar el contrato de `generic-result-report` o el worker lo
@@ -131,5 +136,44 @@ describe('propuesta en PDF', () => {
       expect.objectContaining({ templateId: 'generic-result-report' }),
       PROPOSAL_BRAND_ID,
     );
+  });
+  describe('lo que se le promete al comercio', () => {
+    const beneficios = () =>
+      payloadPropuestaComercial(propuesta as never, cuenta as never, null, firma)
+        .beneficios as Array<{ titulo: string; texto: string }>;
+
+    it('aclara que ATLAS paga si el cliente final no paga: riesgo cero en sus cuentas por cobrar', () => {
+      const credito = beneficios().find((b) => b.titulo === 'Crédito a cargo de ATLAS');
+      expect(credito?.texto).toMatch(/no paga, paga ATLAS/);
+      expect(credito?.texto).toMatch(/cuentas por cobrar tienen riesgo cero/);
+    });
+
+    it('dice que el cobro con QR es directo con su negocio y que ningún dinero pasa por ATLAS', () => {
+      const qr = beneficios().find((b) => b.titulo.startsWith('Cobro con QR'));
+      expect(qr?.texto).toMatch(/directo con su negocio/);
+      expect(qr?.texto).toMatch(/ningún dinero pasa por las cuentas de ATLAS/);
+    });
+
+    it('cambia «Acompañamiento» por «Simplicidad»: sin catálogo; escanea el QR del negocio y del POS', () => {
+      const titulos = beneficios().map((b) => b.titulo);
+      expect(titulos).not.toContain('Acompañamiento');
+      const simple = beneficios().find((b) => b.titulo === 'Simplicidad');
+      expect(simple?.texto).toMatch(/ningún catálogo/);
+      expect(simple?.texto).toMatch(/QR que identifica a su negocio y a su POS/);
+      expect(simple?.texto).toMatch(/QR bancario real/);
+    });
+
+    it('el PDF de respaldo (informe genérico) dice lo mismo', () => {
+      const payload = payloadPropuesta(propuesta as never, cuenta as never, null, firma);
+      const campos = (
+        payload.sections as Array<{ title: string; fields?: Array<{ label: string }> }>
+      ).find((sec) => sec.title.startsWith('Qué gana'))!.fields!;
+      expect(campos.map((f) => f.label)).toEqual([
+        'Más ventas',
+        'Crédito a cargo de ATLAS',
+        'Cobro con QR, directo a su negocio',
+        'Simplicidad',
+      ]);
+    });
   });
 });
