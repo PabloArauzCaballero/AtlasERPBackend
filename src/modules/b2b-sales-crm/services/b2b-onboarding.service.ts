@@ -167,15 +167,15 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
       }
       await this.assertAccountReadyForFolder(account, transaction);
 
-      // Predecesora: el onboarding prepara al comercio de un negocio en curso. Sin oportunidad
-      // viva (ni perdida) no hay nada que activar.
-      const oportunidadViva = await this.repository.opportunities.count({
-        where: { accountId: input.accountId, stage: { [Op.ne]: OpportunityStage.CLOSED_LOST } },
+      // El onboarding es el último paso del embudo: sin una oportunidad ganada (contrato firmado)
+      // se saltaría la calificación, la oportunidad y la contratación que lo preceden.
+      const ganadas = await this.repository.opportunities.count({
+        where: { accountId: input.accountId, stage: OpportunityStage.CLOSED_WON },
         transaction,
       });
-      if (oportunidadViva === 0) {
+      if (ganadas === 0) {
         throw new ConflictException(
-          'Crea una oportunidad para la cuenta antes de iniciar su onboarding.',
+          'Este comercio no tiene una oportunidad ganada: cierra la venta con contrato firmado antes de iniciar el onboarding.',
         );
       }
 

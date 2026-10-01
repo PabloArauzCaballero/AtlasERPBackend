@@ -627,13 +627,13 @@ describe('B2BOnboardingService · la carpeta del comercio al abrir el caso', () 
     checklistItems: [{ itemType: 'nit', description: 'NIT vigente' }],
   };
 
-  // Predecesora (Pablo, 2026-09-28): calificar → oportunidad → onboarding.
-  it('sin ninguna oportunidad viva no abre el caso (409) ni toca la carpeta', async () => {
+  // Predecesora (Pablo, 2026-09-28 y 2026-10-01): calificar → oportunidad → GANADA → onboarding.
+  it('sin oportunidad GANADA no abre el caso (409) ni toca la carpeta', async () => {
     oportunidades = 0;
     const { service, merchantFolder, repository } = conAlta();
 
     await expect(service.createOnboardingCase(entrada, 'tok')).rejects.toThrow(
-      'Crea una oportunidad para la cuenta antes de iniciar su onboarding.',
+      /oportunidad ganada/,
     );
     expect(
       (repository.onboardingCases as unknown as { create: jest.Mock }).create,
