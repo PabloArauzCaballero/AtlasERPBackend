@@ -116,6 +116,12 @@ services:
   api:
     environment:
       APP_COMMIT_SHA: '${SOURCE_COMMIT:-}'
+      # ATL-03 / DEC-10: política de aprobación de documentos contables MANUALES. Sin valor el servidor
+      # NO crea documentos manuales (409), así que un despliegue de pruebas sin esta variable perdería el
+      # alta manual. El defecto de ESTE compose es la opción conservadora y PROVISIONAL de DEC-10 (todo
+      # asiento manual lo aprueba otra persona, sin umbrales). Se sustituye poniendo la variable en el panel
+      # de Coolify; no es una decisión de finanzas ni habilita producción por sí sola.
+      ACCOUNTING_APPROVAL_POLICY: '${ACCOUNTING_APPROVAL_POLICY:-ALL_MANUAL_REQUIRE_APPROVAL}'
       APP_VERSION: '1.0.0'
     # Alias ESTABLE en la red compartida: es como lo encuentran los otros bloques.
     # El nombre del contenedor lleva una marca de tiempo y cambia en cada despliegue;
