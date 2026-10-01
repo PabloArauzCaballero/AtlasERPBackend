@@ -2,12 +2,15 @@
  * ATL-03 · Aprobación del documento contable decidida por el servidor, y ATL-05 · listado filtrado
  * por entidad EN LA CONSULTA con total exacto. HTTP completo (guardas reales) + PostgreSQL migrado.
  *
- * Provisional mientras DEC-10 no fije umbrales: el cliente pide NOT_REQUIRED o PENDING; aprueba o
- * rechaza un CFO/ADMIN distinto del creador; PENDING, REJECTED y un APPROVED sin aprobador no se
- * publican.
+ * DEC-10 sigue sin decidir: la política que usa esta suite (ALL_MANUAL_REQUIRE_APPROVAL, sin umbrales) es
+ * un FIXTURE de la opción conservadora, no una política aprobada por finanzas. Aquí se prueba el
+ * MECANISMO: el servidor decide la necesidad de aprobación; el cliente no se exime; sin política no se
+ * crea; aprueba o rechaza un CFO/ADMIN distinto del creador; PENDING, REJECTED, un APPROVED sin
+ * aprobador y un NOT_REQUIRED sin política registrada no se publican.
  */
 import { randomUUID } from 'node:crypto';
 import * as request from 'supertest';
+import type { Env } from '../src/config/env';
 import { describeWithDatabase } from './support/coverage-integration-db';
 import { bootAuthzHttpApp, signAccessToken } from './support/authz-http-app';
 import type { AuthzHttpApp } from './support/authz-http-app';
@@ -18,6 +21,7 @@ describeWithDatabase('ATL-03 / ATL-05 aprobación y listado de documentos contab
   let h: AuthzHttpApp;
   let shared: SharedAccounting;
   let A: LegalEntityWorld;
+  let env: Env;
   const ids = { accountant: randomUUID(), cfo: randomUUID(), cfo2: randomUUID() };
   let tokens: Record<'accountant' | 'cfo' | 'cfo2' | 'admin', string>;
 
@@ -53,7 +57,7 @@ describeWithDatabase('ATL-03 / ATL-05 aprobación y listado de documentos contab
 
   async function row(id: string) {
     const { rows } = await h.sql.query(
-      `SELECT status, approval_status, approved_by, approved_at, rejected_by, rejected_at
+      `SELECT status, approval_status, approval_policy_ref, approved_by, approved_at, rejected_by, rejected_at
          FROM accounting_document WHERE id = $1`,
       [id],
     );
@@ -71,6 +75,11 @@ describeWithDatabase('ATL-03 / ATL-05 aprobación y listado de documentos contab
 
   beforeAll(async () => {
     h = await bootAuthzHttpApp('approval_le');
+    // `env` se evalúa al importarlo: hay que traerlo DESPUÉS de que el arnés apunte a su base.
+    ({ env } = await import('../src/config/env'));
+    // Política FIXTURE (opción conservadora de DEC-10), no una política aprobada. Las pruebas de
+    // «sin política» la retiran y la restauran en su propio bloque.
+    env.ACCOUNTING_APPROVAL_POLICY = 'ALL_MANUAL_REQUIRE_APPROVAL';
     shared = await seedSharedAccounting(h.sql);
     A = await seedLegalEntityWorld(h.sql, shared, 'A');
     const scope = [A.legalEntityId];
@@ -90,20 +99,24 @@ describeWithDatabase('ATL-03 / ATL-05 aprobación y listado de documentos contab
     await h?.close();
   });
 
-  describe('alta: el cliente no autocertifica', () => {
-    it('approvalStatus APPROVED en el cuerpo responde 422 y no escribe nada', async () => {
-      const before = await h.sql.query('SELECT count(*)::int AS n FROM accounting_document');
+  async function documentCount(): Promise<number> {
+    const { rows } = await h.sql.query('SELECT count(*)::int AS n FROM accounting_document');
+    return rows[0].n as number;
+  }
+
+  describe('alta: el servidor decide, el cliente no se exime ni se autocertifica', () => {
+    it('AP-06 approvalStatus APPROVED en el cuerpo responde 422 y no escribe nada', async () => {
+      const before = await documentCount();
       const res = await api()
         .post('/api/v1/accounting/documents')
         .set(bearer(tokens.admin))
         .send(draft('APPROVED'))
         .expect(422);
       expect(res.body.error.code).toBe('ACCOUNTING_DOCUMENT_APPROVAL_NOT_CLIENT_SETTABLE');
-      const after = await h.sql.query('SELECT count(*)::int AS n FROM accounting_document');
-      expect(after.rows[0].n).toBe(before.rows[0].n);
+      expect(await documentCount()).toBe(before);
     });
 
-    it('REJECTED en el cuerpo también es 422', async () => {
+    it('AP-06 REJECTED en el cuerpo también es 422', async () => {
       await api()
         .post('/api/v1/accounting/documents')
         .set(bearer(tokens.accountant))
@@ -111,13 +124,116 @@ describeWithDatabase('ATL-03 / ATL-05 aprobación y listado de documentos contab
         .expect(422);
     });
 
-    it('sin approvalStatus sigue siendo NOT_REQUIRED y se publica (lo que hace el ERP web)', async () => {
+    it('AP-04 sin approvalStatus queda PENDING con la política registrada, y no se publica hasta que otro apruebe', async () => {
       const id = await createDraft(tokens.accountant);
-      expect((await row(id)).approval_status).toBe('NOT_REQUIRED');
+      expect(await row(id)).toMatchObject({
+        approval_status: 'PENDING',
+        approval_policy_ref: 'ALL_MANUAL_REQUIRE_APPROVAL@1',
+      });
+      const { rows } = await h.sql.query(
+        `SELECT event_payload FROM document_audit_log
+          WHERE accounting_document_id = $1 AND event_type = 'DRAFT_CREATED'`,
+        [id],
+      );
+      expect(rows[0].event_payload.approval).toMatchObject({
+        status: 'PENDING',
+        policyRef: 'ALL_MANUAL_REQUIRE_APPROVAL@1',
+      });
+      const res = await api()
+        .patch(`/api/v1/accounting/documents/${id}/post`)
+        .set(bearer(tokens.accountant))
+        .expect(409);
+      expect(res.body.error.code).toBe('ACCOUNTING_DOCUMENT_APPROVAL_REQUIRED');
+    });
+
+    it('AP-05 pedir NOT_REQUIRED NO da la exención: 422 y cero documentos', async () => {
+      const before = await documentCount();
+      const res = await api()
+        .post('/api/v1/accounting/documents')
+        .set(bearer(tokens.admin))
+        .send(draft('NOT_REQUIRED'))
+        .expect(422);
+      expect(res.body.error.code).toBe('ACCOUNTING_DOCUMENT_APPROVAL_STATUS_CONTRADICTS_POLICY');
+      expect(await documentCount()).toBe(before);
+    });
+
+    it('AP-19 declarar sourceSystem SYSTEM / sourceType de integración en el cuerpo no concede la exención', async () => {
+      const res = await api()
+        .post('/api/v1/accounting/documents')
+        .set(bearer(tokens.accountant))
+        .send({ ...draft(), sourceSystem: 'SYSTEM', sourceType: 'REVERSAL' })
+        .expect(201);
+      expect((await row(res.body.data.document.id)).approval_status).toBe('PENDING');
+    });
+
+    it('AP-18 lote: un ítem que pide NOT_REQUIRED rechaza TODO el lote sin escribir; sin el campo, todos PENDING', async () => {
+      const before = await documentCount();
+      const item = (n: number, approvalStatus?: string) => ({
+        ...draft(approvalStatus),
+        sourceSystem: 'TEST',
+        sourceType: 'BULK',
+        sourceId: `AP18-${n}-${randomUUID()}`,
+      });
+      await api()
+        .post('/api/v1/accounting/documents/bulk')
+        .set(bearer(tokens.accountant))
+        .send({ items: [item(1), item(2, 'NOT_REQUIRED')] })
+        .expect(422);
+      expect(await documentCount()).toBe(before);
+      const ok = await api()
+        .post('/api/v1/accounting/documents/bulk')
+        .set(bearer(tokens.accountant))
+        .send({ items: [item(3), item(4)] })
+        .expect(201);
+      const created = ok.body.data.documents as Array<{ id: string }>;
+      expect(created).toHaveLength(2);
+      for (const doc of created) expect((await row(doc.id)).approval_status).toBe('PENDING');
+    });
+
+    it('AP-08 sin política configurada no se crea nada (409 controlado), sea cual sea el cuerpo', async () => {
+      const configured = env.ACCOUNTING_APPROVAL_POLICY;
+      env.ACCOUNTING_APPROVAL_POLICY = undefined;
+      try {
+        const before = await documentCount();
+        for (const approvalStatus of [undefined, 'NOT_REQUIRED', 'PENDING']) {
+          const res = await api()
+            .post('/api/v1/accounting/documents')
+            .set(bearer(tokens.admin))
+            .send(draft(approvalStatus))
+            .expect(409);
+          expect(res.body.error.code).toBe('ACCOUNTING_APPROVAL_POLICY_UNAVAILABLE');
+        }
+        expect(await documentCount()).toBe(before);
+      } finally {
+        env.ACCOUNTING_APPROVAL_POLICY = configured;
+      }
+    });
+
+    it('AP-07 el reverso (generado por el servidor) nace exento por la regla del servidor y se publica', async () => {
+      const id = await createDraft(tokens.accountant);
+      await api()
+        .patch(`/api/v1/accounting/documents/${id}/approve`)
+        .set(bearer(tokens.cfo))
+        .expect(200);
       await api()
         .patch(`/api/v1/accounting/documents/${id}/post`)
         .set(bearer(tokens.accountant))
         .expect(200);
+      const res = await api()
+        .post(`/api/v1/accounting/documents/${id}/reverse`)
+        .set(bearer(tokens.cfo))
+        .send({ reversalDate: today(), reason: 'prueba AP-07' });
+      expect(res.status).toBeLessThan(300);
+      const { rows } = await h.sql.query(
+        `SELECT status, approval_status, approval_policy_ref FROM accounting_document
+          WHERE reversal_of_id = $1`,
+        [id],
+      );
+      expect(rows[0]).toMatchObject({
+        status: 'POSTED',
+        approval_status: 'NOT_REQUIRED',
+        approval_policy_ref: 'SERVER_GENERATED_DOCUMENT@1',
+      });
     });
   });
 
@@ -133,7 +249,7 @@ describeWithDatabase('ATL-03 / ATL-05 aprobación y listado de documentos contab
       expect(await journalCount(id, 'POSTED')).toBe(0);
     });
 
-    it('REJECTED → post 409 y sigue en DRAFT', async () => {
+    it('REJECTED → post 409 y sigue en DRAFT; y no se puede aprobar después (AP-15)', async () => {
       const id = await createDraft(tokens.accountant, 'PENDING');
       await api()
         .patch(`/api/v1/accounting/documents/${id}/reject`)
@@ -145,11 +261,20 @@ describeWithDatabase('ATL-03 / ATL-05 aprobación y listado de documentos contab
         .patch(`/api/v1/accounting/documents/${id}/post`)
         .set(bearer(tokens.admin))
         .expect(409);
-      expect((await row(id)).status).toBe('DRAFT');
+      const again = await api()
+        .patch(`/api/v1/accounting/documents/${id}/approve`)
+        .set(bearer(tokens.cfo2))
+        .expect(409);
+      expect(again.body.error.code).toBe('ACCOUNTING_DOCUMENT_NOT_PENDING_APPROVAL');
+      expect(await row(id)).toMatchObject({
+        status: 'DRAFT',
+        approval_status: 'REJECTED',
+        approved_by: null,
+      });
       expect(await journalCount(id, 'POSTED')).toBe(0);
     });
 
-    it('un APPROVED sin aprobador registrado (autocertificado de antes) no se publica', async () => {
+    it('AP-12 un APPROVED sin aprobador registrado (autocertificado de antes) no se publica', async () => {
       const id = await createDraft(tokens.accountant, 'PENDING');
       await h.sql.query(
         `UPDATE accounting_document SET approval_status = 'APPROVED' WHERE id = $1`,
@@ -159,6 +284,44 @@ describeWithDatabase('ATL-03 / ATL-05 aprobación y listado de documentos contab
         .patch(`/api/v1/accounting/documents/${id}/post`)
         .set(bearer(tokens.admin))
         .expect(409);
+    });
+
+    it('AP-21 un borrador NOT_REQUIRED sin política registrada (anterior a ATL-03) no se publica ni se fabrica una aprobación', async () => {
+      const { rows } = await h.sql.query(
+        `INSERT INTO accounting_document (legal_entity_id, source_system, source_type, source_id,
+           document_type, document_no, document_date, posting_date, accounting_period_id, ledger_id,
+           approval_status)
+         VALUES ($1, 'LEGACY', 'SYNTHETIC', gen_random_uuid()::text, 'JOURNAL', $2, $3, $3, $4, $5, 'NOT_REQUIRED')
+         RETURNING id`,
+        [A.legalEntityId, `LEG-${randomUUID().slice(0, 8)}`, today(), A.periodId, A.ledgerId],
+      );
+      const id = rows[0].id as string;
+      const res = await api()
+        .patch(`/api/v1/accounting/documents/${id}/post`)
+        .set(bearer(tokens.admin))
+        .expect(409);
+      expect(res.body.error.code).toBe('ACCOUNTING_DOCUMENT_APPROVAL_POLICY_MISSING');
+      expect(await row(id)).toMatchObject({ status: 'DRAFT', approved_by: null });
+    });
+
+    it('AP-13 dos publicaciones simultáneas: un solo efecto contable, la otra 409', async () => {
+      const id = await createDraft(tokens.accountant);
+      await api()
+        .patch(`/api/v1/accounting/documents/${id}/approve`)
+        .set(bearer(tokens.cfo))
+        .expect(200);
+      const [one, two] = await Promise.all([
+        api().patch(`/api/v1/accounting/documents/${id}/post`).set(bearer(tokens.accountant)),
+        api().patch(`/api/v1/accounting/documents/${id}/post`).set(bearer(tokens.accountant)),
+      ]);
+      expect([one.status, two.status].sort()).toEqual([200, 409]);
+      expect(await journalCount(id, 'POSTED')).toBe(1);
+      const { rows } = await h.sql.query(
+        `SELECT count(*)::int AS n FROM event_outbox
+          WHERE event_key = $1`,
+        [`accounting-document-posted-${id}`],
+      );
+      expect(rows[0].n).toBe(1);
     });
   });
 
@@ -170,6 +333,35 @@ describeWithDatabase('ATL-03 / ATL-05 aprobación y listado de documentos contab
         .set(bearer(tokens.cfo))
         .expect(403);
       expect(res.body.error.code).toBe('ACCOUNTING_DOCUMENT_SELF_APPROVAL_FORBIDDEN');
+      expect(await row(id)).toMatchObject({ approval_status: 'PENDING', approved_by: null });
+    });
+
+    it('AP-09 el creador no aprueba lo suyo ni con un JWT renovado de la misma identidad', async () => {
+      const id = await createDraft(tokens.cfo, 'PENDING');
+      const renewed = signAccessToken({
+        sub: ids.cfo,
+        roles: ['CFO'],
+        legalEntityIds: [A.legalEntityId],
+      });
+      const res = await api()
+        .patch(`/api/v1/accounting/documents/${id}/approve`)
+        .set(bearer(renewed))
+        .expect(403);
+      expect(res.body.error.code).toBe('ACCOUNTING_DOCUMENT_SELF_APPROVAL_FORBIDDEN');
+      expect((await row(id)).approval_status).toBe('PENDING');
+    });
+
+    it('AP-10 un CFO sin alcance sobre la entidad del documento recibe 403 y no decide', async () => {
+      const id = await createDraft(tokens.accountant, 'PENDING');
+      const foreign = signAccessToken({
+        sub: randomUUID(),
+        roles: ['CFO'],
+        legalEntityIds: [randomUUID()],
+      });
+      await api()
+        .patch(`/api/v1/accounting/documents/${id}/approve`)
+        .set(bearer(foreign))
+        .expect(403);
       expect(await row(id)).toMatchObject({ approval_status: 'PENDING', approved_by: null });
     });
 

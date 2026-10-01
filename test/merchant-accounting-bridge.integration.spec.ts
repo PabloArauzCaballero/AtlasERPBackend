@@ -384,45 +384,49 @@ if (!databaseUrl && databaseRequired) {
 
     it('recupera el documento huérfano de un intento anterior sin crear otro', async () => {
       const f = await fixture();
-      const orphan = await documents.createDraft(
-        {
-          legalEntityId: f.legalEntityId,
-          sourceSystem: 'CRM',
-          sourceType: 'MERCHANT_INVOICE',
-          sourceId: f.invoiceId,
-          documentType: 'AR_INVOICE',
-          documentNo: `MINV-ORPHAN-${f.invoiceId.slice(0, 8)}`,
-          documentDate: new Date('2026-09-15'),
-          postingDate: new Date('2026-09-15'),
-          accountingPeriodId: f.periodId,
-          ledgerId: f.ledgerId,
-          currencyCode: 'BOB',
-          approvalStatus: 'NOT_REQUIRED',
-          lines: [
-            {
-              glAccountId: f.arAccountId,
-              debit: 113,
-              credit: 0,
-              currencyCode: 'BOB',
-              amountLc: 113,
-            },
-            {
-              glAccountId: f.revenueAccountId,
-              debit: 0,
-              credit: 100,
-              currencyCode: 'BOB',
-              amountLc: 100,
-            },
-            {
-              glAccountId: f.taxAccountId,
-              debit: 0,
-              credit: 13,
-              currencyCode: 'BOB',
-              amountLc: 13,
-            },
-          ],
-        },
-        admin,
+      // Lo que dejó el puente en un intento anterior: un documento que genera el SERVIDOR, no uno manual.
+      const orphan = await sequelize.transaction((transaction) =>
+        documents.createDraftInTransaction(
+          {
+            legalEntityId: f.legalEntityId,
+            sourceSystem: 'CRM',
+            sourceType: 'MERCHANT_INVOICE',
+            sourceId: f.invoiceId,
+            documentType: 'AR_INVOICE',
+            documentNo: `MINV-ORPHAN-${f.invoiceId.slice(0, 8)}`,
+            documentDate: new Date('2026-09-15'),
+            postingDate: new Date('2026-09-15'),
+            accountingPeriodId: f.periodId,
+            ledgerId: f.ledgerId,
+            currencyCode: 'BOB',
+            lines: [
+              {
+                glAccountId: f.arAccountId,
+                debit: 113,
+                credit: 0,
+                currencyCode: 'BOB',
+                amountLc: 113,
+              },
+              {
+                glAccountId: f.revenueAccountId,
+                debit: 0,
+                credit: 100,
+                currencyCode: 'BOB',
+                amountLc: 100,
+              },
+              {
+                glAccountId: f.taxAccountId,
+                debit: 0,
+                credit: 13,
+                currencyCode: 'BOB',
+                amountLc: 13,
+              },
+            ],
+          },
+          admin,
+          transaction,
+          { origin: 'SERVER_GENERATED' },
+        ),
       );
 
       const result = await bridge.postInvoiceToGl(f.invoiceId, request(f), admin);
@@ -598,30 +602,44 @@ if (!databaseUrl && databaseRequired) {
 
     it('no publica un documento con aprobación pendiente', async () => {
       const f = await fixture();
-      const pending = await documents.createDraft(
-        {
-          legalEntityId: f.legalEntityId,
-          sourceSystem: 'ATLAS_ERP',
-          sourceType: 'MANUAL',
-          documentType: 'JOURNAL',
-          documentDate: new Date('2026-09-15'),
-          accountingPeriodId: f.periodId,
-          ledgerId: f.ledgerId,
-          currencyCode: 'BOB',
-          approvalStatus: 'PENDING',
-          lines: [
-            { glAccountId: f.arAccountId, debit: 10, credit: 0, currencyCode: 'BOB', amountLc: 10 },
-            {
-              glAccountId: f.revenueAccountId,
-              debit: 0,
-              credit: 10,
-              currencyCode: 'BOB',
-              amountLc: 10,
-            },
-          ],
-        },
-        admin,
-      );
+      // Política FIXTURE (opción conservadora de DEC-10, no aprobada): sin ella no se crea un manual.
+      const { env } = await import('../src/config/env');
+      const configured = env.ACCOUNTING_APPROVAL_POLICY;
+      env.ACCOUNTING_APPROVAL_POLICY = 'ALL_MANUAL_REQUIRE_APPROVAL';
+      const pending = await documents
+        .createDraft(
+          {
+            legalEntityId: f.legalEntityId,
+            sourceSystem: 'ATLAS_ERP',
+            sourceType: 'MANUAL',
+            documentType: 'JOURNAL',
+            documentDate: new Date('2026-09-15'),
+            accountingPeriodId: f.periodId,
+            ledgerId: f.ledgerId,
+            currencyCode: 'BOB',
+            approvalStatus: 'PENDING',
+            lines: [
+              {
+                glAccountId: f.arAccountId,
+                debit: 10,
+                credit: 0,
+                currencyCode: 'BOB',
+                amountLc: 10,
+              },
+              {
+                glAccountId: f.revenueAccountId,
+                debit: 0,
+                credit: 10,
+                currencyCode: 'BOB',
+                amountLc: 10,
+              },
+            ],
+          },
+          admin,
+        )
+        .finally(() => {
+          env.ACCOUNTING_APPROVAL_POLICY = configured;
+        });
       expect(await codeOf(documents.postDocument(pending.document.id, admin))).toBe(
         'ACCOUNTING_DOCUMENT_APPROVAL_REQUIRED',
       );

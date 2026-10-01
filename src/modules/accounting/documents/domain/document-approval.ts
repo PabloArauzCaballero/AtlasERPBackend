@@ -5,16 +5,19 @@ import {
 } from '@nestjs/common';
 
 /**
- * Aprobación del documento contable decidida por el SERVIDOR (ATL-03), versión provisional.
+ * Aprobación del documento contable decidida por el SERVIDOR (ATL-03 / DEC-10).
  *
- * Máquina de estados mientras DEC-10 (umbrales y quién aprueba) no esté decidida:
+ * La necesidad de aprobación la fija `approval-policy.ts` al crear el borrador (con referencia de la
+ * política en `approval_policy_ref`); el body ya no la decide. Máquina de estados:
  *
- *   alta:  el cliente sólo puede pedir NOT_REQUIRED (por defecto) o PENDING.
- *   DRAFT · PENDING ──approve (actor ≠ creador)──▶ DRAFT · APPROVED ──post──▶ POSTED
- *   DRAFT · PENDING ──reject  (actor ≠ creador)──▶ DRAFT · REJECTED (terminal: no se publica)
+ *   alta (política exige)   DRAFT · PENDING ──approve (actor ≠ creador)──▶ DRAFT · APPROVED ──post──▶ POSTED
+ *                           DRAFT · PENDING ──reject  (actor ≠ creador)──▶ DRAFT · REJECTED (terminal)
+ *   alta (política exime)   DRAFT · NOT_REQUIRED (con referencia de política) ──post──▶ POSTED
  *
- * Publicar exige NOT_REQUIRED, o APPROVED CON aprobador registrado: un APPROVED sin `approved_by`
- * es una autocertificación de antes de este cambio y se trata como pendiente.
+ * Publicar exige: NOT_REQUIRED CON referencia de política, o APPROVED CON aprobador registrado. Un
+ * NOT_REQUIRED sin referencia es una exención autodeclarada de antes de este cambio, y un APPROVED sin
+ * `approved_by` una autocertificación: ninguna se trata como aprobada y ninguna se «regulariza»
+ * inventando política o aprobador (se rechaza con un diagnóstico explícito).
  */
 export const CLIENT_SETTABLE_APPROVAL_STATUSES = ['NOT_REQUIRED', 'PENDING'] as const;
 
@@ -32,12 +35,21 @@ export function assertClientApprovalStatus(approvalStatus: string | undefined): 
 export interface ApprovalSnapshot {
   approvalStatus: string;
   approvedBy?: string | null;
+  approvalPolicyRef?: string | null;
 }
 
 export function assertDocumentApprovedForPosting(document: ApprovalSnapshot): void {
   const status = document.approvalStatus;
-  if (status === 'NOT_REQUIRED') return;
+  if (status === 'NOT_REQUIRED' && document.approvalPolicyRef) return;
   if (status === 'APPROVED' && document.approvedBy) return;
+  if (status === 'NOT_REQUIRED') {
+    throw new ConflictException({
+      code: 'ACCOUNTING_DOCUMENT_APPROVAL_POLICY_MISSING',
+      message:
+        'El documento figura sin aprobación requerida pero no consta qué política lo eximió (documento anterior a la política de aprobación). Requiere regularización; no se publica.',
+      details: { approvalStatus: status },
+    });
+  }
   throw new ConflictException({
     code: 'ACCOUNTING_DOCUMENT_APPROVAL_REQUIRED',
     message: 'El documento necesita aprobación antes de publicarse.',

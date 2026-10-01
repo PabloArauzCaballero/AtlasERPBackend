@@ -25,10 +25,15 @@ describe('Aprobación del documento contable (ATL-03, dominio)', () => {
     }
   });
 
-  it('publicar exige NOT_REQUIRED o APPROVED con aprobador', () => {
-    expect(codeOf(() => assertDocumentApprovedForPosting({ approvalStatus: 'NOT_REQUIRED' }))).toBe(
-      undefined,
-    );
+  it('publicar exige NOT_REQUIRED CON referencia de política, o APPROVED con aprobador', () => {
+    expect(
+      codeOf(() =>
+        assertDocumentApprovedForPosting({
+          approvalStatus: 'NOT_REQUIRED',
+          approvalPolicyRef: 'SERVER_GENERATED_DOCUMENT@1',
+        }),
+      ),
+    ).toBeUndefined();
     expect(
       codeOf(() =>
         assertDocumentApprovedForPosting({ approvalStatus: 'APPROVED', approvedBy: 'u' }),
@@ -41,6 +46,18 @@ describe('Aprobación del documento contable (ATL-03, dominio)', () => {
     ]) {
       expect(codeOf(() => assertDocumentApprovedForPosting(doc))).toBe(
         'ACCOUNTING_DOCUMENT_APPROVAL_REQUIRED',
+      );
+    }
+  });
+
+  it('AP-21 un NOT_REQUIRED sin referencia de política (anterior a ATL-03) no se publica ni se «regulariza» solo', () => {
+    for (const doc of [
+      { approvalStatus: 'NOT_REQUIRED' },
+      { approvalStatus: 'NOT_REQUIRED', approvalPolicyRef: null },
+      { approvalStatus: 'NOT_REQUIRED', approvalPolicyRef: '' },
+    ]) {
+      expect(codeOf(() => assertDocumentApprovedForPosting(doc))).toBe(
+        'ACCOUNTING_DOCUMENT_APPROVAL_POLICY_MISSING',
       );
     }
   });

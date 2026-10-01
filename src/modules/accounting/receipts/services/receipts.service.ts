@@ -187,7 +187,6 @@ export class ReceiptsService {
           accountingPeriodId: input.accountingPeriodId,
           ledgerId: input.ledgerId,
           currencyCode: input.currencyCode,
-          approvalStatus: 'NOT_REQUIRED',
           lines: [
             {
               glAccountId: input.bankGlAccountId,
@@ -215,6 +214,7 @@ export class ReceiptsService {
         },
         user,
         transaction,
+        { origin: 'SERVER_GENERATED' },
       );
 
       await this.accountingDocumentsService.postDocumentInTransaction(

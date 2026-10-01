@@ -65,6 +65,10 @@ export class AccountingDocumentModel extends Model {
   declare policySnapshotId: string | null;
 
   /* Quién aprobó o rechazó el borrador y cuándo: lo escribe sólo el servidor (ATL-03). */
+  /** Política del servidor que decidió si este documento exigía aprobación (null = anterior a ATL-03). */
+  @Column({ type: DataType.STRING(80), field: 'approval_policy_ref', allowNull: true })
+  declare approvalPolicyRef: string | null;
+
   @Column({ type: DataType.UUID, field: 'approved_by', allowNull: true })
   declare approvedBy: string | null;
 

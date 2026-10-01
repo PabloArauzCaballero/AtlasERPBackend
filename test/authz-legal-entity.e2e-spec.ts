@@ -29,6 +29,11 @@ describeWithDatabase('P-13 aislamiento por entidad legal (HTTP + PostgreSQL real
 
   beforeAll(async () => {
     h = await bootAuthzHttpApp('authz_le');
+    // Política FIXTURE (opción conservadora de DEC-10, no aprobada): sin ella el servidor no crea
+    // documentos manuales y el 409 taparía los errores de alcance que esta suite quiere ver.
+    // `env` se importa DESPUÉS del arranque, cuando ya apunta a la base del arnés.
+    const { env } = await import('../src/config/env');
+    env.ACCOUNTING_APPROVAL_POLICY = 'ALL_MANUAL_REQUIRE_APPROVAL';
     shared = await seedSharedAccounting(h.sql);
     A = await seedLegalEntityWorld(h.sql, shared, 'A');
     B = await seedLegalEntityWorld(h.sql, shared, 'B');
