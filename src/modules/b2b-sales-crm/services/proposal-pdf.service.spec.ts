@@ -82,12 +82,44 @@ describe('propuesta en PDF', () => {
     expect(JSON.stringify(payload)).not.toMatch(/50[.,]?000|Ingreso mensual/);
   });
 
-  it('pide el membrete comercial y, si el generador no lo conoce, usa el de siempre', async () => {
+  it('pide la plantilla propia con el membrete comercial', async () => {
     const documents = {
-      generate: jest
-        .fn()
-        .mockRejectedValueOnce(new Error('BRAND_NOT_FOUND'))
-        .mockResolvedValueOnce({ buffer: Buffer.from('%PDF'), filename: 'p.pdf' }),
+      generateInternal: jest.fn(async () => ({ buffer: Buffer.from('%PDF'), filename: 'p.pdf' })),
+      generate: jest.fn(),
+    };
+    const service = new ProposalPdfService(
+      {} as never,
+      documents as never,
+      { warn: jest.fn() } as never,
+    );
+    await service.pdf(propuesta as never, cuenta as never, 'Nota', firma);
+    const [plantilla, payload, , marca] = documents.generateInternal.mock.calls[0] as unknown as [
+      string,
+      Record<string, unknown>,
+      string,
+      string,
+    ];
+    expect(plantilla).toBe('propuesta-comercial');
+    expect(marca).toBe(PROPOSAL_BRAND_ID);
+    expect(payload).toMatchObject({
+      saludo: 'Señores de Multicenter:',
+      nota: { autor: 'Ana Pérez', texto: 'Nota' },
+      firma: { nombre: 'Ana Pérez', cargo: 'Ejecutivo comercial · ATLAS', correo: 'ana@atlas.bo' },
+      comercio: {
+        nombre: 'Multicenter',
+        razonSocial: 'Multicenter S.R.L.',
+        nit: '1234567',
+        ciudad: 'Santa Cruz',
+      },
+    });
+    expect(JSON.stringify(payload)).not.toMatch(/50[.,]?000|Ingreso mensual/);
+    expect(documents.generate).not.toHaveBeenCalled();
+  });
+
+  it('si el entorno aún no tiene la plantilla, sale con la genérica antes que sin PDF', async () => {
+    const documents = {
+      generateInternal: jest.fn().mockRejectedValueOnce(new Error('TEMPLATE_NOT_FOUND')),
+      generate: jest.fn(async () => ({ buffer: Buffer.from('%PDF'), filename: 'p.pdf' })),
     };
     const service = new ProposalPdfService(
       {} as never,
@@ -95,7 +127,9 @@ describe('propuesta en PDF', () => {
       { warn: jest.fn() } as never,
     );
     await service.pdf(propuesta as never, cuenta as never, null, firma);
-    expect(documents.generate.mock.calls[0]![1]).toBe(PROPOSAL_BRAND_ID);
-    expect(documents.generate.mock.calls[1]![1]).toBeUndefined();
+    expect(documents.generate).toHaveBeenCalledWith(
+      expect.objectContaining({ templateId: 'generic-result-report' }),
+      PROPOSAL_BRAND_ID,
+    );
   });
 });

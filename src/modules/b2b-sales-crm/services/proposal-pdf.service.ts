@@ -40,6 +40,23 @@ export class ProposalPdfService {
     message: string | null,
     sender: ProposalSender | null = null,
   ): Promise<GeneratedPdf> {
+    const filename = `propuesta-${proposal.proposalNumber}.pdf`;
+    try {
+      return await this.documents.generateInternal(
+        'propuesta-comercial',
+        payloadPropuestaComercial(proposal, account, message, sender),
+        filename,
+        PROPOSAL_BRAND_ID,
+      );
+    } catch (error) {
+      // La plantilla propia vive en el worker del Motor: mientras un entorno no la tenga
+      // desplegada, la propuesta sale con la genérica antes que sin PDF.
+      this.logger.warn('El generador no tiene la plantilla de propuesta; se usa la genérica.', {
+        layer: 'service',
+        module: 'b2b-sales-crm',
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
     const documento = {
       templateId: 'generic-result-report',
       filename: `propuesta-${proposal.proposalNumber}.pdf`,
@@ -61,6 +78,107 @@ export class ProposalPdfService {
       return this.documents.generate(documento);
     }
   }
+}
+
+/**
+ * Contenido para la plantilla `propuesta-comercial@1.0.0` del worker (su `schema.ts` es el
+ * contrato). Los textos se redactan AQUÍ: la plantilla decide cómo se ve, no qué se promete.
+ */
+export function payloadPropuestaComercial(
+  proposal: CommercialProposalModel,
+  account: B2BAccountModel | null,
+  message: string | null,
+  sender: ProposalSender | null,
+): Record<string, unknown> {
+  const comercio = account?.tradeName || account?.legalName || 'su comercio';
+  const firmante = sender?.fullName ?? 'Equipo comercial de ATLAS';
+  const nit = account?.taxId
+    ? `${account.taxId}${account.taxIdComplement ? `-${account.taxIdComplement}` : ''}`
+    : undefined;
+  const condiciones = condicionesDePropuesta(proposal);
+  const sinVacios = <T extends Record<string, unknown>>(objeto: T) =>
+    Object.fromEntries(
+      Object.entries(objeto).filter(([, v]) => v !== undefined && v !== null && v !== ''),
+    );
+  return {
+    propuesta: {
+      numero: proposal.proposalNumber,
+      validaHasta: fechaLegible(proposal.validUntil),
+      fecha: fechaLegible(new Date()),
+    },
+    comercio: sinVacios({
+      nombre: comercio,
+      razonSocial: account?.legalName || undefined,
+      nit,
+      ciudad: account?.city || undefined,
+    }),
+    saludo: `Señores de ${comercio}:`,
+    introduccion: [
+      `Gracias por el tiempo que nos dedicaron. Les presentamos la propuesta para que ${comercio} ` +
+        'ofrezca a sus clientes la opción de comprar en cuotas con ATLAS.',
+      'En estas páginas encontrarán qué gana su comercio, las condiciones económicas, cómo funciona en ' +
+        'el día a día y los pasos para empezar.',
+    ],
+    ...(message?.trim()
+      ? { nota: { autor: firmante, texto: message.trim().slice(0, 1_500) } }
+      : {}),
+    beneficios: [
+      {
+        titulo: 'Más ventas',
+        texto: 'Sus clientes se llevan hoy lo que necesitan y lo pagan en cuotas.',
+      },
+      {
+        titulo: 'Crédito a cargo de ATLAS',
+        texto: 'ATLAS evalúa al cliente, le otorga el crédito y se encarga de cobrarle las cuotas.',
+      },
+      {
+        titulo: 'Cobro con QR',
+        texto: 'El cliente paga desde la app de ATLAS escaneando el QR de cobro de su comercio.',
+      },
+      {
+        titulo: 'Acompañamiento',
+        texto: `${firmante} es su contacto directo para la puesta en marcha y cualquier consulta.`,
+      },
+    ],
+    condiciones: condiciones.map((c) =>
+      sinVacios({
+        concepto: c.concepto,
+        detalle: c.detalle ?? undefined,
+        condicion: c.condicion,
+        cobro: c.cobro,
+      }),
+    ),
+    ...(condiciones.length
+      ? {
+          condicionesNota:
+            'Estas son todas las condiciones de la propuesta; no hay cargos adicionales.',
+        }
+      : {}),
+    pasos: [
+      { titulo: 'Elige', texto: 'El cliente elige su compra y pide pagarla en cuotas.' },
+      { titulo: 'Escanea', texto: 'Escanea el QR de cobro de su comercio con la app de ATLAS.' },
+      { titulo: 'Aprueba', texto: 'ATLAS aprueba el crédito y el cliente confirma sus cuotas.' },
+      { titulo: 'Cobra', texto: 'Su comercio recibe el pago de la venta según esta propuesta.' },
+    ],
+    proximosPasos: [
+      { titulo: 'Aceptación', texto: 'Respondan al correo con el que recibieron esta propuesta.' },
+      {
+        titulo: 'Contrato',
+        texto: 'Preparamos el contrato de afiliación con estas mismas condiciones.',
+      },
+      {
+        titulo: 'Puesta en marcha',
+        texto: 'Les entregamos el QR de cobro y capacitamos a su equipo.',
+      },
+    ],
+    cierre:
+      'Quedamos atentos a sus comentarios. Si prefieren revisarla juntos, con gusto coordinamos una llamada.',
+    firma: sinVacios({
+      nombre: firmante,
+      cargo: sender ? `${sender.roleLabel} · ATLAS` : 'ATLAS',
+      correo: sender?.email ?? undefined,
+    }),
+  };
 }
 
 export function payloadPropuesta(

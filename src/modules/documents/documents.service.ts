@@ -12,7 +12,7 @@ export interface GeneratedPdf {
 const DEFAULT_TEMPLATE_ID = 'generic-result-report';
 
 /** Plantillas del worker que sólo pide el servidor (nunca el cuerpo de una petición). */
-export type InternalTemplateId = 'factura-fiscal';
+export type InternalTemplateId = 'factura-fiscal' | 'propuesta-comercial';
 
 /**
  * Puerta del ERP hacia el generador documental.
@@ -53,8 +53,9 @@ export class DocumentsService {
     templateId: InternalTemplateId,
     payload: Record<string, unknown>,
     filename: string,
+    brandId?: string,
   ): Promise<GeneratedPdf> {
-    return this.render(templateId, payload, filename);
+    return this.render(templateId, payload, filename, brandId);
   }
 
   private async render(
