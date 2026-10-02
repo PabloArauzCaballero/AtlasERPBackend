@@ -6,6 +6,8 @@ import { PinoLoggerService } from '../../common/logging/pino-logger.service';
 import type { BusinessActionLogQueryDto } from './business-action-logs.schemas';
 import type { RecordBusinessActionLogInput } from './business-action-logs.types';
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
+
 @Injectable()
 export class BusinessActionLogsService {
   constructor(
@@ -22,7 +24,18 @@ export class BusinessActionLogsService {
      * eso `sourceSystem` sigue siendo texto libre y no un enum— pero ya nadie las escribe.
      */
     const sourceSystem = input.sourceSystem ?? 'ATLAS';
-    const inputSummary = input.inputSummary ?? null;
+    /*
+     * `actor_user_id` es un uuid (usuario INTERNO del ERP). Un usuario de comercio llega con su id
+     * numérico de AtlasBackend («3»), y escribirlo ahí rompía el INSERT —y con él la transacción
+     * entera—: el 2026-10-02 ningún comercio podía crear una sucursal desde su portal («Ocurrió un
+     * error al consultar o modificar la base de datos»). El actor no se pierde: si no es un uuid
+     * va en `input_summary.actorRef`, con su rol al lado en `actor_role`.
+     */
+    const actorEsInterno = UUID.test(input.actorUserId ?? '');
+    const inputSummary =
+      input.actorUserId && !actorEsInterno
+        ? { ...(input.inputSummary ?? {}), actorRef: input.actorUserId }
+        : (input.inputSummary ?? null);
 
     this.logger.infoContext(BusinessActionLogsService.name, 'Recording business action log', {
       moduleCode: input.moduleCode,
@@ -40,7 +53,7 @@ export class BusinessActionLogsService {
         moduleCode: input.moduleCode,
         businessProcess: input.businessProcess,
         actionCode: input.actionCode,
-        actorUserId: input.actorUserId ?? null,
+        actorUserId: actorEsInterno ? input.actorUserId : null,
         actorRole: input.actorRole ?? null,
         aggregateType: input.aggregateType ?? null,
         aggregateId: input.aggregateId ?? null,
