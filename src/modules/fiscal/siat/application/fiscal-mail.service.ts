@@ -3,10 +3,10 @@ import { InjectModel } from '@nestjs/sequelize';
 import { gunzipSync } from 'node:zlib';
 import { Op, QueryTypes, Transaction } from 'sequelize';
 import { Sequelize } from 'sequelize-typescript';
-import { env } from '../../../../config/env';
 import { PinoLoggerService } from '../../../../common/logger/pino-logger.service';
 import { ElectronicTaxDocumentModel, SiatEmailDeliveryModel } from '../../../../database/models';
 import { FiscalPdfService } from './fiscal-pdf.service';
+import { enviarCorreoErp } from '../../../../common/mail/erp-mail.transport';
 import { SiatGatewayService } from './siat-gateway.service';
 
 export type TipoCorreoFiscal = 'EMISION' | 'ANULACION';
@@ -26,13 +26,10 @@ interface Adjunto {
  * (plan SIAT, D-8). Una fila por documento y tipo en `siat_email_delivery`: encolar dos veces no
  * manda dos correos, y el envío nunca sale desde la transacción de la factura ni desde el SIN.
  *
- * Transporte:
- * - `EMAIL_PROVIDER_MODE=sendgrid` → SendGrid, con los dos adjuntos.
- * - Con el emulador del SIN (`mock_server`) → el buzón QA del mock (`/mock/inbox/email`), que no
- *   admite adjuntos: el cuerpo lleva el N° fiscal, el CUF y el SHA-256 del XML para contrastarlo.
- * - Si no, no sale nada (`mock-…`).
+ * Transporte: `common/mail/erp-mail.transport.ts` (por defecto AtlasBackend lo manda por la Gmail de
+ * ATLAS, con el PDF y el XML; con el emulador del SIN y en `mock`, el buzón QA del mock, sin adjuntos).
  *
- * Sólo SendGrid deja la fila en `SENT`. El buzón del emulador y el modo `mock` la dejan en
+ * Sólo un proveedor real deja la fila en `SENT`. El buzón del emulador y el modo `mock` la dejan en
  * `SIMULATED`, sin `sentAt`: el comprador NO recibió nada, y la fila no puede afirmar lo contrario.
  */
 @Injectable()
@@ -93,7 +90,11 @@ export class FiscalMailService {
     if (!entrega || !documento) return;
     try {
       const mensaje = await this.componer(documento, entrega.kind as TipoCorreoFiscal);
-      const { providerMessageId, simulado } = await this.transportar(entrega.recipient, mensaje);
+      const { providerMessageId, simulado } = await this.transportar(
+        entrega.recipient,
+        mensaje,
+        `siat:${documento.id}:${entrega.kind}`,
+      );
       await entrega.update({
         status: simulado ? 'SIMULATED' : 'SENT',
         sentAt: simulado ? null : new Date(),
@@ -166,54 +167,26 @@ export class FiscalMailService {
   private async transportar(
     destinatario: string,
     mensaje: { asunto: string; cuerpo: string; adjuntos: Adjunto[] },
+    referencia: string,
   ): Promise<{ providerMessageId: string; simulado: boolean }> {
-    if (env.EMAIL_PROVIDER_MODE === 'sendgrid') {
-      if (!env.SENDGRID_API_KEY || !env.EMAIL_FROM)
-        throw new Error('SENDGRID_CONFIGURATION_MISSING');
-      const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
-        method: 'POST',
-        signal: AbortSignal.timeout(20_000),
-        headers: {
-          authorization: `Bearer ${env.SENDGRID_API_KEY}`,
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({
-          personalizations: [{ to: [{ email: destinatario }] }],
-          from: { email: env.EMAIL_FROM },
-          subject: mensaje.asunto,
-          content: [{ type: 'text/plain', value: mensaje.cuerpo }],
-          attachments: mensaje.adjuntos.map((a) => ({
-            content: a.contenido.toString('base64'),
-            filename: a.nombre,
-            type: a.tipo,
-            disposition: 'attachment',
-          })),
-        }),
-      });
-      if (!response.ok) throw new Error(`SENDGRID_${response.status}`);
-      return {
-        providerMessageId: response.headers.get('x-message-id') ?? 'sendgrid',
-        simulado: false,
-      };
-    }
-    const emulador = this.gateway.mockBaseUrl;
-    if (emulador) {
-      const buzon = new URL('/mock/inbox/email', emulador);
-      const adjuntos = mensaje.adjuntos.map((a) => `${a.nombre} (${a.contenido.length} bytes)`);
-      const response = await fetch(buzon, {
-        method: 'POST',
-        signal: AbortSignal.timeout(10_000),
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          to: destinatario,
-          subject: mensaje.asunto,
-          body: `${mensaje.cuerpo}${adjuntos.length ? `\n\nAdjuntos: ${adjuntos.join(', ')}` : ''}`,
-        }),
-      });
-      if (!response.ok) throw new Error(`BUZON_MOCK_${response.status}`);
-      return { providerMessageId: `mock-inbox-${Date.now()}`, simulado: true };
-    }
-    return { providerMessageId: `mock-${Date.now()}`, simulado: true };
+    const enviado = await enviarCorreoErp(
+      {
+        to: destinatario,
+        subject: mensaje.asunto,
+        text: mensaje.cuerpo,
+        reference: referencia,
+        attachments: mensaje.adjuntos.map((a) => ({
+          filename: a.nombre,
+          contentType: a.tipo === 'application/xml' ? 'application/xml' : 'application/pdf',
+          content: a.contenido,
+        })),
+      },
+      { mockInboxBaseUrl: this.gateway.mockBaseUrl },
+    );
+    return {
+      providerMessageId: enviado.providerMessageId,
+      simulado: enviado.status === 'SIMULATED',
+    };
   }
 
   listar(documentId: string) {

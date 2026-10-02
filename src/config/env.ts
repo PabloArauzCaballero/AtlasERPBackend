@@ -38,6 +38,14 @@ const localTestingDefaultRoles = [
   'ADS_EVENT_TRACKER',
 ].join(',');
 
+/** Modo efectivo del correo: el declarado o, sin declarar, `atlas` si el ERP puede firmar. */
+function modoDeCorreo(value: {
+  EMAIL_PROVIDER_MODE?: 'mock' | 'sendgrid' | 'atlas' | undefined;
+  OUTBOX_DELIVERY_SIGNING_SECRET?: string | undefined;
+}): 'mock' | 'sendgrid' | 'atlas' {
+  return value.EMAIL_PROVIDER_MODE ?? (value.OUTBOX_DELIVERY_SIGNING_SECRET ? 'atlas' : 'mock');
+}
+
 const envSchema = z
   .object({
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -190,7 +198,16 @@ const envSchema = z
     // Almacenamiento de archivos del ERP (Cloudinary, signed direct upload).
     // Opcionales: si no se configuran, los endpoints de /files responden 503 explícito.
 
-    EMAIL_PROVIDER_MODE: z.enum(['mock', 'sendgrid']).default('mock'),
+    /*
+     * Por dónde sale el correo del ERP (factura fiscal, anuncios). Ver `common/mail/erp-mail.transport.ts`.
+     * Sin declarar: `atlas` si hay `OUTBOX_DELIVERY_SIGNING_SECRET` (AtlasBackend lo envía por su Gmail,
+     * firmado con ese secreto), y `mock` si no. El ERP no tiene proveedor propio: hasta el 2026-10-01 el
+     * defecto era `mock` y las facturas quedaban SIMULATED sin llegar al comprador.
+     */
+    EMAIL_PROVIDER_MODE: z.preprocess(
+      emptyAsUndefined,
+      z.enum(['mock', 'sendgrid', 'atlas']).optional(),
+    ),
     SENDGRID_API_KEY: z.string().optional(),
     EMAIL_FROM: z.string().email().optional(),
     EMAIL_MAX_SEND_ATTEMPTS: z.coerce.number().int().positive().max(10).default(3),
@@ -451,10 +468,16 @@ const envSchema = z
         message: 'OUTBOX_RETRY_MAX_MS no puede ser menor que OUTBOX_RETRY_BASE_MS.',
       });
     }
-    if (
-      value.EMAIL_PROVIDER_MODE === 'sendgrid' &&
-      (!value.SENDGRID_API_KEY || !value.EMAIL_FROM)
-    ) {
+    const modoCorreo = modoDeCorreo(value);
+    if (modoCorreo === 'atlas' && !value.OUTBOX_DELIVERY_SIGNING_SECRET) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['EMAIL_PROVIDER_MODE'],
+        message:
+          'EMAIL_PROVIDER_MODE=atlas firma el correo con OUTBOX_DELIVERY_SIGNING_SECRET (el ERP_EVENTS_SIGNING_SECRET de AtlasBackend): declárala.',
+      });
+    }
+    if (modoCorreo === 'sendgrid' && (!value.SENDGRID_API_KEY || !value.EMAIL_FROM)) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['SENDGRID_API_KEY'],
@@ -466,20 +489,20 @@ const envSchema = z
     // ni cuando las facturas van al SIN de verdad (`piloto`/`produccion`): el SIN obliga a entregar
     // la factura al comprador, y un correo simulado no se la entrega. `mock_server` queda fuera a
     // propósito: su transporte de correo ES el buzón del emulador.
-    if (value.EMAIL_PROVIDER_MODE === 'mock') {
+    if (modoCorreo === 'mock') {
       if (value.NODE_ENV === 'production') {
         context.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['EMAIL_PROVIDER_MODE'],
           message:
-            'EMAIL_PROVIDER_MODE=mock no envía correos (quedan SIMULATED): no se admite con NODE_ENV=production. Usa EMAIL_PROVIDER_MODE=sendgrid.',
+            'EMAIL_PROVIDER_MODE=mock no envía correos (quedan SIMULATED): no se admite con NODE_ENV=production. Usa EMAIL_PROVIDER_MODE=atlas (con OUTBOX_DELIVERY_SIGNING_SECRET).',
         });
       }
       if (value.SIAT_MODE === 'piloto' || value.SIAT_MODE === 'produccion') {
         context.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['EMAIL_PROVIDER_MODE'],
-          message: `EMAIL_PROVIDER_MODE=mock no entrega la factura al comprador: no se admite con SIAT_MODE=${value.SIAT_MODE}. Usa EMAIL_PROVIDER_MODE=sendgrid.`,
+          message: `EMAIL_PROVIDER_MODE=mock no entrega la factura al comprador: no se admite con SIAT_MODE=${value.SIAT_MODE}. Usa EMAIL_PROVIDER_MODE=atlas.`,
         });
       }
     }
@@ -543,6 +566,7 @@ const envSchema = z
        * planos nunca compartan clave. En producción no se deriva nada: se exige declararla
        * y que sea distinta (ver `superRefine`).
        */
+      EMAIL_PROVIDER_MODE: modoDeCorreo(value),
       JWT_INTERNAL_SECRET:
         value.JWT_INTERNAL_SECRET ??
         createHmac('sha256', value.JWT_ACCESS_SECRET).update('atlas:jwt:internal:v1').digest('hex'),

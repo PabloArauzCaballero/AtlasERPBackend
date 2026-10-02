@@ -1,3 +1,4 @@
+import { enviarCorreoErp } from '../../../common/mail/erp-mail.transport';
 import { createHash } from 'node:crypto';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
@@ -100,41 +101,21 @@ export class EmailMessagingService {
 
   private async deliver(message: EmailMessageModel): Promise<void> {
     try {
-      // En `mock` no sale ningún correo: el mensaje queda SIMULATED, nunca SENT, y sin `sentAt`
-      // (nadie lo envió). Así el seguimiento no afirma una entrega que no ocurrió.
-      if (env.EMAIL_PROVIDER_MODE === 'mock') {
-        await message.update({
-          status: 'SIMULATED',
-          providerMessageId: `mock-${message.id}`,
-          sentAt: null,
-          attemptCount: message.attemptCount + 1,
-          lastError: null,
-        });
-        return;
-      }
-      if (!env.SENDGRID_API_KEY || !env.EMAIL_FROM)
-        throw new Error('SENDGRID_CONFIGURATION_MISSING');
-      const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
-        method: 'POST',
-        headers: {
-          authorization: `Bearer ${env.SENDGRID_API_KEY}`,
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({
-          personalizations: [{ to: [{ email: message.recipientEmail }] }],
-          from: { email: env.EMAIL_FROM },
-          subject: message.subject,
-          content: [
-            { type: 'text/html', value: message.htmlBody },
-            ...(message.textBody ? [{ type: 'text/plain', value: message.textBody }] : []),
-          ],
-        }),
+      // Mismo transporte que la factura (`erp-mail.transport.ts`): por defecto AtlasBackend lo manda
+      // por la Gmail de ATLAS. En `mock` no sale nada y queda SIMULATED, sin `sentAt`: el
+      // seguimiento no puede afirmar una entrega que no ocurrió.
+      const enviado = await enviarCorreoErp({
+        to: message.recipientEmail,
+        subject: message.subject,
+        text: message.textBody || textoPlano(message.htmlBody),
+        html: message.htmlBody,
+        reference: `ads:${message.id}`,
       });
-      if (!response.ok) throw new Error(`SENDGRID_HTTP_${response.status}`);
       await message.update({
-        status: 'SENT',
-        providerMessageId: response.headers.get('x-message-id'),
-        sentAt: new Date(),
+        status: enviado.status,
+        providerMessageId:
+          enviado.status === 'SIMULATED' ? `mock-${message.id}` : enviado.providerMessageId,
+        sentAt: enviado.status === 'SENT' ? new Date() : null,
         attemptCount: message.attemptCount + 1,
         lastError: null,
       });
@@ -213,4 +194,40 @@ export class EmailMessagingService {
       details: row.details,
     }));
   }
+}
+
+/**
+ * Texto plano mínimo desde el HTML, para los clientes de correo que no pintan HTML. Exportado para
+ * probarlo.
+ *
+ * Sin expresiones regulares sobre etiquetas a propósito: quitar `<…>` con una regex deja restos ante
+ * HTML mal formado (`<scr<script>ipt>`) y CodeQL lo marca (js/incomplete-multi-character-sanitization).
+ * Aquí se recorre carácter a carácter y TODO lo que va entre `<` y `>` se descarta; ningún `<` ni `>`
+ * llega a la salida, así que la parte text/plain no puede llevar marcado.
+ */
+export function textoPlano(html: string | null | undefined): string {
+  let salida = '';
+  let dentroDeEtiqueta = false;
+  let etiqueta = '';
+  for (const caracter of html ?? '') {
+    if (caracter === '<') {
+      dentroDeEtiqueta = true;
+      etiqueta = '';
+      continue;
+    }
+    if (caracter === '>') {
+      if (dentroDeEtiqueta && /^\/?(br|p|div|h[1-6]|li)\b/i.test(etiqueta.trim())) salida += '\n';
+      dentroDeEtiqueta = false;
+      continue;
+    }
+    if (dentroDeEtiqueta) etiqueta += caracter;
+    else salida += caracter;
+  }
+  return (
+    salida
+      .split('&nbsp;')
+      .join(' ')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim() || ' '
+  );
 }
