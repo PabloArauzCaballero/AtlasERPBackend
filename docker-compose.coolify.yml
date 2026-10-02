@@ -125,11 +125,13 @@ services:
       APP_VERSION: '1.0.0'
     # Alias ESTABLE en la red compartida: es como lo encuentran los otros bloques.
     # El nombre del contenedor lleva una marca de tiempo y cambia en cada despliegue;
-    # este alias no.
+    # este alias no. `erp-api-principal` es por donde Traefik sondea ESTA instancia para el failover
+    # a la de respaldo (_herramientas/respaldo-erp/atlas-erp-failover.yaml): `erp` no sirve para eso
+    # porque en una caída se presta al respaldo.
     networks:
       default: {}
       coolify:
-        aliases: ['erp']
+        aliases: ['erp', 'erp-api-principal']
     <<: [*common, *image]
     # `init: true` sustituye al `tini` que iba como ENTRYPOINT: ahora es un paquete opcional —el
     # espejo de Debian puede no responder— y apuntar a un binario que quizá no está deja el
