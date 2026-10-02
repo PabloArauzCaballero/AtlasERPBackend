@@ -196,16 +196,37 @@ export class EmailMessagingService {
   }
 }
 
-/** Texto plano mínimo desde el HTML, para los clientes de correo que no pintan HTML. Exportado para probarlo. */
+/**
+ * Texto plano mínimo desde el HTML, para los clientes de correo que no pintan HTML. Exportado para
+ * probarlo.
+ *
+ * Sin expresiones regulares sobre etiquetas a propósito: quitar `<…>` con una regex deja restos ante
+ * HTML mal formado (`<scr<script>ipt>`) y CodeQL lo marca (js/incomplete-multi-character-sanitization).
+ * Aquí se recorre carácter a carácter y TODO lo que va entre `<` y `>` se descarta; ningún `<` ni `>`
+ * llega a la salida, así que la parte text/plain no puede llevar marcado.
+ */
 export function textoPlano(html: string | null | undefined): string {
+  let salida = '';
+  let dentroDeEtiqueta = false;
+  let etiqueta = '';
+  for (const caracter of html ?? '') {
+    if (caracter === '<') {
+      dentroDeEtiqueta = true;
+      etiqueta = '';
+      continue;
+    }
+    if (caracter === '>') {
+      if (dentroDeEtiqueta && /^\/?(br|p|div|h[1-6]|li)\b/i.test(etiqueta.trim())) salida += '\n';
+      dentroDeEtiqueta = false;
+      continue;
+    }
+    if (dentroDeEtiqueta) etiqueta += caracter;
+    else salida += caracter;
+  }
   return (
-    (html ?? '')
-      .replace(/<(br|\/p|\/div|\/h[1-6]|\/li)[^>]*>/gi, '\n')
-      .replace(/<[^>]*>/g, '')
-      // Un `<` o `>` suelto que haya sobrevivido (etiqueta mal formada, `<scr<script>ipt>`) se va
-      // también: este texto es la parte text/plain y no puede llevar marcado de ningún tipo.
-      .replace(/[<>]/g, '')
-      .replace(/&nbsp;/g, ' ')
+    salida
+      .split('&nbsp;')
+      .join(' ')
       .replace(/\n{3,}/g, '\n\n')
       .trim() || ' '
   );
