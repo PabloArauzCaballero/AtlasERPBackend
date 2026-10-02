@@ -79,6 +79,35 @@ export class AtlasPartnerClient {
   }
 
   /**
+   * Sube bytes a una URL firmada por el almacén de Atlas (la que devuelve un `upload-url`).
+   *
+   * Es lo que hace el navegador en `/almacen/subida` cuando el que sube es una persona; aquí lo
+   * hace el ERP cuando copia a la carpeta del comercio un archivo que ya tenía (poder notarial, QR
+   * capturados en el alta). Sin `Authorization`: la autorización ES la firma de la URL, y las
+   * cabeceras exigidas vienen firmadas con ella, así que se mandan tal cual.
+   */
+  async putSigned(input: {
+    uploadUrl: string;
+    headers: Record<string, string>;
+    body: Buffer;
+  }): Promise<void> {
+    try {
+      await firstValueFrom(
+        this.http.request({
+          method: 'PUT',
+          url: input.uploadUrl,
+          data: input.body,
+          headers: input.headers,
+          timeout: env.ATLAS_IDENTITY_TIMEOUT_MS,
+          maxBodyLength: Infinity,
+        }),
+      );
+    } catch (error) {
+      throw this.translateError(error);
+    }
+  }
+
+  /**
    * Reenvía una lectura BINARIA: la imagen de un QR, el comprobante de una transferencia.
    *
    * Es un método aparte y no una bandera de `forward` porque lo que cambia no es un detalle: aquél

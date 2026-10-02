@@ -6,6 +6,11 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { NIT_VALIDO } from '../b2b-sales-crm.schemas';
+import {
+  type AccountDossierFields,
+  describirFaltantes,
+  faltantesDelExpediente,
+} from '../domain/expediente-del-comercio';
 import { Op, Transaction } from 'sequelize';
 import { PinoLoggerService } from '../../../common/logging/pino-logger.service';
 import type { AuthUser } from '../../../common/types/auth-context.types';
@@ -224,7 +229,7 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
    * y sólo lo decía un aviso (Pablo, 2026-09-28). La regla es la misma que aplica Atlas.
    */
   private async assertAccountReadyForFolder(
-    account: { id: string; taxId: string | null; legalName: string },
+    account: { id: string; taxId: string | null; legalName: string } & AccountDossierFields,
     transaction: Transaction,
   ): Promise<void> {
     const faltan: string[] = [];
@@ -237,9 +242,16 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
       transaction,
     });
     if (!conCorreo) faltan.push('un contacto con correo');
+    /*
+     * Y lo que el expediente exige para enviarse a revisión (Pablo, 2026-10-02): se pide UNA vez,
+     * aquí, y llega hecho al portal del comercio. Sin esto el caso se abría igual y el expediente
+     * nacía con «Falta 4 requisitos», que el comercio tenía que rellenar por segunda vez.
+     */
+    const delExpediente = faltantesDelExpediente(account);
+    if (delExpediente.length) faltan.push(describirFaltantes(delExpediente));
     if (faltan.length) {
       throw new UnprocessableEntityException(
-        `No se puede abrir el onboarding: a la cuenta le falta ${faltan.join(' y ')}. Sin eso Atlas no crea la carpeta del comercio. Complételo en Cuentas B2B y vuelva a intentarlo.`,
+        `No se puede abrir el onboarding: a la cuenta le falta ${faltan.join(' y ')}. Sin eso el expediente del comercio nace incompleto. Complételo en la cuenta (Datos del expediente) y vuelva a intentarlo.`,
       );
     }
   }

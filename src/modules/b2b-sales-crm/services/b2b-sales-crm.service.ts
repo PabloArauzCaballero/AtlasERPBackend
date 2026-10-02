@@ -14,6 +14,7 @@ import type {
   BulkCreateAccountsDto,
   CreateAccountDto,
   SetAccountTaxIdDto,
+  SetAccountDossierDto,
   CreateBranchDto,
   CreateMdrRuleDto,
   UpdateMdrRuleDto,
@@ -100,6 +101,14 @@ export class B2BSalesCrmService {
     user: AuthUser,
   ): Promise<Record<string, unknown>> {
     return this.accountsService.setAccountTaxId(accountId, input, user);
+  }
+
+  setAccountDossier(
+    accountId: string,
+    input: SetAccountDossierDto,
+    user: AuthUser,
+  ): Promise<Record<string, unknown>> {
+    return this.accountsService.setAccountDossier(accountId, input, user);
   }
 
   archiveAccount(accountId: string, user: AuthUser): Promise<Record<string, unknown>> {

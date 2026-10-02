@@ -11,6 +11,7 @@ import type {
   IdParamsDto,
   ListAccountsQueryDto,
   QualifyAccountDto,
+  SetAccountDossierDto,
   SetAccountTaxIdDto,
 } from '../b2b-sales-crm.dtos';
 import {
@@ -21,6 +22,7 @@ import {
   idParamsSchema,
   listAccountsQuerySchema,
   qualifyAccountSchema,
+  setAccountDossierSchema,
   setAccountTaxIdSchema,
 } from '../b2b-sales-crm.schemas';
 import { B2BSalesCrmService } from '../services/b2b-sales-crm.service';
@@ -82,6 +84,18 @@ export class B2BAccountsController {
     @CurrentUser() user: AuthUser,
   ): Promise<Record<string, unknown>> {
     return this.service.setAccountTaxId(params.accountId, body, user);
+  }
+
+  // Los datos del expediente (matrícula, representante, poder, QR) que la compuerta del onboarding
+  // exige y que no se capturaron al registrar la empresa. Mismo permiso que corregir el NIT.
+  @Roles('COMMERCIAL_EXECUTIVE', 'COMMERCIAL_MANAGER', 'OPERATIONS', 'ADMIN')
+  @Patch(':accountId/dossier')
+  setAccountDossier(
+    @Param(new ZodValidationPipe(accountIdParamsSchema)) params: AccountIdParamsDto,
+    @Body(new ZodValidationPipe(setAccountDossierSchema)) body: SetAccountDossierDto,
+    @CurrentUser() user: AuthUser,
+  ): Promise<Record<string, unknown>> {
+    return this.service.setAccountDossier(params.accountId, body, user);
   }
 
   // Archivar/restaurar mueve una cuenta fuera o dentro de los listados: decisión de gestión, no de

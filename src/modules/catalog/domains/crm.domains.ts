@@ -1106,6 +1106,27 @@ export const decisionRoleDomain = defineDomain(
   }),
 );
 
+/**
+ * Documento de identidad del representante legal declarado en el alta del comercio. Es el MISMO
+ * catálogo que acepta el expediente del comercio en AtlasBackend (`legalRepresentativeSchema`):
+ * lo que el ERP guarda viaja tal cual al expediente.
+ */
+export const legalRepDocumentTypeDomain = defineDomain(
+  'crm.legalRepDocumentType',
+  'Tipo de documento de identidad del representante legal del comercio.',
+  labelled(['ci', 'passport', 'foreign_id'] as const, {
+    ci: {
+      label: 'Cédula de identidad',
+      help: 'Cédula de identidad boliviana vigente, emitida por el SEGIP.',
+    },
+    passport: { label: 'Pasaporte', help: 'Pasaporte vigente emitido por cualquier país.' },
+    foreign_id: {
+      label: 'Documento extranjero',
+      help: 'Cédula o documento de identidad emitido en otro país.',
+    },
+  }),
+);
+
 export const CRM_DOMAINS = [
   accountTypeDomain,
   accountLifecycleStatusDomain,
@@ -1137,6 +1158,7 @@ export const CRM_DOMAINS = [
   segmentOperatorDomain,
   segmentMatchDomain,
   riskTierDomain,
+  legalRepDocumentTypeDomain,
   coreCreditRiskBandDomain,
   merchantCategoryDomain,
   industryDomain,

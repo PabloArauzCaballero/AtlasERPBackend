@@ -134,3 +134,14 @@ Amplía los CHECK de estado de `ad_email_messages` y `siat_email_delivery` con `
 reclasifica como `SIMULATED` (sin `sent_at`) las filas `SENT` que dejó el modo `mock`
 (`provider_message_id` con prefijo `mock-`). Un correo que no salió deja de figurar como enviado.
 El CHECK se amplía antes del `UPDATE`; la reversa devuelve esas filas a `SENT` y restaura el CHECK.
+
+## 20261002180000-alta-comercio-expediente.sql
+
+Añade a `atlas_sales.b2b_accounts` lo que el expediente del comercio en Atlas exige para enviarse a
+revisión y que hasta ahora el comercio tenía que volver a entregar en su portal: `commercial_registry`
+(matrícula), `legal_rep_full_name` / `legal_rep_document_type` / `legal_rep_document_number`,
+`power_of_attorney_file_id` y `bank_qr_file_id` (ids de `atlas_accounting.erp_file`),
+`bank_institution_code` (sigla ASFI) y `bank_account_masked`. Todas nulas y aditivas: se exigen al
+abrir el onboarding (`faltantesDelExpediente`), no al registrar la empresa. Al abrir el caso,
+`MerchantFolderService` entrega el expediente completo a AtlasBackend y lo envía a revisión. El
+`down` se niega si alguna cuenta ya guarda estos datos.

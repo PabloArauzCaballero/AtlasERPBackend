@@ -28,6 +28,20 @@ const DECISION = {
   evaluatedAt: '2026-09-09T12:00:00.000Z',
 };
 
+/** Lo que la compuerta del onboarding exige desde el 2026-10-02: el expediente capturado en la cuenta. */
+const EXPEDIENTE_COMPLETO = {
+  commercialRegistry: '00008022',
+  legalRepFullName: 'Pablo Arauz Caballero',
+  legalRepDocumentType: 'ci',
+  legalRepDocumentNumber: '1234567',
+  powerOfAttorneyFileId: '8b8f0f5e-3f55-4a47-9c3a-1b6f0b0e2a11',
+  address: 'Av. Banzer km 2 1/2',
+  city: 'Santa Cruz',
+  bankQrFileId: '8b8f0f5e-3f55-4a47-9c3a-1b6f0b0e2a12',
+  bankInstitutionCode: 'BNB',
+  bankAccountMasked: '****0739',
+};
+
 function build(
   overrides: {
     caso?: Record<string, unknown>;
@@ -47,7 +61,13 @@ function build(
     manualReviewCaseCode: null,
     identityAcknowledgedAt: null,
     checklistItems: [],
-    account: { id: 'acc-1', taxId: '123', partnerProfileId: 'p-9', update: jest.fn() },
+    account: {
+      id: 'acc-1',
+      taxId: '123',
+      partnerProfileId: 'p-9',
+      update: jest.fn(),
+      ...EXPEDIENTE_COMPLETO,
+    },
     ...overrides.caso,
   });
   const users = overrides.users ?? [];
@@ -606,6 +626,7 @@ describe('B2BOnboardingService · la carpeta del comercio al abrir el caso', () 
           legalName: 'Comercio SRL',
           partnerProfileId: null,
           update: jest.fn(),
+          ...EXPEDIENTE_COMPLETO,
         },
       },
     });
@@ -684,6 +705,7 @@ describe('B2BOnboardingService · la carpeta del comercio al abrir el caso', () 
       id: 'acc-1',
       taxId: '1023456789',
       legalName: 'Comercio SRL',
+      ...EXPEDIENTE_COMPLETO,
       ...cuenta,
     } as never);
     repository.contacts.count.mockResolvedValue(contactos as never);
@@ -692,6 +714,28 @@ describe('B2BOnboardingService · la carpeta del comercio al abrir el caso', () 
     expect(
       (repository.onboardingCases as unknown as { create: jest.Mock }).create,
     ).not.toHaveBeenCalled();
+    expect(merchantFolder.tryEnsureForAccount).not.toHaveBeenCalled();
+  });
+
+  /*
+   * Pablo (2026-10-02): lo que el expediente exige se pide UNA vez, en el alta, y llega hecho al
+   * portal del comercio. Sin matrícula, representante con poder, casa matriz o QR el caso no se
+   * abre, y el 422 dice exactamente qué falta para que el operador lo complete en la cuenta.
+   */
+  it('sin los datos del expediente no abre el caso y nombra lo que falta', async () => {
+    const { service, repository, merchantFolder } = conAlta();
+    repository.accounts.findByPk.mockResolvedValue({
+      id: 'acc-1',
+      taxId: '1023456789',
+      legalName: 'Comercio SRL',
+      ...EXPEDIENTE_COMPLETO,
+      powerOfAttorneyFileId: null,
+      bankQrFileId: null,
+    } as never);
+
+    await expect(service.createOnboardingCase(entrada, 'tok')).rejects.toThrow(
+      /el poder notarial del representante y el QR bancario de cobro/,
+    );
     expect(merchantFolder.tryEnsureForAccount).not.toHaveBeenCalled();
   });
 });
