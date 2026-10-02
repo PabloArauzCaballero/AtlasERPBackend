@@ -99,3 +99,14 @@ describe('transporte por ATLAS', () => {
     ).rejects.toThrow('ATLAS_MAIL_503_MAIL_PROVIDER_NOT_CONFIGURED');
   });
 });
+
+describe('texto plano de los avisos de anuncios', () => {
+  it('no deja ni un < ni un > aunque el HTML venga mal formado', async () => {
+    base({});
+    const { textoPlano } = await import('../src/modules/ads/services/email-messaging.service');
+    const texto = textoPlano('<p>Hola</p><scr<script>ipt>alert(1)</script><br>Fin &nbsp;ya');
+    expect(texto).not.toMatch(/[<>]/);
+    expect(texto).toContain('Hola');
+    expect(texto).toContain('Fin');
+  });
+});

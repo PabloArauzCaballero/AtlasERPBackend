@@ -196,12 +196,15 @@ export class EmailMessagingService {
   }
 }
 
-/** Texto plano mínimo desde el HTML, para los clientes de correo que no pintan HTML. */
-function textoPlano(html: string | null | undefined): string {
+/** Texto plano mínimo desde el HTML, para los clientes de correo que no pintan HTML. Exportado para probarlo. */
+export function textoPlano(html: string | null | undefined): string {
   return (
     (html ?? '')
       .replace(/<(br|\/p|\/div|\/h[1-6]|\/li)[^>]*>/gi, '\n')
-      .replace(/<[^>]+>/g, '')
+      .replace(/<[^>]*>/g, '')
+      // Un `<` o `>` suelto que haya sobrevivido (etiqueta mal formada, `<scr<script>ipt>`) se va
+      // también: este texto es la parte text/plain y no puede llevar marcado de ningún tipo.
+      .replace(/[<>]/g, '')
       .replace(/&nbsp;/g, ' ')
       .replace(/\n{3,}/g, '\n\n')
       .trim() || ' '
