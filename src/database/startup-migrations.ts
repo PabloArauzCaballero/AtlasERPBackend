@@ -91,6 +91,8 @@ export const STARTUP_MIGRATION_FILES = [
   'src/database/migrations/20261001100000-referencia-politica-aprobacion.sql',
   // La política ASFI A–F es requisito del calificador: sin ella responde RATING_POLICY_NOT_ACTIVE. Sólo INSERT, si no hay activa.
   'src/database/migrations/20261001120000-asfi-rating-policy-baseline.sql',
+  // Alta del comercio de una vez: matrícula, representante, poder y QR en la cuenta B2B (aditiva, sin backfill).
+  'src/database/migrations/20261002180000-alta-comercio-expediente.sql',
 ] as const;
 
 export interface LegacySqlProbe {

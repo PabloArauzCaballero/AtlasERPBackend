@@ -141,6 +141,27 @@ export class B2BAccountModel extends Model {
   declare countryCode: string;
   @Column(DataType.STRING(120)) declare city: string | null;
   @Column(DataType.STRING(500)) declare address: string | null;
+  /*
+   * Lo que el expediente del comercio en Atlas exige para enviarse a revisión, capturado UNA vez en
+   * el alta (Pablo, 2026-10-02). Nulos en un prospecto; se exigen al abrir el onboarding. Los
+   * archivos son `erp_file` (poder notarial, imagen del QR).
+   */
+  @Column({ type: DataType.STRING(60), field: 'commercial_registry' })
+  declare commercialRegistry: string | null;
+  @Column({ type: DataType.STRING(200), field: 'legal_rep_full_name' })
+  declare legalRepFullName: string | null;
+  @Column({ type: DataType.STRING(20), field: 'legal_rep_document_type' })
+  declare legalRepDocumentType: string | null;
+  @Column({ type: DataType.STRING(60), field: 'legal_rep_document_number' })
+  declare legalRepDocumentNumber: string | null;
+  @Column({ type: DataType.UUID, field: 'power_of_attorney_file_id' })
+  declare powerOfAttorneyFileId: string | null;
+  @Column({ type: DataType.UUID, field: 'bank_qr_file_id' })
+  declare bankQrFileId: string | null;
+  @Column({ type: DataType.STRING(16), field: 'bank_institution_code' })
+  declare bankInstitutionCode: string | null;
+  @Column({ type: DataType.STRING(40), field: 'bank_account_masked' })
+  declare bankAccountMasked: string | null;
   @Column({ type: DataType.INTEGER, field: 'employee_count' }) declare employeeCount: number | null;
   @Column({ type: DataType.INTEGER, field: 'founded_year' }) declare foundedYear: number | null;
   @Column({ type: DataType.DECIMAL(18, 2), field: 'annual_revenue' }) declare annualRevenue:

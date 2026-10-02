@@ -15,6 +15,7 @@ import type {
   ListAccountsQueryDto,
   QualifyAccountDto,
   SetAccountTaxIdDto,
+  SetAccountDossierDto,
 } from '../b2b-sales-crm.dtos';
 import {
   toAccountResponse,
@@ -92,6 +93,7 @@ export class B2BAccountsService extends B2BSalesCrmUseCaseBase {
           riskTier: input.riskTier ?? null,
           expectedMonthlyVolume: input.expectedMonthlyVolume?.toFixed(2) ?? null,
           notes: input.notes ?? null,
+          ...camposDelExpediente(input.dossier),
         },
         { transaction },
       );
@@ -415,6 +417,57 @@ export class B2BAccountsService extends B2BSalesCrmUseCaseBase {
     });
   }
 
+  /**
+   * Completa los datos del expediente que no se capturaron al registrar la empresa.
+   *
+   * Existe porque la compuerta del onboarding los exige y antes no había dónde ponerlos después del
+   * alta: el operador recibía el 409 con la lista y tenía que volver a crear la cuenta. Sólo escribe
+   * lo que llega; lo demás se conserva. Se audita como cualquier cambio de la cuenta.
+   */
+  async setAccountDossier(
+    accountId: string,
+    input: SetAccountDossierDto,
+    user: AuthUser,
+  ): Promise<Record<string, unknown>> {
+    this.logger.infoContext(B2BAccountsService.name, 'B2B CRM use case started', {
+      useCase: 'setAccountDossier',
+    });
+    return this.repository.transaction(async (transaction) => {
+      const account = await this.repository.accounts.findByPk(accountId, { transaction });
+      if (!account) {
+        throw new NotFoundException('Cuenta B2B no encontrada.');
+      }
+      const { city, address, ...dossier } = input;
+      const cambios: Record<string, unknown> = {
+        ...camposDelExpediente(dossier, true),
+        ...(city !== undefined ? { city } : {}),
+        ...(address !== undefined ? { address } : {}),
+      };
+      const oldValues = Object.fromEntries(
+        Object.keys(cambios).map((key) => [
+          key,
+          (account as unknown as Record<string, unknown>)[key],
+        ]),
+      );
+      account.set(cambios);
+      await account.save({ transaction });
+      await account.reload({ include: [this.repository.accountTags], transaction });
+
+      await this.repository.audit(
+        {
+          entityName: 'b2b_accounts',
+          entityId: account.id,
+          action: 'UPDATE',
+          changedByUserId: user.sub,
+          oldValues,
+          newValues: toAccountResponse(account),
+        },
+        transaction,
+      );
+      return toAccountResponse(account);
+    });
+  }
+
   async restoreAccount(accountId: string, user: AuthUser): Promise<Record<string, unknown>> {
     this.logger.infoContext(B2BAccountsService.name, 'B2B CRM use case started', {
       useCase: 'restoreAccount',
@@ -592,4 +645,31 @@ export class B2BAccountsService extends B2BSalesCrmUseCaseBase {
       return { account: toAccountResponse(account), opportunity };
     });
   }
+}
+
+/**
+ * Los campos del expediente tal como van a la fila. Con `soloLosQueLlegan` no se pisan con null los
+ * que no vinieron (corrección parcial); sin él, el alta escribe null donde no se capturó.
+ */
+function camposDelExpediente(
+  dossier: CreateAccountDto['dossier'] | undefined,
+  soloLosQueLlegan = false,
+): Record<string, unknown> {
+  const claves = [
+    'commercialRegistry',
+    'legalRepFullName',
+    'legalRepDocumentType',
+    'legalRepDocumentNumber',
+    'powerOfAttorneyFileId',
+    'bankQrFileId',
+    'bankInstitutionCode',
+    'bankAccountMasked',
+  ] as const;
+  const fila: Record<string, unknown> = {};
+  for (const clave of claves) {
+    const valor = dossier?.[clave];
+    if (valor !== undefined) fila[clave] = valor;
+    else if (!soloLosQueLlegan) fila[clave] = null;
+  }
+  return fila;
 }

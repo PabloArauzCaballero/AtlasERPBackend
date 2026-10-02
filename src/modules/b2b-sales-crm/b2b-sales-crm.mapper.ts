@@ -10,6 +10,7 @@ import type {
   ReconciliationRunModel,
   SalesOpportunityModel,
 } from './models/b2b-sales-crm.models';
+import { faltantesDelExpediente } from './domain/expediente-del-comercio';
 
 export function toAccountResponse(account: B2BAccountModel): Record<string, unknown> {
   return {
@@ -26,6 +27,16 @@ export function toAccountResponse(account: B2BAccountModel): Record<string, unkn
     countryCode: account.countryCode,
     city: account.city,
     address: account.address,
+    /* Expediente del comercio capturado en el ERP, y qué falta para abrir el onboarding. */
+    commercialRegistry: account.commercialRegistry ?? null,
+    legalRepFullName: account.legalRepFullName ?? null,
+    legalRepDocumentType: account.legalRepDocumentType ?? null,
+    legalRepDocumentNumber: account.legalRepDocumentNumber ?? null,
+    powerOfAttorneyFileId: account.powerOfAttorneyFileId ?? null,
+    bankQrFileId: account.bankQrFileId ?? null,
+    bankInstitutionCode: account.bankInstitutionCode ?? null,
+    bankAccountMasked: account.bankAccountMasked ?? null,
+    dossierMissing: faltantesDelExpediente(account),
     employeeCount: account.employeeCount,
     foundedYear: account.foundedYear,
     annualRevenue: account.annualRevenue,

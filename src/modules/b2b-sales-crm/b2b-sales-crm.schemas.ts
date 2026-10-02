@@ -8,6 +8,7 @@ import {
   contractBillingCycleDomain,
   contractSettlementPolicyDomain,
   riskTierDomain,
+  legalRepDocumentTypeDomain,
 } from '../catalog/domains/crm.domains';
 import { merchantUserRoleDomain } from '../catalog/domains/platform.domains';
 import { ONBOARDING_CASE_STATUSES, ONBOARDING_SCOPES } from './domain/onboarding-lifecycle';
@@ -119,6 +120,39 @@ const nitSchema = z
 
 export const setAccountTaxIdSchema = z.object({ taxId: nitSchema });
 
+/**
+ * Lo que el expediente del comercio en Atlas exige para enviarse a revisión, capturado en el ERP
+ * (Pablo, 2026-10-02: «el usuario te lo pasa una vez y esto debe estar listo y cargado»).
+ *
+ * Opcional al REGISTRAR la empresa —un prospecto no tiene QR— y exigido al ABRIR el onboarding
+ * (`faltantesDelExpediente`). Mismos límites que los esquemas del expediente en AtlasBackend, para
+ * que lo que el ERP acepta sea exactamente lo que el expediente acepta. Los archivos son ids de
+ * `erp_file` (dueño `B2B_ACCOUNT`), subidos por `/files` como cualquier otro del ERP.
+ */
+export const accountDossierFieldsSchema = z.object({
+  commercialRegistry: z.string().trim().min(3).max(60).optional(),
+  legalRepFullName: z.string().trim().min(3).max(200).optional(),
+  legalRepDocumentType: zodEnum(legalRepDocumentTypeDomain).optional(),
+  legalRepDocumentNumber: z.string().trim().min(3).max(60).optional(),
+  powerOfAttorneyFileId: uuid.optional(),
+  bankQrFileId: uuid.optional(),
+  bankInstitutionCode: z
+    .string()
+    .trim()
+    .regex(/^[A-Z0-9]{2,16}$/, 'La entidad es la sigla ASFI, en mayúsculas.')
+    .optional(),
+  bankAccountMasked: z.string().trim().min(4).max(40).optional(),
+});
+export const setAccountDossierSchema = accountDossierFieldsSchema
+  .extend({
+    /* La casa matriz también se puede completar aquí: es la primera sucursal del expediente. */
+    city: z.string().trim().min(2).max(120).optional(),
+    address: z.string().trim().min(3).max(500).optional(),
+  })
+  .refine((value) => Object.values(value).some((item) => item !== undefined), {
+    message: 'Nada que guardar: envía al menos un dato del expediente.',
+  });
+
 export const createAccountSchema = z.object({
   legalName: z.string().trim().min(2).max(220),
   tradeName: z.string().trim().min(2).max(220),
@@ -157,6 +191,8 @@ export const createAccountSchema = z.object({
     phone: z.string().trim().max(60).optional(),
     decisionRole: z.string().trim().max(60).optional(),
   }),
+  /* Los datos del expediente se pueden capturar ya en el alta: ver `accountDossierFieldsSchema`. */
+  dossier: accountDossierFieldsSchema.optional(),
 });
 
 export const bulkCreateAccountsSchema = z
