@@ -15,6 +15,7 @@ import { faltantesDelExpediente } from './domain/expediente-del-comercio';
 export function toAccountResponse(account: B2BAccountModel): Record<string, unknown> {
   return {
     id: account.id,
+    partnerProfileId: account.partnerProfileId ?? null,
     legalName: account.legalName,
     tradeName: account.tradeName,
     taxId: account.taxId,

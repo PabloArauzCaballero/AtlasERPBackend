@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, Req } from '@nestjs/common';
+import type { Request } from 'express';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
@@ -26,10 +27,17 @@ import {
   setAccountTaxIdSchema,
 } from '../b2b-sales-crm.schemas';
 import { B2BSalesCrmService } from '../services/b2b-sales-crm.service';
+import { MerchantFolderService } from '../../partner-onboarding-gateway/merchant-folder.service';
+
+/** La cookie con el token de identidad de quien opera: AtlasBackend valida sus roles sobre esa persona. */
+const UPSTREAM_ACCESS_COOKIE = 'atlas_upstream_at';
 
 @Controller('b2b/accounts')
 export class B2BAccountsController {
-  constructor(private readonly service: B2BSalesCrmService) {}
+  constructor(
+    private readonly service: B2BSalesCrmService,
+    private readonly merchantFolder: MerchantFolderService,
+  ) {}
 
   @Roles('COMMERCIAL_EXECUTIVE', 'COMMERCIAL_MANAGER', 'ADMIN')
   @Post()
@@ -90,12 +98,23 @@ export class B2BAccountsController {
   // exige y que no se capturaron al registrar la empresa. Mismo permiso que corregir el NIT.
   @Roles('COMMERCIAL_EXECUTIVE', 'COMMERCIAL_MANAGER', 'OPERATIONS', 'ADMIN')
   @Patch(':accountId/dossier')
-  setAccountDossier(
+  async setAccountDossier(
+    @Req() req: Request,
     @Param(new ZodValidationPipe(accountIdParamsSchema)) params: AccountIdParamsDto,
     @Body(new ZodValidationPipe(setAccountDossierSchema)) body: SetAccountDossierDto,
     @CurrentUser() user: AuthUser,
   ): Promise<Record<string, unknown>> {
-    return this.service.setAccountDossier(params.accountId, body, user);
+    const cuenta = await this.service.setAccountDossier(params.accountId, body, user);
+    /*
+     * Si el comercio ya tiene expediente en Atlas (su onboarding se abrió antes), lo completado
+     * aquí se le entrega EN EL ACTO. Sin esto el dato quedaba en la cuenta del ERP y el comercio
+     * seguía viendo «Falta N requisitos» hasta un onboarding nuevo que nunca llega (2026-10-02,
+     * Multicenter). Sin expediente todavía, se entrega al abrir el onboarding, como siempre.
+     */
+    if (!cuenta.partnerProfileId) return cuenta;
+    const token = (req.cookies as Record<string, string> | undefined)?.[UPSTREAM_ACCESS_COOKIE];
+    const carpeta = await this.merchantFolder.tryEnsureForAccount(params.accountId, token);
+    return { ...cuenta, carpetaDelComercio: carpeta };
   }
 
   // Archivar/restaurar mueve una cuenta fuera o dentro de los listados: decisión de gestión, no de
