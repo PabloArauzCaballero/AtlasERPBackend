@@ -89,6 +89,8 @@ export const STARTUP_MIGRATION_FILES = [
   // Correo que no salió (modo mock, buzón del emulador): SIMULATED, nunca SENT.
   'src/database/migrations/20260929120000-correo-simulado-no-es-enviado.sql',
   'src/database/migrations/20261001100000-referencia-politica-aprobacion.sql',
+  // La política ASFI A–F es requisito del calificador: sin ella responde RATING_POLICY_NOT_ACTIVE. Sólo INSERT, si no hay activa.
+  'src/database/migrations/20261001120000-asfi-rating-policy-baseline.sql',
 ] as const;
 
 export interface LegacySqlProbe {
