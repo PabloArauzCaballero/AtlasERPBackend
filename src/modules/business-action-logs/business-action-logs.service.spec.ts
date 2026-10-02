@@ -64,3 +64,36 @@ describe('BusinessActionLogsService.list · filtro por origen', () => {
     );
   });
 });
+
+/*
+ * 2026-10-02: un usuario de comercio (id numérico de AtlasBackend, «3») rompía el INSERT de la
+ * auditoría porque `actor_user_id` es uuid, y con él la transacción entera: ningún comercio podía
+ * crear una sucursal desde su portal. El actor no se pierde: va en `input_summary.actorRef`.
+ */
+describe('BusinessActionLogsService.record · actor que no es usuario interno', () => {
+  it('un actor no-uuid no va a actor_user_id: queda en input_summary.actorRef', async () => {
+    const { service, model } = servicio();
+    await service.record({ ...base, actorUserId: '3', actorRole: 'MERCHANT_ADMIN' });
+    expect(model.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actorUserId: null,
+        actorRole: 'MERCHANT_ADMIN',
+        inputSummary: { legalName: 'Comercio SRL', actorRef: '3' },
+      }),
+      expect.anything(),
+    );
+  });
+
+  it('un actor interno (uuid) se guarda tal cual y el resumen no cambia', async () => {
+    const { service, model } = servicio();
+    const interno = '8b8f0f5e-3f55-4a47-9c3a-1b6f0b0e2a11';
+    await service.record({ ...base, actorUserId: interno });
+    expect(model.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actorUserId: interno,
+        inputSummary: { legalName: 'Comercio SRL' },
+      }),
+      expect.anything(),
+    );
+  });
+});
