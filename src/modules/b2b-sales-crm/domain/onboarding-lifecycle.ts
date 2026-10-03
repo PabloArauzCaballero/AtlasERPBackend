@@ -103,6 +103,8 @@ export function normalizeKybOutcome(outcome: string | null | undefined): KybOutc
 export interface OnboardingCaseSnapshot {
   status: string;
   pendingItems: number;
+  /** Sin ítems no hay «0 pendientes» que valga: la activación rechaza un checklist vacío. */
+  hasChecklistItems: boolean;
   hasActiveContract: boolean;
   /** `decision_outcome === 'APROBADO'`: la compuerta dura. */
   motorApproved: boolean;
@@ -158,6 +160,7 @@ export function summarizeOnboardingQueue(
 export function isReadyToActivate(row: OnboardingCaseSnapshot): boolean {
   return (
     row.status !== ONBOARDING_TERMINAL_STATUS &&
+    row.hasChecklistItems &&
     row.pendingItems === 0 &&
     row.hasActiveContract &&
     row.motorApproved

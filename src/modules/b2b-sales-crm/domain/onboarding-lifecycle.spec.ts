@@ -37,15 +37,69 @@ describe('Ciclo de vida del caso de onboarding', () => {
 
   it('el resumen cuenta con la misma regla que la activación', () => {
     const summary = summarizeOnboardingQueue([
-      { status: 'COMPLETED', pendingItems: 0, hasActiveContract: true, motorApproved: true },
-      { status: 'COMPLETED', pendingItems: 0, hasActiveContract: true, motorApproved: true },
-      { status: 'OPEN', pendingItems: 2, hasActiveContract: false, motorApproved: false },
-      { status: 'VERIFICADO', pendingItems: 0, hasActiveContract: true, motorApproved: true },
-      { status: 'EN_VERIFICACION', pendingItems: 0, hasActiveContract: true, motorApproved: false },
-      { status: 'REVISION_MANUAL', pendingItems: 1, hasActiveContract: true, motorApproved: false },
-      { status: 'BLOCKED', pendingItems: 1, hasActiveContract: false, motorApproved: false },
-      { status: 'LISTO', pendingItems: 0, hasActiveContract: true, motorApproved: true },
-      { status: 'ALTA_PENDIENTE', pendingItems: 0, hasActiveContract: false, motorApproved: true },
+      {
+        status: 'COMPLETED',
+        pendingItems: 0,
+        hasChecklistItems: true,
+        hasActiveContract: true,
+        motorApproved: true,
+      },
+      {
+        status: 'COMPLETED',
+        pendingItems: 0,
+        hasChecklistItems: true,
+        hasActiveContract: true,
+        motorApproved: true,
+      },
+      {
+        status: 'OPEN',
+        pendingItems: 2,
+        hasChecklistItems: true,
+        hasActiveContract: false,
+        motorApproved: false,
+      },
+      {
+        status: 'VERIFICADO',
+        pendingItems: 0,
+        hasChecklistItems: true,
+        hasActiveContract: true,
+        motorApproved: true,
+      },
+      {
+        status: 'EN_VERIFICACION',
+        pendingItems: 0,
+        hasChecklistItems: true,
+        hasActiveContract: true,
+        motorApproved: false,
+      },
+      {
+        status: 'REVISION_MANUAL',
+        pendingItems: 1,
+        hasChecklistItems: true,
+        hasActiveContract: true,
+        motorApproved: false,
+      },
+      {
+        status: 'BLOCKED',
+        pendingItems: 1,
+        hasChecklistItems: true,
+        hasActiveContract: false,
+        motorApproved: false,
+      },
+      {
+        status: 'LISTO',
+        pendingItems: 0,
+        hasChecklistItems: true,
+        hasActiveContract: true,
+        motorApproved: true,
+      },
+      {
+        status: 'ALTA_PENDIENTE',
+        pendingItems: 0,
+        hasChecklistItems: true,
+        hasActiveContract: false,
+        motorApproved: true,
+      },
     ]);
 
     expect(summary).toEqual({
@@ -63,6 +117,19 @@ describe('Ciclo de vida del caso de onboarding', () => {
       isReadyToActivate({
         status: 'COMPLETED',
         pendingItems: 0,
+        hasChecklistItems: true,
+        hasActiveContract: true,
+        motorApproved: true,
+      }),
+    ).toBe(false);
+  });
+
+  it('un checklist VACÍO no es «0 pendientes»: no está listo, como en la activación', () => {
+    expect(
+      isReadyToActivate({
+        status: 'OPEN',
+        pendingItems: 0,
+        hasChecklistItems: false,
         hasActiveContract: true,
         motorApproved: true,
       }),
@@ -74,6 +141,7 @@ describe('Ciclo de vida del caso de onboarding', () => {
       isReadyToActivate({
         status: 'OPEN',
         pendingItems: 0,
+        hasChecklistItems: true,
         hasActiveContract: false,
         motorApproved: true,
       }),
@@ -85,6 +153,7 @@ describe('Ciclo de vida del caso de onboarding', () => {
       isReadyToActivate({
         status: 'OPEN',
         pendingItems: 0,
+        hasChecklistItems: true,
         hasActiveContract: true,
         motorApproved: false,
       }),
@@ -93,6 +162,7 @@ describe('Ciclo de vida del caso de onboarding', () => {
       isReadyToActivate({
         status: 'VERIFICADO',
         pendingItems: 0,
+        hasChecklistItems: true,
         hasActiveContract: true,
         motorApproved: true,
       }),
