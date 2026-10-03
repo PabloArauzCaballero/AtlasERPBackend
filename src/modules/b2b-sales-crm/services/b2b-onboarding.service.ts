@@ -359,10 +359,13 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
     const snapshots: OnboardingCaseSnapshot[] = [];
     for (const row of rows) {
       const pendingItems = countPendingItems(row.checklistItems ?? []);
-      const candidate = row.status !== ONBOARDING_TERMINAL_STATUS && pendingItems === 0;
+      const hasChecklistItems = (row.checklistItems ?? []).length > 0;
+      const candidate =
+        row.status !== ONBOARDING_TERMINAL_STATUS && hasChecklistItems && pendingItems === 0;
       snapshots.push({
         status: row.status,
         pendingItems,
+        hasChecklistItems,
         hasActiveContract: candidate
           ? Boolean(await this.resolveContractVersionForActivation(row))
           : false,
