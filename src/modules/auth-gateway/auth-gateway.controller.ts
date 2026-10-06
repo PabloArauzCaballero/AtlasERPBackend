@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Param, Patch, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch, Post, Req, Res } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import { Public } from '../../common/decorators/public.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -10,6 +11,8 @@ import {
   internalUserIdParamsSchema,
   loginSchema,
   logoutSchema,
+  passwordResetConfirmSchema,
+  passwordResetRequestSchema,
   replaceInternalUserRolesSchema,
   updateInternalUserSchema,
 } from './auth-gateway.schemas';
@@ -18,6 +21,8 @@ import type {
   InternalUserIdParamsDto,
   LoginDto,
   LogoutDto,
+  PasswordResetConfirmDto,
+  PasswordResetRequestDto,
   ReplaceInternalUserRolesDto,
   UpdateInternalUserDto,
 } from './auth-gateway.schemas';
@@ -57,6 +62,34 @@ export class AuthGatewayController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const result = await this.service.logout(this.readCookie(req, UPSTREAM_REFRESH_COOKIE), body.allDevices);
+    this.clearUpstreamCookies(res);
+    return result;
+  }
+
+  /**
+   * «¿Olvidaste tu contraseña?», en dos pasos y sin sesión. La respuesta del paso uno es la misma
+   * exista o no la cuenta. Presupuesto propio y estricto por IP: cada pedido puede disparar un
+   * correo real y cada confirmación es un intento sobre un código de 6 dígitos.
+   */
+  @Public()
+  @Throttle({ default: { ttl: 60_000, limit: 5 } })
+  @Post('password-reset/request')
+  @HttpCode(HttpStatus.OK)
+  requestPasswordReset(@Body(new ZodValidationPipe(passwordResetRequestSchema)) body: PasswordResetRequestDto) {
+    return this.service.requestPasswordReset(body.email);
+  }
+
+  @Public()
+  @Throttle({ default: { ttl: 60_000, limit: 5 } })
+  @Post('password-reset/confirm')
+  @HttpCode(HttpStatus.OK)
+  async confirmPasswordReset(
+    @Body(new ZodValidationPipe(passwordResetConfirmSchema)) body: PasswordResetConfirmDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.service.confirmPasswordReset(body);
+    // El proveedor revocó todas las sesiones de la cuenta; las cookies que queden en este navegador
+    // sólo apuntarían a una de ellas.
     this.clearUpstreamCookies(res);
     return result;
   }

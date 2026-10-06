@@ -10,6 +10,23 @@ export const loginSchema = z.object({
 });
 export type LoginDto = z.infer<typeof loginSchema>;
 
+/**
+ * «Olvidé mi contraseña», sin sesión. El correo es el único identificador porque es el canal por el
+ * que llega el código: quien no lee ese buzón no puede completar el paso dos.
+ */
+export const passwordResetRequestSchema = z.object({
+  email: z.string().trim().email().max(180),
+});
+export type PasswordResetRequestDto = z.infer<typeof passwordResetRequestSchema>;
+
+export const passwordResetConfirmSchema = passwordResetRequestSchema.extend({
+  code: z.string().trim().regex(/^\d{6}$/, 'El código debe tener exactamente 6 dígitos.'),
+  // Diez caracteres es el mínimo del proveedor para un actor interno; sin `.trim()`, como todo
+  // secreto: recortar cambiaría lo que la persona escribió.
+  newPassword: z.string().min(10).max(128),
+});
+export type PasswordResetConfirmDto = z.infer<typeof passwordResetConfirmSchema>;
+
 export const logoutSchema = z.object({
   allDevices: z.boolean().default(false),
 });

@@ -1,9 +1,12 @@
 import {
   BadRequestException,
   ForbiddenException,
+  HttpException,
+  HttpStatus,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
+  ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
@@ -35,7 +38,9 @@ export class AtlasIdentityClient {
   constructor(private readonly http: HttpService) {}
 
   private baseHeaders(): Record<string, string> {
-    return { 'x-tenant-id': env.ATLAS_IDENTITY_TENANT_ID, Accept: 'application/json' };
+    // `x-atlas-product` hace que los correos de código del proveedor digan «ERP corporativo» y no
+    // un rótulo genérico: quien recibe un código necesita saber a qué está entrando.
+    return { 'x-tenant-id': env.ATLAS_IDENTITY_TENANT_ID, 'x-atlas-product': 'erp', Accept: 'application/json' };
   }
 
   private authHeaders(accessToken: string): Record<string, string> {
@@ -77,6 +82,10 @@ export class AtlasIdentityClient {
       if (status === 401) return new UnauthorizedException(message);
       if (status === 403) return new ForbiddenException(message);
       if (status === 404) return new NotFoundException(message);
+      if (status === 429) return new HttpException(message, HttpStatus.TOO_MANY_REQUESTS);
+      // 503 es «el correo saliente no está configurado» en la recuperación: igual para cualquier
+      // dirección, así que decirlo no revela nada y le dice al operador qué arreglar.
+      if (status === 503) return new ServiceUnavailableException('El servicio de identidad o de correo no está disponible.');
       if (status !== undefined && status >= 400 && status < 500) return new BadRequestException(message);
       return new InternalServerErrorException('El servicio de identidad no está disponible.');
     }
@@ -93,6 +102,23 @@ export class AtlasIdentityClient {
 
   logout(refreshToken: string, allDevices: boolean): Promise<{ loggedOut: boolean }> {
     return this.request('post', 'internal/auth/logout', { body: { refreshToken, allDevices } });
+  }
+
+  /**
+   * Recuperación sin sesión. Siempre como actor interno —el único que inicia sesión en el ERP—: un
+   * cliente o comercio con el mismo correo no recibe por aquí un código para la cuenta interna. La
+   * respuesta del proveedor es idéntica exista o no la cuenta.
+   */
+  requestPasswordReset(email: string): Promise<{ requested: boolean }> {
+    return this.request('post', 'auth/password-reset/request', {
+      body: { actorType: 'internal_user', identifier: email },
+    });
+  }
+
+  confirmPasswordReset(input: { email: string; code: string; newPassword: string }): Promise<{ passwordChanged: boolean }> {
+    return this.request('post', 'auth/password-reset/confirm', {
+      body: { actorType: 'internal_user', identifier: input.email, code: input.code, newPassword: input.newPassword },
+    });
   }
 
   me(accessToken: string): Promise<AtlasInternalAccessProfile> {

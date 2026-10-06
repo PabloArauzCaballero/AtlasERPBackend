@@ -46,6 +46,16 @@ export class AuthGatewayService {
     };
   }
 
+  /** «Olvidé mi contraseña», paso uno: el proveedor envía el código si la cuenta existe. */
+  requestPasswordReset(email: string): Promise<{ requested: boolean }> {
+    return this.identityClient.requestPasswordReset(email);
+  }
+
+  /** Paso dos: código y contraseña nueva. El proveedor revoca todas las sesiones de la cuenta. */
+  confirmPasswordReset(input: { email: string; code: string; newPassword: string }): Promise<{ passwordChanged: boolean }> {
+    return this.identityClient.confirmPasswordReset(input);
+  }
+
   /**
    * Ejecuta una llamada autenticada contra AtlasBackend, rotando el token upstream una vez si
    * hace falta (access token ausente/expirado). Devuelve los tokens rotados para que el
