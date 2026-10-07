@@ -151,6 +151,68 @@ export class MerchantCreditGatewayController {
     });
   }
 
+  /**
+   * Los pagos INICIALES de las compras de este comercio: el 60 % que el cliente le pagó directo al comprar.
+   *
+   * Es lo que faltaba para que el comprobante del inicial llegara a alguien: la app lo guardaba en el teléfono y el
+   * comercio nunca lo veía. Por defecto sólo los que esperan su palabra.
+   */
+  @Get(':partnerId/down-payments')
+  @Roles('merchant', 'MERCHANT_ADMIN', 'MERCHANT_OPERATIONS', 'OPERATIONS', 'ADMIN')
+  listDownPayments(
+    @Req() req: Request,
+    @Param('partnerId') partnerId: string,
+    @Query('onlyPending') onlyPending?: string,
+  ) {
+    const filtro =
+      onlyPending === undefined ? '' : `?onlyPending=${encodeURIComponent(onlyPending)}`;
+    return this.client.forward({
+      method: 'GET',
+      path: `merchant/partners/${encodeURIComponent(partnerId)}/down-payments${filtro}`,
+      accessToken: this.token(req),
+    });
+  }
+
+  /** La imagen del comprobante del pago inicial, para MIRARLA antes de confirmar. */
+  @Get(':partnerId/down-payments/:applicationId/proof')
+  @Roles('merchant', 'MERCHANT_ADMIN', 'MERCHANT_OPERATIONS', 'OPERATIONS', 'ADMIN')
+  @Header('Cache-Control', 'private, max-age=60')
+  async downPaymentProof(
+    @Req() req: Request,
+    @Param('partnerId') partnerId: string,
+    @Param('applicationId') applicationId: string,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    const imagen = await this.client.forwardBinary({
+      method: 'GET',
+      path:
+        `merchant/partners/${encodeURIComponent(partnerId)}` +
+        `/down-payments/${encodeURIComponent(applicationId)}/proof`,
+      accessToken: this.token(req),
+    });
+    res.setHeader('Content-Type', imagen.contentType);
+    return new StreamableFile(imagen.buffer);
+  }
+
+  /** Confirmar o rechazar el pago inicial. El cuerpo es `{ verified, reason? }`; el cliente lo ve en su app. */
+  @Post(':partnerId/down-payments/:applicationId/verification')
+  @Roles('merchant', 'MERCHANT_ADMIN', 'MERCHANT_OPERATIONS', 'OPERATIONS', 'ADMIN')
+  verifyDownPayment(
+    @Req() req: Request,
+    @Param('partnerId') partnerId: string,
+    @Param('applicationId') applicationId: string,
+    @Body() body: unknown,
+  ) {
+    return this.client.forward({
+      method: 'POST',
+      path:
+        `merchant/partners/${encodeURIComponent(partnerId)}` +
+        `/down-payments/${encodeURIComponent(applicationId)}/verification`,
+      accessToken: this.token(req),
+      body,
+    });
+  }
+
   private token(req: Request): string | undefined {
     return (req.cookies as Record<string, string> | undefined)?.[UPSTREAM_ACCESS_COOKIE];
   }
