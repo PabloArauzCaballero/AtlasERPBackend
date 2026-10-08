@@ -1569,6 +1569,21 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
         { status: BranchStatus.ACTIVE, canOriginateBnpl: true, activatedAt: new Date() },
         { where: { accountId: caseRecord.accountId, status: BranchStatus.PENDING }, transaction },
       );
+      // Las sucursales que ya estaban ACTIVE —dadas de alta una a una desde la pantalla, antes de que se
+      // aprobara el comercio— también se habilitan: `setBranchStatus` las activa SIN la capacidad de
+      // originar BNPL, y como esto sólo miraba las PENDING, esas se quedaban en «Por habilitar» para
+      // siempre aunque el comercio ya estuviera aprobado. No se toca `activatedAt`: ya tenían su fecha.
+      await this.repository.branches.update(
+        { canOriginateBnpl: true },
+        {
+          where: {
+            accountId: caseRecord.accountId,
+            status: BranchStatus.ACTIVE,
+            canOriginateBnpl: false,
+          },
+          transaction,
+        },
+      );
 
       return this.getOnboardingCase(caseRecord.id, transaction);
     });

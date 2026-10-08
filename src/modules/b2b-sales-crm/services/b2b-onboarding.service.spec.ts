@@ -357,6 +357,61 @@ describe('B2BOnboardingService · la compuerta dura', () => {
   });
 });
 
+describe('B2BOnboardingService · activar el comercio habilita la venta a crédito de sus sucursales', () => {
+  function activable() {
+    const built = build({
+      caso: { decisionOutcome: 'APROBADO', checklistItems: [{ status: 'COMPLETED' }] },
+    });
+    const branches = { update: jest.fn(async () => [1]) };
+    Object.assign(built.repository, { branches });
+    built.repository.findActiveContractVersion = jest.fn(async () => ({ id: 'cv-1' }) as never);
+    jest
+      .spyOn(built.service as never, 'getOnboardingCase')
+      .mockResolvedValue({ id: 'caso-1' } as never);
+    return { ...built, branches };
+  }
+
+  it('las PENDING pasan a ACTIVE con la capacidad y fecha de alta', async () => {
+    const { service, branches } = activable();
+    await service.activateOnboardingCase('caso-1');
+    expect(branches.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'ACTIVE',
+        canOriginateBnpl: true,
+        activatedAt: expect.any(Date),
+      }),
+      expect.objectContaining({ where: { accountId: 'acc-1', status: 'PENDING' } }),
+    );
+  });
+
+  it('las que YA estaban ACTIVE sin la capacidad también la reciben, sin reescribir su fecha de alta', async () => {
+    const { service, branches } = activable();
+    await service.activateOnboardingCase('caso-1');
+    const llamada = (
+      branches.update.mock.calls as unknown as Array<
+        [Record<string, unknown>, { where: Record<string, unknown> }]
+      >
+    ).find(([, opciones]) => opciones.where.status === 'ACTIVE');
+    expect(llamada).toBeDefined();
+    expect(llamada?.[0]).toEqual({ canOriginateBnpl: true });
+    expect(llamada?.[1].where).toEqual({
+      accountId: 'acc-1',
+      status: 'ACTIVE',
+      canOriginateBnpl: false,
+    });
+  });
+
+  it('sin APROBADO del Motor no habilita ninguna: la compuerta dura corta antes', async () => {
+    const built = build({ caso: { decisionOutcome: null } });
+    const branches = { update: jest.fn() };
+    Object.assign(built.repository, { branches });
+    await expect(built.service.activateOnboardingCase('caso-1')).rejects.toBeInstanceOf(
+      ConflictException,
+    );
+    expect(branches.update).not.toHaveBeenCalled();
+  });
+});
+
 describe('B2BOnboardingService · el contrato legal por defecto', () => {
   it('lo lee de AtlasBackend y publica sólo la cabecera, nunca el cuerpo', async () => {
     const forward = jest.fn(async () => ({
