@@ -120,8 +120,10 @@ export class BillingRepository {
     const existingInvoice = await this.invoiceModel.findOne({
       where: {
         advertiserId: { [Op.in]: advertiserIds },
-        periodStart,
-        periodEnd,
+        // Solape, no igualdad: 09-01..09-30 y 09-15..10-15 comparten consumo y el ledger no marca
+        // lo ya facturado, así que cualquier intersección con una factura viva duplicaría el cobro.
+        periodStart: { [Op.lte]: periodEnd },
+        periodEnd: { [Op.gte]: periodStart },
         status: { [Op.ne]: 'VOID' },
       },
       transaction,

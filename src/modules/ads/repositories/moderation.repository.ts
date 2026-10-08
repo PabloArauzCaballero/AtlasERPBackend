@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Op, type Transaction, type WhereOptions } from 'sequelize';
 import { PinoLogger } from 'nestjs-pino';
@@ -155,16 +155,28 @@ export class ModerationRepository {
     },
     transaction?: Transaction,
   ): Promise<ModerationReviewModel> {
-    await review.update(
-      {
-        decision: values.decision,
-        reasonCode: values.reasonCode,
-        notes: values.notes ?? null,
-        reviewerUserId: values.reviewerUserId,
-        requiresAdvertiserChanges: values.requiresAdvertiserChanges,
-      },
-      { transaction },
-    );
+    const cambios = {
+      decision: values.decision,
+      reasonCode: values.reasonCode,
+      notes: values.notes ?? null,
+      reviewerUserId: values.reviewerUserId,
+      requiresAdvertiserChanges: values.requiresAdvertiserChanges,
+    };
+    // UPDATE condicional: la lectura previa no bloquea la fila, así que dos moderadores a la vez
+    // leen PENDING_REVIEW. Bajo READ COMMITTED el segundo UPDATE espera al primero, vuelve a
+    // evaluar el WHERE y afecta 0 filas: sólo una decisión se aplica.
+    const [afectadas] = await this.reviewModel.update(cambios, {
+      where: { id: review.id, decision: 'PENDING_REVIEW' },
+      transaction,
+    });
+    if (afectadas === 0) {
+      throw new ConflictException({
+        code: 'MODERATION_REVIEW_ALREADY_DECIDED',
+        message:
+          'No se puede modificar una revisión ya decidida; se debe crear una nueva revisión.',
+      });
+    }
+    review.set(cambios);
     return review;
   }
 
@@ -189,7 +201,9 @@ export class ModerationRepository {
     // La campaña aprobada NO se activa sola: queda en `APPROVED` y activarla sigue siendo un acto
     // explícito de quien la gestiona (`PATCH /campaigns/:id/status`). Es el único freno humano que
     // queda entre aprobar y gastar presupuesto.
-    if (review.campaignId) {
+    // `submitCampaign` crea las revisiones de anuncio y de creatividad CON `campaignId`: sólo la
+    // revisión de la campaña misma (sin anuncio ni creatividad) decide el estado de la campaña.
+    if (review.campaignId && !review.adId && !review.creativeId) {
       await this.campaignModel.update(
         { approvalStatus, status: entityStatus },
         { where: { id: review.campaignId }, transaction },
