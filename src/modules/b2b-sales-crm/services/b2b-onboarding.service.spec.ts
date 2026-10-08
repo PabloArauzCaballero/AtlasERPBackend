@@ -370,35 +370,35 @@ describe('B2BOnboardingService · activar el comercio habilita la venta a crédi
       .mockResolvedValue({ id: 'caso-1' } as never);
     return { ...built, branches };
   }
+  type Llamada = [Record<string, unknown>, { where: Record<string, unknown> }];
+  const llamadas = (branches: { update: jest.Mock }) =>
+    branches.update.mock.calls as unknown as Llamada[];
 
-  it('las PENDING pasan a ACTIVE con la capacidad y fecha de alta', async () => {
+  it('las PENDING pasan a ACTIVE con su fecha de alta', async () => {
     const { service, branches } = activable();
     await service.activateOnboardingCase('caso-1');
-    expect(branches.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        status: 'ACTIVE',
-        canOriginateBnpl: true,
-        activatedAt: expect.any(Date),
-      }),
-      expect.objectContaining({ where: { accountId: 'acc-1', status: 'PENDING' } }),
-    );
+    const [valores, opciones] = llamadas(branches)[0] as Llamada;
+    expect(valores).toEqual({ status: 'ACTIVE', activatedAt: expect.any(Date) });
+    expect(opciones.where).toEqual({ accountId: 'acc-1', status: 'PENDING' });
   });
 
-  it('las que YA estaban ACTIVE sin la capacidad también la reciben, sin reescribir su fecha de alta', async () => {
+  it('TODAS las ACTIVE sin la capacidad la reciben —también las que ya lo estaban—, sin reescribir su fecha', async () => {
     const { service, branches } = activable();
     await service.activateOnboardingCase('caso-1');
-    const llamada = (
-      branches.update.mock.calls as unknown as Array<
-        [Record<string, unknown>, { where: Record<string, unknown> }]
-      >
-    ).find(([, opciones]) => opciones.where.status === 'ACTIVE');
-    expect(llamada).toBeDefined();
-    expect(llamada?.[0]).toEqual({ canOriginateBnpl: true });
-    expect(llamada?.[1].where).toEqual({
+    const [valores, opciones] = llamadas(branches)[1] as Llamada;
+    expect(valores).toEqual({ canOriginateBnpl: true });
+    expect(opciones.where).toMatchObject({
       accountId: 'acc-1',
       status: 'ACTIVE',
       canOriginateBnpl: false,
     });
+  });
+
+  it('las que Atlas apagó a mano NO se reencienden al activar', async () => {
+    const { service, branches } = activable();
+    await service.activateOnboardingCase('caso-1');
+    const [, opciones] = llamadas(branches)[1] as Llamada;
+    expect(opciones.where.bnplBlockedByAtlas).toBe(false);
   });
 
   it('sin APROBADO del Motor no habilita ninguna: la compuerta dura corta antes', async () => {
@@ -409,6 +409,78 @@ describe('B2BOnboardingService · activar el comercio habilita la venta a crédi
       ConflictException,
     );
     expect(branches.update).not.toHaveBeenCalled();
+  });
+});
+
+describe('B2BOnboardingService · sucursales: la bandera de crédito sigue la regla única', () => {
+  function conSucursal(branchOver: Record<string, unknown>, lifecycleStatus: string) {
+    const built = build();
+    const branch = fila({
+      id: 'br-1',
+      accountId: 'acc-1',
+      name: 'Casa matriz',
+      status: 'INACTIVE',
+      canOriginateBnpl: false,
+      bnplBlockedByAtlas: false,
+      activatedAt: new Date('2026-10-01T00:00:00Z'),
+      ...branchOver,
+    });
+    Object.assign(built.repository, { branches: { findByPk: jest.fn(async () => branch) } });
+    built.repository.accounts.findByPk = jest.fn(async () => ({
+      id: 'acc-1',
+      lifecycleStatus,
+    })) as never;
+    return { ...built, branch };
+  }
+
+  it('dar de alta una sucursal de un comercio APROBADO la deja vendiendo', async () => {
+    const { service, branch } = conSucursal({}, 'CUSTOMER');
+    await service.setBranchStatus('br-1', { status: 'ACTIVE' } as never);
+    expect(branch.canOriginateBnpl).toBe(true);
+  });
+
+  it('en un comercio aún no aprobado queda «Por habilitar»', async () => {
+    const { service, branch } = conSucursal({}, 'QUALIFIED');
+    await service.setBranchStatus('br-1', { status: 'ACTIVE' } as never);
+    expect(branch.canOriginateBnpl).toBe(false);
+  });
+
+  it('si Atlas la apagó a mano, darla de alta no la reenciende', async () => {
+    const { service, branch } = conSucursal({ bnplBlockedByAtlas: true }, 'CUSTOMER');
+    await service.setBranchStatus('br-1', { status: 'ACTIVE' } as never);
+    expect(branch.canOriginateBnpl).toBe(false);
+  });
+
+  it('darla de baja le quita el crédito siempre', async () => {
+    const { service, branch } = conSucursal(
+      { status: 'ACTIVE', canOriginateBnpl: true },
+      'CUSTOMER',
+    );
+    await service.setBranchStatus('br-1', { status: 'INACTIVE' } as never);
+    expect(branch.canOriginateBnpl).toBe(false);
+  });
+
+  it('Atlas apaga a mano: queda marcada y la regla no la toca; al encenderla se levanta la marca', async () => {
+    const apagar = conSucursal({ status: 'ACTIVE', canOriginateBnpl: true }, 'CUSTOMER');
+    await apagar.service.updateBranch('br-1', { canOriginateBnpl: false } as never);
+    expect(apagar.branch).toMatchObject({ canOriginateBnpl: false, bnplBlockedByAtlas: true });
+
+    const encender = conSucursal({ status: 'ACTIVE', bnplBlockedByAtlas: true }, 'CUSTOMER');
+    await encender.service.updateBranch('br-1', { canOriginateBnpl: true } as never);
+    expect(encender.branch).toMatchObject({ canOriginateBnpl: true, bnplBlockedByAtlas: false });
+  });
+
+  it('editar otros datos no toca ni la bandera ni la marca', async () => {
+    const { service, branch } = conSucursal(
+      { status: 'ACTIVE', canOriginateBnpl: true },
+      'CUSTOMER',
+    );
+    await service.updateBranch('br-1', { name: 'Otro nombre' } as never);
+    expect(branch).toMatchObject({
+      name: 'Otro nombre',
+      canOriginateBnpl: true,
+      bnplBlockedByAtlas: false,
+    });
   });
 });
 

@@ -750,6 +750,11 @@ export class MerchantBranchModel extends Model {
   @Column({ type: DataType.BOOLEAN, field: 'can_originate_bnpl' })
   declare canOriginateBnpl: boolean;
 
+  /** Atlas apagó a mano la venta a crédito: la regla «comercio aprobado = todas venden» no la reenciende. */
+  @Default(false)
+  @Column({ type: DataType.BOOLEAN, field: 'bnpl_blocked_by_atlas' })
+  declare bnplBlockedByAtlas: boolean;
+
   @Column({ type: DataType.DATE, field: 'activated_at' })
   declare activatedAt: Date | null;
 }

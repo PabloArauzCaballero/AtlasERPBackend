@@ -18,6 +18,7 @@ import {
   MerchantSubscriptionModel,
   MerchantUserModel,
 } from '../b2b-sales-crm/models/b2b-sales-crm.models';
+import { sucursalPuedeVenderACredito } from '../b2b-sales-crm/domain/branch-bnpl';
 import { AdvertiserAccountModel, CampaignModel } from '../ads/models';
 import { AdsAuditService } from '../ads/services/audit.service';
 import { assertCampaignTransition } from '../ads/ads.campaign-transitions';
@@ -521,16 +522,21 @@ export class PortalService {
   async createBranch(input: CreatePortalBranchDto, actor: PortalActor): Promise<PortalBranchDto> {
     const accountId = this.scopeService.resolveAccountId(actor.scope, input.merchantAccountId);
     return this.sequelize.transaction(async (transaction) => {
+      const cuenta = await this.accountModel.findByPk(accountId, { transaction });
       const branch = await this.branchModel.create(
         {
           accountId,
           name: input.name,
           city: input.city ?? null,
           address: input.address ?? null,
-          // Nace operativa: el comercio está declarando un local en el que ya atiende. Vender a
-          // crédito ahí es otra cosa y la concede Atlas (`canOriginateBnpl`, canal interno).
+          // Nace operativa: el comercio está declarando un local en el que ya atiende. Si Atlas YA aprobó
+          // al comercio, el local vende a crédito (regla única, `branch-bnpl.ts`); si no, queda «Por
+          // habilitar» hasta la aprobación. El comercio no elige: la capacidad no viene del cuerpo.
           status: 'ACTIVE',
-          canOriginateBnpl: false,
+          canOriginateBnpl: sucursalPuedeVenderACredito({
+            lifecycleStatus: cuenta?.lifecycleStatus,
+            branchStatus: 'ACTIVE',
+          }),
           activatedAt: new Date(),
         },
         { transaction },
@@ -610,11 +616,22 @@ export class PortalService {
       if (branch.status === input.status) return toBranchDto(branch);
 
       const before = branch.status;
+      const cuenta = await this.accountModel.findByPk(branch.accountId, { transaction });
+      // Dada de baja, nunca vende. Al reactivarla, vende si el comercio está aprobado y Atlas no la apagó
+      // (antes la baja la dejaba sin crédito PARA SIEMPRE: la reactivación no lo devolvía).
+      const vende =
+        input.status === 'ACTIVE' &&
+        !branch.bnplBlockedByAtlas &&
+        (branch.canOriginateBnpl ||
+          sucursalPuedeVenderACredito({
+            lifecycleStatus: cuenta?.lifecycleStatus,
+            branchStatus: input.status,
+            bnplBlockedByAtlas: branch.bnplBlockedByAtlas,
+          }));
       await branch.update(
         {
           status: input.status,
-          // Una sucursal dada de baja no puede seguir originando crédito, diga lo que diga su marca.
-          ...(input.status === 'INACTIVE' ? { canOriginateBnpl: false } : {}),
+          canOriginateBnpl: vende,
           ...(input.status === 'ACTIVE' && !branch.activatedAt ? { activatedAt: new Date() } : {}),
         },
         { transaction },
