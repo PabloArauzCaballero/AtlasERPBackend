@@ -2,6 +2,7 @@ import { nextDocumentNumber } from '../../../common/numbering/document-numbering
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -417,6 +418,18 @@ export class B2BPipelineService extends B2BSalesCrmUseCaseBase {
       throw new NotFoundException('Propuesta no encontrada.');
     }
 
+    // Una propuesta ACEPTADA ya tiene oportunidad en CONTRATACION y puede tener contrato colgado:
+    // rechazarla la sacaba del historial (y deleteProposal borra las REJECTED). Y rechazar dos
+    // veces reescribiría `rejectedAt`.
+    if (
+      proposal.status === ProposalStatus.ACCEPTED ||
+      proposal.status === ProposalStatus.REJECTED
+    ) {
+      throw new ConflictException(
+        'Solo una propuesta en borrador, pendiente de aprobacion o enviada puede rechazarse.',
+      );
+    }
+
     await proposal.update({ status: ProposalStatus.REJECTED, rejectedAt: new Date() });
     return toProposalResponse(proposal);
   }
@@ -525,6 +538,15 @@ export class B2BPipelineService extends B2BSalesCrmUseCaseBase {
 
       if (approval.status !== ApprovalStatus.PENDING) {
         throw new ConflictException('La solicitud de aprobación ya fue decidida.');
+      }
+
+      // Cuatro ojos, como en cobertura: quien pidió la excepción (propuesta o regla MDR bajo el
+      // mínimo) no la aprueba él mismo. Rechazar la propia solicitud no abre nada y se permite.
+      if (input.status === ApprovalStatus.APPROVED && approval.requestedByUserId === user.sub) {
+        throw new ForbiddenException({
+          code: 'FOUR_EYES_REQUIRED',
+          message: 'Quien pidió la aprobación no puede aprobarla: debe hacerlo otra persona.',
+        });
       }
 
       await approval.update(

@@ -205,3 +205,66 @@ describe('B2BPipelineService · decideApproval · aprobación de una regla MDR',
     expect(fila?.mdrRuleId).toBe('regla-1');
   });
 });
+
+describe('B2BPipelineService · decideApproval · cuatro ojos', () => {
+  const SOLICITUD = {
+    id: 'aprobacion-1',
+    proposalId: null,
+    mdrRuleId: 'regla-1',
+    approvalType: 'MDR_BELOW_MINIMUM',
+    requestedByUserId: 'solicitante-1',
+  };
+  const SOLICITANTE = { sub: 'solicitante-1' } as never;
+
+  it('quien pidió la excepción NO puede aprobarla: 403 y la regla no se activa', async () => {
+    const { service, repository, fila } = buildAprobaciones(SOLICITUD);
+
+    await expect(
+      service.decideApproval(
+        'aprobacion-1',
+        { status: 'APPROVED', reason: 'yo mismo' } as never,
+        SOLICITANTE,
+      ),
+    ).rejects.toMatchObject({ response: { code: 'FOUR_EYES_REQUIRED' } });
+
+    expect(fila?.update).not.toHaveBeenCalled();
+    expect(repository.mdrRules.update).not.toHaveBeenCalled();
+  });
+
+  it('otra persona sí puede aprobarla', async () => {
+    const { service, repository } = buildAprobaciones(SOLICITUD);
+
+    await service.decideApproval(
+      'aprobacion-1',
+      { status: 'APPROVED', reason: 'ok' } as never,
+      APROBADOR,
+    );
+
+    expect(repository.mdrRules.update).toHaveBeenCalled();
+  });
+});
+
+describe('B2BPipelineService · rejectProposal · estado', () => {
+  const buildPropuesta = (status: string) => {
+    const propuesta = { status, update: jest.fn(async () => undefined) };
+    const repository = { findProposalWithLines: jest.fn(async () => propuesta) };
+    const service = new B2BPipelineService(
+      repository as never,
+      { infoContext: jest.fn() } as never,
+      { record: jest.fn(async () => undefined) } as never,
+    );
+    return { service, propuesta };
+  };
+
+  it.each(['ACCEPTED', 'REJECTED'])('una propuesta %s no se puede rechazar (409)', async (st) => {
+    const { service, propuesta } = buildPropuesta(st);
+    await expect(service.rejectProposal('p-1', {} as never)).rejects.toThrow('puede rechazarse');
+    expect(propuesta.update).not.toHaveBeenCalled();
+  });
+
+  it.each(['DRAFT', 'PENDING_APPROVAL', 'SENT'])('una propuesta %s sí se rechaza', async (st) => {
+    const { service, propuesta } = buildPropuesta(st);
+    await service.rejectProposal('p-1', {} as never);
+    expect(propuesta.update).toHaveBeenCalledWith(expect.objectContaining({ status: 'REJECTED' }));
+  });
+});
