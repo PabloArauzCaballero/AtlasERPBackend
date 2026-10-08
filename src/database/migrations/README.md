@@ -145,3 +145,10 @@ revisión y que hasta ahora el comercio tenía que volver a entregar en su porta
 abrir el onboarding (`faltantesDelExpediente`), no al registrar la empresa. Al abrir el caso,
 `MerchantFolderService` entrega el expediente completo a AtlasBackend y lo envía a revisión. El
 `down` se niega si alguna cuenta ya guarda estos datos.
+
+## 20261008120000-sucursal-bnpl-bloqueada-por-atlas.sql
+
+Añade `atlas_sales.merchant_branches.bnpl_blocked_by_atlas` (`NOT NULL DEFAULT false`): la marca «Atlas apagó
+a mano la venta a crédito de esta sucursal». Fija la política «comercio aprobado = toda sucursal ACTIVE vende
+a crédito» y permite la excepción sin que la regla la reenciende. Aditiva y sin backfill. La reversa se niega
+si alguna sucursal está bloqueada.

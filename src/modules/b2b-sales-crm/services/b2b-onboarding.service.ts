@@ -11,6 +11,7 @@ import {
   describirFaltantes,
   faltantesDelExpediente,
 } from '../domain/expediente-del-comercio';
+import { sucursalPuedeVenderACredito } from '../domain/branch-bnpl';
 import { Op, Transaction } from 'sequelize';
 import { PinoLoggerService } from '../../../common/logging/pino-logger.service';
 import type { AuthUser } from '../../../common/types/auth-context.types';
@@ -445,7 +446,11 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
       ...(input.name !== undefined ? { name: input.name } : {}),
       ...(input.city !== undefined ? { city: input.city } : {}),
       ...(input.address !== undefined ? { address: input.address } : {}),
-      ...(input.canOriginateBnpl !== undefined ? { canOriginateBnpl: input.canOriginateBnpl } : {}),
+      // Atlas decide a mano: apagar la deja «apagada por Atlas» (la regla de aprobación no la reenciende);
+      // encenderla levanta esa marca.
+      ...(input.canOriginateBnpl !== undefined
+        ? { canOriginateBnpl: input.canOriginateBnpl, bnplBlockedByAtlas: !input.canOriginateBnpl }
+        : {}),
     });
     return this.describeBranch(branch);
   }
@@ -471,9 +476,21 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
     this.assertBranchAccount(branch.accountId, allowedAccountIds);
 
     const activa = input.status === 'ACTIVE';
+    const cuenta = await this.repository.accounts.findByPk(branch.accountId);
+    // Al darla de alta: vende si el comercio está aprobado (regla única), o si Atlas ya se la había
+    // concedido a mano y no la apagó. Dada de baja, nunca.
+    const vende =
+      activa &&
+      !branch.bnplBlockedByAtlas &&
+      (branch.canOriginateBnpl ||
+        sucursalPuedeVenderACredito({
+          lifecycleStatus: cuenta?.lifecycleStatus,
+          branchStatus: input.status,
+          bnplBlockedByAtlas: branch.bnplBlockedByAtlas,
+        }));
     await branch.update({
       status: input.status,
-      canOriginateBnpl: activa ? branch.canOriginateBnpl : false,
+      canOriginateBnpl: vende,
       ...(activa && !branch.activatedAt ? { activatedAt: new Date() } : {}),
     });
     return this.describeBranch(branch);
@@ -1565,14 +1582,14 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
         { lifecycleStatus: AccountLifecycleStatus.CUSTOMER, updatedAt: new Date() },
         { where: { id: caseRecord.accountId }, transaction },
       );
+      // Comercio aprobado = todas sus sucursales vigentes venden, salvo las que Atlas apagó a mano. Primero
+      // las PENDING pasan a ACTIVE; luego se habilitan TODAS las ACTIVE sin la capacidad —las que ya lo
+      // estaban incluidas: `setBranchStatus` las activa sin ella y una activación que sólo mirara las
+      // PENDING las dejaba en «Por habilitar» para siempre—. No se toca `activatedAt` de las que ya tenían.
       await this.repository.branches.update(
-        { status: BranchStatus.ACTIVE, canOriginateBnpl: true, activatedAt: new Date() },
+        { status: BranchStatus.ACTIVE, activatedAt: new Date() },
         { where: { accountId: caseRecord.accountId, status: BranchStatus.PENDING }, transaction },
       );
-      // Las sucursales que ya estaban ACTIVE —dadas de alta una a una desde la pantalla, antes de que se
-      // aprobara el comercio— también se habilitan: `setBranchStatus` las activa SIN la capacidad de
-      // originar BNPL, y como esto sólo miraba las PENDING, esas se quedaban en «Por habilitar» para
-      // siempre aunque el comercio ya estuviera aprobado. No se toca `activatedAt`: ya tenían su fecha.
       await this.repository.branches.update(
         { canOriginateBnpl: true },
         {
@@ -1580,6 +1597,7 @@ export class B2BOnboardingService extends B2BSalesCrmUseCaseBase {
             accountId: caseRecord.accountId,
             status: BranchStatus.ACTIVE,
             canOriginateBnpl: false,
+            bnplBlockedByAtlas: false,
           },
           transaction,
         },

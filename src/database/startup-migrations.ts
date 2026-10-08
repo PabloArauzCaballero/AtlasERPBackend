@@ -93,6 +93,8 @@ export const STARTUP_MIGRATION_FILES = [
   'src/database/migrations/20261001120000-asfi-rating-policy-baseline.sql',
   // Alta del comercio de una vez: matrícula, representante, poder y QR en la cuenta B2B (aditiva, sin backfill).
   'src/database/migrations/20261002180000-alta-comercio-expediente.sql',
+  // «Apagada por Atlas»: la excepción explícita a «comercio aprobado = todas venden» (aditiva, sin backfill).
+  'src/database/migrations/20261008120000-sucursal-bnpl-bloqueada-por-atlas.sql',
 ] as const;
 
 export interface LegacySqlProbe {
