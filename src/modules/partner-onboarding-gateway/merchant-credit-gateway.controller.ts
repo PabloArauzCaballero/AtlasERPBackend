@@ -95,6 +95,24 @@ export class MerchantCreditGatewayController {
     });
   }
 
+  /**
+   * El historial del POS: solicitudes respondidas y pagos verificados, con su sucursal y caja.
+   * Los filtros (sucursal, caja, desde, hasta) y la pagina se reenvian tal cual; AtlasBackend los valida.
+   */
+  @Get(':partnerId/pos-history')
+  @Roles('merchant', 'MERCHANT_ADMIN', 'MERCHANT_OPERATIONS', 'OPERATIONS', 'ADMIN')
+  posHistory(
+    @Req() req: Request,
+    @Param('partnerId') partnerId: string,
+    @Query() query: Record<string, string | undefined>,
+  ) {
+    return this.client.forward({
+      method: 'GET',
+      path: `merchant/partners/${encodeURIComponent(partnerId)}/payment-claims/pos-history${filtrosDeHistorial(query)}`,
+      accessToken: this.token(req),
+    });
+  }
+
   /** La cartera: que le deben, quien y cuando. Alimenta creditos, calendario y panel. */
   @Get(':partnerId/portfolio')
   @Roles('merchant', 'MERCHANT_ADMIN', 'MERCHANT_OPERATIONS', 'OPERATIONS', 'ADMIN')
@@ -216,4 +234,14 @@ export class MerchantCreditGatewayController {
   private token(req: Request): string | undefined {
     return (req.cookies as Record<string, string> | undefined)?.[UPSTREAM_ACCESS_COOKIE];
   }
+}
+
+const FILTROS_DE_HISTORIAL = ['branchId', 'terminalId', 'from', 'to', 'page', 'pageSize'] as const;
+
+/** Solo los filtros conocidos, codificados: nada mas viaja a AtlasBackend. */
+export function filtrosDeHistorial(query: Record<string, string | undefined>): string {
+  const partes = FILTROS_DE_HISTORIAL.filter((clave) => query[clave]).map(
+    (clave) => `${clave}=${encodeURIComponent(String(query[clave]))}`,
+  );
+  return partes.length > 0 ? `?${partes.join('&')}` : '';
 }
