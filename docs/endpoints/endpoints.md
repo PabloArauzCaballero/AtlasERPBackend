@@ -1352,11 +1352,21 @@ Canal del usuario partner (`/api/v1/portal/*`). Documentación del módulo:
 El usuario partner se autentica contra **AtlasBackend**, que es donde vive su identidad
 (`iam.merchant_users`), y este backend traduce esa sesión a su propio token de negocio:
 
-| Método | Ruta                            | Responsabilidad                                            |
-| ------ | ------------------------------- | ---------------------------------------------------------- |
-| POST   | `/api/v1/auth/merchant/login`   | Inicia sesión de comercio y emite el token de este backend |
-| POST   | `/api/v1/auth/merchant/refresh` | Rota la sesión upstream y reemite el token                 |
-| POST   | `/api/v1/auth/merchant/logout`  | Cierra la sesión upstream (idempotente)                    |
+| Método | Ruta                                   | Responsabilidad                                            |
+| ------ | -------------------------------------- | ---------------------------------------------------------- |
+| POST   | `/api/v1/auth/merchant/login`          | Inicia sesión de comercio y emite el token de este backend |
+| POST   | `/api/v1/auth/merchant/refresh`        | Rota la sesión upstream y reemite el token                 |
+| POST   | `/api/v1/auth/merchant/logout`         | Cierra la sesión upstream (idempotente)                    |
+| POST   | `/api/v1/auth/merchant/reauthenticate` | Repite la contraseña y devuelve la prueba `x-reauth-token` |
+
+**Reautenticación (ERP-03).** El login del comercio no lleva segundo factor obligatorio, así que
+AtlasBackend exige la contraseña repetida para cambiar la cuenta/QR de cobro: el portal llama a
+`/auth/merchant/reauthenticate` con `{ password }`, recibe `{ reauthToken, expiresInSeconds, expiresAt }`
+(un solo uso, 5 min, ligado al usuario) y lo manda en la cabecera `x-reauth-token` de
+`POST /api/v1/partner-onboarding/:partnerId/qr-codes`, que la reenvía tal cual. Sin prueba, el registro
+responde `403` con `error.code = REAUTH_REQUIRED`; una contraseña errada, `400 REAUTH_INVALID_PASSWORD`;
+y como cada fallo cuenta en el bloqueo del login, `429 ACCOUNT_LOCKED` con `lockedUntil`. La pasarela
+conserva el `error.code` de AtlasBackend en ambos clientes (identidad y expediente).
 
 El rol `merchant` de AtlasBackend se traduce a `MERCHANT_ADMIN`; un rol upstream que no se pueda
 traducir se rechaza en el login (`401`) en vez de emitir una sesión sin permisos que fallaría

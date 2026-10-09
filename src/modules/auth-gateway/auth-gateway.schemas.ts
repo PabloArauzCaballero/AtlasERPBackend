@@ -90,6 +90,12 @@ export const merchantLoginSchema = z.object({
 });
 export type MerchantLoginDto = z.infer<typeof merchantLoginSchema>;
 
+/** La contraseña repetida antes de una operación sensible del comercio (cambiar su QR de cobro). */
+export const merchantReauthenticateSchema = z.object({
+  password: z.string().min(1).max(128),
+});
+export type MerchantReauthenticateDto = z.infer<typeof merchantReauthenticateSchema>;
+
 /**
  * «Olvidé mi contraseña». Aquí SÍ viaja el correo, al contrario que en el cambio de contraseña de
  * arriba: quien la pide no tiene sesión, así que no hay de dónde deducir quién es.

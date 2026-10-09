@@ -16,6 +16,7 @@ import {
   merchantLoginSchema,
   merchantPasswordResetConfirmSchema,
   merchantPasswordResetRequestSchema,
+  merchantReauthenticateSchema,
   passwordResetConfirmSchema,
   passwordResetRequestSchema,
   passwordChangeConfirmSchema,
@@ -32,6 +33,7 @@ import type {
   MerchantLoginDto,
   MerchantPasswordResetConfirmDto,
   MerchantPasswordResetRequestDto,
+  MerchantReauthenticateDto,
   PasswordResetConfirmDto,
   PasswordResetRequestDto,
   PasswordChangeConfirmDto,
@@ -197,6 +199,28 @@ export class AuthGatewayController {
       expiresIn: session.expiresIn,
       user: session.user,
     };
+  }
+
+  /**
+   * Reautenticación del comercio antes de cambiar su cuenta/QR de cobro (hallazgo ERP-03).
+   *
+   * Reenvía la contraseña a AtlasBackend con el token upstream de la sesión y devuelve la prueba
+   * tal cual; el portal la manda en `x-reauth-token` al registrar el QR. La contraseña no se guarda
+   * ni se registra aquí. Los errores conservan su código (`REAUTH_INVALID_PASSWORD`, `ACCOUNT_LOCKED`).
+   */
+  @Roles('merchant', 'MERCHANT_ADMIN', 'MERCHANT_OPERATIONS')
+  @Post('merchant/reauthenticate')
+  async merchantReauthenticate(
+    @Body(new ZodValidationPipe(merchantReauthenticateSchema)) body: MerchantReauthenticateDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const { result, refreshedTokens } = await this.service.merchantReauthenticate(
+      this.readUpstreamTokens(req),
+      body.password,
+    );
+    this.reapplyRefreshedCookies(res, refreshedTokens);
+    return result;
   }
 
   @Roles('MERCHANT_ADMIN')

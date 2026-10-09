@@ -287,6 +287,16 @@ export class AuthGatewayService {
     return this.callWithRetry(tokens, (at) => this.identityClient.merchantMe(at));
   }
 
+  /** La prueba de reautenticación del comercio, con el token upstream de su sesión. */
+  async merchantReauthenticate(
+    tokens: UpstreamTokens,
+    password: string,
+  ): Promise<ProxyResult<{ reauthToken: string; expiresInSeconds: number; expiresAt: string }>> {
+    return this.callWithRetry(tokens, (at) =>
+      this.identityClient.merchantReauthenticate(at, password),
+    );
+  }
+
   async merchantLogout(
     upstreamRefreshToken: string | undefined,
     allDevices: boolean,

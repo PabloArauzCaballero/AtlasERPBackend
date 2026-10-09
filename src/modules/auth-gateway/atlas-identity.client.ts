@@ -1,6 +1,8 @@
 import {
   BadRequestException,
   ForbiddenException,
+  HttpException,
+  HttpStatus,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -146,17 +148,28 @@ export class AtlasIdentityClient {
     }
   }
 
+  /**
+   * Traduce el fallo upstream conservando su `code` de negocio.
+   *
+   * Antes sólo viajaba el mensaje, y el portal no podía distinguir «contraseña errada» de «cuenta
+   * bloqueada» ni reaccionar a un `REAUTH_REQUIRED`. El código va en el cuerpo de la excepción y el
+   * filtro global lo publica como `error.code`. El 429 (cuenta bloqueada, demasiados intentos) se
+   * conserva: tratarlo como 400 escondía cuándo se puede volver a intentar.
+   */
   private translateError(error: unknown): Error {
     if (error instanceof AxiosError) {
       const status = error.response?.status;
       const envelope = error.response?.data as AtlasEnvelope<unknown> | undefined;
       const message = envelope?.error?.message ?? 'Error al contactar el servicio de identidad.';
+      const code = envelope?.error?.code;
+      const body = code ? { code, message } : message;
 
-      if (status === 401) return new UnauthorizedException(message);
-      if (status === 403) return new ForbiddenException(message);
-      if (status === 404) return new NotFoundException(message);
+      if (status === 401) return new UnauthorizedException(body);
+      if (status === 403) return new ForbiddenException(body);
+      if (status === 404) return new NotFoundException(body);
+      if (status === 429) return new HttpException(body, HttpStatus.TOO_MANY_REQUESTS);
       if (status !== undefined && status >= 400 && status < 500)
-        return new BadRequestException(message);
+        return new BadRequestException(body);
       return new InternalServerErrorException('El servicio de identidad no está disponible.');
     }
     return new InternalServerErrorException('El servicio de identidad no está disponible.');
@@ -279,6 +292,20 @@ export class AtlasIdentityClient {
       Omit<AtlasMerchantAuthResponse, 'accessToken' | 'refreshToken'>
     >('post', 'merchant/auth/refresh', { body: { refreshToken } });
     return this.withSessionTokens(data, cookies);
+  }
+
+  /**
+   * Reautenticación del comercio: su contraseña, con la sesión abierta, a cambio de una prueba de un
+   * solo uso que exige AtlasBackend para cambiar la cuenta/QR de cobro (`x-reauth-token`).
+   */
+  merchantReauthenticate(
+    accessToken: string,
+    password: string,
+  ): Promise<{ reauthToken: string; expiresInSeconds: number; expiresAt: string }> {
+    return this.request('post', 'merchant/auth/reauthenticate', {
+      body: { password },
+      accessToken,
+    });
   }
 
   merchantMe(accessToken: string): Promise<AtlasMerchantUserProfile> {
