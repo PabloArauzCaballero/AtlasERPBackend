@@ -13,7 +13,10 @@ describe('PartnerOnboardingGatewayController: rutas de escritura sin test previo
   function build() {
     const forward = jest.fn(async (input: unknown) => ({ ok: true, input }));
     const controller = new PartnerOnboardingGatewayController({ forward } as never);
-    const req = { cookies: { atlas_upstream_at: 'token-del-actor' } } as unknown as Request;
+    const req = {
+      cookies: { atlas_upstream_at: 'token-del-actor' },
+      headers: {},
+    } as unknown as Request;
     return { controller, forward, req };
   }
 
@@ -138,6 +141,23 @@ describe('PartnerOnboardingGatewayController: rutas de escritura sin test previo
       path: 'partner-onboarding/partner-1/qr-codes',
       accessToken: 'token-del-actor',
       body,
+    });
+  });
+
+  it('POST partner-onboarding/:id/qr-codes reenvía la prueba de reautenticación del comercio (ERP-03)', async () => {
+    const { controller, forward } = build();
+    const req = {
+      cookies: { atlas_upstream_at: 'token-del-actor' },
+      headers: { 'x-reauth-token': 'prueba-de-un-uso' },
+    } as unknown as Request;
+    const body = { objectKey: 'qr/partner-1/abc' };
+    await controller.registerQr(req, 'partner-1', body);
+    expect(forward).toHaveBeenCalledWith({
+      method: 'POST',
+      path: 'partner-onboarding/partner-1/qr-codes',
+      accessToken: 'token-del-actor',
+      body,
+      headers: { 'x-reauth-token': 'prueba-de-un-uso' },
     });
   });
 

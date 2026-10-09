@@ -122,6 +122,13 @@ const ROLE_CASES: Array<{
     deniedRole: 'AUDITOR',
   },
   {
+    route: 'POST auth/merchant/reauthenticate',
+    controller: AuthGatewayController,
+    method: 'merchantReauthenticate',
+    allowedRoles: ['merchant', 'MERCHANT_ADMIN', 'MERCHANT_OPERATIONS'],
+    deniedRole: 'ADMIN',
+  },
+  {
     route: 'POST partner-onboarding/:id/qr-codes',
     controller: PartnerOnboardingGatewayController,
     method: 'registerQr',

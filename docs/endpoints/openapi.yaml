@@ -316,6 +316,46 @@ paths:
       responses:
         '201':
           description: Sesión cerrada.
+  /auth/merchant/reauthenticate:
+    post:
+      summary: Reautenticación del comercio antes de una operación sensible
+      description: >-
+        Reenvía la contraseña a AtlasBackend con el token upstream de la sesión y devuelve la prueba
+        de un solo uso (5 min, ligada al usuario) que se manda en la cabecera `x-reauth-token` al
+        registrar un QR de cobro. Cada contraseña errada cuenta en el bloqueo del login (ERP-03).
+      tags:
+        - Portal del comercio
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password:
+                  type: string
+                  minLength: 1
+                  maxLength: 128
+      responses:
+        '201':
+          description: Prueba emitida.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reauthToken:
+                    type: string
+                  expiresInSeconds:
+                    type: integer
+                  expiresAt:
+                    type: string
+                    format: date-time
+        '400':
+          description: REAUTH_INVALID_PASSWORD.
+        '429':
+          description: ACCOUNT_LOCKED (con lockedUntil).
   /auth/merchant/login:
     post:
       summary: Iniciar sesión (comercio afiliado)
@@ -2491,6 +2531,14 @@ paths:
           required: true
           schema:
             type: string
+        - name: x-reauth-token
+          in: header
+          required: false
+          description: >-
+            Prueba de `POST /auth/merchant/reauthenticate`. Obligatoria para un comercio; se reenvía
+            tal cual a AtlasBackend.
+          schema:
+            type: string
       requestBody:
         required: true
         content:
@@ -2500,6 +2548,8 @@ paths:
       responses:
         '201':
           description: QR registrado.
+        '403':
+          description: REAUTH_REQUIRED (falta la prueba, venció o ya se usó).
   /partner-onboarding/{partnerId}/branches/{branchId}/pos-terminals:
     post:
       summary: Registrar un terminal POS de una sucursal

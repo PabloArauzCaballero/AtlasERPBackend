@@ -180,6 +180,7 @@ describe('CORS · las cabeceras propias del portal pasan el preflight', () => {
         'X-Atlas-Flow',
         'X-Atlas-Product',
         'X-Idempotency-Key',
+        'X-Reauth-Token',
       ]),
     );
   });

@@ -20,6 +20,9 @@ import { AtlasPartnerClient } from './atlas-partner.client';
  */
 const UPSTREAM_ACCESS_COOKIE = 'atlas_upstream_at';
 
+/** La prueba de reautenticación del comercio (`POST /auth/merchant/reauthenticate`). */
+const REAUTH_TOKEN_HEADER = 'x-reauth-token';
+
 /**
  * El expediente del partner, visto desde el portal del comercio.
  *
@@ -213,11 +216,17 @@ export class PartnerOnboardingGatewayController {
   @Post(':partnerId/qr-codes')
   @Roles('merchant', 'MERCHANT_ADMIN', 'MERCHANT_OPERATIONS', 'ADMIN')
   registerQr(@Req() req: Request, @Param('partnerId') partnerId: string, @Body() body: unknown) {
+    // ERP-03: AtlasBackend exige al comercio la prueba de reautenticación para cambiar su cuenta de
+    // cobro. Se reenvía la cabecera tal cual; sin ella, AtlasBackend responde 403 REAUTH_REQUIRED.
+    const reauthToken = req.headers[REAUTH_TOKEN_HEADER];
     return this.client.forward({
       method: 'POST',
       path: `partner-onboarding/${encodeURIComponent(partnerId)}/qr-codes`,
       accessToken: this.token(req),
       body,
+      ...(typeof reauthToken === 'string' && reauthToken
+        ? { headers: { [REAUTH_TOKEN_HEADER]: reauthToken } }
+        : {}),
     });
   }
 

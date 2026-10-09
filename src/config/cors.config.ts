@@ -72,6 +72,8 @@ export function buildCorsOptions(): CorsOptions {
       'X-Atlas-Product',
       // El envío de campañas la exige (`admin-ads.controller.ts`) y el portal la manda.
       'X-Idempotency-Key',
+      // La prueba de reautenticación del comercio al cambiar su QR de cobro (ERP-03).
+      'X-Reauth-Token',
     ],
   };
 }

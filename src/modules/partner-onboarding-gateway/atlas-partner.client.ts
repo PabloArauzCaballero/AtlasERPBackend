@@ -2,6 +2,8 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  HttpException,
+  HttpStatus,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -183,11 +185,17 @@ export class AtlasPartnerClient {
    * portal sin la única información que hace accionable el rechazo.
    */
   private translateError(error: unknown): Error {
-    const axiosError = error as AxiosError<{ error?: { message?: string }; message?: string }>;
+    const axiosError = error as AxiosError<{
+      error?: { message?: string; code?: string };
+      message?: string;
+    }>;
     const status = axiosError.response?.status;
     const body = axiosError.response?.data;
-    const message =
+    const text =
       body?.error?.message ?? body?.message ?? 'El servicio del expediente no respondió.';
+    // El código de negocio viaja también: el portal reacciona a `REAUTH_REQUIRED` pidiendo la
+    // contraseña, y sin él sólo vería un 403 genérico.
+    const message = body?.error?.code ? { code: body.error.code, message: text } : text;
 
     switch (status) {
       case 400:
@@ -202,6 +210,8 @@ export class AtlasPartnerClient {
         return new ConflictException(message);
       case 422:
         return new UnprocessableEntityException(message);
+      case 429:
+        return new HttpException(message, HttpStatus.TOO_MANY_REQUESTS);
       case 503:
         return new ServiceUnavailableException(message);
       default:
@@ -210,7 +220,7 @@ export class AtlasPartnerClient {
         if (status === undefined) {
           return new ServiceUnavailableException('El servicio del expediente no está disponible.');
         }
-        return new InternalServerErrorException(message);
+        return new InternalServerErrorException(text);
     }
   }
 }
