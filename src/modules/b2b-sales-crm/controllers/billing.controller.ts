@@ -15,13 +15,15 @@ import {
   postMerchantInvoiceToGlSchema,
   registerMerchantPaymentSchema,
 } from '../b2b-sales-crm.schemas';
-import { B2BSalesCrmService } from '../services/b2b-sales-crm.service';
+import { B2BBnplBillingService } from '../services/b2b-bnpl-billing.service';
+import { B2BReconciliationService } from '../services/b2b-reconciliation.service';
 import { MerchantAccountingBridgeService } from '../services/merchant-accounting-bridge.service';
 
 @Controller('b2b/billing')
 export class BillingController {
   constructor(
-    private readonly service: B2BSalesCrmService,
+    private readonly reconciliation: B2BReconciliationService,
+    private readonly bnplBilling: B2BBnplBillingService,
     private readonly bridge: MerchantAccountingBridgeService,
   ) {}
 
@@ -29,7 +31,7 @@ export class BillingController {
   @Roles('FINANCE', 'OPERATIONS', 'ADMIN')
   @Get('invoices')
   listInvoices(): Promise<Record<string, unknown>[]> {
-    return this.service.listMerchantInvoices();
+    return this.reconciliation.listMerchantInvoices();
   }
 
   /** Detalle con líneas: es lo que se imprime cuando el usuario descarga la factura. */
@@ -38,7 +40,7 @@ export class BillingController {
   getInvoice(
     @Param(new ZodValidationPipe(idParamsSchema)) params: IdParamsDto,
   ): Promise<Record<string, unknown>> {
-    return this.service.getMerchantInvoice(params.id);
+    return this.reconciliation.getMerchantInvoice(params.id);
   }
 
   @Roles('FINANCE', 'ADMIN')
@@ -46,7 +48,7 @@ export class BillingController {
   issueInvoice(
     @Body(new ZodValidationPipe(issueInvoiceSchema)) body: IssueInvoiceDto,
   ): Promise<Record<string, unknown>> {
-    return this.service.issueInvoice(body);
+    return this.bnplBilling.issueInvoice(body);
   }
 
   @Roles('FINANCE', 'ADMIN')
@@ -54,7 +56,7 @@ export class BillingController {
   registerPayment(
     @Body(new ZodValidationPipe(registerMerchantPaymentSchema)) body: RegisterMerchantPaymentDto,
   ): Promise<Record<string, unknown>> {
-    return this.service.registerMerchantPayment(body);
+    return this.bnplBilling.registerMerchantPayment(body);
   }
 
   /** Puente #8: genera el asiento de venta (Debe CxC / Haber Ingreso / Haber IVA) de una factura merchant. */

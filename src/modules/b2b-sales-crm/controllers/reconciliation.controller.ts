@@ -5,11 +5,11 @@ import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
 import type { AuthUser } from '../../../common/types/auth-context.types';
 import type { RunReconciliationDto } from '../b2b-sales-crm.dtos';
 import { runReconciliationSchema } from '../b2b-sales-crm.schemas';
-import { B2BSalesCrmService } from '../services/b2b-sales-crm.service';
+import { B2BReconciliationService } from '../services/b2b-reconciliation.service';
 
 @Controller('b2b/reconciliation')
 export class ReconciliationController {
-  constructor(private readonly service: B2BSalesCrmService) {}
+  constructor(private readonly reconciliation: B2BReconciliationService) {}
 
   @Roles('FINANCE', 'OPERATIONS', 'ADMIN')
   @Post('runs')
@@ -17,6 +17,6 @@ export class ReconciliationController {
     @Body(new ZodValidationPipe(runReconciliationSchema)) body: RunReconciliationDto,
     @CurrentUser() user: AuthUser,
   ): Promise<Record<string, unknown>> {
-    return this.service.runReconciliation(body, user);
+    return this.reconciliation.runReconciliation(body, user);
   }
 }

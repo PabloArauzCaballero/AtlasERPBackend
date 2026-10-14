@@ -55,7 +55,6 @@ import { ProposalDeliveryService } from './services/proposal-delivery.service';
 import { ProposalPdfService } from './services/proposal-pdf.service';
 import { DocumentsModule } from '../documents/documents.module';
 import { B2BReconciliationService } from './services/b2b-reconciliation.service';
-import { B2BSalesCrmService } from './services/b2b-sales-crm.service';
 import { MerchantAccountingBridgeService } from './services/merchant-accounting-bridge.service';
 import { BusinessActionLogsModule } from '../business-action-logs/business-action-logs.module';
 import { AccountingModule } from '../accounting/accounting.module';
@@ -139,7 +138,6 @@ import { CoreSignatureGuard } from './integration/core-signature.guard';
     B2BOverdueSweepService,
     B2BOverdueSweepProcessor,
     B2BReconciliationService,
-    B2BSalesCrmService,
     MerchantAccountingBridgeService,
     CreditRatingRepository,
     B2BCreditRatingService,
@@ -150,6 +148,5 @@ import { CoreSignatureGuard } from './integration/core-signature.guard';
     JwtAuthGuard,
     RolesGuard,
   ],
-  exports: [B2BSalesCrmService],
 })
 export class B2BSalesCrmModule {}
