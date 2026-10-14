@@ -64,6 +64,10 @@ jobs:
       - name: Lint
         run: corepack yarn lint
 
+      # Trinquete de tamaño: ningún archivo runtime nuevo sobre 300 líneas ni crecimiento de la deuda congelada.
+      - name: Tamaño de archivos (trinquete)
+        run: corepack yarn check:file-size
+
       # El formato entra como gate porque ya estaba en el repositorio (prettier es dependencia y
       # `format` lo escribe): sin comprobarlo, el árbol se separa del estándar sin que nadie lo vea.
       # Se añadió el 2026-09-13 con los 7 archivos que había pendientes ya formateados.
