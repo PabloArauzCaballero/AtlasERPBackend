@@ -8,22 +8,14 @@ import type {
   ResolveCoverageReviewItemDto,
   ReviewQueueQueryDto,
   ReverseRecoveryMovementDto,
-  CompleteChecklistItemDto,
-  ChecklistEvidenceUploadUrlDto,
-  AttachChecklistEvidenceDto,
   BulkCreateAccountsDto,
   CreateAccountDto,
   SetAccountTaxIdDto,
   SetAccountDossierDto,
-  CreateBranchDto,
   CreateMdrRuleDto,
   UpdateMdrRuleDto,
-  SetBranchStatusDto,
-  UpdateBranchDto,
   CreateContactDto,
   CreateContractFromProposalDto,
-  CreateMerchantUserDto,
-  CreateOnboardingCaseDto,
   CreateOpportunityDto,
   CreateProposalDto,
   DecideApprovalDto,
@@ -41,10 +33,6 @@ import type {
   ScheduleCoverageDto,
   SignContractDto,
   UpdateProposalDto,
-  ListOnboardingCasesQueryDto,
-  AssignCaseContractDto,
-  CreateCaseMdrRuleDto,
-  RequestKybReviewDto,
 } from '../b2b-sales-crm.dtos';
 import { B2BAccountsService } from './b2b-accounts.service';
 import { B2BBnplBillingService } from './b2b-bnpl-billing.service';
@@ -52,7 +40,6 @@ import { B2BContractsService } from './b2b-contracts.service';
 import { B2BCoverageService } from './b2b-coverage.service';
 import { B2BOverdueSweepService } from './b2b-overdue-sweep.service';
 import type { OverdueSweepResult } from './b2b-overdue-sweep.service';
-import { B2BOnboardingService } from './b2b-onboarding.service';
 import { B2BPipelineService } from './b2b-pipeline.service';
 import { B2BReconciliationService } from './b2b-reconciliation.service';
 import { B2BCoverageReviewService } from './coverage-review.service';
@@ -66,7 +53,6 @@ export class B2BSalesCrmService {
     private readonly accountsService: B2BAccountsService,
     private readonly pipelineService: B2BPipelineService,
     private readonly contractsService: B2BContractsService,
-    private readonly onboardingService: B2BOnboardingService,
     private readonly bnplBillingService: B2BBnplBillingService,
     private readonly coverageService: B2BCoverageService,
     private readonly overdueSweepService: B2BOverdueSweepService,
@@ -256,182 +242,6 @@ export class B2BSalesCrmService {
 
   listContracts(): Promise<Record<string, unknown>[]> {
     return this.pipelineService.listContracts();
-  }
-
-  listOnboardingCases(query: ListOnboardingCasesQueryDto): Promise<Record<string, unknown>> {
-    return this.onboardingService.listOnboardingCases(query);
-  }
-
-  summarizeOnboardingQueue(): Promise<Record<string, unknown>> {
-    return this.onboardingService.summarizeOnboardingQueue();
-  }
-
-  getDefaultLegalContractTemplate(accessToken: string): Promise<Record<string, unknown>> {
-    return this.onboardingService.getDefaultLegalContractTemplate(accessToken);
-  }
-
-  linkPartnerProfile(
-    onboardingCaseId: string,
-    accessToken: string,
-  ): Promise<Record<string, unknown>> {
-    return this.onboardingService.linkPartnerProfile(onboardingCaseId, accessToken);
-  }
-
-  requestKybReview(
-    onboardingCaseId: string,
-    input: RequestKybReviewDto,
-    accessToken: string,
-    actor: AuthUser,
-  ): Promise<Record<string, unknown>> {
-    return this.onboardingService.requestKybReview(onboardingCaseId, input, accessToken, actor);
-  }
-
-  syncKybDecision(onboardingCaseId: string, accessToken: string): Promise<Record<string, unknown>> {
-    return this.onboardingService.syncKybDecision(onboardingCaseId, accessToken);
-  }
-
-  reconcilePendingCases(accessToken: string, actor: AuthUser): Promise<Record<string, unknown>> {
-    return this.onboardingService.reconcilePendingCases(accessToken, actor);
-  }
-
-  reconcileCaseIdentity(
-    onboardingCaseId: string,
-    accessToken: string,
-    actor: AuthUser,
-  ): Promise<Record<string, unknown>> {
-    return this.onboardingService.reconcileCaseIdentity(onboardingCaseId, accessToken, actor);
-  }
-
-  listCaseContractOptions(onboardingCaseId: string): Promise<Record<string, unknown>[]> {
-    return this.onboardingService.listCaseContractOptions(onboardingCaseId);
-  }
-
-  assignCaseContract(
-    onboardingCaseId: string,
-    input: AssignCaseContractDto,
-  ): Promise<Record<string, unknown>> {
-    return this.onboardingService.assignCaseContract(onboardingCaseId, input);
-  }
-
-  /**
-   * La comisión del alta cuelga del contrato DEL CASO: se resuelve aquí y se crea con la misma
-   * regla que cualquier otra regla de comisión, para que no haya dos formas de pactarla.
-   */
-  async createCaseMdrRule(
-    onboardingCaseId: string,
-    input: CreateCaseMdrRuleDto,
-    user: AuthUser,
-  ): Promise<Record<string, unknown>> {
-    const contractVersionId =
-      await this.onboardingService.requireCaseContractVersionId(onboardingCaseId);
-    return this.contractsService.createMdrRule({ ...input, contractVersionId }, user);
-  }
-
-  getOnboardingCase(onboardingCaseId: string): Promise<Record<string, unknown>> {
-    return this.onboardingService.getOnboardingCase(onboardingCaseId);
-  }
-
-  createOnboardingCase(
-    input: CreateOnboardingCaseDto,
-    accessToken?: string,
-  ): Promise<Record<string, unknown>> {
-    return this.onboardingService.createOnboardingCase(input, accessToken);
-  }
-
-  listBranches(filtro: {
-    accountId?: string | undefined;
-    status?: string | undefined;
-  }): Promise<Record<string, unknown>[]> {
-    return this.onboardingService.listBranches(filtro);
-  }
-
-  createBranch(
-    input: CreateBranchDto,
-    allowedAccountIds: readonly string[] | null = null,
-  ): Promise<Record<string, unknown>> {
-    return this.onboardingService.createBranch(input, allowedAccountIds);
-  }
-
-  updateBranch(
-    branchId: string,
-    input: UpdateBranchDto,
-    allowedAccountIds: readonly string[] | null = null,
-  ): Promise<Record<string, unknown>> {
-    return this.onboardingService.updateBranch(branchId, input, allowedAccountIds);
-  }
-
-  setBranchStatus(
-    branchId: string,
-    input: SetBranchStatusDto,
-    allowedAccountIds: readonly string[] | null = null,
-  ): Promise<Record<string, unknown>> {
-    return this.onboardingService.setBranchStatus(branchId, input, allowedAccountIds);
-  }
-
-  createMerchantUser(
-    input: CreateMerchantUserDto,
-    accessToken: string,
-  ): Promise<Record<string, unknown>> {
-    return this.onboardingService.createMerchantUser(input, accessToken);
-  }
-
-  syncMerchantUserIdentity(
-    merchantUserId: string,
-    accessToken: string,
-  ): Promise<Record<string, unknown>> {
-    return this.onboardingService.syncMerchantUserIdentity(merchantUserId, accessToken);
-  }
-
-  completeChecklistItem(
-    onboardingCaseId: string,
-    input: CompleteChecklistItemDto,
-    user: AuthUser,
-  ): Promise<Record<string, unknown>> {
-    return this.onboardingService.completeChecklistItem(onboardingCaseId, input, user);
-  }
-
-  createChecklistEvidenceUploadUrl(
-    onboardingCaseId: string,
-    checklistItemId: string,
-    input: ChecklistEvidenceUploadUrlDto,
-    accessToken: string,
-  ): Promise<Record<string, unknown>> {
-    return this.onboardingService.createChecklistEvidenceUploadUrl(
-      onboardingCaseId,
-      checklistItemId,
-      input,
-      accessToken,
-    );
-  }
-
-  attachChecklistEvidence(
-    onboardingCaseId: string,
-    checklistItemId: string,
-    input: AttachChecklistEvidenceDto,
-    accessToken: string,
-  ): Promise<Record<string, unknown>> {
-    return this.onboardingService.attachChecklistEvidence(
-      onboardingCaseId,
-      checklistItemId,
-      input,
-      accessToken,
-    );
-  }
-
-  readChecklistEvidence(
-    onboardingCaseId: string,
-    checklistItemId: string,
-    accessToken: string,
-  ): Promise<{ buffer: Buffer; contentType: string }> {
-    return this.onboardingService.readChecklistEvidence(
-      onboardingCaseId,
-      checklistItemId,
-      accessToken,
-    );
-  }
-
-  activateOnboardingCase(onboardingCaseId: string): Promise<Record<string, unknown>> {
-    return this.onboardingService.activateOnboardingCase(onboardingCaseId);
   }
 
   registerPurchase(

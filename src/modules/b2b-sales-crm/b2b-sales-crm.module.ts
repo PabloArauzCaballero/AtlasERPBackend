@@ -39,7 +39,17 @@ import { B2BCoverageService } from './services/b2b-coverage.service';
 import { B2BCoverageReviewService } from './services/coverage-review.service';
 import { B2BOverdueSweepProcessor } from './services/b2b-overdue-sweep.processor';
 import { B2BOverdueSweepService } from './services/b2b-overdue-sweep.service';
-import { B2BOnboardingService } from './services/b2b-onboarding.service';
+import { ActivationContractResolver } from './services/onboarding/activation-contract.resolver';
+import { KybVerificationService } from './services/onboarding/kyb-verification.service';
+import { MerchantActivationService } from './services/onboarding/merchant-activation.service';
+import { MerchantBranchesService } from './services/onboarding/merchant-branches.service';
+import { MerchantCredentialsReader } from './services/onboarding/merchant-credentials.reader';
+import { MerchantUserAccessService } from './services/onboarding/merchant-user-access.service';
+import { OnboardingCaseOpeningService } from './services/onboarding/onboarding-case-opening.service';
+import { OnboardingCaseQueryService } from './services/onboarding/onboarding-case-query.service';
+import { OnboardingChecklistService } from './services/onboarding/onboarding-checklist.service';
+import { OnboardingContractService } from './services/onboarding/onboarding-contract.service';
+import { OnboardingReconciliationService } from './services/onboarding/onboarding-reconciliation.service';
 import { B2BPipelineService } from './services/b2b-pipeline.service';
 import { ProposalDeliveryService } from './services/proposal-delivery.service';
 import { ProposalPdfService } from './services/proposal-pdf.service';
@@ -110,7 +120,17 @@ import { CoreSignatureGuard } from './integration/core-signature.guard';
     ProposalDeliveryService,
     ProposalPdfService,
     B2BContractsService,
-    B2BOnboardingService,
+    ActivationContractResolver,
+    MerchantCredentialsReader,
+    OnboardingCaseQueryService,
+    OnboardingCaseOpeningService,
+    MerchantBranchesService,
+    MerchantUserAccessService,
+    OnboardingContractService,
+    KybVerificationService,
+    OnboardingReconciliationService,
+    OnboardingChecklistService,
+    MerchantActivationService,
     B2BBnplBillingService,
     MerchantBillingCycleService,
     MerchantBillingCycleProcessor,

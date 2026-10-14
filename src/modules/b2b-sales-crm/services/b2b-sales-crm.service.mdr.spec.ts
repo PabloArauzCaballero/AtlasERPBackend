@@ -14,15 +14,11 @@ const build = () => {
     createMdrRule: jest.fn(async () => ({ id: 'regla-1' })),
     updateMdrRule: jest.fn(async () => ({ id: 'regla-1' })),
   };
-  const onboardingService = {
-    requireCaseContractVersionId: jest.fn(async () => 'version-del-caso'),
-  };
   const sinUso = {} as never;
   const service = new B2BSalesCrmService(
     sinUso,
     sinUso,
     contractsService as never,
-    onboardingService as never,
     sinUso,
     sinUso,
     sinUso,
@@ -31,7 +27,7 @@ const build = () => {
     sinUso,
     sinUso,
   );
-  return { service, contractsService, onboardingService };
+  return { service, contractsService };
 };
 
 describe('B2BSalesCrmService · el usuario llega a las reglas de comisión (T-7)', () => {
@@ -51,22 +47,5 @@ describe('B2BSalesCrmService · el usuario llega a las reglas de comisión (T-7)
     await service.updateMdrRule('regla-1', input, USUARIO);
 
     expect(contractsService.updateMdrRule).toHaveBeenCalledWith('regla-1', input, USUARIO);
-  });
-
-  it('createCaseMdrRule resuelve la versión contractual DEL CASO y pasa el usuario', async () => {
-    const { service, contractsService, onboardingService } = build();
-    const input = { ratePercent: 3, pricingExceptionReason: 'Comercio ancla' } as never;
-
-    await service.createCaseMdrRule('caso-9', input, USUARIO);
-
-    expect(onboardingService.requireCaseContractVersionId).toHaveBeenCalledWith('caso-9');
-    expect(contractsService.createMdrRule).toHaveBeenCalledWith(
-      {
-        ratePercent: 3,
-        pricingExceptionReason: 'Comercio ancla',
-        contractVersionId: 'version-del-caso',
-      },
-      USUARIO,
-    );
   });
 });

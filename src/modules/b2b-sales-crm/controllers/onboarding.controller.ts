@@ -54,7 +54,15 @@ import {
   updateBranchSchema,
 } from '../b2b-sales-crm.schemas';
 import { PortalScopeService } from '../../portal/portal.scope.service';
-import { B2BSalesCrmService } from '../services/b2b-sales-crm.service';
+import { KybVerificationService } from '../services/onboarding/kyb-verification.service';
+import { MerchantActivationService } from '../services/onboarding/merchant-activation.service';
+import { MerchantBranchesService } from '../services/onboarding/merchant-branches.service';
+import { MerchantUserAccessService } from '../services/onboarding/merchant-user-access.service';
+import { OnboardingCaseOpeningService } from '../services/onboarding/onboarding-case-opening.service';
+import { OnboardingCaseQueryService } from '../services/onboarding/onboarding-case-query.service';
+import { OnboardingChecklistService } from '../services/onboarding/onboarding-checklist.service';
+import { OnboardingContractService } from '../services/onboarding/onboarding-contract.service';
+import { OnboardingReconciliationService } from '../services/onboarding/onboarding-reconciliation.service';
 
 /** Los roles de las rutas de sucursal que operan CUALQUIER comercio; el resto es el propio comercio. */
 const BRANCH_STAFF_ROLES = ['OPERATIONS', 'ADMIN'] as const;
@@ -68,7 +76,15 @@ const UPSTREAM_ACCESS_COOKIE = 'atlas_upstream_at';
 @Controller('b2b/onboarding')
 export class OnboardingController {
   constructor(
-    private readonly service: B2BSalesCrmService,
+    private readonly opening: OnboardingCaseOpeningService,
+    private readonly caseQuery: OnboardingCaseQueryService,
+    private readonly branches: MerchantBranchesService,
+    private readonly userAccess: MerchantUserAccessService,
+    private readonly contracts: OnboardingContractService,
+    private readonly kyb: KybVerificationService,
+    private readonly reconciliation: OnboardingReconciliationService,
+    private readonly checklist: OnboardingChecklistService,
+    private readonly activation: MerchantActivationService,
     private readonly scope: PortalScopeService,
   ) {}
 
@@ -100,7 +116,7 @@ export class OnboardingController {
     @Query(new ZodValidationPipe(listOnboardingCasesQuerySchema))
     query: ListOnboardingCasesQueryDto,
   ): Promise<Record<string, unknown>> {
-    return this.service.listOnboardingCases(query);
+    return this.caseQuery.listOnboardingCases(query);
   }
 
   /*
@@ -110,7 +126,7 @@ export class OnboardingController {
   @Roles('OPERATIONS', 'LEGAL', 'ADMIN', 'COMMERCIAL_EXECUTIVE')
   @Get('cases/summary')
   summarizeCases(): Promise<Record<string, unknown>> {
-    return this.service.summarizeOnboardingQueue();
+    return this.caseQuery.summarizeOnboardingQueue();
   }
 
   /**
@@ -120,7 +136,7 @@ export class OnboardingController {
   @Roles('OPERATIONS', 'LEGAL', 'ADMIN', 'COMMERCIAL_MANAGER', 'COMMERCIAL_EXECUTIVE')
   @Get('legal-contract-template')
   getDefaultLegalContractTemplate(@Req() req: Request): Promise<Record<string, unknown>> {
-    return this.service.getDefaultLegalContractTemplate(this.upstreamToken(req));
+    return this.contracts.getDefaultLegalContractTemplate(this.upstreamToken(req));
   }
 
   /**
@@ -133,7 +149,7 @@ export class OnboardingController {
     @Req() req: Request,
     @CurrentUser() user: AuthUser,
   ): Promise<Record<string, unknown>> {
-    return this.service.reconcilePendingCases(this.upstreamToken(req), user);
+    return this.reconciliation.reconcilePendingCases(this.upstreamToken(req), user);
   }
 
   @Roles('OPERATIONS', 'LEGAL', 'ADMIN', 'COMMERCIAL_EXECUTIVE')
@@ -141,7 +157,7 @@ export class OnboardingController {
   getCase(
     @Param(new ZodValidationPipe(onboardingCaseIdParamsSchema)) params: OnboardingCaseIdParamsDto,
   ): Promise<Record<string, unknown>> {
-    return this.service.getOnboardingCase(params.onboardingCaseId);
+    return this.caseQuery.getOnboardingCase(params.onboardingCaseId);
   }
 
   @Roles('OPERATIONS', 'LEGAL', 'ADMIN')
@@ -153,7 +169,7 @@ export class OnboardingController {
     // Sin exigir el token: el caso se abre igual, y la carpeta del comercio en Atlas —que sí lo
     // necesita— dice en la respuesta por qué no se pudo asegurar.
     const token = (req.cookies as Record<string, string> | undefined)?.[UPSTREAM_ACCESS_COOKIE];
-    return this.service.createOnboardingCase(body, token);
+    return this.opening.createOnboardingCase(body, token);
   }
 
   /*
@@ -171,7 +187,7 @@ export class OnboardingController {
     @CurrentUser() user: AuthUser,
   ): Promise<Record<string, unknown>> {
     const allowed = await this.scope.restrictToOwnAccounts(user, BRANCH_STAFF_ROLES);
-    return this.service.updateBranch(params.branchId, body, allowed);
+    return this.branches.updateBranch(params.branchId, body, allowed);
   }
 
   @Roles('OPERATIONS', 'ADMIN', 'MERCHANT_ADMIN')
@@ -182,7 +198,7 @@ export class OnboardingController {
     @CurrentUser() user: AuthUser,
   ): Promise<Record<string, unknown>> {
     const allowed = await this.scope.restrictToOwnAccounts(user, BRANCH_STAFF_ROLES);
-    return this.service.setBranchStatus(params.branchId, body, allowed);
+    return this.branches.setBranchStatus(params.branchId, body, allowed);
   }
 
   /** Las sucursales, para poder elegir dónde se origina una venta a plazos. */
@@ -191,7 +207,7 @@ export class OnboardingController {
   listBranches(
     @Query(new ZodValidationPipe(listBranchesQuerySchema)) query: ListBranchesQueryDto,
   ): Promise<Record<string, unknown>[]> {
-    return this.service.listBranches(query);
+    return this.branches.listBranches(query);
   }
 
   /* Faltaba el `@Roles`: sin él, cualquier sesión del ERP podía abrir sucursales a cualquier comercio. */
@@ -202,7 +218,7 @@ export class OnboardingController {
     @CurrentUser() user: AuthUser,
   ): Promise<Record<string, unknown>> {
     const allowed = await this.scope.restrictToOwnAccounts(user, BRANCH_STAFF_ROLES);
-    return this.service.createBranch(body, allowed);
+    return this.branches.createBranch(body, allowed);
   }
 
   /*
@@ -210,7 +226,7 @@ export class OnboardingController {
    *
    * La segunda mitad es la que faltaba: antes esta ruta creaba la membresía y la identidad con la
    * que esa persona inicia sesión se tecleaba aparte, en el portal interno, sin nada que atara una
-   * cosa con la otra. Ver `B2BOnboardingService.createMerchantUser`.
+   * cosa con la otra. Ver `MerchantUserAccessService.createMerchantUser`.
    */
   @Roles('OPERATIONS', 'ADMIN')
   @Post('merchant-users')
@@ -218,7 +234,7 @@ export class OnboardingController {
     @Req() req: Request,
     @Body(new ZodValidationPipe(createMerchantUserSchema)) body: CreateMerchantUserDto,
   ): Promise<Record<string, unknown>> {
-    return this.service.createMerchantUser(body, this.upstreamToken(req));
+    return this.userAccess.createMerchantUser(body, this.upstreamToken(req));
   }
 
   /**
@@ -233,7 +249,7 @@ export class OnboardingController {
     @Req() req: Request,
     @Param('merchantUserId') merchantUserId: string,
   ): Promise<Record<string, unknown>> {
-    return this.service.syncMerchantUserIdentity(merchantUserId, this.upstreamToken(req));
+    return this.userAccess.syncMerchantUserIdentity(merchantUserId, this.upstreamToken(req));
   }
 
   /*
@@ -246,7 +262,7 @@ export class OnboardingController {
   listCaseContractOptions(
     @Param(new ZodValidationPipe(onboardingCaseIdParamsSchema)) params: OnboardingCaseIdParamsDto,
   ): Promise<Record<string, unknown>[]> {
-    return this.service.listCaseContractOptions(params.onboardingCaseId);
+    return this.contracts.listCaseContractOptions(params.onboardingCaseId);
   }
 
   @Roles('OPERATIONS', 'LEGAL', 'ADMIN', 'COMMERCIAL_MANAGER')
@@ -255,7 +271,7 @@ export class OnboardingController {
     @Param(new ZodValidationPipe(onboardingCaseIdParamsSchema)) params: OnboardingCaseIdParamsDto,
     @Body(new ZodValidationPipe(assignCaseContractSchema)) body: AssignCaseContractDto,
   ): Promise<Record<string, unknown>> {
-    return this.service.assignCaseContract(params.onboardingCaseId, body);
+    return this.contracts.assignCaseContract(params.onboardingCaseId, body);
   }
 
   /* Mismos roles que `POST /b2b/contracts/mdr-rules`: es la misma decisión, dicha desde el caso. */
@@ -266,7 +282,7 @@ export class OnboardingController {
     @Body(new ZodValidationPipe(createCaseMdrRuleSchema)) body: CreateCaseMdrRuleDto,
     @CurrentUser() user: AuthUser,
   ): Promise<Record<string, unknown>> {
-    return this.service.createCaseMdrRule(params.onboardingCaseId, body, user);
+    return this.contracts.createCaseMdrRule(params.onboardingCaseId, body, user);
   }
 
   /*
@@ -280,7 +296,7 @@ export class OnboardingController {
     @Req() req: Request,
     @Param(new ZodValidationPipe(onboardingCaseIdParamsSchema)) params: OnboardingCaseIdParamsDto,
   ): Promise<Record<string, unknown>> {
-    return this.service.linkPartnerProfile(params.onboardingCaseId, this.upstreamToken(req));
+    return this.kyb.linkPartnerProfile(params.onboardingCaseId, this.upstreamToken(req));
   }
 
   @Roles('OPERATIONS', 'ADMIN', 'COMMERCIAL_MANAGER')
@@ -291,12 +307,7 @@ export class OnboardingController {
     @Body(new ZodValidationPipe(requestKybReviewSchema)) body: RequestKybReviewDto,
     @CurrentUser() user: AuthUser,
   ): Promise<Record<string, unknown>> {
-    return this.service.requestKybReview(
-      params.onboardingCaseId,
-      body,
-      this.upstreamToken(req),
-      user,
-    );
+    return this.kyb.requestKybReview(params.onboardingCaseId, body, this.upstreamToken(req), user);
   }
 
   @Roles('OPERATIONS', 'ADMIN', 'COMMERCIAL_MANAGER', 'COMMERCIAL_EXECUTIVE')
@@ -305,7 +316,7 @@ export class OnboardingController {
     @Req() req: Request,
     @Param(new ZodValidationPipe(onboardingCaseIdParamsSchema)) params: OnboardingCaseIdParamsDto,
   ): Promise<Record<string, unknown>> {
-    return this.service.syncKybDecision(params.onboardingCaseId, this.upstreamToken(req));
+    return this.kyb.syncKybDecision(params.onboardingCaseId, this.upstreamToken(req));
   }
 
   /**
@@ -319,7 +330,7 @@ export class OnboardingController {
     @Param(new ZodValidationPipe(onboardingCaseIdParamsSchema)) params: OnboardingCaseIdParamsDto,
     @CurrentUser() user: AuthUser,
   ): Promise<Record<string, unknown>> {
-    return this.service.reconcileCaseIdentity(
+    return this.reconciliation.reconcileCaseIdentity(
       params.onboardingCaseId,
       this.upstreamToken(req),
       user,
@@ -333,7 +344,7 @@ export class OnboardingController {
     @Body(new ZodValidationPipe(completeChecklistItemSchema)) body: CompleteChecklistItemDto,
     @CurrentUser() user: AuthUser,
   ): Promise<Record<string, unknown>> {
-    return this.service.completeChecklistItem(params.onboardingCaseId, body, user);
+    return this.checklist.completeChecklistItem(params.onboardingCaseId, body, user);
   }
 
   /*
@@ -349,7 +360,7 @@ export class OnboardingController {
     @Body(new ZodValidationPipe(checklistEvidenceUploadUrlSchema))
     body: ChecklistEvidenceUploadUrlDto,
   ): Promise<Record<string, unknown>> {
-    return this.service.createChecklistEvidenceUploadUrl(
+    return this.checklist.createChecklistEvidenceUploadUrl(
       params.onboardingCaseId,
       params.checklistItemId,
       body,
@@ -364,7 +375,7 @@ export class OnboardingController {
     @Param(new ZodValidationPipe(checklistItemIdParamsSchema)) params: ChecklistItemIdParamsDto,
     @Body(new ZodValidationPipe(attachChecklistEvidenceSchema)) body: AttachChecklistEvidenceDto,
   ): Promise<Record<string, unknown>> {
-    return this.service.attachChecklistEvidence(
+    return this.checklist.attachChecklistEvidence(
       params.onboardingCaseId,
       params.checklistItemId,
       body,
@@ -380,7 +391,7 @@ export class OnboardingController {
     @Param(new ZodValidationPipe(checklistItemIdParamsSchema)) params: ChecklistItemIdParamsDto,
     @Res({ passthrough: true }) res: Response,
   ): Promise<StreamableFile> {
-    const archivo = await this.service.readChecklistEvidence(
+    const archivo = await this.checklist.readChecklistEvidence(
       params.onboardingCaseId,
       params.checklistItemId,
       this.upstreamToken(req),
@@ -394,6 +405,6 @@ export class OnboardingController {
   activateCase(
     @Param(new ZodValidationPipe(onboardingCaseIdParamsSchema)) params: OnboardingCaseIdParamsDto,
   ): Promise<Record<string, unknown>> {
-    return this.service.activateOnboardingCase(params.onboardingCaseId);
+    return this.activation.activateOnboardingCase(params.onboardingCaseId);
   }
 }
