@@ -18,7 +18,7 @@ Se revisó nuevamente el módulo con foco en funcionalidad de corto y largo plaz
 - Se modificó `RolesGuard` para registrar autorización aceptada/denegada.
 - Se modificó `ZodValidationPipe` para registrar rechazos de validación sin registrar bodies completos.
 - Se modificó `HealthService` para registrar health/readiness.
-- Se modificó `B2BSalesCrmService` para registrar inicio de cada caso de uso de negocio.
+- Se modificaron los services de caso de uso para registrar inicio de cada caso de uso de negocio.
 - Se modificó `B2BSalesCrmRepository` para registrar transacciones, auditoría y consultas relevantes.
 - Se modificó `DatabaseModule` para enviar SQL de Sequelize a Pino solo en desarrollo.
 - Se agregó `test/set-env.ts` para evitar que tests unit/e2e dependan de variables reales del entorno.

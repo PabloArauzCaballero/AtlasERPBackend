@@ -34,12 +34,23 @@ import {
   reviewQueueQuerySchema,
   scheduleCoverageSchema,
 } from '../b2b-sales-crm.schemas';
-import { B2BSalesCrmService } from '../services/b2b-sales-crm.service';
+import { B2BCoverageService } from '../services/b2b-coverage.service';
+import { B2BCoverageReviewService } from '../services/coverage-review.service';
+import { B2BReconciliationService } from '../services/b2b-reconciliation.service';
+import { B2BOverdueSweepService } from '../services/b2b-overdue-sweep.service';
 import type { OverdueSweepResult } from '../services/b2b-overdue-sweep.service';
+
+/** Quien actúa en la cobertura: lo único que los servicios de cobertura necesitan saber de la sesión. */
+const actorOf = (user: AuthUser) => ({ userId: user.sub });
 
 @Controller('b2b/coverage')
 export class CoverageController {
-  constructor(private readonly service: B2BSalesCrmService) {}
+  constructor(
+    private readonly coverage: B2BCoverageService,
+    private readonly review: B2BCoverageReviewService,
+    private readonly reconciliation: B2BReconciliationService,
+    private readonly overdueSweep: B2BOverdueSweepService,
+  ) {}
 
   /*
    * Lectura de las piezas de la conciliacion. Faltaba, y por eso la pantalla pedia tres uuids
@@ -48,19 +59,19 @@ export class CoverageController {
   @Roles('FINANCE', 'OPERATIONS', 'ADMIN')
   @Get('installments')
   listInstallments(): Promise<Record<string, unknown>[]> {
-    return this.service.listInstallments();
+    return this.reconciliation.listInstallments();
   }
 
   @Roles('FINANCE', 'OPERATIONS', 'ADMIN')
   @Get('payables')
   listPayables(@CurrentUser() user: AuthUser): Promise<Record<string, unknown>[]> {
-    return this.service.listPayables(user);
+    return this.reconciliation.listPayables(user?.sub);
   }
 
   @Roles('FINANCE', 'OPERATIONS', 'ADMIN')
   @Get('recoveries')
   listRecoveries(): Promise<Record<string, unknown>[]> {
-    return this.service.listRecoveries();
+    return this.reconciliation.listRecoveries();
   }
 
   /**
@@ -74,7 +85,7 @@ export class CoverageController {
     @Query(new ZodValidationPipe(reviewQueueQuerySchema)) query: ReviewQueueQueryDto,
     @CurrentUser() user: AuthUser,
   ): Promise<Record<string, unknown>[]> {
-    return this.service.listCoverageReviewQueue(user, query);
+    return this.review.listReviewQueue(actorOf(user), query);
   }
 
   /**
@@ -91,7 +102,7 @@ export class CoverageController {
     body: ResolveCoverageReviewItemDto,
     @CurrentUser() user: AuthUser,
   ): Promise<Record<string, unknown>> {
-    return this.service.resolveCoverageReviewItem(params.reviewItemId, body, user);
+    return this.review.resolveReviewItem(params.reviewItemId, body, actorOf(user));
   }
 
   @Roles('FINANCE', 'COLLECTIONS', 'ADMIN')
@@ -99,7 +110,7 @@ export class CoverageController {
   listRecoveryMovements(
     @Param(new ZodValidationPipe(recoveryIdParamsSchema)) params: RecoveryIdParamsDto,
   ): Promise<Record<string, unknown>[]> {
-    return this.service.listRecoveryMovements(params.recoveryId);
+    return this.coverage.listRecoveryMovements(params.recoveryId);
   }
 
   /*
@@ -109,7 +120,7 @@ export class CoverageController {
   @Roles('FINANCE', 'OPERATIONS', 'ADMIN')
   @Post('installments/sweep-overdue')
   sweepOverdue(): Promise<OverdueSweepResult> {
-    return this.service.sweepOverdueInstallments();
+    return this.overdueSweep.sweep();
   }
 
   /**
@@ -124,7 +135,7 @@ export class CoverageController {
     @CurrentUser() user: AuthUser,
     @Res({ passthrough: true }) res: Response,
   ): Promise<Record<string, unknown>> {
-    const result = await this.service.scheduleCoverage(body, user);
+    const result = await this.coverage.scheduleCoverage(body, actorOf(user));
     if (result.outcome === 'REVIEW_REQUIRED') res.status(202);
     return result;
   }
@@ -136,7 +147,7 @@ export class CoverageController {
     @Body(new ZodValidationPipe(cancelPayableSchema)) body: CancelPayableDto,
     @CurrentUser() user: AuthUser,
   ): Promise<Record<string, unknown>> {
-    return this.service.cancelPayable(params.payableId, body, user);
+    return this.coverage.cancelPayable(params.payableId, body, actorOf(user));
   }
 
   /**
@@ -152,7 +163,7 @@ export class CoverageController {
     @Body(new ZodValidationPipe(markPayablePaidSchema)) body: MarkPayablePaidDto,
     @CurrentUser() user: AuthUser,
   ): Promise<Record<string, unknown>> {
-    return this.service.markPayablePaid(params.payableId, body, user);
+    return this.coverage.markPayablePaid(params.payableId, body, actorOf(user));
   }
 
   /** Segunda firma: confirma la liquidación y hace nacer la CxC de recuperación. */
@@ -163,7 +174,7 @@ export class CoverageController {
     @Body(new ZodValidationPipe(decidePayableSettlementSchema)) body: DecidePayableSettlementDto,
     @CurrentUser() user: AuthUser,
   ): Promise<Record<string, unknown>> {
-    return this.service.approvePayableSettlement(params.payableId, body, user);
+    return this.coverage.approvePayableSettlement(params.payableId, body, actorOf(user));
   }
 
   @Roles('FINANCE', 'ADMIN')
@@ -173,7 +184,7 @@ export class CoverageController {
     @Body(new ZodValidationPipe(rejectPayableSettlementSchema)) body: RejectPayableSettlementDto,
     @CurrentUser() user: AuthUser,
   ): Promise<Record<string, unknown>> {
-    return this.service.rejectPayableSettlement(params.payableId, body, user);
+    return this.coverage.rejectPayableSettlement(params.payableId, body, actorOf(user));
   }
 
   @Roles('FINANCE', 'COLLECTIONS', 'ADMIN')
@@ -183,7 +194,7 @@ export class CoverageController {
     @Body(new ZodValidationPipe(applyRecoveryPaymentSchema)) body: ApplyRecoveryPaymentDto,
     @CurrentUser() user: AuthUser,
   ): Promise<Record<string, unknown>> {
-    return this.service.applyRecoveryPayment(params.recoveryId, body, user);
+    return this.coverage.applyRecoveryPayment(params.recoveryId, body, actorOf(user));
   }
 
   /** Reverso/devolución de un cobro: movimiento compensatorio, el original se conserva. */
@@ -194,6 +205,11 @@ export class CoverageController {
     @Body(new ZodValidationPipe(reverseRecoveryMovementSchema)) body: ReverseRecoveryMovementDto,
     @CurrentUser() user: AuthUser,
   ): Promise<Record<string, unknown>> {
-    return this.service.reverseRecoveryMovement(params.recoveryId, params.movementId, body, user);
+    return this.coverage.reverseRecoveryMovement(
+      params.recoveryId,
+      params.movementId,
+      body,
+      actorOf(user),
+    );
   }
 }

@@ -6,12 +6,12 @@ import type { AuthUser } from '../../../common/types/auth-context.types';
 import { PortalScopeService } from '../../portal/portal.scope.service';
 import type { RegisterPurchaseDto } from '../b2b-sales-crm.dtos';
 import { registerPurchaseSchema } from '../b2b-sales-crm.schemas';
-import { B2BSalesCrmService } from '../services/b2b-sales-crm.service';
+import { B2BBnplBillingService } from '../services/b2b-bnpl-billing.service';
 
 @Controller('b2b/bnpl')
 export class BnplController {
   constructor(
-    private readonly service: B2BSalesCrmService,
+    private readonly bnplBilling: B2BBnplBillingService,
     private readonly scope: PortalScopeService,
   ) {}
 
@@ -21,7 +21,7 @@ export class BnplController {
     @Body(new ZodValidationPipe(registerPurchaseSchema)) body: RegisterPurchaseDto,
     @CurrentUser() user: AuthUser,
   ): Promise<Record<string, unknown>> {
-    return this.service.registerPurchase({
+    return this.bnplBilling.registerPurchase({
       ...body,
       merchantAccountId: await this.resolveMerchantAccountId(body.merchantAccountId, user),
     });
