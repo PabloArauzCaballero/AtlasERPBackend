@@ -19,7 +19,13 @@ import { FiscalSiatModule } from '../fiscal/siat/fiscal-siat.module';
 import { PortalController } from './portal.controller';
 import { PortalFiscalService } from './portal-fiscal.service';
 import { PortalScopeService } from './portal.scope.service';
-import { PortalService } from './portal.service';
+import { PortalBranchCommandService } from './commands/portal-branch-commands.service';
+import { PortalCampaignCommandService } from './commands/portal-campaign-commands.service';
+import { PortalPlanCommandService } from './commands/portal-plan-commands.service';
+import { PortalSubscriptionCommandService } from './commands/portal-subscription-commands.service';
+import { PortalBillingQueryService } from './queries/portal-billing-query.service';
+import { PortalCatalogQueryService } from './queries/portal-catalog-query.service';
+import { PortalMerchantQueryService } from './queries/portal-merchant-query.service';
 
 @Module({
   imports: [
@@ -46,7 +52,17 @@ import { PortalService } from './portal.service';
     FiscalSiatModule,
   ],
   controllers: [PortalController],
-  providers: [PortalService, PortalScopeService, PortalFiscalService],
+  providers: [
+    PortalScopeService,
+    PortalFiscalService,
+    PortalCatalogQueryService,
+    PortalBillingQueryService,
+    PortalMerchantQueryService,
+    PortalPlanCommandService,
+    PortalSubscriptionCommandService,
+    PortalBranchCommandService,
+    PortalCampaignCommandService,
+  ],
   exports: [PortalScopeService],
 })
 export class PortalModule {}
