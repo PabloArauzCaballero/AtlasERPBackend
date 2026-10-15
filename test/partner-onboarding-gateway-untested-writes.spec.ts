@@ -1,5 +1,7 @@
 import type { Request } from 'express';
 import { PartnerOnboardingGatewayController } from '../src/modules/partner-onboarding-gateway/partner-onboarding-gateway.controller';
+import { PartnerBranchesGatewayController } from '../src/modules/partner-onboarding-gateway/partner-branches-gateway.controller';
+import { PartnerQrGatewayController } from '../src/modules/partner-onboarding-gateway/partner-qr-gateway.controller';
 
 /**
  * Cubre el hallazgo UNTESTED_WRITE (auditoría de flujos, mismo lote que documentó PR #32 en el
@@ -13,11 +15,13 @@ describe('PartnerOnboardingGatewayController: rutas de escritura sin test previo
   function build() {
     const forward = jest.fn(async (input: unknown) => ({ ok: true, input }));
     const controller = new PartnerOnboardingGatewayController({ forward } as never);
+    const branches = new PartnerBranchesGatewayController({ forward } as never);
+    const qr = new PartnerQrGatewayController({ forward } as never);
     const req = {
       cookies: { atlas_upstream_at: 'token-del-actor' },
       headers: {},
     } as unknown as Request;
-    return { controller, forward, req };
+    return { controller, branches, qr, forward, req };
   }
 
   it('POST partner-onboarding/start reenvía el cuerpo con el token del actor', async () => {
@@ -97,9 +101,9 @@ describe('PartnerOnboardingGatewayController: rutas de escritura sin test previo
   });
 
   it('POST partner-onboarding/:id/branches reenvía la sucursal declarada', async () => {
-    const { controller, forward, req } = build();
+    const { branches, forward, req } = build();
     const body = { nombre: 'Sucursal Centro' };
-    await controller.registerBranch(req, 'partner-1', body);
+    await branches.registerBranch(req, 'partner-1', body);
     expect(forward).toHaveBeenCalledWith({
       method: 'POST',
       path: 'partner-onboarding/partner-1/branches',
@@ -109,9 +113,9 @@ describe('PartnerOnboardingGatewayController: rutas de escritura sin test previo
   });
 
   it('PATCH partner-onboarding/:id/branches/:branchId enlaza con la sucursal del ERP', async () => {
-    const { controller, forward, req } = build();
+    const { branches, forward, req } = build();
     const body = { erpBranchId: 'erp-branch-9' };
-    await controller.linkBranch(req, 'partner-1', 'branch-2', body);
+    await branches.linkBranch(req, 'partner-1', 'branch-2', body);
     expect(forward).toHaveBeenCalledWith({
       method: 'PATCH',
       path: 'partner-onboarding/partner-1/branches/branch-2',
@@ -121,9 +125,9 @@ describe('PartnerOnboardingGatewayController: rutas de escritura sin test previo
   });
 
   it('POST partner-onboarding/:id/qr-codes/upload-url pide la URL de subida del QR', async () => {
-    const { controller, forward, req } = build();
+    const { qr, forward, req } = build();
     const body = { contentType: 'image/png' };
-    await controller.qrUploadUrl(req, 'partner-1', body);
+    await qr.qrUploadUrl(req, 'partner-1', body);
     expect(forward).toHaveBeenCalledWith({
       method: 'POST',
       path: 'partner-onboarding/partner-1/qr-codes/upload-url',
@@ -133,9 +137,9 @@ describe('PartnerOnboardingGatewayController: rutas de escritura sin test previo
   });
 
   it('POST partner-onboarding/:id/qr-codes registra el QR ya subido', async () => {
-    const { controller, forward, req } = build();
+    const { qr, forward, req } = build();
     const body = { objectKey: 'qr/partner-1/abc' };
-    await controller.registerQr(req, 'partner-1', body);
+    await qr.registerQr(req, 'partner-1', body);
     expect(forward).toHaveBeenCalledWith({
       method: 'POST',
       path: 'partner-onboarding/partner-1/qr-codes',
@@ -145,13 +149,13 @@ describe('PartnerOnboardingGatewayController: rutas de escritura sin test previo
   });
 
   it('POST partner-onboarding/:id/qr-codes reenvía la prueba de reautenticación del comercio (ERP-03)', async () => {
-    const { controller, forward } = build();
+    const { qr, forward } = build();
     const req = {
       cookies: { atlas_upstream_at: 'token-del-actor' },
       headers: { 'x-reauth-token': 'prueba-de-un-uso' },
     } as unknown as Request;
     const body = { objectKey: 'qr/partner-1/abc' };
-    await controller.registerQr(req, 'partner-1', body);
+    await qr.registerQr(req, 'partner-1', body);
     expect(forward).toHaveBeenCalledWith({
       method: 'POST',
       path: 'partner-onboarding/partner-1/qr-codes',
@@ -162,9 +166,9 @@ describe('PartnerOnboardingGatewayController: rutas de escritura sin test previo
   });
 
   it('POST partner-onboarding/:id/branches/:branchId/pos-terminals registra el POS', async () => {
-    const { controller, forward, req } = build();
+    const { branches, forward, req } = build();
     const body = { serial: 'POS-001' };
-    await controller.registerPos(req, 'partner-1', 'branch-2', body);
+    await branches.registerPos(req, 'partner-1', 'branch-2', body);
     expect(forward).toHaveBeenCalledWith({
       method: 'POST',
       path: 'partner-onboarding/partner-1/branches/branch-2/pos-terminals',
@@ -174,9 +178,9 @@ describe('PartnerOnboardingGatewayController: rutas de escritura sin test previo
   });
 
   it('PATCH partner-onboarding/:id/pos-terminals/:terminalId cambia el estado del POS', async () => {
-    const { controller, forward, req } = build();
+    const { branches, forward, req } = build();
     const body = { status: 'ACTIVE' };
-    await controller.changePosStatus(req, 'partner-1', 'term-3', body);
+    await branches.changePosStatus(req, 'partner-1', 'term-3', body);
     expect(forward).toHaveBeenCalledWith({
       method: 'PATCH',
       path: 'partner-onboarding/partner-1/pos-terminals/term-3',
@@ -186,8 +190,8 @@ describe('PartnerOnboardingGatewayController: rutas de escritura sin test previo
   });
 
   it('todas las rutas de escritura codifican los identificadores de la ruta', async () => {
-    const { controller, forward, req } = build();
-    await controller.linkBranch(req, 'partner/raro', 'branch/raro', {});
+    const { branches, forward, req } = build();
+    await branches.linkBranch(req, 'partner/raro', 'branch/raro', {});
     expect(forward).toHaveBeenCalledWith(
       expect.objectContaining({
         path: 'partner-onboarding/partner%2Fraro/branches/branch%2Fraro',

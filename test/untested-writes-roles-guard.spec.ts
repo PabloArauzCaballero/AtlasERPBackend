@@ -3,10 +3,14 @@ import { ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { RolesGuard } from '../src/common/guards/roles.guard';
 import type { PinoLoggerService } from '../src/common/logging/pino-logger.service';
-import { AuthGatewayController } from '../src/modules/auth-gateway/auth-gateway.controller';
+import { AuthDirectoryController } from '../src/modules/auth-gateway/auth-directory.controller';
+import { AuthMerchantController } from '../src/modules/auth-gateway/auth-merchant.controller';
 import { FiscalDocumentsController } from '../src/modules/fiscal/siat/controllers/fiscal-documents.controller';
 import { MerchantCreditGatewayController } from '../src/modules/partner-onboarding-gateway/merchant-credit-gateway.controller';
 import { PartnerOnboardingGatewayController } from '../src/modules/partner-onboarding-gateway/partner-onboarding-gateway.controller';
+import { PartnerBranchesGatewayController } from '../src/modules/partner-onboarding-gateway/partner-branches-gateway.controller';
+import { PartnerQrGatewayController } from '../src/modules/partner-onboarding-gateway/partner-qr-gateway.controller';
+import { SupportChannelsGatewayController } from '../src/modules/partner-onboarding-gateway/support-channels-gateway.controller';
 import { SupportGatewayController } from '../src/modules/partner-onboarding-gateway/support-gateway.controller';
 
 /**
@@ -25,21 +29,21 @@ const ROLE_CASES: Array<{
 }> = [
   {
     route: 'PATCH auth/users/:userId',
-    controller: AuthGatewayController,
+    controller: AuthDirectoryController,
     method: 'updateUser',
     allowedRoles: ['ADMIN'],
     deniedRole: 'AUDITOR',
   },
   {
     route: 'PATCH auth/users/:userId/roles',
-    controller: AuthGatewayController,
+    controller: AuthDirectoryController,
     method: 'replaceUserRoles',
     allowedRoles: ['ADMIN'],
     deniedRole: 'AUDITOR',
   },
   {
     route: 'PATCH partner-onboarding/:id/branches/:branchId',
-    controller: PartnerOnboardingGatewayController,
+    controller: PartnerBranchesGatewayController,
     method: 'linkBranch',
     allowedRoles: ['merchant', 'MERCHANT_ADMIN', 'MERCHANT_OPERATIONS', 'ADMIN'],
     deniedRole: 'AUDITOR',
@@ -53,7 +57,7 @@ const ROLE_CASES: Array<{
   },
   {
     route: 'PATCH partner-onboarding/:id/pos-terminals/:terminalId',
-    controller: PartnerOnboardingGatewayController,
+    controller: PartnerBranchesGatewayController,
     method: 'changePosStatus',
     allowedRoles: ['merchant', 'MERCHANT_ADMIN', 'MERCHANT_OPERATIONS', 'ADMIN'],
     deniedRole: 'AUDITOR',
@@ -88,14 +92,14 @@ const ROLE_CASES: Array<{
   },
   {
     route: 'POST partner-onboarding/:id/branches',
-    controller: PartnerOnboardingGatewayController,
+    controller: PartnerBranchesGatewayController,
     method: 'registerBranch',
     allowedRoles: ['merchant', 'MERCHANT_ADMIN', 'MERCHANT_OPERATIONS', 'ADMIN'],
     deniedRole: 'AUDITOR',
   },
   {
     route: 'POST partner-onboarding/:id/branches/:branchId/pos-terminals',
-    controller: PartnerOnboardingGatewayController,
+    controller: PartnerBranchesGatewayController,
     method: 'registerPos',
     allowedRoles: ['merchant', 'MERCHANT_ADMIN', 'MERCHANT_OPERATIONS', 'ADMIN'],
     deniedRole: 'AUDITOR',
@@ -123,21 +127,21 @@ const ROLE_CASES: Array<{
   },
   {
     route: 'POST auth/merchant/reauthenticate',
-    controller: AuthGatewayController,
+    controller: AuthMerchantController,
     method: 'merchantReauthenticate',
     allowedRoles: ['merchant', 'MERCHANT_ADMIN', 'MERCHANT_OPERATIONS'],
     deniedRole: 'ADMIN',
   },
   {
     route: 'POST partner-onboarding/:id/qr-codes',
-    controller: PartnerOnboardingGatewayController,
+    controller: PartnerQrGatewayController,
     method: 'registerQr',
     allowedRoles: ['merchant', 'MERCHANT_ADMIN', 'MERCHANT_OPERATIONS', 'ADMIN'],
     deniedRole: 'AUDITOR',
   },
   {
     route: 'POST partner-onboarding/:id/qr-codes/upload-url',
-    controller: PartnerOnboardingGatewayController,
+    controller: PartnerQrGatewayController,
     method: 'qrUploadUrl',
     allowedRoles: ['merchant', 'MERCHANT_ADMIN', 'MERCHANT_OPERATIONS', 'ADMIN'],
     deniedRole: 'AUDITOR',
@@ -158,35 +162,35 @@ const ROLE_CASES: Array<{
   },
   {
     route: 'POST support/channels',
-    controller: SupportGatewayController,
+    controller: SupportChannelsGatewayController,
     method: 'abrirConversacion',
     allowedRoles: ['merchant', 'MERCHANT_ADMIN', 'MERCHANT_OPERATIONS', 'ADMIN'],
     deniedRole: 'AUDITOR',
   },
   {
     route: 'POST support/channels/:id/close',
-    controller: SupportGatewayController,
+    controller: SupportChannelsGatewayController,
     method: 'cerrar',
     allowedRoles: ['merchant', 'MERCHANT_ADMIN', 'MERCHANT_OPERATIONS', 'ADMIN'],
     deniedRole: 'AUDITOR',
   },
   {
     route: 'POST support/channels/:id/messages',
-    controller: SupportGatewayController,
+    controller: SupportChannelsGatewayController,
     method: 'enviar',
     allowedRoles: ['merchant', 'MERCHANT_ADMIN', 'MERCHANT_OPERATIONS', 'ADMIN'],
     deniedRole: 'AUDITOR',
   },
   {
     route: 'POST support/channels/:id/read',
-    controller: SupportGatewayController,
+    controller: SupportChannelsGatewayController,
     method: 'marcarLeido',
     allowedRoles: ['merchant', 'MERCHANT_ADMIN', 'MERCHANT_OPERATIONS', 'ADMIN'],
     deniedRole: 'AUDITOR',
   },
   {
     route: 'POST support/channels/:id/typing',
-    controller: SupportGatewayController,
+    controller: SupportChannelsGatewayController,
     method: 'escribiendo',
     allowedRoles: ['merchant', 'MERCHANT_ADMIN', 'MERCHANT_OPERATIONS', 'ADMIN'],
     deniedRole: 'AUDITOR',

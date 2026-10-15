@@ -5,8 +5,12 @@ import { CreditProductsGatewayController } from './credit-products-gateway.contr
 import { AtlasPartnerClient } from './atlas-partner.client';
 import { MerchantFolderService } from './merchant-folder.service';
 import { MerchantCreditGatewayController } from './merchant-credit-gateway.controller';
+import { PartnerBranchesGatewayController } from './partner-branches-gateway.controller';
 import { PartnerOnboardingGatewayController } from './partner-onboarding-gateway.controller';
+import { PartnerQrGatewayController } from './partner-qr-gateway.controller';
+import { SupportChannelsGatewayController } from './support-channels-gateway.controller';
 import { SupportGatewayController } from './support-gateway.controller';
+import { SupportMediaGatewayController } from './support-media-gateway.controller';
 
 /**
  * Pasarela del expediente del partner hacia AtlasBackend.
@@ -20,8 +24,12 @@ import { SupportGatewayController } from './support-gateway.controller';
   imports: [HttpModule],
   controllers: [
     PartnerOnboardingGatewayController,
+    PartnerBranchesGatewayController,
+    PartnerQrGatewayController,
     MerchantCreditGatewayController,
     SupportGatewayController,
+    SupportChannelsGatewayController,
+    SupportMediaGatewayController,
     AssistGatewayController,
     CreditProductsGatewayController,
   ],

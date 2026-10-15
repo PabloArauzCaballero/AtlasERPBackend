@@ -1,6 +1,8 @@
 import { EventEmitter } from 'node:events';
 import type { Request, Response } from 'express';
+import { SupportChannelsGatewayController } from './support-channels-gateway.controller';
 import { SupportGatewayController } from './support-gateway.controller';
+import { SupportMediaGatewayController } from './support-media-gateway.controller';
 
 /**
  * La pasarela de soporte reenvía CADA ruta que el portal del comercio usa, con el token del actor.
@@ -14,8 +16,10 @@ describe('SupportGatewayController', () => {
   function build() {
     const forward = jest.fn(async (input: unknown) => ({ ok: true, input }));
     const controller = new SupportGatewayController({ forward } as never);
+    const channels = new SupportChannelsGatewayController({ forward } as never);
+    const media = new SupportMediaGatewayController({ forward } as never);
     const req = { cookies: { atlas_upstream_at: 'token-del-actor' } } as unknown as Request;
-    return { controller, forward, req };
+    return { controller, media, channels, forward, req };
   }
 
   it('reenvía GET merchant/support/categories con el token del actor', async () => {
@@ -38,13 +42,14 @@ describe('SupportGatewayController', () => {
     ['faq', 'merchant/support/faq'],
     ['sinLeer', 'support/channels/unread'],
   ] as const)('%s reenvía a %s', async (metodo, path) => {
-    const { controller, forward, req } = build();
-    await (controller[metodo] as (r: Request) => Promise<unknown>)(req);
+    const { controller, channels, forward, req } = build();
+    const objetivo = metodo === 'sinLeer' ? channels : controller;
+    await (objetivo[metodo as keyof typeof objetivo] as (r: Request) => Promise<unknown>)(req);
     expect(forward).toHaveBeenCalledWith(expect.objectContaining({ method: 'GET', path }));
   });
 
   it('pausa el lector SSE cuando la respuesta al navegador aplica contrapresión', async () => {
-    const { controller } = build();
+    const { media } = build();
     const req = Object.assign(new EventEmitter(), {
       cookies: { atlas_upstream_at: 'token-del-actor' },
     }) as unknown as Request;
@@ -69,7 +74,7 @@ describe('SupportGatewayController', () => {
       .mockResolvedValue({ ok: true, body: { getReader: () => reader } } as never);
 
     try {
-      const streaming = controller.hiloEnVivo(req, 'ch-1', res);
+      const streaming = media.hiloEnVivo(req, 'ch-1', res);
       await new Promise<void>((resolve) => setImmediate(resolve));
       expect(write).toHaveBeenCalledTimes(1);
       expect(reader.read).toHaveBeenCalledTimes(1);
@@ -88,7 +93,7 @@ describe('SupportGatewayController', () => {
   });
 
   it('al cerrar el navegador aborta el upstream mientras espera drain', async () => {
-    const { controller } = build();
+    const { media } = build();
     const req = { cookies: { atlas_upstream_at: 'token-del-actor' } } as unknown as Request;
     const res = Object.assign(new EventEmitter(), {
       setHeader: jest.fn(),
@@ -103,7 +108,7 @@ describe('SupportGatewayController', () => {
       .mockResolvedValue({ ok: true, body: { getReader: () => reader } } as never);
 
     try {
-      const streaming = controller.hiloEnVivo(req, 'ch-1', res);
+      const streaming = media.hiloEnVivo(req, 'ch-1', res);
       await new Promise<void>((resolve) => setImmediate(resolve));
       const signal = (fetchMock.mock.calls[0]?.[1] as RequestInit).signal as AbortSignal;
       res.destroyed = true;
@@ -118,7 +123,7 @@ describe('SupportGatewayController', () => {
   });
 
   it('no intenta escribir un error si el navegador se cerró durante la conexión upstream', async () => {
-    const { controller } = build();
+    const { media } = build();
     const req = { cookies: { atlas_upstream_at: 'token-del-actor' } } as unknown as Request;
     const res = Object.assign(new EventEmitter(), {
       status: jest.fn(),
@@ -134,7 +139,7 @@ describe('SupportGatewayController', () => {
     );
 
     try {
-      const streaming = controller.hiloEnVivo(req, 'ch-1', res);
+      const streaming = media.hiloEnVivo(req, 'ch-1', res);
       const signal = (fetchMock.mock.calls[0]?.[1] as RequestInit).signal as AbortSignal;
       res.destroyed = true;
       res.emit('close');

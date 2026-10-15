@@ -2,7 +2,15 @@ import { Module } from '@nestjs/common';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { adsModels } from './models';
 import { AdminAdsAuthoringController } from './controllers/admin-ads-authoring.controller';
-import { AdminAdsController } from './controllers/admin-ads.controller';
+import { AdminAdsAdvertisersController } from './controllers/admin-ads-advertisers.controller';
+import { AdminAdsBillingController } from './controllers/admin-ads-billing.controller';
+import { AdminAdsCampaignsController } from './controllers/admin-ads-campaigns.controller';
+import { AdminAdsDeliveryController } from './controllers/admin-ads-delivery.controller';
+import { AdminAdsEmailController } from './controllers/admin-ads-email.controller';
+import { AdminAdsInventoryController } from './controllers/admin-ads-inventory.controller';
+import { AdminAdsModerationController } from './controllers/admin-ads-moderation.controller';
+import { AdminAdsOversightController } from './controllers/admin-ads-oversight.controller';
+import { AdminAdsPoliciesController } from './controllers/admin-ads-policies.controller';
 import { AdsDeliveryController } from './controllers/ads-delivery.controller';
 import { AdvertisersRepository } from './repositories/advertisers.repository';
 import { AdsAuthoringRepository } from './repositories/authoring.repository';
@@ -27,7 +35,19 @@ import { EmailMessagingProcessor } from './services/email-messaging.processor';
 
 @Module({
   imports: [SequelizeModule.forFeature(adsModels), BusinessActionLogsModule],
-  controllers: [AdminAdsAuthoringController, AdminAdsController, AdsDeliveryController],
+  controllers: [
+    AdminAdsAuthoringController,
+    AdminAdsAdvertisersController,
+    AdminAdsBillingController,
+    AdminAdsCampaignsController,
+    AdminAdsDeliveryController,
+    AdminAdsEmailController,
+    AdminAdsInventoryController,
+    AdminAdsModerationController,
+    AdminAdsOversightController,
+    AdminAdsPoliciesController,
+    AdsDeliveryController,
+  ],
   providers: [
     AdvertisersRepository,
     CampaignsRepository,

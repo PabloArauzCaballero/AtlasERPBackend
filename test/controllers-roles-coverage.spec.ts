@@ -28,9 +28,9 @@ const INTENTIONALLY_ANY_AUTHENTICATED = [
   'AssistGatewayController.conversaciones',
   'AssistGatewayController.conversacionPorId',
   'AssistGatewayController.borrarConversacion',
-  'AuthGatewayController.requestPasswordChange',
-  'AuthGatewayController.confirmPasswordChange',
-  'AuthGatewayController.me',
+  'AuthPasswordController.requestPasswordChange',
+  'AuthPasswordController.confirmPasswordChange',
+  'AuthSessionController.me',
   'CatalogController.list',
   'CatalogController.one',
 ].sort();
