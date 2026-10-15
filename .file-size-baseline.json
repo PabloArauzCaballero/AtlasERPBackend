@@ -42,7 +42,6 @@
   "src/modules/fiscal/siat/application/siat-emission.service.ts": 378,
   "src/modules/partner-onboarding-gateway/partner-onboarding-gateway.controller.ts": 314,
   "src/modules/partner-onboarding-gateway/support-gateway.controller.ts": 343,
-  "src/modules/portal/portal.controller.ts": 317,
   "src/modules/portal/portal.scope.service.spec.ts": 301,
   "src/modules/portal/portal.scope.service.ts": 319,
   "src/workers/outbox/outbox-relay.ts": 316

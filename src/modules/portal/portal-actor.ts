@@ -7,3 +7,12 @@ export interface PortalActor {
   requestId: string;
   scope: PortalScope;
 }
+
+/** Arma el `PortalActor` de una petición: el alcance lo resuelve el servidor, nunca el cliente. */
+export async function buildPortalActor(
+  scopeService: { resolveScope(user: AuthUser): Promise<PortalScope> },
+  user: AuthUser,
+  requestId: string,
+): Promise<PortalActor> {
+  return { user, requestId, scope: await scopeService.resolveScope(user) };
+}

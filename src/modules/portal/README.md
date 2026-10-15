@@ -11,7 +11,7 @@ autorización por tenant.
 ## Archivos
 
 - `portal.module.ts`: registra controller, servicios y modelos de los tres dominios involucrados.
-- `portal.controller.ts`: handlers delgados. `@Roles` decide _quién llama_; nunca _qué puede tocar_.
+- `portal*.controller.ts` (uno por subrecurso, mismo prefijo `portal`): handlers delgados. `@Roles` decide _quién llama_; nunca _qué puede tocar_.
 - `portal.scope.service.ts`: autorización por tenant (`PortalScope`). Punto de entrada obligatorio.
 - `portal.service.ts`: casos de uso y transacciones.
 - `portal.schemas.ts`: validación Zod de body, params y query, con topes de paginación.

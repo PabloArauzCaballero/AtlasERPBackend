@@ -16,6 +16,11 @@ import { AdsModule } from '../ads/ads.module';
 import { BusinessActionLogsModule } from '../business-action-logs/business-action-logs.module';
 import { ElectronicTaxDocumentModel } from '../../database/models';
 import { FiscalSiatModule } from '../fiscal/siat/fiscal-siat.module';
+import { PortalBillingController } from './portal-billing.controller';
+import { PortalBranchesController } from './portal-branches.controller';
+import { PortalCampaignsController } from './portal-campaigns.controller';
+import { PortalInvoicesController } from './portal-invoices.controller';
+import { PortalPlansController } from './portal-plans.controller';
 import { PortalController } from './portal.controller';
 import { PortalFiscalService } from './portal-fiscal.service';
 import { PortalScopeService } from './portal.scope.service';
@@ -51,7 +56,14 @@ import { PortalMerchantQueryService } from './queries/portal-merchant-query.serv
     // La factura fiscal (PDF y XML) que el comercio descarga de su portal.
     FiscalSiatModule,
   ],
-  controllers: [PortalController],
+  controllers: [
+    PortalController,
+    PortalPlansController,
+    PortalBillingController,
+    PortalInvoicesController,
+    PortalBranchesController,
+    PortalCampaignsController,
+  ],
   providers: [
     PortalScopeService,
     PortalFiscalService,
