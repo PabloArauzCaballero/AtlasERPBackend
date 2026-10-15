@@ -20,10 +20,10 @@
 
 **CA:** Dado el checkout actual, cuando se sigue el flujo, entonces se distingue regla de coordinación. **DoD:** rutas y símbolos reales registrados abajo. **Estado:** HECHO
 
-| ID | Microtarea | CA (binario) | DoD (comando de verificación) | Estado |
-|---|---|---|---|---|
-| H1.S1.M1 | Localizar entrada y propietario | Ambas rutas existen y se identificó la regla | `test -f 'src/modules/b2b-sales-crm/controllers/onboarding.controller.ts' && test -f 'src/modules/b2b-sales-crm/services/b2b-onboarding.service.ts'` → salida 0 | HECHO |
-| H1.S1.M2 | Fijar referencia | El chequeo dirigido termina con salida 0 | `npm test -- --runTestsByPath src/modules/b2b-sales-crm/domain/onboarding-lifecycle.spec.ts` → 1 suite; 10/10 pruebas pasan | HECHO |
+| ID       | Microtarea                      | CA (binario)                                 | DoD (comando de verificación)                                                                                                                                   | Estado |
+| -------- | ------------------------------- | -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| H1.S1.M1 | Localizar entrada y propietario | Ambas rutas existen y se identificó la regla | `test -f 'src/modules/b2b-sales-crm/controllers/onboarding.controller.ts' && test -f 'src/modules/b2b-sales-crm/services/b2b-onboarding.service.ts'` → salida 0 | HECHO  |
+| H1.S1.M2 | Fijar referencia                | El chequeo dirigido termina con salida 0     | `npm test -- --runTestsByPath src/modules/b2b-sales-crm/domain/onboarding-lifecycle.spec.ts` → 1 suite; 10/10 pruebas pasan                                     | HECHO  |
 
 **Regla observada:** Un caso listo requiere checklist completo, contrato activo y KYB aprobado.
 
@@ -37,16 +37,16 @@
 
 **CA:** La condición límite tiene resultado esperado documentado. **DoD:** prueba dirigida y revisión del contrato vigente. **Estado:** HECHO
 
-| ID | Microtarea | CA (binario) | DoD (comando de verificación) | Estado |
-|---|---|---|---|---|
-| H2.S1.M1 | Probar que un caso sin ítems de checklist no cuenta como listo | Dado un caso aprobado y con contrato, pero checklist vacío, el resumen devuelve 0 listos | `npm test -- --runTestsByPath src/modules/b2b-sales-crm/domain/onboarding-lifecycle.spec.ts` → rojo antes, verde después | HECHO |
-| H2.S1.M2 | Pasar la presencia del checklist a la decisión del resumen | La misma condición que rechaza la activación excluye el caso del resumen | `npm run type-check` → salida 0 | HECHO |
-| H2.S1.M3 | Verificar la ruta de aplicación | Servicio y dominio conservan sus pruebas dirigidas | `npm test -- --runTestsByPath src/modules/b2b-sales-crm/domain/onboarding-lifecycle.spec.ts src/modules/b2b-sales-crm/services/b2b-onboarding.service.spec.ts` → salida 0 | HECHO |
+| ID       | Microtarea                                                     | CA (binario)                                                                             | DoD (comando de verificación)                                                                                                                                             | Estado |
+| -------- | -------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| H2.S1.M1 | Probar que un caso sin ítems de checklist no cuenta como listo | Dado un caso aprobado y con contrato, pero checklist vacío, el resumen devuelve 0 listos | `npm test -- --runTestsByPath src/modules/b2b-sales-crm/domain/onboarding-lifecycle.spec.ts` → rojo antes, verde después                                                  | HECHO  |
+| H2.S1.M2 | Pasar la presencia del checklist a la decisión del resumen     | La misma condición que rechaza la activación excluye el caso del resumen                 | `npm run type-check` → salida 0                                                                                                                                           | HECHO  |
+| H2.S1.M3 | Verificar la ruta de aplicación                                | Servicio y dominio conservan sus pruebas dirigidas                                       | `npm test -- --runTestsByPath src/modules/b2b-sales-crm/domain/onboarding-lifecycle.spec.ts src/modules/b2b-sales-crm/services/b2b-onboarding.service.spec.ts` → salida 0 | HECHO  |
 
 ## Riesgos y bloqueos previstos
 
-| Riesgo | Impacto | Mitigación |
-|---|---|---|
+| Riesgo                                                                            | Impacto                    | Mitigación                                                       |
+| --------------------------------------------------------------------------------- | -------------------------- | ---------------------------------------------------------------- |
 | No activar comercios sin aprobación firme del Motor; conservar estados heredados. | Resultado o contrato falso | Confirmar con código, contrato y prueba antes de editar producto |
 
 ## Decisión de diseño

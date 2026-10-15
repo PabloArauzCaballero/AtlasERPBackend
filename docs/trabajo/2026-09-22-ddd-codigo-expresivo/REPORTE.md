@@ -5,10 +5,10 @@
 
 ## Completado en H1
 
-| ID | Qué se logró | Comando | Resultado |
-|---|---|---|---|
-| H1.S1.M1 | Entrada `src/modules/b2b-sales-crm/controllers/onboarding.controller.ts` y propietario `src/modules/b2b-sales-crm/services/b2b-onboarding.service.ts` localizados | inspección de rutas y símbolos | rutas presentes |
-| H1.S1.M2 | Referencia del flujo | `npm test -- --runTestsByPath src/modules/b2b-sales-crm/domain/onboarding-lifecycle.spec.ts` | 1 suite; 10/10 pruebas pasan |
+| ID       | Qué se logró                                                                                                                                                      | Comando                                                                                      | Resultado                    |
+| -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | ---------------------------- |
+| H1.S1.M1 | Entrada `src/modules/b2b-sales-crm/controllers/onboarding.controller.ts` y propietario `src/modules/b2b-sales-crm/services/b2b-onboarding.service.ts` localizados | inspección de rutas y símbolos                                                               | rutas presentes              |
+| H1.S1.M2 | Referencia del flujo                                                                                                                                              | `npm test -- --runTestsByPath src/modules/b2b-sales-crm/domain/onboarding-lifecycle.spec.ts` | 1 suite; 10/10 pruebas pasan |
 
 ## Ejecución H2
 
