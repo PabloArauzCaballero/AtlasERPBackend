@@ -12,7 +12,8 @@ import { ArInvoiceModel, ReceiptAllocationModel, ReceiptModel } from '../../../.
 import { AuthUser } from '../../../../common/types/auth-context.types';
 import { RecordReceiptDto } from '../../shared/schemas/accounting.schemas';
 import { AccountingDefaultsService } from '../../shared/services/accounting-defaults.service';
-import { AccountingDocumentsService } from '../../documents/services/accounting-documents.service';
+import { AccountingDraftService } from '../../documents/services/accounting-draft.service';
+import { AccountingPostingService } from '../../documents/services/accounting-posting.service';
 import { BusinessPartnerRoleValidationService } from '../../business-partners/services/business-partner-role-validation.service';
 import { LegalEntityAccessService } from '../../../../common/services/legal-entity-access.service';
 import { PinoLoggerService } from '../../../../common/logger/pino-logger.service';
@@ -36,7 +37,8 @@ type ResolvedReceipt = RecordReceiptDto & {
 export class ReceiptsService {
   constructor(
     private readonly sequelize: Sequelize,
-    private readonly accountingDocumentsService: AccountingDocumentsService,
+    private readonly drafts: AccountingDraftService,
+    private readonly posting: AccountingPostingService,
     private readonly accountingDefaultsService: AccountingDefaultsService,
     private readonly businessPartnerRoleValidationService: BusinessPartnerRoleValidationService,
     private readonly legalEntityAccessService: LegalEntityAccessService,
@@ -174,7 +176,7 @@ export class ReceiptsService {
 
       await this.updateInvoiceStatusesAfterAllocation(input, transaction);
 
-      const accounting = await this.accountingDocumentsService.createDraftInTransaction(
+      const accounting = await this.drafts.createDraftInTransaction(
         {
           legalEntityId: input.legalEntityId,
           sourceSystem: 'TREASURY',
@@ -217,11 +219,7 @@ export class ReceiptsService {
         { origin: 'SERVER_GENERATED' },
       );
 
-      await this.accountingDocumentsService.postDocumentInTransaction(
-        accounting.document.id,
-        user,
-        transaction,
-      );
+      await this.posting.postDocumentInTransaction(accounting.document.id, user, transaction);
       await receipt.update({ accountingDocumentId: accounting.document.id }, { transaction });
 
       await this.businessActionLogsService.record({

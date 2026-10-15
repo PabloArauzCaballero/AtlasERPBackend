@@ -30,7 +30,7 @@ import { SiatContingencyService } from '../src/modules/fiscal/siat/application/s
 import { SiatDispatchService } from '../src/modules/fiscal/siat/application/siat-dispatch.service';
 import type { DocumentoAEmitir } from '../src/modules/fiscal/siat/application/siat-emission.service';
 import { SiatEmissionService } from '../src/modules/fiscal/siat/application/siat-emission.service';
-import { AccountingDocumentsService } from '../src/modules/accounting/documents/services/accounting-documents.service';
+import { AccountingReversalService } from '../src/modules/accounting/documents/services/accounting-reversal.service';
 import { FiscalPdfService } from '../src/modules/fiscal/siat/application/fiscal-pdf.service';
 import { FiscalMailService } from '../src/modules/fiscal/siat/application/fiscal-mail.service';
 import { DocumentsService } from '../src/modules/documents/documents.service';
@@ -118,7 +118,7 @@ describeWithMock(
           FiscalPdfService,
           FiscalMailService,
           { provide: DocumentsService, useValue: { generateInternal: jest.fn() } },
-          { provide: AccountingDocumentsService, useValue: { reverseDocument: jest.fn() } },
+          { provide: AccountingReversalService, useValue: { reverseDocument: jest.fn() } },
           { provide: PinoLoggerService, useValue: silentLogger },
         ],
       }).compile();

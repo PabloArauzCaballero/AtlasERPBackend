@@ -98,7 +98,7 @@ describeWithDatabase('P-17 rollback de migraciones sin destruir hechos (PostgreS
     const purchase = await seedPurchase(h.sequelize, {
       installments: [{ dueDate: addDays(today, -5), amount: '300.00' }],
     });
-    const payable = await h.coverage.scheduleCoverage(
+    const payable = await h.scheduling.scheduleCoverage(
       {
         installmentId: purchase.installments[0]!.id,
         scheduledPaymentDate: today,
@@ -108,7 +108,7 @@ describeWithDatabase('P-17 rollback de migraciones sin destruir hechos (PostgreS
     );
     const payableId = payable.id as string;
     const evidenceFileId = await addEvidenceFile(h.sequelize, payableId);
-    await h.coverage.markPayablePaid(
+    await h.settlements.markPayablePaid(
       payableId,
       {
         settlementReference: `LIQ-ROLLBACK-${Date.now()}`,
@@ -120,13 +120,13 @@ describeWithDatabase('P-17 rollback de migraciones sin destruir hechos (PostgreS
       },
       REGISTRAR,
     );
-    const approved = await h.coverage.approvePayableSettlement(payableId, {}, APPROVER);
+    const approved = await h.decisions.approvePayableSettlement(payableId, {}, APPROVER);
     const recoveryId = (approved.recovery as { id: string }).id;
     for (const [amount, suffix] of [
       ['100.00', 'A'],
       ['200.00', 'B'],
     ] as const) {
-      await h.coverage.applyRecoveryPayment(
+      await h.recoveries.applyRecoveryPayment(
         recoveryId,
         { amount, paymentReference: `REC-ROLLBACK-${Date.now()}-${suffix}`, currency: 'BOB' },
         COLLECTOR,

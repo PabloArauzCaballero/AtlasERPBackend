@@ -83,7 +83,7 @@ describeWithDatabase('P-04 resolución de la cola de revisión (PostgreSQL real)
   });
 
   const schedule = (installmentId: string, actor = REQUESTER) =>
-    h.coverage.scheduleCoverage(
+    h.scheduling.scheduleCoverage(
       {
         installmentId,
         scheduledPaymentDate: TODAY,
@@ -402,7 +402,7 @@ describeWithDatabase('P-04 resolución de la cola de revisión (PostgreSQL real)
       });
 
       const evidenceFileId = await addEvidenceFile(h.sequelize, payableId);
-      await h.coverage.markPayablePaid(
+      await h.settlements.markPayablePaid(
         payableId,
         {
           settlementReference: `LIQ-LIST-${Date.now()}`,
@@ -434,7 +434,7 @@ describeWithDatabase('P-04 resolución de la cola de revisión (PostgreSQL real)
     });
 
     it('las recuperaciones traen su moneda', async () => {
-      await h.coverage.approvePayableSettlement(payableId, {}, REVIEWER);
+      await h.decisions.approvePayableSettlement(payableId, {}, REVIEWER);
       const recovery = (await h.reconciliation.listRecoveries()).find(
         (row) => row.merchantPayableId === payableId,
       );

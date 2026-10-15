@@ -10,16 +10,30 @@ import { ContractsController } from './contracts/controllers/contracts.controlle
 import { FinancialStructureController } from './financial-structure/controllers/financial-structure.controller';
 import { ReceiptsController } from './receipts/controllers/receipts.controller';
 import { AccountGroupsService } from './account-groups/services/account-groups.service';
-import { AccountingDocumentsService } from './documents/services/accounting-documents.service';
+import { AccountingDocumentQueries } from './documents/services/accounting-document-queries.service';
+import { AccountingDraftService } from './documents/services/accounting-draft.service';
+import { AccountingEventOutbox } from './documents/services/accounting-event-outbox.service';
+import { AccountingPostingService } from './documents/services/accounting-posting.service';
+import { AccountingReversalService } from './documents/services/accounting-reversal.service';
+import { DocumentDraftRecorder } from './documents/services/document-draft-recorder.service';
+import { DocumentDraftResolver } from './documents/services/document-draft-resolver.service';
 import { DocumentApprovalService } from './documents/services/document-approval.service';
-import { BillingService } from './billing/services/billing.service';
+import { ArInvoiceFiscalEmission } from './billing/services/ar-invoice-fiscal-emission.service';
+import { ArInvoiceIssuanceService } from './billing/services/ar-invoice-issuance.service';
+import { ArInvoiceMaintenanceService } from './billing/services/ar-invoice-maintenance.service';
+import { ArInvoicePreparation } from './billing/services/ar-invoice-preparation.service';
+import { ArInvoiceQueries } from './billing/services/ar-invoice-queries.service';
+import { BillingEventsService } from './billing/services/billing-events.service';
 import { BusinessPartnersService } from './business-partners/services/business-partners.service';
 import { ClosingService } from './closing/services/closing.service';
 import { ContractsService } from './contracts/services/contracts.service';
 import { BusinessPartnerRoleValidationService } from './business-partners/services/business-partner-role-validation.service';
 import { ClosingControlService } from './closing/services/closing-control.service';
 import { DoubleEntryValidator } from './posting/validators/double-entry.validator';
-import { FinancialStructureService } from './financial-structure/services/financial-structure.service';
+import { ChartOfAccountsService } from './financial-structure/services/chart-of-accounts.service';
+import { FiscalCalendarService } from './financial-structure/services/fiscal-calendar.service';
+import { LegalStructureService } from './financial-structure/services/legal-structure.service';
+import { MasterDataListings } from './financial-structure/services/master-data-listings.service';
 import { PeriodGuardService } from './posting/services/period-guard.service';
 import { SapPostingValidationService } from './posting/services/sap-posting-validation.service';
 import { ReceiptsService } from './receipts/services/receipts.service';
@@ -53,16 +67,30 @@ import { SupplierPaymentTermsService } from './supplier-payment-terms/supplier-p
   providers: [
     AccountGroupsService,
     AccountingDefaultsService,
-    AccountingDocumentsService,
+    AccountingDocumentQueries,
+    AccountingDraftService,
+    AccountingEventOutbox,
+    AccountingPostingService,
+    AccountingReversalService,
+    DocumentDraftRecorder,
+    DocumentDraftResolver,
     DocumentApprovalService,
     BusinessPartnerRoleValidationService,
-    BillingService,
+    ArInvoiceFiscalEmission,
+    ArInvoiceIssuanceService,
+    ArInvoiceMaintenanceService,
+    ArInvoicePreparation,
+    ArInvoiceQueries,
+    BillingEventsService,
     BusinessPartnersService,
     ClosingService,
     ClosingControlService,
     ContractsService,
     DoubleEntryValidator,
-    FinancialStructureService,
+    ChartOfAccountsService,
+    FiscalCalendarService,
+    LegalStructureService,
+    MasterDataListings,
     PeriodGuardService,
     SapPostingValidationService,
     SupplierPaymentTermsService,
@@ -71,7 +99,10 @@ import { SupplierPaymentTermsService } from './supplier-payment-terms/supplier-p
     LegalEntityAccessService,
   ],
   exports: [
-    AccountingDocumentsService,
+    AccountingDocumentQueries,
+    AccountingDraftService,
+    AccountingPostingService,
+    AccountingReversalService,
     /* El puente del CRM comprueba el alcance por entidad ANTES de bloquear la factura (P-06). */
     LegalEntityAccessService,
     DoubleEntryValidator,

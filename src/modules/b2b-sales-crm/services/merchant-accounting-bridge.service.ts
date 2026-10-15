@@ -15,10 +15,9 @@ import {
   MerchantReceivableModel,
 } from '../models/b2b-sales-crm.models';
 import { InvoiceStatus } from '../b2b-sales-crm.enums';
-import {
-  AccountingDocumentsService,
-  type AccountingDraftInput,
-} from '../../accounting/documents/services/accounting-documents.service';
+import type { AccountingDraftInput } from '../../accounting/documents/domain/accounting-draft';
+import { AccountingDocumentQueries } from '../../accounting/documents/services/accounting-document-queries.service';
+import { AccountingDraftService } from '../../accounting/documents/services/accounting-draft.service';
 import { LegalEntityAccessService } from '../../../common/services/legal-entity-access.service';
 import type { AuthUser } from '../../../common/types/auth-context.types';
 import { PinoLoggerService } from '../../../common/logging/pino-logger.service';
@@ -94,7 +93,8 @@ export interface MerchantInvoiceAccountingDraftResult {
 export class MerchantAccountingBridgeService {
   constructor(
     private readonly logger: PinoLoggerService,
-    private readonly accountingDocuments: AccountingDocumentsService,
+    private readonly accountingQueries: AccountingDocumentQueries,
+    private readonly accountingDrafts: AccountingDraftService,
     private readonly legalEntityAccess: LegalEntityAccessService,
     @InjectConnection() private readonly sequelize: Sequelize,
     @InjectModel(MerchantInvoiceModel)
@@ -142,7 +142,7 @@ export class MerchantAccountingBridgeService {
 
     const context = await this.revalidateInvoice(invoice, input, transaction);
 
-    const orphan = await this.accountingDocuments.findActiveDocumentBySource(
+    const orphan = await this.accountingQueries.findActiveDocumentBySource(
       { ...MERCHANT_INVOICE_SOURCE, sourceId: invoice.id },
       transaction,
     );
@@ -158,7 +158,7 @@ export class MerchantAccountingBridgeService {
       return this.describe(invoice.id, orphan.id, 'ORPHAN_DOCUMENT_LINKED', transaction);
     }
 
-    const created = await this.accountingDocuments.createDraftInTransaction(
+    const created = await this.accountingDrafts.createDraftInTransaction(
       this.buildDraft(invoice, input, context),
       user,
       transaction,
@@ -181,7 +181,7 @@ export class MerchantAccountingBridgeService {
     transaction: Transaction,
   ): Promise<MerchantInvoiceAccountingDraftResult> {
     const documentId = invoice.accountingDocumentId!;
-    const { document } = await this.accountingDocuments.getDocument(documentId, transaction);
+    const { document } = await this.accountingQueries.getDocument(documentId, transaction);
     this.legalEntityAccess.assertCanAccessLegalEntity(user, document.legalEntityId);
     this.assertSameLegalEntity(document.legalEntityId, input.legalEntityId);
     return this.describe(invoice.id, documentId, 'EXISTING_DOCUMENT_RETURNED', transaction);
@@ -402,7 +402,7 @@ export class MerchantAccountingBridgeService {
     outcome: MerchantInvoiceAccountingOutcome,
     transaction: Transaction,
   ): Promise<MerchantInvoiceAccountingDraftResult> {
-    const { document, journal } = await this.accountingDocuments.getDocument(
+    const { document, journal } = await this.accountingQueries.getDocument(
       accountingDocumentId,
       transaction,
     );

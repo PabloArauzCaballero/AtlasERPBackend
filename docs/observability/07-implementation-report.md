@@ -56,18 +56,18 @@ Dos procesos, dos nombres: `atlas-erp-api` y `atlas-erp-worker-outbox`.
 
 ## 4. Archivos modificados
 
-| Archivo                                                          | Cambio                                                                                                                |
-| ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `src/main.ts`                                                    | `startTracing('atlas-erp-api')` como primera sentencia; cierre en SIGTERM/SIGINT; interceptor de traza el más externo |
-| `src/workers/outbox/outbox.worker.ts`                            | SDK propio, span CONSUMER enlazado, lectura de `trace_context`, cierre antes de soltar la conexión                    |
-| `src/app.module.ts`                                              | `mixin` de Pino con los campos de traza; proveedor del interceptor                                                    |
-| `src/common/observability/observability.module.ts`               | Registra y exporta la capa de trazado                                                                                 |
-| `src/common/filters/http-exception.filter.ts`                    | Marca el span y **emite `x-trace-id`** también aquí                                                                   |
-| `src/database/models/event_outbox.model.ts`                      | Columna `traceContext`                                                                                                |
-| `src/database/startup-migrations.ts`, `package.json`             | La migración nueva en las **tres** listas                                                                             |
-| `accounting-documents.service.ts`                                | Dos spans de negocio; las tres publicaciones al outbox unificadas con span PRODUCER y portador                        |
-| `email-messaging.processor.ts`, `b2b-overdue-sweep.processor.ts` | Traza raíz por tanda                                                                                                  |
-| `.env.example`                                                   | 13 variables documentadas                                                                                             |
+| Archivo                                                                                              | Cambio                                                                                                                |
+| ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `src/main.ts`                                                                                        | `startTracing('atlas-erp-api')` como primera sentencia; cierre en SIGTERM/SIGINT; interceptor de traza el más externo |
+| `src/workers/outbox/outbox.worker.ts`                                                                | SDK propio, span CONSUMER enlazado, lectura de `trace_context`, cierre antes de soltar la conexión                    |
+| `src/app.module.ts`                                                                                  | `mixin` de Pino con los campos de traza; proveedor del interceptor                                                    |
+| `src/common/observability/observability.module.ts`                                                   | Registra y exporta la capa de trazado                                                                                 |
+| `src/common/filters/http-exception.filter.ts`                                                        | Marca el span y **emite `x-trace-id`** también aquí                                                                   |
+| `src/database/models/event_outbox.model.ts`                                                          | Columna `traceContext`                                                                                                |
+| `src/database/startup-migrations.ts`, `package.json`                                                 | La migración nueva en las **tres** listas                                                                             |
+| `accounting-draft.service.ts`, `accounting-posting.service.ts`, `accounting-event-outbox.service.ts` | Dos spans de negocio; las tres publicaciones al outbox unificadas con span PRODUCER y portador                        |
+| `email-messaging.processor.ts`, `b2b-overdue-sweep.processor.ts`                                     | Traza raíz por tanda                                                                                                  |
+| `.env.example`                                                                                       | 13 variables documentadas                                                                                             |
 
 ## 5. Instrumentaciones activas
 

@@ -22,7 +22,9 @@ import type { TestingModule } from '@nestjs/testing';
 import type { Sequelize } from 'sequelize-typescript';
 import type { AuthUser } from '../src/common/types/auth-context.types';
 import type { MerchantAccountingBridgeService } from '../src/modules/b2b-sales-crm/services/merchant-accounting-bridge.service';
-import type { AccountingDocumentsService } from '../src/modules/accounting/documents/services/accounting-documents.service';
+import type { AccountingDraftService } from '../src/modules/accounting/documents/services/accounting-draft.service';
+import type { AccountingPostingService } from '../src/modules/accounting/documents/services/accounting-posting.service';
+import type { AccountingReversalService } from '../src/modules/accounting/documents/services/accounting-reversal.service';
 import type { B2BBnplBillingService } from '../src/modules/b2b-sales-crm/services/b2b-bnpl-billing.service';
 
 const DEFAULT_TEST_URL = 'postgres://postgres:postgres@localhost:5432/atlas_test';
@@ -56,7 +58,9 @@ if (!databaseUrl && databaseRequired) {
     let moduleRef: TestingModule;
     let sequelize: Sequelize;
     let bridge: MerchantAccountingBridgeService;
-    let documents: AccountingDocumentsService;
+    let drafts: AccountingDraftService;
+    let posting: AccountingPostingService;
+    let reversals: AccountingReversalService;
     let billing: B2BBnplBillingService;
     let invoiceModelClass: { prototype: { update: (...args: unknown[]) => unknown } };
 
@@ -78,8 +82,12 @@ if (!databaseUrl && databaseRequired) {
       const { EventOutboxModel } = await import('../src/database/models');
       const bridgeModule =
         await import('../src/modules/b2b-sales-crm/services/merchant-accounting-bridge.service');
-      const documentsModule =
-        await import('../src/modules/accounting/documents/services/accounting-documents.service');
+      const draftModule =
+        await import('../src/modules/accounting/documents/services/accounting-draft.service');
+      const postingModule =
+        await import('../src/modules/accounting/documents/services/accounting-posting.service');
+      const reversalModule =
+        await import('../src/modules/accounting/documents/services/accounting-reversal.service');
       const repositoryModule =
         await import('../src/modules/b2b-sales-crm/repositories/b2b-sales-crm.repository');
       const billingModule =
@@ -104,7 +112,9 @@ if (!databaseUrl && databaseRequired) {
 
       sequelize = moduleRef.get(getConnectionToken());
       bridge = moduleRef.get(bridgeModule.MerchantAccountingBridgeService);
-      documents = moduleRef.get(documentsModule.AccountingDocumentsService);
+      drafts = moduleRef.get(draftModule.AccountingDraftService);
+      posting = moduleRef.get(postingModule.AccountingPostingService);
+      reversals = moduleRef.get(reversalModule.AccountingReversalService);
       billing = moduleRef.get(billingModule.B2BBnplBillingService);
       invoiceModelClass = models.MerchantInvoiceModel as unknown as typeof invoiceModelClass;
     });
@@ -330,7 +340,7 @@ if (!databaseUrl && databaseRequired) {
       expect(await postedBalance(f.arAccountId)).toBe('0.00');
       expect(await linkedDocumentId(f.invoiceId)).toBe(result.accountingDocumentId);
 
-      await documents.postDocument(result.accountingDocumentId, admin);
+      await posting.postDocument(result.accountingDocumentId, admin);
       expect(await postedBalance(f.arAccountId)).toBe('113.00');
       expect(await postedBalance(f.revenueAccountId)).toBe('-100.00');
       expect(await postedBalance(f.taxAccountId)).toBe('-13.00');
@@ -386,7 +396,7 @@ if (!databaseUrl && databaseRequired) {
       const f = await fixture();
       // Lo que dejó el puente en un intento anterior: un documento que genera el SERVIDOR, no uno manual.
       const orphan = await sequelize.transaction((transaction) =>
-        documents.createDraftInTransaction(
+        drafts.createDraftInTransaction(
           {
             legalEntityId: f.legalEntityId,
             sourceSystem: 'CRM',
@@ -564,8 +574,8 @@ if (!databaseUrl && databaseRequired) {
     it('el reverso conserva la historia y el puente no crea otro documento', async () => {
       const f = await fixture();
       const draft = await bridge.postInvoiceToGl(f.invoiceId, request(f), admin);
-      await documents.postDocument(draft.accountingDocumentId, admin);
-      const reversal = await documents.reverseDocument(
+      await posting.postDocument(draft.accountingDocumentId, admin);
+      const reversal = await reversals.reverseDocument(
         draft.accountingDocumentId,
         { reversalDate: new Date('2026-10-02'), reason: 'Factura anulada' },
         admin,
@@ -606,7 +616,7 @@ if (!databaseUrl && databaseRequired) {
       const { env } = await import('../src/config/env');
       const configured = env.ACCOUNTING_APPROVAL_POLICY;
       env.ACCOUNTING_APPROVAL_POLICY = 'ALL_MANUAL_REQUIRE_APPROVAL';
-      const pending = await documents
+      const pending = await drafts
         .createDraft(
           {
             legalEntityId: f.legalEntityId,
@@ -640,7 +650,7 @@ if (!databaseUrl && databaseRequired) {
         .finally(() => {
           env.ACCOUNTING_APPROVAL_POLICY = configured;
         });
-      expect(await codeOf(documents.postDocument(pending.document.id, admin))).toBe(
+      expect(await codeOf(posting.postDocument(pending.document.id, admin))).toBe(
         'ACCOUNTING_DOCUMENT_APPROVAL_REQUIRED',
       );
     });
@@ -806,7 +816,7 @@ if (!databaseUrl && databaseRequired) {
       expect(lines).toEqual({ tax: '0.04', total: '0.34' });
 
       const draft = await bridge.postInvoiceToGl(invoice.id, request(f), admin);
-      await documents.postDocument(draft.accountingDocumentId, admin);
+      await posting.postDocument(draft.accountingDocumentId, admin);
       const [balance] = await sql<{ debit: string; credit: string }>(
         `SELECT sum(l.debit)::text AS debit, sum(l.credit)::text AS credit
            FROM atlas_accounting.journal_entry_line l

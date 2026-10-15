@@ -7,14 +7,16 @@ import { ConflictException } from '@nestjs/common';
 import type { TestingModule } from '@nestjs/testing';
 import type { Sequelize } from 'sequelize-typescript';
 import type { AuthUser } from '../src/common/types/auth-context.types';
-import type { BillingService } from '../src/modules/accounting/billing/services/billing.service';
+import type { ArInvoiceIssuanceService } from '../src/modules/accounting/billing/services/ar-invoice-issuance.service';
+import type { ArInvoiceMaintenanceService } from '../src/modules/accounting/billing/services/ar-invoice-maintenance.service';
 import type { ReceiptsService } from '../src/modules/accounting/receipts/services/receipts.service';
 import { describeWithDatabase } from './integration/database';
 
 describeWithDatabase('factura AR y recibo: registro y borrado (PostgreSQL real)', (url) => {
   let moduleRef: TestingModule;
   let sequelize: Sequelize;
-  let billing: BillingService;
+  let issuance: ArInvoiceIssuanceService;
+  let maintenance: ArInvoiceMaintenanceService;
   let receipts: ReceiptsService;
   const admin: AuthUser = { sub: randomUUID(), role: 'admin', roles: ['admin'] };
 
@@ -39,8 +41,10 @@ describeWithDatabase('factura AR y recibo: registro y borrado (PostgreSQL real)'
     const { PinoLoggerModule } = await import('../src/common/logging/pino-logger.module');
     const { LoggerModule } = await import('../src/common/logger/logger.module');
     const { AccountingModule } = await import('../src/modules/accounting/accounting.module');
-    const billingModule =
-      await import('../src/modules/accounting/billing/services/billing.service');
+    const issuanceModule =
+      await import('../src/modules/accounting/billing/services/ar-invoice-issuance.service');
+    const maintenanceModule =
+      await import('../src/modules/accounting/billing/services/ar-invoice-maintenance.service');
     const receiptsModule =
       await import('../src/modules/accounting/receipts/services/receipts.service');
     moduleRef = await Test.createTestingModule({
@@ -54,7 +58,8 @@ describeWithDatabase('factura AR y recibo: registro y borrado (PostgreSQL real)'
     }).compile();
     await moduleRef.init();
     sequelize = moduleRef.get(getConnectionToken());
-    billing = moduleRef.get(billingModule.BillingService);
+    issuance = moduleRef.get(issuanceModule.ArInvoiceIssuanceService);
+    maintenance = moduleRef.get(maintenanceModule.ArInvoiceMaintenanceService);
     receipts = moduleRef.get(receiptsModule.ReceiptsService);
   });
 
@@ -122,7 +127,7 @@ describeWithDatabase('factura AR y recibo: registro y borrado (PostgreSQL real)'
       { bp: f.bp, le: f.le },
     );
 
-    const emitida = await billing.issueInvoice(
+    const emitida = await issuance.issueInvoice(
       {
         legalEntityId: f.le,
         customerBpId: f.bp,
@@ -169,7 +174,7 @@ describeWithDatabase('factura AR y recibo: registro y borrado (PostgreSQL real)'
     ]);
 
     await expect(receipts.remove(reciboId, admin)).rejects.toBeInstanceOf(ConflictException);
-    await expect(billing.deleteInvoice(facturaId, admin)).rejects.toMatchObject({
+    await expect(maintenance.deleteInvoice(facturaId, admin)).rejects.toMatchObject({
       response: { code: 'AR_INVOICE_HAS_ACCOUNTING_TRACE' },
     });
     const [quedan] = await sql<{ facturas: string; recibos: string; cobros: string }>(

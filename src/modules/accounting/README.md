@@ -41,8 +41,8 @@ accounting/
 │   └── services/
 ├── documents/                    # Documentos contables (journal universal)
 │   ├── controllers/
-│   └── services/                 # accounting-documents.service
-├── financial-structure/          # Estructura financiera
+│   └── services/                 # draft, posting, reversal, queries
+├── financial-structure/          # Estructura financiera (legal, calendario fiscal, plan de cuentas, listados)
 │   ├── controllers/
 │   └── services/
 ├── posting/                      # Motor de contabilización (transversal)
@@ -55,12 +55,12 @@ accounting/
 
 ### Servicios clave
 
-- `documents/services/accounting-documents.service.ts`: creación, publicación y reverso de documentos contables.
+- `documents/services/accounting-draft.service.ts`, `accounting-posting.service.ts`, `accounting-reversal.service.ts` y `accounting-document-queries.service.ts`: creación, publicación, reverso y lectura de documentos contables.
 - `posting/services/sap-posting-validation.service.ts`: validación SAP-like de período, ledger, cuentas y dimensiones.
 - `posting/validators/double-entry.validator.ts`: validación de doble partida en aplicación.
 - `business-partners/services/business-partner-role-validation.service.ts`: control de roles BP por proceso.
 - `closing/services/closing-control.service.ts`: controles mínimos de cierre.
-- `billing/services/billing.service.ts`: billing event y factura AR con asiento automático.
+- `billing/services/ar-invoice-issuance.service.ts` (con `ar-invoice-preparation`, `ar-invoice-fiscal-emission`), `ar-invoice-queries`, `ar-invoice-maintenance` y `billing-events`: billing event y factura AR con asiento automático.
 - `receipts/services/receipts.service.ts`: cobros, asignaciones AR y asiento automático.
 
 > **Convención**: un dominio nuevo se crea como carpeta hermana con sus subcarpetas

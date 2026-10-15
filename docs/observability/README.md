@@ -97,7 +97,7 @@ postDocumentInTransaction(id: string, user: AuthUser, transaction: Transaction) 
 ```
 
 Ese ejemplo es real:
-`src/modules/accounting/documents/services/accounting-documents.service.ts`.
+`src/modules/accounting/documents/services/accounting-event-outbox.service.ts`.
 
 **Antes de añadir uno, comprueba que se lo merece:**
 
