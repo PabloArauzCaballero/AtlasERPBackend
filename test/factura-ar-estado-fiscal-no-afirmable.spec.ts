@@ -1,6 +1,6 @@
 import { UnprocessableEntityException } from '@nestjs/common';
 import { env } from '../src/config/env';
-import { BillingService } from '../src/modules/accounting/billing/services/billing.service';
+import { ArInvoiceIssuanceService } from '../src/modules/accounting/billing/services/ar-invoice-issuance.service';
 
 /**
  * WP14-ERPB P1-2: el cliente no puede afirmar el estado fiscal de una factura AR.
@@ -16,14 +16,14 @@ describe('factura AR: el estado fiscal no lo afirma el cliente', () => {
   });
 
   function servicio() {
-    const svc = Object.create(BillingService.prototype) as BillingService;
+    const svc = Object.create(ArInvoiceIssuanceService.prototype) as ArInvoiceIssuanceService;
     const transaction = jest.fn();
     const prepararEmisionFiscal = jest.fn(async () => null);
     Object.assign(svc, {
       logger: { info: jest.fn(), debug: jest.fn() },
       legalEntityAccessService: { assertCanAccessLegalEntity: jest.fn() },
       sequelize: { transaction },
-      prepararEmisionFiscal,
+      fiscalEmission: { prepare: prepararEmisionFiscal },
     });
     return { svc, transaction, prepararEmisionFiscal };
   }

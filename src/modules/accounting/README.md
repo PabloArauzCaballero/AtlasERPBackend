@@ -60,7 +60,7 @@ accounting/
 - `posting/validators/double-entry.validator.ts`: validación de doble partida en aplicación.
 - `business-partners/services/business-partner-role-validation.service.ts`: control de roles BP por proceso.
 - `closing/services/closing-control.service.ts`: controles mínimos de cierre.
-- `billing/services/billing.service.ts`: billing event y factura AR con asiento automático.
+- `billing/services/ar-invoice-issuance.service.ts` (con `ar-invoice-preparation`, `ar-invoice-fiscal-emission`), `ar-invoice-queries`, `ar-invoice-maintenance` y `billing-events`: billing event y factura AR con asiento automático.
 - `receipts/services/receipts.service.ts`: cobros, asignaciones AR y asiento automático.
 
 > **Convención**: un dominio nuevo se crea como carpeta hermana con sus subcarpetas

@@ -89,15 +89,15 @@ Corregidas en P-07/P-06:
 
 Pendientes (fuera de los archivos de P-07 o de otro agente):
 
-| Archivo:línea                                                   | Conversión                                                                                                                           | Dueño                              |
-| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------- |
-| `b2b-sales-crm/services/b2b-coverage.service.ts` (~140–149)     | `roundMoney(toNumber(amountRecovered) + input.amount)` en recuperaciones                                                             | agente de cobertura (P-04/P-05)    |
-| `b2b-sales-crm/services/b2b-sales-crm-use-case.base.ts`         | `toNumber` / `roundMoney` se conservan sólo porque los usa cobertura; `calculateExpectedRevenue` (estimación comercial, no contable) | cobertura / P-15                   |
-| `accounting/receipts/services/receipts.service.ts` (252–360)    | suma de asignaciones y saldo pendiente con `Number` y tolerancia 0,009                                                               | E (seguimiento P-07)               |
-| `accounting/billing/services/billing.service.ts` (218, 352–487) | `gross = Number(net) + Number(tax)` y líneas del asiento AR en `number`                                                              | E (seguimiento P-07)               |
-| `accounting/shared/schemas/accounting.schemas.ts`               | `money = z.coerce.number().multipleOf(0.01)` en el contrato HTTP de asientos                                                         | P-14 (contrato decimal como texto) |
-| `accounting/supplier-payment-terms/*`                           | porcentajes y días con `Number` (no importes)                                                                                        | sin riesgo de céntimos             |
-| `b2b-sales-crm/b2b-sales-crm.schemas.ts`                        | `money = z.coerce.number()` en el borde HTTP (se convierte una vez con `parseMoney` en el servicio)                                  | P-14                               |
+| Archivo:línea                                                                                | Conversión                                                                                                                           | Dueño                              |
+| -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------- |
+| `b2b-sales-crm/services/b2b-coverage.service.ts` (~140–149)                                  | `roundMoney(toNumber(amountRecovered) + input.amount)` en recuperaciones                                                             | agente de cobertura (P-04/P-05)    |
+| `b2b-sales-crm/services/b2b-sales-crm-use-case.base.ts`                                      | `toNumber` / `roundMoney` se conservan sólo porque los usa cobertura; `calculateExpectedRevenue` (estimación comercial, no contable) | cobertura / P-15                   |
+| `accounting/receipts/services/receipts.service.ts` (252–360)                                 | suma de asignaciones y saldo pendiente con `Number` y tolerancia 0,009                                                               | E (seguimiento P-07)               |
+| `accounting/billing/services/ar-invoice-issuance.service.ts`, `billing/domain/ar-invoice.ts` | `gross = Number(net) + Number(tax)` y líneas del asiento AR en `number`                                                              | E (seguimiento P-07)               |
+| `accounting/shared/schemas/accounting.schemas.ts`                                            | `money = z.coerce.number().multipleOf(0.01)` en el contrato HTTP de asientos                                                         | P-14 (contrato decimal como texto) |
+| `accounting/supplier-payment-terms/*`                                                        | porcentajes y días con `Number` (no importes)                                                                                        | sin riesgo de céntimos             |
+| `b2b-sales-crm/b2b-sales-crm.schemas.ts`                                                     | `money = z.coerce.number()` en el borde HTTP (se convierte una vez con `parseMoney` en el servicio)                                  | P-14                               |
 
 # Decisiones de cumplimiento del ERP
 

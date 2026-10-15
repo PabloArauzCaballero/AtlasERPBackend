@@ -1,5 +1,5 @@
 import { ConflictException } from '@nestjs/common';
-import { BillingService } from '../src/modules/accounting/billing/services/billing.service';
+import { ArInvoiceMaintenanceService } from '../src/modules/accounting/billing/services/ar-invoice-maintenance.service';
 import { ReceiptsService } from '../src/modules/accounting/receipts/services/receipts.service';
 
 /**
@@ -72,7 +72,7 @@ describe('borrar un recibo', () => {
 
 describe('borrar una factura AR', () => {
   function servicio(fila: Record<string, unknown>, rastro: { cobros: string; fiscal: string }) {
-    const svc = Object.create(BillingService.prototype) as BillingService;
+    const svc = Object.create(ArInvoiceMaintenanceService.prototype) as ArInvoiceMaintenanceService;
     const destroy = jest.fn(async () => undefined);
     const linesDestroy = jest.fn(async () => 1);
     const { record, deps } = comun();

@@ -18,7 +18,12 @@ import { AccountingReversalService } from './documents/services/accounting-rever
 import { DocumentDraftRecorder } from './documents/services/document-draft-recorder.service';
 import { DocumentDraftResolver } from './documents/services/document-draft-resolver.service';
 import { DocumentApprovalService } from './documents/services/document-approval.service';
-import { BillingService } from './billing/services/billing.service';
+import { ArInvoiceFiscalEmission } from './billing/services/ar-invoice-fiscal-emission.service';
+import { ArInvoiceIssuanceService } from './billing/services/ar-invoice-issuance.service';
+import { ArInvoiceMaintenanceService } from './billing/services/ar-invoice-maintenance.service';
+import { ArInvoicePreparation } from './billing/services/ar-invoice-preparation.service';
+import { ArInvoiceQueries } from './billing/services/ar-invoice-queries.service';
+import { BillingEventsService } from './billing/services/billing-events.service';
 import { BusinessPartnersService } from './business-partners/services/business-partners.service';
 import { ClosingService } from './closing/services/closing.service';
 import { ContractsService } from './contracts/services/contracts.service';
@@ -68,7 +73,12 @@ import { SupplierPaymentTermsService } from './supplier-payment-terms/supplier-p
     DocumentDraftResolver,
     DocumentApprovalService,
     BusinessPartnerRoleValidationService,
-    BillingService,
+    ArInvoiceFiscalEmission,
+    ArInvoiceIssuanceService,
+    ArInvoiceMaintenanceService,
+    ArInvoicePreparation,
+    ArInvoiceQueries,
+    BillingEventsService,
     BusinessPartnersService,
     ClosingService,
     ClosingControlService,
