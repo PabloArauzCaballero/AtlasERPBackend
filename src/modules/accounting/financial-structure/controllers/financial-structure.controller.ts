@@ -27,66 +27,72 @@ import {
   listGlAccountsQuerySchema,
   updateGlAccountSchema,
 } from '../../shared/schemas/accounting.schemas';
-import { FinancialStructureService } from '../services/financial-structure.service';
+import { ChartOfAccountsService } from '../services/chart-of-accounts.service';
+import { FiscalCalendarService } from '../services/fiscal-calendar.service';
+import { LegalStructureService } from '../services/legal-structure.service';
+import { MasterDataListings } from '../services/master-data-listings.service';
 import { PinoLoggerService } from '../../../../common/logger/pino-logger.service';
 
 @Roles('admin', 'accountant', 'cfo')
 @Controller('accounting/financial-structure')
 export class FinancialStructureController {
   constructor(
-    private readonly service: FinancialStructureService,
+    private readonly legal: LegalStructureService,
+    private readonly calendar: FiscalCalendarService,
+    private readonly chart: ChartOfAccountsService,
+    private readonly masterData: MasterDataListings,
     private readonly logger: PinoLoggerService,
   ) {}
 
   // ---- Listados maestros (para poblar selects en el frontend) ----
   @Get('legal-entities')
   listLegalEntities(@CurrentUser() user: AuthUser) {
-    return this.service.listLegalEntities(user);
+    return this.legal.listLegalEntities(user);
   }
 
   @Get('branches')
   listBranches(@CurrentUser() user: AuthUser) {
-    return this.service.listBranches(user);
+    return this.legal.listBranches(user);
   }
 
   @Get('fiscal-years')
   listFiscalYears(@CurrentUser() user: AuthUser) {
-    return this.service.listFiscalYears(user);
+    return this.calendar.listFiscalYears(user);
   }
 
   @Get('periods')
   listAccountingPeriods(@CurrentUser() user: AuthUser) {
-    return this.service.listAccountingPeriods(user);
+    return this.calendar.listAccountingPeriods(user);
   }
 
   @Get('ledgers')
   listLedgers(@CurrentUser() user: AuthUser) {
-    return this.service.listLedgers(user);
+    return this.legal.listLedgers(user);
   }
 
   @Get('charts-of-accounts')
   listChartsOfAccounts() {
-    return this.service.listChartsOfAccounts();
+    return this.chart.listChartsOfAccounts();
   }
 
   @Get('tax-codes')
   listTaxCodes() {
-    return this.service.listTaxCodes();
+    return this.chart.listTaxCodes();
   }
 
   @Get('cost-centers')
   listCostCenters(@CurrentUser() user: AuthUser) {
-    return this.service.listCostCenters(user);
+    return this.masterData.listCostCenters(user);
   }
 
   @Get('profit-centers')
   listProfitCenters(@CurrentUser() user: AuthUser) {
-    return this.service.listProfitCenters(user);
+    return this.masterData.listProfitCenters(user);
   }
 
   @Get('bank-accounts')
   listBankAccounts(@CurrentUser() user: AuthUser) {
-    return this.service.listBankAccounts(user);
+    return this.masterData.listBankAccounts(user);
   }
 
   @Post('legal-entities')
@@ -100,7 +106,7 @@ export class FinancialStructureController {
       action: 'createLegalEntity',
       code: body.code,
     });
-    return this.service.createLegalEntity(body);
+    return this.legal.createLegalEntity(body);
   }
 
   @Post('branches')
@@ -116,7 +122,7 @@ export class FinancialStructureController {
       legalEntityId: body.legalEntityId,
       userId: user.sub,
     });
-    return this.service.createBranch(body, user);
+    return this.legal.createBranch(body, user);
   }
 
   @Post('fiscal-years')
@@ -132,7 +138,7 @@ export class FinancialStructureController {
       legalEntityId: body.legalEntityId,
       userId: user.sub,
     });
-    return this.service.createFiscalYear(body, user);
+    return this.calendar.createFiscalYear(body, user);
   }
 
   @Post('periods')
@@ -148,7 +154,7 @@ export class FinancialStructureController {
       fiscalYearId: body.fiscalYearId,
       userId: user.sub,
     });
-    return this.service.createAccountingPeriod(body, user);
+    return this.calendar.createAccountingPeriod(body, user);
   }
 
   @Post('ledgers')
@@ -164,7 +170,7 @@ export class FinancialStructureController {
       legalEntityId: body.legalEntityId,
       userId: user.sub,
     });
-    return this.service.createLedger(body, user);
+    return this.legal.createLedger(body, user);
   }
 
   @Post('charts-of-accounts')
@@ -178,7 +184,7 @@ export class FinancialStructureController {
       code: body.code,
       versionNo: body.versionNo,
     });
-    return this.service.createChartOfAccounts(body);
+    return this.chart.createChartOfAccounts(body);
   }
 
   @Post('gl-accounts')
@@ -190,7 +196,7 @@ export class FinancialStructureController {
       accountNo: body.accountNo,
       accountType: body.accountType,
     });
-    return this.service.createGlAccount(body);
+    return this.chart.createGlAccount(body);
   }
 
   @Get('gl-accounts')
@@ -206,7 +212,7 @@ export class FinancialStructureController {
       hasSearch: Boolean(query.search),
       accountType: query.accountType ?? null,
     });
-    return this.service.listGlAccounts(query);
+    return this.chart.listGlAccounts(query);
   }
 
   @Get('gl-accounts/:id')
@@ -217,7 +223,7 @@ export class FinancialStructureController {
       action: 'getGlAccount',
       glAccountId: params.id,
     });
-    return this.service.getGlAccount(params.id);
+    return this.chart.getGlAccount(params.id);
   }
 
   @Patch('gl-accounts/:id')
@@ -231,7 +237,7 @@ export class FinancialStructureController {
       action: 'updateGlAccount',
       glAccountId: params.id,
     });
-    return this.service.updateGlAccount(params.id, body);
+    return this.chart.updateGlAccount(params.id, body);
   }
 
   @Post('tax-codes')
@@ -243,6 +249,6 @@ export class FinancialStructureController {
       code: body.code,
       taxType: body.taxType,
     });
-    return this.service.createTaxCode(body);
+    return this.chart.createTaxCode(body);
   }
 }

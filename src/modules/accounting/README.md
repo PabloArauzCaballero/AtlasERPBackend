@@ -42,7 +42,7 @@ accounting/
 ├── documents/                    # Documentos contables (journal universal)
 │   ├── controllers/
 │   └── services/                 # draft, posting, reversal, queries
-├── financial-structure/          # Estructura financiera
+├── financial-structure/          # Estructura financiera (legal, calendario fiscal, plan de cuentas, listados)
 │   ├── controllers/
 │   └── services/
 ├── posting/                      # Motor de contabilización (transversal)

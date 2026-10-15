@@ -30,7 +30,10 @@ import { ContractsService } from './contracts/services/contracts.service';
 import { BusinessPartnerRoleValidationService } from './business-partners/services/business-partner-role-validation.service';
 import { ClosingControlService } from './closing/services/closing-control.service';
 import { DoubleEntryValidator } from './posting/validators/double-entry.validator';
-import { FinancialStructureService } from './financial-structure/services/financial-structure.service';
+import { ChartOfAccountsService } from './financial-structure/services/chart-of-accounts.service';
+import { FiscalCalendarService } from './financial-structure/services/fiscal-calendar.service';
+import { LegalStructureService } from './financial-structure/services/legal-structure.service';
+import { MasterDataListings } from './financial-structure/services/master-data-listings.service';
 import { PeriodGuardService } from './posting/services/period-guard.service';
 import { SapPostingValidationService } from './posting/services/sap-posting-validation.service';
 import { ReceiptsService } from './receipts/services/receipts.service';
@@ -84,7 +87,10 @@ import { SupplierPaymentTermsService } from './supplier-payment-terms/supplier-p
     ClosingControlService,
     ContractsService,
     DoubleEntryValidator,
-    FinancialStructureService,
+    ChartOfAccountsService,
+    FiscalCalendarService,
+    LegalStructureService,
+    MasterDataListings,
     PeriodGuardService,
     SapPostingValidationService,
     SupplierPaymentTermsService,

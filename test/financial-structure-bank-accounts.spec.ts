@@ -1,4 +1,4 @@
-import { FinancialStructureService } from '../src/modules/accounting/financial-structure/services/financial-structure.service';
+import { MasterDataListings } from '../src/modules/accounting/financial-structure/services/master-data-listings.service';
 
 /**
  * Cuentas bancarias (adenda 2026-09-29, 4b): la pantalla pintaba «Banco» vacío porque la API no
@@ -14,28 +14,17 @@ function build(rows: Row[], banks: Array<Record<string, unknown>>) {
   };
   const businessPartnerModel = { findAll: jest.fn(async () => banks) };
   const access = { accessibleLegalEntityIds: jest.fn(() => null) };
-  const none = {} as never;
-  const service = new FinancialStructureService(
-    none,
+  const service = new MasterDataListings(
     access as never,
-    none,
-    none,
-    none,
-    none,
-    none,
-    none,
-    none,
-    none,
-    none,
-    none,
-    none,
+    {} as never,
+    {} as never,
     bankAccountModel as never,
     businessPartnerModel as never,
   );
   return { service, bankAccountModel, businessPartnerModel };
 }
 
-describe('FinancialStructureService.listBankAccounts', () => {
+describe('MasterDataListings.listBankAccounts', () => {
   const user = { sub: 'u', role: 'ADMIN' } as never;
 
   it('trae el nombre del banco por bankBpId y nunca devuelve la huella del número', async () => {
