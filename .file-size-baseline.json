@@ -19,7 +19,6 @@
   "src/modules/auth-gateway/auth-gateway.controller.ts": 468,
   "src/modules/auth-gateway/auth-gateway.service.ts": 345,
   "src/modules/b2b-sales-crm/b2b-sales-crm.schemas.ts": 1042,
-  "src/modules/b2b-sales-crm/controllers/onboarding.controller.ts": 411,
   "src/modules/b2b-sales-crm/integration/core-payment-events.service.ts": 348,
   "src/modules/b2b-sales-crm/models/b2b-sales-crm.models.ts": 1829,
   "src/modules/b2b-sales-crm/repositories/b2b-sales-crm.repository.ts": 318,
@@ -43,7 +42,6 @@
   "src/modules/fiscal/siat/application/siat-emission.service.ts": 378,
   "src/modules/partner-onboarding-gateway/partner-onboarding-gateway.controller.ts": 314,
   "src/modules/partner-onboarding-gateway/support-gateway.controller.ts": 343,
-  "src/modules/portal/portal.controller.ts": 317,
   "src/modules/portal/portal.scope.service.spec.ts": 301,
   "src/modules/portal/portal.scope.service.ts": 319,
   "src/workers/outbox/outbox-relay.ts": 316
