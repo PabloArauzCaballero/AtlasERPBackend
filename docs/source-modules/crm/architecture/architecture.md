@@ -85,7 +85,7 @@ El módulo usa Pino como logger estructurado JSON. La configuración está centr
 - `ZodValidationPipe`: rechazo de validaciones con cantidad de errores y campos afectados, sin bodies completos.
 - `HttpExceptionFilter`: errores 5xx e infraestructura normalizados.
 - `HealthService`: health/readiness y latencia de verificación de base de datos.
-- `B2BSalesCrmService`: inicio de cada caso de uso de negocio.
+- Cada service de caso de uso registra el inicio de su caso de uso de negocio.
 - `B2BSalesCrmRepository`: transacciones, auditoría y consultas relevantes de persistencia.
 - `Sequelize`: SQL solo en `development` y mediante Pino, nunca en producción.
 
@@ -93,4 +93,4 @@ Los logs redactan automáticamente `Authorization`, cookies, tokens, contraseña
 
 ## División interna de services B2B
 
-Durante la revisión línea por línea se reemplazó el service monolítico por una fachada `B2BSalesCrmService` y services especializados por subdominio: cuentas, pipeline, contratos, onboarding, BNPL/facturación, cobertura y conciliación. Esta decisión mantiene los controllers estables y reduce el riesgo de que una sola clase acumule reglas incompatibles a largo plazo.
+Durante la revisión línea por línea se reemplazó el service monolítico por services especializados por subdominio: cuentas, pipeline, contratos, onboarding, BNPL/facturación, cobertura y conciliación. Los controllers inyectan directamente el service de su subdominio, sin fachada de por medio, lo que reduce el riesgo de que una sola clase acumule reglas incompatibles a largo plazo.

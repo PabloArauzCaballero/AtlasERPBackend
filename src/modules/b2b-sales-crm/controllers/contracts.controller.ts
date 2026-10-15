@@ -19,11 +19,15 @@ import {
   signContractSchema,
   updateMdrRuleSchema,
 } from '../b2b-sales-crm.schemas';
-import { B2BSalesCrmService } from '../services/b2b-sales-crm.service';
+import { B2BContractsService } from '../services/b2b-contracts.service';
+import { B2BPipelineService } from '../services/b2b-pipeline.service';
 
 @Controller('b2b/contracts')
 export class ContractsController {
-  constructor(private readonly service: B2BSalesCrmService) {}
+  constructor(
+    private readonly contracts: B2BContractsService,
+    private readonly pipeline: B2BPipelineService,
+  ) {}
 
   /*
    * Las reglas de comision (MDR). No habia NINGUN endpoint: solo se podian crear por SQL, asi que
@@ -40,7 +44,7 @@ export class ContractsController {
   listMdrRules(
     @Query('contractVersionId') contractVersionId?: string,
   ): Promise<Record<string, unknown>[]> {
-    return this.service.listMdrRules(contractVersionId);
+    return this.contracts.listMdrRules(contractVersionId);
   }
 
   @Roles('COMMERCIAL_MANAGER', 'FINANCE', 'ADMIN')
@@ -49,7 +53,7 @@ export class ContractsController {
     @Body(new ZodValidationPipe(createMdrRuleSchema)) body: CreateMdrRuleDto,
     @CurrentUser() user: AuthUser,
   ): Promise<Record<string, unknown>> {
-    return this.service.createMdrRule(body, user);
+    return this.contracts.createMdrRule(body, user);
   }
 
   @Roles('COMMERCIAL_MANAGER', 'FINANCE', 'ADMIN')
@@ -59,14 +63,14 @@ export class ContractsController {
     @Body(new ZodValidationPipe(updateMdrRuleSchema)) body: UpdateMdrRuleDto,
     @CurrentUser() user: AuthUser,
   ): Promise<Record<string, unknown>> {
-    return this.service.updateMdrRule(params.ruleId, body, user);
+    return this.contracts.updateMdrRule(params.ruleId, body, user);
   }
 
   /* Lectura de contratos, para poder ELEGIR uno en vez de teclear su uuid. */
   @Roles('COMMERCIAL_EXECUTIVE', 'COMMERCIAL_MANAGER', 'LEGAL', 'FINANCE', 'ADMIN')
   @Get()
   listContracts(): Promise<Record<string, unknown>[]> {
-    return this.service.listContracts();
+    return this.pipeline.listContracts();
   }
 
   @Roles('LEGAL', 'COMMERCIAL_MANAGER', 'ADMIN')
@@ -75,7 +79,7 @@ export class ContractsController {
     @Body(new ZodValidationPipe(createContractFromProposalSchema))
     body: CreateContractFromProposalDto,
   ): Promise<Record<string, unknown>> {
-    return this.service.createContractFromProposal(body);
+    return this.contracts.createContractFromProposal(body);
   }
 
   @Roles('LEGAL', 'COMMERCIAL_MANAGER', 'ADMIN')
@@ -85,6 +89,6 @@ export class ContractsController {
     @Body(new ZodValidationPipe(signContractSchema)) body: SignContractDto,
     @CurrentUser() user: AuthUser,
   ): Promise<Record<string, unknown>> {
-    return this.service.signAndActivateContract(params.contractId, body, user);
+    return this.contracts.signAndActivateContract(params.contractId, body, user);
   }
 }

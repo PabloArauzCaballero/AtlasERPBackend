@@ -39,13 +39,22 @@ import { B2BCoverageService } from './services/b2b-coverage.service';
 import { B2BCoverageReviewService } from './services/coverage-review.service';
 import { B2BOverdueSweepProcessor } from './services/b2b-overdue-sweep.processor';
 import { B2BOverdueSweepService } from './services/b2b-overdue-sweep.service';
-import { B2BOnboardingService } from './services/b2b-onboarding.service';
+import { ActivationContractResolver } from './services/onboarding/activation-contract.resolver';
+import { KybVerificationService } from './services/onboarding/kyb-verification.service';
+import { MerchantActivationService } from './services/onboarding/merchant-activation.service';
+import { MerchantBranchesService } from './services/onboarding/merchant-branches.service';
+import { MerchantCredentialsReader } from './services/onboarding/merchant-credentials.reader';
+import { MerchantUserAccessService } from './services/onboarding/merchant-user-access.service';
+import { OnboardingCaseOpeningService } from './services/onboarding/onboarding-case-opening.service';
+import { OnboardingCaseQueryService } from './services/onboarding/onboarding-case-query.service';
+import { OnboardingChecklistService } from './services/onboarding/onboarding-checklist.service';
+import { OnboardingContractService } from './services/onboarding/onboarding-contract.service';
+import { OnboardingReconciliationService } from './services/onboarding/onboarding-reconciliation.service';
 import { B2BPipelineService } from './services/b2b-pipeline.service';
 import { ProposalDeliveryService } from './services/proposal-delivery.service';
 import { ProposalPdfService } from './services/proposal-pdf.service';
 import { DocumentsModule } from '../documents/documents.module';
 import { B2BReconciliationService } from './services/b2b-reconciliation.service';
-import { B2BSalesCrmService } from './services/b2b-sales-crm.service';
 import { MerchantAccountingBridgeService } from './services/merchant-accounting-bridge.service';
 import { BusinessActionLogsModule } from '../business-action-logs/business-action-logs.module';
 import { AccountingModule } from '../accounting/accounting.module';
@@ -110,7 +119,17 @@ import { CoreSignatureGuard } from './integration/core-signature.guard';
     ProposalDeliveryService,
     ProposalPdfService,
     B2BContractsService,
-    B2BOnboardingService,
+    ActivationContractResolver,
+    MerchantCredentialsReader,
+    OnboardingCaseQueryService,
+    OnboardingCaseOpeningService,
+    MerchantBranchesService,
+    MerchantUserAccessService,
+    OnboardingContractService,
+    KybVerificationService,
+    OnboardingReconciliationService,
+    OnboardingChecklistService,
+    MerchantActivationService,
     B2BBnplBillingService,
     MerchantBillingCycleService,
     MerchantBillingCycleProcessor,
@@ -119,7 +138,6 @@ import { CoreSignatureGuard } from './integration/core-signature.guard';
     B2BOverdueSweepService,
     B2BOverdueSweepProcessor,
     B2BReconciliationService,
-    B2BSalesCrmService,
     MerchantAccountingBridgeService,
     CreditRatingRepository,
     B2BCreditRatingService,
@@ -130,6 +148,5 @@ import { CoreSignatureGuard } from './integration/core-signature.guard';
     JwtAuthGuard,
     RolesGuard,
   ],
-  exports: [B2BSalesCrmService],
 })
 export class B2BSalesCrmModule {}

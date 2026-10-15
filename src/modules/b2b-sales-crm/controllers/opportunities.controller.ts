@@ -15,18 +15,18 @@ import {
   listOpportunitiesQuerySchema,
   moveOpportunityStageSchema,
 } from '../b2b-sales-crm.schemas';
-import { B2BSalesCrmService } from '../services/b2b-sales-crm.service';
+import { B2BPipelineService } from '../services/b2b-pipeline.service';
 
 @Controller('b2b/opportunities')
 export class OpportunitiesController {
-  constructor(private readonly service: B2BSalesCrmService) {}
+  constructor(private readonly pipeline: B2BPipelineService) {}
 
   @Roles('COMMERCIAL_EXECUTIVE', 'COMMERCIAL_MANAGER', 'ADMIN')
   @Get()
   listOpportunities(
     @Query(new ZodValidationPipe(listOpportunitiesQuerySchema)) query: ListOpportunitiesQueryDto,
   ): Promise<Record<string, unknown>[]> {
-    return this.service.listOpportunities(query);
+    return this.pipeline.listOpportunities(query);
   }
 
   @Roles('COMMERCIAL_EXECUTIVE', 'COMMERCIAL_MANAGER', 'ADMIN')
@@ -34,7 +34,7 @@ export class OpportunitiesController {
   createOpportunity(
     @Body(new ZodValidationPipe(createOpportunitySchema)) body: CreateOpportunityDto,
   ): Promise<Record<string, unknown>> {
-    return this.service.createOpportunity(body);
+    return this.pipeline.createOpportunity(body);
   }
 
   @Roles('COMMERCIAL_EXECUTIVE', 'COMMERCIAL_MANAGER', 'ADMIN')
@@ -44,6 +44,6 @@ export class OpportunitiesController {
     @Body(new ZodValidationPipe(moveOpportunityStageSchema)) body: MoveOpportunityStageDto,
     @CurrentUser() user: AuthUser,
   ): Promise<Record<string, unknown>> {
-    return this.service.moveOpportunityStage(params.id, body, user);
+    return this.pipeline.moveOpportunityStage(params.id, body, user);
   }
 }

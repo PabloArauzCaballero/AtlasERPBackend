@@ -26,7 +26,7 @@ import {
   setAccountDossierSchema,
   setAccountTaxIdSchema,
 } from '../b2b-sales-crm.schemas';
-import { B2BSalesCrmService } from '../services/b2b-sales-crm.service';
+import { B2BAccountsService } from '../services/b2b-accounts.service';
 import { MerchantFolderService } from '../../partner-onboarding-gateway/merchant-folder.service';
 
 /** La cookie con el token de identidad de quien opera: AtlasBackend valida sus roles sobre esa persona. */
@@ -35,7 +35,7 @@ const UPSTREAM_ACCESS_COOKIE = 'atlas_upstream_at';
 @Controller('b2b/accounts')
 export class B2BAccountsController {
   constructor(
-    private readonly service: B2BSalesCrmService,
+    private readonly accounts: B2BAccountsService,
     private readonly merchantFolder: MerchantFolderService,
   ) {}
 
@@ -45,7 +45,7 @@ export class B2BAccountsController {
     @Body(new ZodValidationPipe(createAccountSchema)) body: CreateAccountDto,
     @CurrentUser() user: AuthUser,
   ): Promise<Record<string, unknown>> {
-    return this.service.createAccount(body, user);
+    return this.accounts.createAccount(body, user);
   }
 
   @Roles('COMMERCIAL_EXECUTIVE', 'COMMERCIAL_MANAGER', 'FINANCE', 'LEGAL', 'OPERATIONS', 'ADMIN')
@@ -53,7 +53,7 @@ export class B2BAccountsController {
   listAccounts(
     @Query(new ZodValidationPipe(listAccountsQuerySchema)) query: ListAccountsQueryDto,
   ): Promise<Record<string, unknown>> {
-    return this.service.listAccounts(query);
+    return this.accounts.listAccounts(query);
   }
 
   @Roles('COMMERCIAL_EXECUTIVE', 'COMMERCIAL_MANAGER', 'FINANCE', 'LEGAL', 'OPERATIONS', 'ADMIN')
@@ -61,7 +61,7 @@ export class B2BAccountsController {
   getAccount(
     @Param(new ZodValidationPipe(idParamsSchema)) params: IdParamsDto,
   ): Promise<Record<string, unknown>> {
-    return this.service.getAccount(params.id);
+    return this.accounts.getAccount(params.id);
   }
 
   @Roles('COMMERCIAL_MANAGER', 'ADMIN')
@@ -70,7 +70,7 @@ export class B2BAccountsController {
     @Body(new ZodValidationPipe(bulkCreateAccountsSchema)) body: BulkCreateAccountsDto,
     @CurrentUser() user: AuthUser,
   ): Promise<Record<string, unknown>> {
-    return this.service.bulkCreateAccounts(body, user);
+    return this.accounts.bulkCreateAccounts(body, user);
   }
 
   @Roles('COMMERCIAL_EXECUTIVE', 'COMMERCIAL_MANAGER', 'ADMIN')
@@ -79,7 +79,7 @@ export class B2BAccountsController {
     @Param(new ZodValidationPipe(accountIdParamsSchema)) params: AccountIdParamsDto,
     @Body(new ZodValidationPipe(createContactSchema)) body: CreateContactDto,
   ): Promise<Record<string, unknown>> {
-    return this.service.createContact(params.accountId, body);
+    return this.accounts.createContact(params.accountId, body);
   }
 
   // Completar el NIT de una cuenta que se creó sin él, cuando todavía era opcional: sin NIT no se
@@ -91,7 +91,7 @@ export class B2BAccountsController {
     @Body(new ZodValidationPipe(setAccountTaxIdSchema)) body: SetAccountTaxIdDto,
     @CurrentUser() user: AuthUser,
   ): Promise<Record<string, unknown>> {
-    return this.service.setAccountTaxId(params.accountId, body, user);
+    return this.accounts.setAccountTaxId(params.accountId, body, user);
   }
 
   // Los datos del expediente (matrícula, representante, poder, QR) que la compuerta del onboarding
@@ -104,7 +104,7 @@ export class B2BAccountsController {
     @Body(new ZodValidationPipe(setAccountDossierSchema)) body: SetAccountDossierDto,
     @CurrentUser() user: AuthUser,
   ): Promise<Record<string, unknown>> {
-    const cuenta = await this.service.setAccountDossier(params.accountId, body, user);
+    const cuenta = await this.accounts.setAccountDossier(params.accountId, body, user);
     /*
      * Si el comercio ya tiene expediente en Atlas (su onboarding se abrió antes), lo completado
      * aquí se le entrega EN EL ACTO. Sin esto el dato quedaba en la cuenta del ERP y el comercio
@@ -125,7 +125,7 @@ export class B2BAccountsController {
     @Param(new ZodValidationPipe(accountIdParamsSchema)) params: AccountIdParamsDto,
     @CurrentUser() user: AuthUser,
   ): Promise<Record<string, unknown>> {
-    return this.service.archiveAccount(params.accountId, user);
+    return this.accounts.archiveAccount(params.accountId, user);
   }
 
   @Roles('COMMERCIAL_MANAGER', 'ADMIN')
@@ -134,7 +134,7 @@ export class B2BAccountsController {
     @Param(new ZodValidationPipe(accountIdParamsSchema)) params: AccountIdParamsDto,
     @CurrentUser() user: AuthUser,
   ): Promise<Record<string, unknown>> {
-    return this.service.restoreAccount(params.accountId, user);
+    return this.accounts.restoreAccount(params.accountId, user);
   }
 
   @Roles('COMMERCIAL_EXECUTIVE', 'COMMERCIAL_MANAGER', 'ADMIN')
@@ -144,6 +144,6 @@ export class B2BAccountsController {
     @Body(new ZodValidationPipe(qualifyAccountSchema)) body: QualifyAccountDto,
     @CurrentUser() user: AuthUser,
   ): Promise<Record<string, unknown>> {
-    return this.service.qualifyAccount(params.accountId, body, user);
+    return this.accounts.qualifyAccount(params.accountId, body, user);
   }
 }

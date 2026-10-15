@@ -34,20 +34,26 @@ import {
   sendProposalSchema,
   updateProposalSchema,
 } from '../b2b-sales-crm.schemas';
-import { B2BSalesCrmService } from '../services/b2b-sales-crm.service';
+import { B2BPipelineService } from '../services/b2b-pipeline.service';
+import { ProposalDeliveryService } from '../services/proposal-delivery.service';
+import { ProposalPdfService } from '../services/proposal-pdf.service';
 
 /** Sesión de AtlasBackend de quien opera: con ella se manda el correo por el canal de ATLAS. */
 const UPSTREAM_ACCESS_COOKIE = 'atlas_upstream_at';
 
 @Controller('b2b/proposals')
 export class ProposalsController {
-  constructor(private readonly service: B2BSalesCrmService) {}
+  constructor(
+    private readonly pipeline: B2BPipelineService,
+    private readonly delivery: ProposalDeliveryService,
+    private readonly pdf: ProposalPdfService,
+  ) {}
 
   /* Lectura de la cartera de propuestas. Faltaba, y por eso la pantalla pedia uuids tecleados. */
   @Roles('COMMERCIAL_EXECUTIVE', 'COMMERCIAL_MANAGER', 'FINANCE', 'LEGAL', 'ADMIN')
   @Get()
   listProposals(): Promise<Record<string, unknown>[]> {
-    return this.service.listProposals();
+    return this.pipeline.listProposals();
   }
 
   /*
@@ -57,7 +63,7 @@ export class ProposalsController {
   @Roles('COMMERCIAL_MANAGER', 'FINANCE', 'LEGAL', 'ADMIN')
   @Get('approvals')
   listApprovals(@Query('onlyPending') onlyPending?: string): Promise<Record<string, unknown>[]> {
-    return this.service.listApprovals(onlyPending !== 'false');
+    return this.pipeline.listApprovals(onlyPending !== 'false');
   }
 
   @Roles('COMMERCIAL_EXECUTIVE', 'COMMERCIAL_MANAGER', 'ADMIN')
@@ -66,7 +72,7 @@ export class ProposalsController {
     @Body(new ZodValidationPipe(createProposalSchema)) body: CreateProposalDto,
     @CurrentUser() user: AuthUser,
   ): Promise<Record<string, unknown>> {
-    return this.service.createProposal(body, user);
+    return this.pipeline.createProposal(body, user);
   }
 
   /* Contactos del comercio con correo: la pantalla pregunta a cuáles enviar antes de enviar. */
@@ -75,7 +81,7 @@ export class ProposalsController {
   listProposalRecipients(
     @Param(new ZodValidationPipe(proposalIdParamsSchema)) params: ProposalIdParamsDto,
   ): Promise<Record<string, unknown>[]> {
-    return this.service.listProposalRecipients(params.proposalId);
+    return this.delivery.recipients(params.proposalId);
   }
 
   /* La propuesta en PDF con membrete de ATLAS: lo mismo que se adjunta al correo. */
@@ -86,7 +92,10 @@ export class ProposalsController {
     @CurrentUser() user: AuthUser,
     @Res({ passthrough: true }) res: Response,
   ): Promise<StreamableFile> {
-    const { buffer, filename } = await this.service.proposalPdf(params.proposalId, user);
+    const { buffer, filename } = await this.pdf.pdfById(
+      params.proposalId,
+      await this.delivery.senderOf(user),
+    );
     res.setHeader('content-type', 'application/pdf');
     res.setHeader('content-disposition', `attachment; filename="${filename}"`);
     return new StreamableFile(buffer);
@@ -104,7 +113,7 @@ export class ProposalsController {
     const atlasToken = (req.cookies as Record<string, string> | undefined)?.[
       UPSTREAM_ACCESS_COOKIE
     ];
-    return this.service.sendProposal(params.proposalId, body, user, atlasToken);
+    return this.delivery.send(params.proposalId, body, user, atlasToken);
   }
 
   @Roles('COMMERCIAL_EXECUTIVE', 'COMMERCIAL_MANAGER', 'ADMIN')
@@ -112,7 +121,7 @@ export class ProposalsController {
   acceptProposal(
     @Param(new ZodValidationPipe(proposalIdParamsSchema)) params: ProposalIdParamsDto,
   ): Promise<Record<string, unknown>> {
-    return this.service.acceptProposal(params.proposalId);
+    return this.pipeline.acceptProposal(params.proposalId);
   }
 
   @Roles('COMMERCIAL_EXECUTIVE', 'COMMERCIAL_MANAGER', 'ADMIN')
@@ -121,7 +130,7 @@ export class ProposalsController {
     @Param(new ZodValidationPipe(proposalIdParamsSchema)) params: ProposalIdParamsDto,
     @Body(new ZodValidationPipe(rejectProposalSchema)) body: RejectProposalDto,
   ): Promise<Record<string, unknown>> {
-    return this.service.rejectProposal(params.proposalId, body);
+    return this.pipeline.rejectProposal(params.proposalId, body);
   }
 
   @Roles('COMMERCIAL_MANAGER', 'FINANCE', 'ADMIN')
@@ -131,7 +140,7 @@ export class ProposalsController {
     @Body(new ZodValidationPipe(decideApprovalSchema)) body: DecideApprovalDto,
     @CurrentUser() user: AuthUser,
   ): Promise<Record<string, unknown>> {
-    return this.service.decideApproval(params.id, body, user);
+    return this.pipeline.decideApproval(params.id, body, user);
   }
 
   /*
@@ -146,7 +155,7 @@ export class ProposalsController {
     @Param(new ZodValidationPipe(proposalIdParamsSchema)) params: ProposalIdParamsDto,
     @Body(new ZodValidationPipe(updateProposalSchema)) body: UpdateProposalDto,
   ): Promise<Record<string, unknown>> {
-    return this.service.updateProposal(params.proposalId, body);
+    return this.pipeline.updateProposal(params.proposalId, body);
   }
 
   @Roles('COMMERCIAL_MANAGER', 'ADMIN')
@@ -154,6 +163,6 @@ export class ProposalsController {
   deleteProposal(
     @Param(new ZodValidationPipe(proposalIdParamsSchema)) params: ProposalIdParamsDto,
   ): Promise<{ id: string; proposalNumber: string }> {
-    return this.service.deleteProposal(params.proposalId);
+    return this.pipeline.deleteProposal(params.proposalId);
   }
 }

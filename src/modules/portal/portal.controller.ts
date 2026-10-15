@@ -17,7 +17,15 @@ import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { AuthUser } from '../../common/types/auth-context.types';
 import { RequestId } from '../ads/decorators/request-id.decorator';
 import { PORTAL_PLAN_ADMIN_ROLES, PORTAL_ROLES } from './portal.constants';
-import { PortalService, type PortalActor } from './portal.service';
+import type { PortalActor } from './portal-actor';
+import { PortalScopeService } from './portal.scope.service';
+import { PortalBranchCommandService } from './commands/portal-branch-commands.service';
+import { PortalCampaignCommandService } from './commands/portal-campaign-commands.service';
+import { PortalPlanCommandService } from './commands/portal-plan-commands.service';
+import { PortalSubscriptionCommandService } from './commands/portal-subscription-commands.service';
+import { PortalBillingQueryService } from './queries/portal-billing-query.service';
+import { PortalCatalogQueryService } from './queries/portal-catalog-query.service';
+import { PortalMerchantQueryService } from './queries/portal-merchant-query.service';
 import {
   AdvertisersQueryDto,
   BillingProductsQueryDto,
@@ -59,14 +67,21 @@ import {
 @Controller('portal')
 export class PortalController {
   constructor(
-    private readonly service: PortalService,
+    private readonly scopeService: PortalScopeService,
+    private readonly catalog: PortalCatalogQueryService,
+    private readonly billing: PortalBillingQueryService,
+    private readonly merchant: PortalMerchantQueryService,
+    private readonly plans: PortalPlanCommandService,
+    private readonly subscriptions: PortalSubscriptionCommandService,
+    private readonly branches: PortalBranchCommandService,
+    private readonly campaigns: PortalCampaignCommandService,
     private readonly fiscal: PortalFiscalService,
   ) {}
 
   @Roles(...PORTAL_ROLES)
   @Get('plans')
   async listPlans(@Query(new ZodValidationPipe(plansQuerySchema)) query: PlansQueryDto) {
-    return this.service.listPlans(query);
+    return this.catalog.listPlans(query);
   }
 
   @Roles(...PORTAL_PLAN_ADMIN_ROLES)
@@ -76,7 +91,7 @@ export class PortalController {
     @CurrentUser() user: AuthUser,
     @RequestId() requestId: string,
   ) {
-    return this.service.createPlan(body, await this.buildActor(user, requestId));
+    return this.plans.createPlan(body, await this.buildActor(user, requestId));
   }
 
   /*
@@ -91,7 +106,7 @@ export class PortalController {
     @CurrentUser() user: AuthUser,
     @RequestId() requestId: string,
   ) {
-    return this.service.updatePlan(params.id, body, await this.buildActor(user, requestId));
+    return this.plans.updatePlan(params.id, body, await this.buildActor(user, requestId));
   }
 
   /** Catálogo de lo que Atlas factura. Sólo lectura: el precio se configura en la tarifa. */
@@ -100,7 +115,7 @@ export class PortalController {
   async listBillingProducts(
     @Query(new ZodValidationPipe(billingProductsQuerySchema)) query: BillingProductsQueryDto,
   ) {
-    return this.service.listBillingProducts(query);
+    return this.catalog.listBillingProducts(query);
   }
 
   @Roles(...PORTAL_ROLES)
@@ -109,8 +124,8 @@ export class PortalController {
     @Query(new ZodValidationPipe(subscriptionQuerySchema)) query: SubscriptionQueryDto,
     @CurrentUser() user: AuthUser,
   ) {
-    const scope = await this.service.resolveScope(user);
-    return this.service.getSubscription(scope, query.merchantAccountId);
+    const scope = await this.scopeService.resolveScope(user);
+    return this.billing.getSubscription(scope, query.merchantAccountId);
   }
 
   @Roles(...PORTAL_ROLES)
@@ -120,7 +135,7 @@ export class PortalController {
     @CurrentUser() user: AuthUser,
     @RequestId() requestId: string,
   ) {
-    return this.service.subscribe(body, await this.buildActor(user, requestId));
+    return this.subscriptions.subscribe(body, await this.buildActor(user, requestId));
   }
 
   /*
@@ -136,8 +151,8 @@ export class PortalController {
     @Query('merchantAccountId') merchantAccountId: string | undefined,
     @CurrentUser() user: AuthUser,
   ) {
-    const scope = await this.service.resolveScope(user);
-    return this.service.listCommissions(scope, merchantAccountId);
+    const scope = await this.scopeService.resolveScope(user);
+    return this.billing.listCommissions(scope, merchantAccountId);
   }
 
   /* Sin `@Roles`, `RolesGuard` deja pasar a cualquier sesión autenticada: faltaba. */
@@ -147,8 +162,8 @@ export class PortalController {
     @Query(new ZodValidationPipe(branchesQuerySchema)) query: BranchesQueryDto,
     @CurrentUser() user: AuthUser,
   ) {
-    const scope = await this.service.resolveScope(user);
-    return this.service.listBranches(scope, query);
+    const scope = await this.scopeService.resolveScope(user);
+    return this.merchant.listBranches(scope, query);
   }
 
   /*
@@ -165,7 +180,7 @@ export class PortalController {
     @CurrentUser() user: AuthUser,
     @RequestId() requestId: string,
   ) {
-    return this.service.createBranch(body, await this.buildActor(user, requestId));
+    return this.branches.createBranch(body, await this.buildActor(user, requestId));
   }
 
   @Roles(...PORTAL_ROLES)
@@ -176,7 +191,7 @@ export class PortalController {
     @CurrentUser() user: AuthUser,
     @RequestId() requestId: string,
   ) {
-    return this.service.updateBranch(params.id, body, await this.buildActor(user, requestId));
+    return this.branches.updateBranch(params.id, body, await this.buildActor(user, requestId));
   }
 
   @Roles(...PORTAL_ROLES)
@@ -187,7 +202,7 @@ export class PortalController {
     @CurrentUser() user: AuthUser,
     @RequestId() requestId: string,
   ) {
-    return this.service.setBranchStatus(params.id, body, await this.buildActor(user, requestId));
+    return this.branches.setBranchStatus(params.id, body, await this.buildActor(user, requestId));
   }
 
   /**
@@ -199,7 +214,7 @@ export class PortalController {
   @Roles(...PORTAL_ROLES)
   @Get('scope')
   async getScope(@CurrentUser() user: AuthUser) {
-    return this.service.getScope(await this.service.resolveScope(user));
+    return this.merchant.getScope(await this.scopeService.resolveScope(user));
   }
 
   @Roles(...PORTAL_ROLES)
@@ -208,8 +223,8 @@ export class PortalController {
     @Query(new ZodValidationPipe(subscriptionQuerySchema)) query: SubscriptionQueryDto,
     @CurrentUser() user: AuthUser,
   ) {
-    const scope = await this.service.resolveScope(user);
-    return this.service.getBillingPanel(scope, query.merchantAccountId);
+    const scope = await this.scopeService.resolveScope(user);
+    return this.billing.getBillingPanel(scope, query.merchantAccountId);
   }
 
   /** Una factura concreta con sus líneas: es lo que se imprime al descargarla. */
@@ -220,9 +235,9 @@ export class PortalController {
     @Query(new ZodValidationPipe(subscriptionQuerySchema)) query: SubscriptionQueryDto,
     @CurrentUser() user: AuthUser,
   ) {
-    const scope = await this.service.resolveScope(user);
+    const scope = await this.scopeService.resolveScope(user);
     const [documento, fiscal] = await Promise.all([
-      this.service.getInvoiceDocument(scope, id, query.merchantAccountId),
+      this.billing.getInvoiceDocument(scope, id, query.merchantAccountId),
       this.fiscal.resumen(scope, id, query.merchantAccountId),
     ]);
     return { ...documento, fiscalDocument: fiscal };
@@ -237,7 +252,7 @@ export class PortalController {
     @CurrentUser() user: AuthUser,
     @Res({ passthrough: true }) res: Response,
   ): Promise<StreamableFile> {
-    const scope = await this.service.resolveScope(user);
+    const scope = await this.scopeService.resolveScope(user);
     const { buffer, filename } = await this.fiscal.pdf(scope, id, query.merchantAccountId);
     res.setHeader('content-type', 'application/pdf');
     res.setHeader('content-disposition', `attachment; filename="${filename}"`);
@@ -253,7 +268,7 @@ export class PortalController {
     @CurrentUser() user: AuthUser,
     @Res({ passthrough: true }) res: Response,
   ): Promise<StreamableFile> {
-    const scope = await this.service.resolveScope(user);
+    const scope = await this.scopeService.resolveScope(user);
     const { xml, filename } = await this.fiscal.xml(scope, id, query.merchantAccountId);
     res.setHeader('content-type', 'application/xml; charset=utf-8');
     res.setHeader('content-disposition', `attachment; filename="${filename}"`);
@@ -266,8 +281,8 @@ export class PortalController {
     @Query(new ZodValidationPipe(advertisersQuerySchema)) query: AdvertisersQueryDto,
     @CurrentUser() user: AuthUser,
   ) {
-    const scope = await this.service.resolveScope(user);
-    return this.service.listAdvertisers(scope, query);
+    const scope = await this.scopeService.resolveScope(user);
+    return this.merchant.listAdvertisers(scope, query);
   }
 
   @Roles(...PORTAL_ROLES)
@@ -276,8 +291,8 @@ export class PortalController {
     @Query(new ZodValidationPipe(campaignsQuerySchema)) query: CampaignsQueryDto,
     @CurrentUser() user: AuthUser,
   ) {
-    const scope = await this.service.resolveScope(user);
-    return this.service.listCampaigns(scope, query);
+    const scope = await this.scopeService.resolveScope(user);
+    return this.merchant.listCampaigns(scope, query);
   }
 
   @Roles(...PORTAL_ROLES)
@@ -288,10 +303,14 @@ export class PortalController {
     @CurrentUser() user: AuthUser,
     @RequestId() requestId: string,
   ) {
-    return this.service.setCampaignStatus(params.id, body, await this.buildActor(user, requestId));
+    return this.campaigns.setCampaignStatus(
+      params.id,
+      body,
+      await this.buildActor(user, requestId),
+    );
   }
 
   private async buildActor(user: AuthUser, requestId: string): Promise<PortalActor> {
-    return { user, requestId, scope: await this.service.resolveScope(user) };
+    return { user, requestId, scope: await this.scopeService.resolveScope(user) };
   }
 }
