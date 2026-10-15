@@ -120,7 +120,7 @@ src/app.module.ts                              mixin de Pino + interceptor de x-
 src/common/filters/http-exception.filter.ts    marcado del span
 src/database/models/event_outbox.model.ts      columna trace_context
 src/database/startup-migrations.ts             lista de arranque
-src/modules/accounting/documents/services/accounting-documents.service.ts   portador al publicar
+src/modules/accounting/documents/services/accounting-event-outbox.service.ts   portador al publicar
 src/modules/ads/services/email-messaging.processor.ts      traza raíz
 src/modules/b2b-sales-crm/services/b2b-overdue-sweep.processor.ts   traza raíz
 ```

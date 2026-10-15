@@ -25,7 +25,7 @@ Lista verificada contra el código el 2026-09-29 (WP14-ERPB). Lo que no está aq
 | `ACCOUNTING` | `CLOSE_ACCOUNTING_PERIOD`, `REOPEN_ACCOUNTING_PERIOD` (con motivo y quién había cerrado) | `closing.service.ts`                                   |
 | `ACCOUNTING` | `ISSUE_AR_INVOICE`, `DELETE_DRAFT_AR_INVOICE`                                            | `billing.service.ts`                                   |
 | `ACCOUNTING` | `RECORD_RECEIPT`, `DELETE_DRAFT_RECEIPT`                                                 | `receipts.service.ts`                                  |
-| `ACCOUNTING` | `CREATE_ACCOUNTING_DRAFT_WITH_JOURNAL` y la aprobación de documentos                     | `accounting-documents.service.ts`                      |
+| `ACCOUNTING` | `CREATE_ACCOUNTING_DRAFT_WITH_JOURNAL` y la aprobación de documentos                     | `document-draft-recorder.service.ts`                   |
 | `ACCOUNTING` | reenvío de eventos del outbox                                                            | `outbox-operations.service.ts`                         |
 | `CRM`        | `MOVE_OPPORTUNITY_STAGE`                                                                 | `b2b-pipeline.service.ts`                              |
 | `CRM`        | `DECIDE_APPROVAL_REQUEST`                                                                | `b2b-pipeline.service.ts`                              |

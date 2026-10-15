@@ -34,21 +34,21 @@ Nunca, en ningún span, evento, atributo, nombre de span ni recurso:
 
 La política no es una promesa: cada prohibición tiene un mecanismo que la sostiene.
 
-| Riesgo                                     | Mecanismo                                                                                                        | Archivo                           |
-| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- | --------------------------------- |
-| Cabeceras con credenciales                 | **No** se activa `headersToSpanAttributes`                                                                       | `telemetry.instrumentations.ts`   |
-| Valores de parámetros SQL                  | `PgInstrumentation({ enhancedDatabaseReporting: false })`                                                        | ídem                              |
-| **Literales incrustados en el SQL**        | `redactSqlLiterals` en `RedactingSpanProcessor`, sobre `db.query.text` y `db.statement`                          | `sql-redaction.ts`                |
-| **Métricas y registros del propio SDK**    | `OTEL_METRICS_EXPORTER`/`OTEL_LOGS_EXPORTER` se declaran `none`: sus atributos NO pasan por el saneador de spans | `tracing.ts`                      |
-| **Credencial en una URL firmada de MinIO** | `RedactingSpanProcessor` borra `url.query` y recorta `url.full`                                                  | `redacting-span-processor.ts`     |
-| Cuerpo de petición                         | Ninguna instrumentación de cuerpo está activa                                                                    | ídem                              |
-| Mensaje de excepción como estado           | `recordSpanError` usa un **código estable**                                                                      | `trace-error.ts`                  |
-| Valor lanzado que no es `Error`            | Se sustituye por su código antes de registrarlo                                                                  | ídem                              |
-| Datos del outbox en la traza               | Sólo tipo y agregado; el portador viaja en la columna `trace_context`, fuera del payload                         | `accounting-documents.service.ts` |
-| Nombres de span con identificadores        | Los nombres son constantes, no plantillas                                                                        | `telemetry.constants.ts`          |
-| Cadena de consulta                         | `url.query` se borra en el Collector                                                                             | `otel-collector.config.yml`       |
-| Cualquier atributo nuevo que se cuele      | `attributes/redact` en el Collector                                                                              | ídem                              |
-| Sondas de salud con ruido                  | Exclusión en el proceso **y** filtro en el Collector                                                             | ambos                             |
+| Riesgo                                     | Mecanismo                                                                                                        | Archivo                              |
+| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| Cabeceras con credenciales                 | **No** se activa `headersToSpanAttributes`                                                                       | `telemetry.instrumentations.ts`      |
+| Valores de parámetros SQL                  | `PgInstrumentation({ enhancedDatabaseReporting: false })`                                                        | ídem                                 |
+| **Literales incrustados en el SQL**        | `redactSqlLiterals` en `RedactingSpanProcessor`, sobre `db.query.text` y `db.statement`                          | `sql-redaction.ts`                   |
+| **Métricas y registros del propio SDK**    | `OTEL_METRICS_EXPORTER`/`OTEL_LOGS_EXPORTER` se declaran `none`: sus atributos NO pasan por el saneador de spans | `tracing.ts`                         |
+| **Credencial en una URL firmada de MinIO** | `RedactingSpanProcessor` borra `url.query` y recorta `url.full`                                                  | `redacting-span-processor.ts`        |
+| Cuerpo de petición                         | Ninguna instrumentación de cuerpo está activa                                                                    | ídem                                 |
+| Mensaje de excepción como estado           | `recordSpanError` usa un **código estable**                                                                      | `trace-error.ts`                     |
+| Valor lanzado que no es `Error`            | Se sustituye por su código antes de registrarlo                                                                  | ídem                                 |
+| Datos del outbox en la traza               | Sólo tipo y agregado; el portador viaja en la columna `trace_context`, fuera del payload                         | `accounting-event-outbox.service.ts` |
+| Nombres de span con identificadores        | Los nombres son constantes, no plantillas                                                                        | `telemetry.constants.ts`             |
+| Cadena de consulta                         | `url.query` se borra en el Collector                                                                             | `otel-collector.config.yml`          |
+| Cualquier atributo nuevo que se cuele      | `attributes/redact` en el Collector                                                                              | ídem                                 |
+| Sondas de salud con ruido                  | Exclusión en el proceso **y** filtro en el Collector                                                             | ambos                                |
 
 La fila de las métricas se descubrió midiendo, no leyendo. `NodeSDK` arranca un proveedor de
 métricas y otro de registros cuando sus variables de entorno no están declaradas —su valor por

@@ -36,7 +36,7 @@ interface ValidatedAccountingContext {
  * El documento tal y como llega a la validación: con el período y el libro YA resueltos.
  *
  * El esquema los admite vacíos desde el 2026-09-19 —la fecha dice el período y la entidad dice el
- * libro—, pero aquí ya no pueden faltar: `AccountingDocumentsService` los deduce antes de llamar.
+ * libro—, pero aquí ya no pueden faltar: `DocumentDraftResolver` los deduce antes de llamar.
  */
 export type PostableAccountingDocument = Omit<CreateAccountingDocumentDto, 'lines'> & {
   /* Los importes pueden venir como cadena exacta desde un flujo interno: aquí no se leen. */

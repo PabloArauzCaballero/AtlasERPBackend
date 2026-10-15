@@ -6,7 +6,7 @@ import { AuthUser } from '../../../../common/types/auth-context.types';
 import { LegalEntityAccessService } from '../../../../common/services/legal-entity-access.service';
 import { PinoLoggerService } from '../../../../common/logger/pino-logger.service';
 import { ApprovalDecision, assertCanDecide, notPendingConflict } from '../domain/document-approval';
-import { AccountingDocumentsService } from './accounting-documents.service';
+import { AccountingDocumentQueries } from './accounting-document-queries.service';
 
 /**
  * Aprobar o rechazar un borrador contable PENDING (ATL-03, provisional hasta DEC-10).
@@ -20,7 +20,7 @@ export class DocumentApprovalService {
   constructor(
     private readonly sequelize: Sequelize,
     private readonly legalEntityAccessService: LegalEntityAccessService,
-    private readonly documentsService: AccountingDocumentsService,
+    private readonly queries: AccountingDocumentQueries,
     private readonly logger: PinoLoggerService,
     @InjectModel(AccountingDocumentModel)
     private readonly accountingDocumentModel: typeof AccountingDocumentModel,
@@ -92,7 +92,7 @@ export class DocumentApprovalService {
         decision,
         userId: user.sub,
       });
-      return this.documentsService.getDocument(id, transaction);
+      return this.queries.getDocument(id, transaction);
     });
   }
 }

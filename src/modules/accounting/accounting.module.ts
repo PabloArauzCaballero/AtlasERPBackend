@@ -10,7 +10,13 @@ import { ContractsController } from './contracts/controllers/contracts.controlle
 import { FinancialStructureController } from './financial-structure/controllers/financial-structure.controller';
 import { ReceiptsController } from './receipts/controllers/receipts.controller';
 import { AccountGroupsService } from './account-groups/services/account-groups.service';
-import { AccountingDocumentsService } from './documents/services/accounting-documents.service';
+import { AccountingDocumentQueries } from './documents/services/accounting-document-queries.service';
+import { AccountingDraftService } from './documents/services/accounting-draft.service';
+import { AccountingEventOutbox } from './documents/services/accounting-event-outbox.service';
+import { AccountingPostingService } from './documents/services/accounting-posting.service';
+import { AccountingReversalService } from './documents/services/accounting-reversal.service';
+import { DocumentDraftRecorder } from './documents/services/document-draft-recorder.service';
+import { DocumentDraftResolver } from './documents/services/document-draft-resolver.service';
 import { DocumentApprovalService } from './documents/services/document-approval.service';
 import { BillingService } from './billing/services/billing.service';
 import { BusinessPartnersService } from './business-partners/services/business-partners.service';
@@ -53,7 +59,13 @@ import { SupplierPaymentTermsService } from './supplier-payment-terms/supplier-p
   providers: [
     AccountGroupsService,
     AccountingDefaultsService,
-    AccountingDocumentsService,
+    AccountingDocumentQueries,
+    AccountingDraftService,
+    AccountingEventOutbox,
+    AccountingPostingService,
+    AccountingReversalService,
+    DocumentDraftRecorder,
+    DocumentDraftResolver,
     DocumentApprovalService,
     BusinessPartnerRoleValidationService,
     BillingService,
@@ -71,7 +83,10 @@ import { SupplierPaymentTermsService } from './supplier-payment-terms/supplier-p
     LegalEntityAccessService,
   ],
   exports: [
-    AccountingDocumentsService,
+    AccountingDocumentQueries,
+    AccountingDraftService,
+    AccountingPostingService,
+    AccountingReversalService,
     /* El puente del CRM comprueba el alcance por entidad ANTES de bloquear la factura (P-06). */
     LegalEntityAccessService,
     DoubleEntryValidator,

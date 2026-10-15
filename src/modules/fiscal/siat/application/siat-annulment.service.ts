@@ -10,7 +10,7 @@ import {
   LegalEntityModel,
   SiatIssuerProfileModel,
 } from '../../../../database/models';
-import { AccountingDocumentsService } from '../../../accounting/documents/services/accounting-documents.service';
+import { AccountingReversalService } from '../../../accounting/documents/services/accounting-reversal.service';
 import { fechaDe, fechaHoraLocal } from '../domain/fecha-local';
 import { CODIGO_ESTADO } from '../domain/siat-codes';
 import { OPERACIONES, SiatTransportError } from '../infrastructure/siat-transport';
@@ -49,7 +49,7 @@ export class SiatAnnulmentService {
     private readonly credentials: SiatCredentialsService,
     private readonly catalogs: SiatCatalogSyncService,
     private readonly access: LegalEntityAccessService,
-    private readonly accountingDocuments: AccountingDocumentsService,
+    private readonly accountingReversals: AccountingReversalService,
     private readonly mail: FiscalMailService,
     @InjectModel(ElectronicTaxDocumentModel)
     private readonly documentModel: typeof ElectronicTaxDocumentModel,
@@ -210,7 +210,7 @@ export class SiatAnnulmentService {
         return 'BORRADOR_ANULADO';
       }
       if (doc?.status === 'POSTED') {
-        await this.accountingDocuments.reverseDocument(
+        await this.accountingReversals.reverseDocument(
           accountingDocumentId,
           {
             reversalDate: new Date(`${hoy}T12:00:00Z`),

@@ -16,7 +16,10 @@ import {
   listAccountingDocumentsQuerySchema,
   reverseAccountingDocumentSchema,
 } from '../../shared/schemas/accounting.schemas';
-import { AccountingDocumentsService } from '../services/accounting-documents.service';
+import { AccountingDocumentQueries } from '../services/accounting-document-queries.service';
+import { AccountingDraftService } from '../services/accounting-draft.service';
+import { AccountingPostingService } from '../services/accounting-posting.service';
+import { AccountingReversalService } from '../services/accounting-reversal.service';
 import { DocumentApprovalService } from '../services/document-approval.service';
 import { PinoLoggerService } from '../../../../common/logger/pino-logger.service';
 
@@ -24,7 +27,10 @@ import { PinoLoggerService } from '../../../../common/logger/pino-logger.service
 @Controller('accounting/documents')
 export class AccountingDocumentsController {
   constructor(
-    private readonly service: AccountingDocumentsService,
+    private readonly drafts: AccountingDraftService,
+    private readonly posting: AccountingPostingService,
+    private readonly reversals: AccountingReversalService,
+    private readonly queries: AccountingDocumentQueries,
     private readonly approvalService: DocumentApprovalService,
     private readonly logger: PinoLoggerService,
   ) {}
@@ -43,7 +49,7 @@ export class AccountingDocumentsController {
       batchExternalId: body.batchExternalId ?? null,
       userId: user.sub,
     });
-    return this.service.createDraftBulk(body, user);
+    return this.drafts.createDraftBulk(body, user);
   }
 
   @Post()
@@ -59,7 +65,7 @@ export class AccountingDocumentsController {
       legalEntityId: body.legalEntityId,
       userId: user.sub,
     });
-    return this.service.createDraft(body, user);
+    return this.drafts.createDraft(body, user);
   }
 
   @Patch(':id/post')
@@ -74,7 +80,7 @@ export class AccountingDocumentsController {
       accountingDocumentId: params.id,
       userId: user.sub,
     });
-    return this.service.postDocument(params.id, user);
+    return this.posting.postDocument(params.id, user);
   }
 
   /*
@@ -115,7 +121,7 @@ export class AccountingDocumentsController {
       accountingDocumentId: params.id,
       userId: user.sub,
     });
-    return this.service.reverseDocument(params.id, body, user);
+    return this.reversals.reverseDocument(params.id, body, user);
   }
 
   @Get()
@@ -124,7 +130,7 @@ export class AccountingDocumentsController {
     query: ListAccountingDocumentsQueryDto,
     @CurrentUser() user: AuthUser,
   ) {
-    return this.service.list(user, query);
+    return this.queries.list(user, query);
   }
 
   @Get(':id')
@@ -139,6 +145,6 @@ export class AccountingDocumentsController {
       accountingDocumentId: params.id,
       userId: user.sub,
     });
-    return this.service.getDocumentForUser(params.id, user);
+    return this.queries.getDocumentForUser(params.id, user);
   }
 }

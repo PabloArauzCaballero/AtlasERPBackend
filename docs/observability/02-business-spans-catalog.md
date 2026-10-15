@@ -19,7 +19,7 @@ cuánto tardó la consulta y el span del servidor cuánto la petición entera.
 
 |           |                                                                                       |
 | --------- | ------------------------------------------------------------------------------------- |
-| Archivo   | `src/modules/accounting/documents/services/accounting-documents.service.ts`           |
+| Archivo   | `src/modules/accounting/documents/services/accounting-draft.service.ts`               |
 | Tipo      | INTERNAL                                                                              |
 | Atributos | `app.module=accounting`, `app.operation=draft`, `app.entity.type=accounting_document` |
 

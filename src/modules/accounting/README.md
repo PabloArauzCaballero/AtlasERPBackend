@@ -41,7 +41,7 @@ accounting/
 │   └── services/
 ├── documents/                    # Documentos contables (journal universal)
 │   ├── controllers/
-│   └── services/                 # accounting-documents.service
+│   └── services/                 # draft, posting, reversal, queries
 ├── financial-structure/          # Estructura financiera
 │   ├── controllers/
 │   └── services/
@@ -55,7 +55,7 @@ accounting/
 
 ### Servicios clave
 
-- `documents/services/accounting-documents.service.ts`: creación, publicación y reverso de documentos contables.
+- `documents/services/accounting-draft.service.ts`, `accounting-posting.service.ts`, `accounting-reversal.service.ts` y `accounting-document-queries.service.ts`: creación, publicación, reverso y lectura de documentos contables.
 - `posting/services/sap-posting-validation.service.ts`: validación SAP-like de período, ledger, cuentas y dimensiones.
 - `posting/validators/double-entry.validator.ts`: validación de doble partida en aplicación.
 - `business-partners/services/business-partner-role-validation.service.ts`: control de roles BP por proceso.
