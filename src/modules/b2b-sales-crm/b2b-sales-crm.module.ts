@@ -17,6 +17,11 @@ import { ContractsController } from './controllers/contracts.controller';
 import { CreditRatingController } from './controllers/credit-rating.controller';
 import { CrmSegmentsController } from './controllers/crm-segments.controller';
 import { CoverageController } from './controllers/coverage.controller';
+import { OnboardingBranchesController } from './controllers/onboarding-branches.controller';
+import { OnboardingChecklistController } from './controllers/onboarding-checklist.controller';
+import { OnboardingContractsController } from './controllers/onboarding-contracts.controller';
+import { OnboardingKybController } from './controllers/onboarding-kyb.controller';
+import { OnboardingMerchantUsersController } from './controllers/onboarding-merchant-users.controller';
 import { OnboardingController } from './controllers/onboarding.controller';
 import { OpportunitiesController } from './controllers/opportunities.controller';
 import { ProposalsController } from './controllers/proposals.controller';
@@ -97,7 +102,13 @@ import { CoreSignatureGuard } from './integration/core-signature.guard';
     OpportunitiesController,
     ProposalsController,
     ContractsController,
+    // El primero: `cases/summary` debe registrarse antes que `cases/:onboardingCaseId`.
     OnboardingController,
+    OnboardingBranchesController,
+    OnboardingMerchantUsersController,
+    OnboardingContractsController,
+    OnboardingKybController,
+    OnboardingChecklistController,
     BnplController,
     BillingController,
     CoverageController,
