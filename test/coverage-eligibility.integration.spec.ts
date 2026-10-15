@@ -40,7 +40,7 @@ describeWithDatabase('P-04 elegibilidad de cobertura (PostgreSQL real)', () => {
   });
 
   const schedule = (installmentId: string, now?: Date) =>
-    h.coverage.scheduleCoverage(
+    h.scheduling.scheduleCoverage(
       {
         installmentId,
         scheduledPaymentDate: TODAY,
@@ -333,7 +333,7 @@ describeWithDatabase('P-04 elegibilidad de cobertura (PostgreSQL real)', () => {
       installments: [{ dueDate: PAST, amount: '300.00' }],
     });
     const first = await schedule(p.installments[0]!.id);
-    const cancelled = await h.coverage.cancelPayable(
+    const cancelled = await h.scheduling.cancelPayable(
       first.id as string,
       { reason: 'Cobertura cargada por error de fecha' },
       REQUESTER,

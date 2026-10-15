@@ -236,7 +236,7 @@ describeWithDatabase('P-14 consumidor de payment.* de Core (PostgreSQL real)', (
 
   it('pago tardío con cobertura viva: NO confirma (sin doble beneficio) y abre LATE_PAYMENT_WITH_COVERAGE', async () => {
     const linked = await linkedInstallment();
-    await h.coverage.scheduleCoverage(
+    await h.scheduling.scheduleCoverage(
       {
         installmentId: linked.installmentId,
         scheduledPaymentDate: TODAY,
@@ -318,7 +318,7 @@ describeWithDatabase('P-14 consumidor de payment.* de Core (PostgreSQL real)', (
 
   it('lo que el ERP produce al liquidar y recuperar cumple el contrato y lleva coreRef', async () => {
     const linked = await linkedInstallment();
-    const payable = await h.coverage.scheduleCoverage(
+    const payable = await h.scheduling.scheduleCoverage(
       {
         installmentId: linked.installmentId,
         scheduledPaymentDate: TODAY,
@@ -328,7 +328,7 @@ describeWithDatabase('P-14 consumidor de payment.* de Core (PostgreSQL real)', (
     );
     const payableId = payable.id as string;
     const evidenceFileId = await addEvidenceFile(h.sequelize, payableId);
-    await h.coverage.markPayablePaid(
+    await h.settlements.markPayablePaid(
       payableId,
       {
         settlementReference: `LIQ-${randomUUID().slice(0, 8)}`,
@@ -340,13 +340,13 @@ describeWithDatabase('P-14 consumidor de payment.* de Core (PostgreSQL real)', (
       },
       REQUESTER,
     );
-    await h.coverage.approvePayableSettlement(payableId, {}, APPROVER);
+    await h.decisions.approvePayableSettlement(payableId, {}, APPROVER);
     const recovery = await one<{ id: string }>(
       h.sequelize,
       'SELECT id FROM atlas_sales.consumer_recovery_receivables WHERE merchant_payable_id = $1',
       [payableId],
     );
-    await h.coverage.applyRecoveryPayment(
+    await h.recoveries.applyRecoveryPayment(
       recovery.id,
       { amount: '100.00', paymentReference: `REC-${randomUUID().slice(0, 8)}`, currency: 'BOB' },
       REQUESTER,

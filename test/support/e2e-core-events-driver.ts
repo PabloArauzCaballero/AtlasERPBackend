@@ -54,7 +54,7 @@ async function main(): Promise<void> {
       );
     }
     const covered = purchase.installments[1]!.id;
-    const payable = await h.coverage.scheduleCoverage(
+    const payable = await h.scheduling.scheduleCoverage(
       {
         installmentId: covered,
         scheduledPaymentDate: businessDate(),
@@ -63,7 +63,7 @@ async function main(): Promise<void> {
       { userId: '11111111-1111-4111-8111-111111111111' },
     );
     const payableId = payable.id as string;
-    await h.coverage.markPayablePaid(
+    await h.settlements.markPayablePaid(
       payableId,
       {
         settlementReference: `LIQ-E2E-${randomUUID().slice(0, 8)}`,
@@ -75,7 +75,7 @@ async function main(): Promise<void> {
       },
       { userId: '11111111-1111-4111-8111-111111111111' },
     );
-    await h.coverage.approvePayableSettlement(
+    await h.decisions.approvePayableSettlement(
       payableId,
       {},
       { userId: '22222222-2222-4222-8222-222222222222' },

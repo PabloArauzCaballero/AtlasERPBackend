@@ -91,7 +91,7 @@
     "title": "(Parte P-07 en cobertura) Importes de cobertura y recuperación en precisión decimal (sin Number/flotantes)",
     "releaseIncluded": true,
     "ownerRole": "E",
-    "acceptance": "b2b-coverage.service opera en unidades menores bigint (decimal-amount.util); la entrada rechaza >2 decimales, notación científica y flotantes imprecisos; 0,10+0,20 = 0,30 exacto.",
+    "acceptance": "los servicios de cobertura (coverage-scheduling, payable-settlement, consumer-recovery) operan en unidades menores bigint (decimal-amount.util); la entrada rechaza >2 decimales, notación científica y flotantes imprecisos; 0,10+0,20 = 0,30 exacto.",
     "tests": [
       {
         "file": "test/coverage-settlement-recovery.integration.spec.ts",

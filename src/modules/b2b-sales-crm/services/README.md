@@ -10,7 +10,7 @@ Contiene la lógica de negocio del módulo dividida por subdominio para evitar u
 - `b2b-contracts.service.ts`: creación de contratos desde propuesta y activación contractual.
 - `b2b-onboarding.service.ts`: onboarding comercial, checklist, sucursales y usuarios merchant.
 - `b2b-bnpl-billing.service.ts`: compra BNPL, pago inicial consumidor→comercio, MDR, facturación y pagos del comercio.
-- `b2b-coverage.service.ts`: CxP ATLAS→comercio y recuperación contra consumidor.
+- `coverage-scheduling.service.ts`, `payable-settlement.service.ts`, `payable-settlement-decision.service.ts`, `consumer-recovery.service.ts` (y `payable-settlement.ledger.ts`): CxP ATLAS→comercio, liquidación con doble control y recuperación contra consumidor.
 - `b2b-reconciliation.service.ts`: conciliación operativa del módulo.
 - `b2b-sales-crm-use-case.base.ts`: reglas de cálculo compartidas y utilidades de dominio reutilizadas por varios servicios.
 

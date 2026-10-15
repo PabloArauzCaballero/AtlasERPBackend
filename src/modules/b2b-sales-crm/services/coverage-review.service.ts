@@ -23,7 +23,7 @@ import {
 } from '../models/coverage.models';
 import { B2BSalesCrmRepository } from '../repositories/b2b-sales-crm.repository';
 import { applyNoticeDecision, confirmedMinorOf, hasLiveCoverage } from './notice-decision.support';
-import type { CoverageActor } from './b2b-coverage.service';
+import type { CoverageActor } from '../domain/coverage-actor';
 
 /** Razones que hablan de un aviso de pago REPORTED; se cierran decidiendo el aviso. */
 const NOTICE_REASONS = new Set<string>([

@@ -30,7 +30,7 @@ Lista verificada contra el código el 2026-09-29 (WP14-ERPB). Lo que no está aq
 | `CRM`        | `MOVE_OPPORTUNITY_STAGE`                                                                 | `b2b-pipeline.service.ts`                              |
 | `CRM`        | `DECIDE_APPROVAL_REQUEST`                                                                | `b2b-pipeline.service.ts`                              |
 | `CRM`        | `SIGN_AND_ACTIVATE_CONTRACT`                                                             | `b2b-contracts.service.ts`                             |
-| `CRM`        | `REGISTER_PAYABLE_SETTLEMENT`, `APPROVE_PAYABLE_SETTLEMENT`, `REJECT_PAYABLE_SETTLEMENT` | `b2b-coverage.service.ts`                              |
+| `CRM`        | `REGISTER_PAYABLE_SETTLEMENT`, `APPROVE_PAYABLE_SETTLEMENT`, `REJECT_PAYABLE_SETTLEMENT` | `payable-settlement.ledger.ts`                         |
 | `CRM`        | cuentas B2B y onboarding                                                                 | `b2b-accounts.service.ts`, `b2b-onboarding.service.ts` |
 | `ADS`        | acciones administrativas y entrega                                                       | `admin-ads.service.ts`, `delivery.service.ts`          |
 | `PORTAL`     | planes del comercio y sucursales (`CREATE_MERCHANT_PLAN`, `PORTAL_CREATE_BRANCH`…)       | `portal.service.ts`                                    |

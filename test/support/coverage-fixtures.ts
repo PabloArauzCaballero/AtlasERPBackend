@@ -15,7 +15,11 @@ import { BusinessActionLogModel, EventOutboxModel } from '../../src/database/mod
 import { BusinessActionLogsService } from '../../src/modules/business-action-logs/business-action-logs.service';
 import { atlasSalesModels } from '../../src/modules/b2b-sales-crm/models/b2b-sales-crm.models';
 import { B2BSalesCrmRepository } from '../../src/modules/b2b-sales-crm/repositories/b2b-sales-crm.repository';
-import { B2BCoverageService } from '../../src/modules/b2b-sales-crm/services/b2b-coverage.service';
+import { ConsumerRecoveryService } from '../../src/modules/b2b-sales-crm/services/consumer-recovery.service';
+import { CoverageSchedulingService } from '../../src/modules/b2b-sales-crm/services/coverage-scheduling.service';
+import { PayableSettlementDecisionService } from '../../src/modules/b2b-sales-crm/services/payable-settlement-decision.service';
+import { PayableSettlementLedger } from '../../src/modules/b2b-sales-crm/services/payable-settlement.ledger';
+import { PayableSettlementService } from '../../src/modules/b2b-sales-crm/services/payable-settlement.service';
 import { B2BOverdueSweepService } from '../../src/modules/b2b-sales-crm/services/b2b-overdue-sweep.service';
 import { B2BCoverageReviewService } from '../../src/modules/b2b-sales-crm/services/coverage-review.service';
 import { B2BReconciliationService } from '../../src/modules/b2b-sales-crm/services/b2b-reconciliation.service';
@@ -30,7 +34,10 @@ const silentLogger = {
 export interface CoverageHarness {
   moduleRef: TestingModule;
   sequelize: Sequelize;
-  coverage: B2BCoverageService;
+  scheduling: CoverageSchedulingService;
+  settlements: PayableSettlementService;
+  decisions: PayableSettlementDecisionService;
+  recoveries: ConsumerRecoveryService;
   sweep: B2BOverdueSweepService;
   review: B2BCoverageReviewService;
   reconciliation: B2BReconciliationService;
@@ -56,7 +63,11 @@ export async function buildCoverageHarness(databaseUrl: string): Promise<Coverag
     ],
     providers: [
       B2BSalesCrmRepository,
-      B2BCoverageService,
+      CoverageSchedulingService,
+      PayableSettlementLedger,
+      PayableSettlementService,
+      PayableSettlementDecisionService,
+      ConsumerRecoveryService,
       B2BOverdueSweepService,
       B2BCoverageReviewService,
       B2BReconciliationService,
@@ -70,7 +81,10 @@ export async function buildCoverageHarness(databaseUrl: string): Promise<Coverag
   return {
     moduleRef,
     sequelize,
-    coverage: moduleRef.get(B2BCoverageService),
+    scheduling: moduleRef.get(CoverageSchedulingService),
+    settlements: moduleRef.get(PayableSettlementService),
+    decisions: moduleRef.get(PayableSettlementDecisionService),
+    recoveries: moduleRef.get(ConsumerRecoveryService),
     sweep: moduleRef.get(B2BOverdueSweepService),
     review: moduleRef.get(B2BCoverageReviewService),
     reconciliation: moduleRef.get(B2BReconciliationService),

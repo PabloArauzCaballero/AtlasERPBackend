@@ -40,7 +40,11 @@ import { BillingRunsController } from './controllers/billing-runs.controller';
 import { B2BContractsService } from './services/b2b-contracts.service';
 import { B2BCreditRatingService } from './services/b2b-credit-rating.service';
 import { B2BCreditRatingQueryService } from './services/b2b-credit-rating-query.service';
-import { B2BCoverageService } from './services/b2b-coverage.service';
+import { ConsumerRecoveryService } from './services/consumer-recovery.service';
+import { CoverageSchedulingService } from './services/coverage-scheduling.service';
+import { PayableSettlementDecisionService } from './services/payable-settlement-decision.service';
+import { PayableSettlementLedger } from './services/payable-settlement.ledger';
+import { PayableSettlementService } from './services/payable-settlement.service';
 import { B2BCoverageReviewService } from './services/coverage-review.service';
 import { B2BOverdueSweepProcessor } from './services/b2b-overdue-sweep.processor';
 import { B2BOverdueSweepService } from './services/b2b-overdue-sweep.service';
@@ -144,7 +148,11 @@ import { CoreSignatureGuard } from './integration/core-signature.guard';
     B2BBnplBillingService,
     MerchantBillingCycleService,
     MerchantBillingCycleProcessor,
-    B2BCoverageService,
+    CoverageSchedulingService,
+    PayableSettlementLedger,
+    PayableSettlementService,
+    PayableSettlementDecisionService,
+    ConsumerRecoveryService,
     B2BCoverageReviewService,
     B2BOverdueSweepService,
     B2BOverdueSweepProcessor,

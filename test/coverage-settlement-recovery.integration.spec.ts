@@ -103,7 +103,7 @@ describeWithDatabase('P-05 liquidación y recuperación (PostgreSQL real)', () =
         { dueDate: FUTURE, amount: '300.00' },
       ],
     });
-    const payable = await h.coverage.scheduleCoverage(
+    const payable = await h.scheduling.scheduleCoverage(
       {
         installmentId: purchase.installments[0]!.id,
         scheduledPaymentDate: TODAY,
@@ -153,7 +153,7 @@ describeWithDatabase('P-05 liquidación y recuperación (PostgreSQL real)', () =
 
   it('un comprobante registrado no confirma el pago hasta la segunda firma', async () => {
     const s = await coveredInstallment();
-    const result = await h.coverage.markPayablePaid(s.payableId, settlementFor(s), REGISTRAR);
+    const result = await h.settlements.markPayablePaid(s.payableId, settlementFor(s), REGISTRAR);
 
     expect(result).toMatchObject({ outcome: 'PENDING_APPROVAL', recovery: null });
     expect(await payableStatus(s)).toBe('SCHEDULED');
@@ -163,10 +163,10 @@ describeWithDatabase('P-05 liquidación y recuperación (PostgreSQL real)', () =
 
   it('quien registra la liquidación no puede aprobarla', async () => {
     const s = await coveredInstallment();
-    await h.coverage.markPayablePaid(s.payableId, settlementFor(s), REGISTRAR);
+    await h.settlements.markPayablePaid(s.payableId, settlementFor(s), REGISTRAR);
 
     await expect(
-      h.coverage.approvePayableSettlement(s.payableId, {}, REGISTRAR),
+      h.decisions.approvePayableSettlement(s.payableId, {}, REGISTRAR),
     ).rejects.toBeInstanceOf(ForbiddenException);
     expect(await recoveriesOf(s)).toBe(0);
   });
@@ -185,7 +185,7 @@ describeWithDatabase('P-05 liquidación y recuperación (PostgreSQL real)', () =
     ];
     for (const overrides of cases) {
       await expect(
-        h.coverage.markPayablePaid(s.payableId, settlementFor(s, overrides), REGISTRAR),
+        h.settlements.markPayablePaid(s.payableId, settlementFor(s, overrides), REGISTRAR),
       ).rejects.toBeInstanceOf(UnprocessableEntityException);
     }
     expect(
@@ -201,10 +201,10 @@ describeWithDatabase('P-05 liquidación y recuperación (PostgreSQL real)', () =
     const s = await coveredInstallment();
     expect(await recoveriesOf(s)).toBe(0);
 
-    await h.coverage.markPayablePaid(s.payableId, settlementFor(s), REGISTRAR);
+    await h.settlements.markPayablePaid(s.payableId, settlementFor(s), REGISTRAR);
     expect(await recoveriesOf(s)).toBe(0);
 
-    const approved = await h.coverage.approvePayableSettlement(
+    const approved = await h.decisions.approvePayableSettlement(
       s.payableId,
       { note: 'Conciliado contra extracto sintético' },
       APPROVER,
@@ -242,11 +242,11 @@ describeWithDatabase('P-05 liquidación y recuperación (PostgreSQL real)', () =
   it('repetir el registro o la aprobación devuelve lo mismo sin duplicar', async () => {
     const s = await coveredInstallment();
     const body = settlementFor(s);
-    await h.coverage.markPayablePaid(s.payableId, body, REGISTRAR);
-    const replayRegister = await h.coverage.markPayablePaid(s.payableId, body, REGISTRAR);
-    const first = await h.coverage.approvePayableSettlement(s.payableId, {}, APPROVER);
-    const second = await h.coverage.approvePayableSettlement(s.payableId, {}, APPROVER);
-    const afterPaid = await h.coverage.markPayablePaid(s.payableId, body, REGISTRAR);
+    await h.settlements.markPayablePaid(s.payableId, body, REGISTRAR);
+    const replayRegister = await h.settlements.markPayablePaid(s.payableId, body, REGISTRAR);
+    const first = await h.decisions.approvePayableSettlement(s.payableId, {}, APPROVER);
+    const second = await h.decisions.approvePayableSettlement(s.payableId, {}, APPROVER);
+    const afterPaid = await h.settlements.markPayablePaid(s.payableId, body, REGISTRAR);
 
     expect(replayRegister).toMatchObject({ outcome: 'PENDING_APPROVAL', replayed: true });
     expect(second).toMatchObject({ outcome: 'CONFIRMED', replayed: true });
@@ -259,10 +259,10 @@ describeWithDatabase('P-05 liquidación y recuperación (PostgreSQL real)', () =
   it('registrar y aprobar la liquidación quedan en el registro de actividad, una vez cada una', async () => {
     const s = await coveredInstallment();
     const body = settlementFor(s);
-    await h.coverage.markPayablePaid(s.payableId, body, REGISTRAR);
-    await h.coverage.markPayablePaid(s.payableId, body, REGISTRAR);
-    await h.coverage.approvePayableSettlement(s.payableId, {}, APPROVER);
-    await h.coverage.approvePayableSettlement(s.payableId, {}, APPROVER);
+    await h.settlements.markPayablePaid(s.payableId, body, REGISTRAR);
+    await h.settlements.markPayablePaid(s.payableId, body, REGISTRAR);
+    await h.decisions.approvePayableSettlement(s.payableId, {}, APPROVER);
+    await h.decisions.approvePayableSettlement(s.payableId, {}, APPROVER);
 
     const rows = await h.sequelize.query<{ action_code: string; actor_user_id: string }>(
       `SELECT action_code, actor_user_id FROM atlas_audit.business_action_logs
@@ -279,10 +279,10 @@ describeWithDatabase('P-05 liquidación y recuperación (PostgreSQL real)', () =
     const a = await coveredInstallment();
     const b = await coveredInstallment();
     const body = settlementFor(a);
-    await h.coverage.markPayablePaid(a.payableId, body, REGISTRAR);
+    await h.settlements.markPayablePaid(a.payableId, body, REGISTRAR);
 
     await expect(
-      h.coverage.markPayablePaid(
+      h.settlements.markPayablePaid(
         b.payableId,
         settlementFor(b, { settlementReference: body.settlementReference }),
         REGISTRAR,
@@ -292,19 +292,19 @@ describeWithDatabase('P-05 liquidación y recuperación (PostgreSQL real)', () =
 
   it('si falla la escritura del evento nada se confirma y el reintento funciona', async () => {
     const s = await coveredInstallment();
-    await h.coverage.markPayablePaid(s.payableId, settlementFor(s), REGISTRAR);
+    await h.settlements.markPayablePaid(s.payableId, settlementFor(s), REGISTRAR);
     h.messaging.withCarrier.mockImplementationOnce(() => {
       throw new Error('fallo simulado al escribir el outbox');
     });
 
-    await expect(h.coverage.approvePayableSettlement(s.payableId, {}, APPROVER)).rejects.toThrow(
+    await expect(h.decisions.approvePayableSettlement(s.payableId, {}, APPROVER)).rejects.toThrow(
       'fallo simulado',
     );
     expect(await payableStatus(s)).toBe('SCHEDULED');
     expect(await recoveriesOf(s)).toBe(0);
 
     await expect(
-      h.coverage.approvePayableSettlement(s.payableId, {}, APPROVER),
+      h.decisions.approvePayableSettlement(s.payableId, {}, APPROVER),
     ).resolves.toMatchObject({
       outcome: 'CONFIRMED',
     });
@@ -314,8 +314,8 @@ describeWithDatabase('P-05 liquidación y recuperación (PostgreSQL real)', () =
 
   async function settledRecovery(amount = '300.00'): Promise<{ s: Scenario; recoveryId: string }> {
     const s = await coveredInstallment(amount);
-    await h.coverage.markPayablePaid(s.payableId, settlementFor(s, { amount }), REGISTRAR);
-    const approved = await h.coverage.approvePayableSettlement(s.payableId, {}, APPROVER);
+    await h.settlements.markPayablePaid(s.payableId, settlementFor(s, { amount }), REGISTRAR);
+    const approved = await h.decisions.approvePayableSettlement(s.payableId, {}, APPROVER);
     return { s, recoveryId: (approved.recovery as { id: string }).id };
   }
 
@@ -330,7 +330,7 @@ describeWithDatabase('P-05 liquidación y recuperación (PostgreSQL real)', () =
   it('100 + 200 con referencias únicas dejan saldo 0 y repetir el primero no cambia nada', async () => {
     const { recoveryId } = await settledRecovery();
     const r100 = ref('REC');
-    const first = await h.coverage.applyRecoveryPayment(
+    const first = await h.recoveries.applyRecoveryPayment(
       recoveryId,
       { amount: '100.00', paymentReference: r100, currency: 'BOB' },
       COLLECTOR,
@@ -340,14 +340,14 @@ describeWithDatabase('P-05 liquidación y recuperación (PostgreSQL real)', () =
       recoveryStatus: 'PARTIALLY_RECOVERED',
     });
 
-    const second = await h.coverage.applyRecoveryPayment(
+    const second = await h.recoveries.applyRecoveryPayment(
       recoveryId,
       { amount: '200.00', paymentReference: ref('REC'), currency: 'BOB' },
       COLLECTOR,
     );
     expect(second).toMatchObject({ amountRecovered: '300.00', recoveryStatus: 'RECOVERED' });
 
-    const replay = await h.coverage.applyRecoveryPayment(
+    const replay = await h.recoveries.applyRecoveryPayment(
       recoveryId,
       { amount: '100.00', paymentReference: r100, currency: 'BOB' },
       COLLECTOR,
@@ -377,13 +377,13 @@ describeWithDatabase('P-05 liquidación y recuperación (PostgreSQL real)', () =
 
   it('importe de recuperación excesivo se rechaza sin mutar', async () => {
     const { recoveryId } = await settledRecovery();
-    await h.coverage.applyRecoveryPayment(
+    await h.recoveries.applyRecoveryPayment(
       recoveryId,
       { amount: '250.00', paymentReference: ref('REC'), currency: 'BOB' },
       COLLECTOR,
     );
     await expect(
-      h.coverage.applyRecoveryPayment(
+      h.recoveries.applyRecoveryPayment(
         recoveryId,
         { amount: '50.01', paymentReference: ref('REC'), currency: 'BOB' },
         COLLECTOR,
@@ -398,13 +398,13 @@ describeWithDatabase('P-05 liquidación y recuperación (PostgreSQL real)', () =
   it('una referencia de recuperación reutilizada con otro importe se rechaza', async () => {
     const { recoveryId } = await settledRecovery();
     const r = ref('REC');
-    await h.coverage.applyRecoveryPayment(
+    await h.recoveries.applyRecoveryPayment(
       recoveryId,
       { amount: '100.00', paymentReference: r, currency: 'BOB' },
       COLLECTOR,
     );
     await expect(
-      h.coverage.applyRecoveryPayment(
+      h.recoveries.applyRecoveryPayment(
         recoveryId,
         { amount: '150.00', paymentReference: r, currency: 'BOB' },
         COLLECTOR,
@@ -418,7 +418,7 @@ describeWithDatabase('P-05 liquidación y recuperación (PostgreSQL real)', () =
     const r = ref('REC');
     const results = await Promise.allSettled(
       [1, 2, 3].map(() =>
-        h.coverage.applyRecoveryPayment(
+        h.recoveries.applyRecoveryPayment(
           recoveryId,
           { amount: '100.00', paymentReference: r, currency: 'BOB' },
           COLLECTOR,
@@ -434,12 +434,12 @@ describeWithDatabase('P-05 liquidación y recuperación (PostgreSQL real)', () =
 
   it('suma exacta en centavos: 0,10 + 0,20 recuperan exactamente 0,30', async () => {
     const { recoveryId } = await settledRecovery('0.30');
-    await h.coverage.applyRecoveryPayment(
+    await h.recoveries.applyRecoveryPayment(
       recoveryId,
       { amount: '0.10', paymentReference: ref('REC'), currency: 'BOB' },
       COLLECTOR,
     );
-    const last = await h.coverage.applyRecoveryPayment(
+    const last = await h.recoveries.applyRecoveryPayment(
       recoveryId,
       { amount: '0.20', paymentReference: ref('REC'), currency: 'BOB' },
       COLLECTOR,
@@ -449,12 +449,12 @@ describeWithDatabase('P-05 liquidación y recuperación (PostgreSQL real)', () =
 
   it('el reverso de un cobro es un movimiento compensatorio que conserva saldo e historia', async () => {
     const { recoveryId } = await settledRecovery();
-    const paid = await h.coverage.applyRecoveryPayment(
+    const paid = await h.recoveries.applyRecoveryPayment(
       recoveryId,
       { amount: '100.00', paymentReference: ref('REC'), currency: 'BOB' },
       COLLECTOR,
     );
-    await h.coverage.applyRecoveryPayment(
+    await h.recoveries.applyRecoveryPayment(
       recoveryId,
       { amount: '200.00', paymentReference: ref('REC'), currency: 'BOB' },
       COLLECTOR,
@@ -462,13 +462,13 @@ describeWithDatabase('P-05 liquidación y recuperación (PostgreSQL real)', () =
     const movementId = (paid.movement as { id: string }).id;
     const reversalReference = ref('REV');
 
-    const reversed = await h.coverage.reverseRecoveryMovement(
+    const reversed = await h.recoveries.reverseRecoveryMovement(
       recoveryId,
       movementId,
       { reversalReference, reason: 'Devolución sintética al consumidor' },
       APPROVER,
     );
-    const replay = await h.coverage.reverseRecoveryMovement(
+    const replay = await h.recoveries.reverseRecoveryMovement(
       recoveryId,
       movementId,
       { reversalReference, reason: 'Devolución sintética al consumidor' },
@@ -480,7 +480,7 @@ describeWithDatabase('P-05 liquidación y recuperación (PostgreSQL real)', () =
       recoveryStatus: 'PARTIALLY_RECOVERED',
     });
     expect(replay).toMatchObject({ replayed: true, amountRecovered: '200.00' });
-    const movements = await h.coverage.listRecoveryMovements(recoveryId);
+    const movements = await h.recoveries.listRecoveryMovements(recoveryId);
     expect(movements.map((m) => [m.movementType, m.amount])).toEqual([
       ['PAYMENT', '100.00'],
       ['PAYMENT', '200.00'],
@@ -505,7 +505,11 @@ describeWithDatabase('P-05 liquidación y recuperación (PostgreSQL real)', () =
   it('una CxP liquidada no se cancela', async () => {
     const { s } = await settledRecovery();
     await expect(
-      h.coverage.cancelPayable(s.payableId, { reason: 'Intento de cancelar tras pagar' }, APPROVER),
+      h.scheduling.cancelPayable(
+        s.payableId,
+        { reason: 'Intento de cancelar tras pagar' },
+        APPROVER,
+      ),
     ).rejects.toBeInstanceOf(ConflictException);
   });
 });

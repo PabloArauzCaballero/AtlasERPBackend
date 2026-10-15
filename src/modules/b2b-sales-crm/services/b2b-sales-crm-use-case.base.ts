@@ -20,6 +20,11 @@ export abstract class B2BSalesCrmUseCaseBase {
     protected readonly logger: PinoLoggerService,
   ) {}
 
+  /** Deja constancia en el log de que un caso de uso arrancó, con el nombre del servicio que lo corre. */
+  protected started(useCase: string): void {
+    this.logger.infoContext(this.constructor.name, 'B2B CRM use case started', { useCase });
+  }
+
   protected calculateExpectedRevenue(volume?: number, mdrRate?: number): string | null {
     if (volume === undefined || mdrRate === undefined) {
       return null;
