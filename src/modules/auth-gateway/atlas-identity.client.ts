@@ -58,6 +58,14 @@ interface AtlasEnvelope<T> {
   timestamp?: string;
 }
 
+/** Desenvuelve `{ data }` de la respuesta de AtlasBackend; una respuesta sin sobre se devuelve tal cual. */
+function unwrapEnvelope<T>(payload: AtlasEnvelope<T> | T): T {
+  if (typeof payload !== 'object' || payload === null) return payload;
+  return Object.prototype.hasOwnProperty.call(payload, 'data')
+    ? ((payload as AtlasEnvelope<T>).data as T)
+    : (payload as T);
+}
+
 /**
  * Cliente HTTP saliente hacia AtlasBackend (fuente de verdad de usuarios internos/roles/permisos).
  * Desenvuelve su contrato de respuesta ({data}/{error}, sin campo `success` — distinto del
@@ -111,11 +119,7 @@ export class AtlasIdentityClient {
         }),
       );
 
-      const payload = response.data;
-      const data =
-        payload && typeof payload === 'object' && 'data' in payload
-          ? ((payload as AtlasEnvelope<T>).data as T)
-          : (payload as T);
+      const data = unwrapEnvelope<T>(response.data);
       return { data, cookies: parseSetCookies(response.headers['set-cookie']) };
     } catch (error) {
       throw this.translateError(error);
@@ -127,25 +131,8 @@ export class AtlasIdentityClient {
     path: string,
     options: { body?: unknown; accessToken?: string } = {},
   ): Promise<T> {
-    try {
-      const response = await firstValueFrom(
-        this.http.request<AtlasEnvelope<T> | T>({
-          method,
-          url: `${env.ATLAS_IDENTITY_BASE_URL}/${path.replace(/^\/+/, '')}`,
-          data: options.body,
-          headers: options.accessToken ? this.authHeaders(options.accessToken) : this.baseHeaders(),
-          timeout: env.ATLAS_IDENTITY_TIMEOUT_MS,
-        }),
-      );
-
-      const payload = response.data;
-      if (payload && typeof payload === 'object' && 'data' in payload) {
-        return (payload as AtlasEnvelope<T>).data as T;
-      }
-      return payload as T;
-    } catch (error) {
-      throw this.translateError(error);
-    }
+    const { data } = await this.requestWithCookies<T>(method, path, options);
+    return data;
   }
 
   /**
