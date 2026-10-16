@@ -1,22 +1,22 @@
 import type { Request, Response } from 'express';
-import { AuthGatewayController } from '../src/modules/auth-gateway/auth-gateway.controller';
+import { AuthDirectoryController } from '../src/modules/auth-gateway/auth-directory.controller';
 
 /**
  * Cubre el hallazgo UNTESTED_WRITE: `PATCH auth/users/:userId` y `PATCH auth/users/:userId/roles`
  * no tenían ningún test que los nombrara por su ruta HTTP. A diferencia de las pasarelas de
- * partner-onboarding/soporte, `AuthGatewayController` SÍ valida el cuerpo con Zod antes de llamar
+ * partner-onboarding/soporte, `AuthDirectoryController` SÍ valida el cuerpo con Zod antes de llamar
  * al servicio (`updateInternalUserSchema` / `replaceInternalUserRolesSchema`), así que se fija
  * también que el `id` de la ruta y el cuerpo validado lleguen intactos al servicio, y que la
  * cookie de refresco reenviada se reaplique cuando el servicio la renueva. La protección de rol
  * (`ADMIN`) está en `test/untested-writes-roles-guard.spec.ts`.
  */
-describe('AuthGatewayController: rutas de escritura sin test previo', () => {
+describe('AuthDirectoryController: rutas de escritura sin test previo', () => {
   function build() {
     const service = {
       updateUser: jest.fn(),
       replaceUserRoles: jest.fn(),
     };
-    const controller = new AuthGatewayController(service as never);
+    const controller = new AuthDirectoryController(service as never);
     const req = {
       cookies: { atlas_upstream_at: 'access-del-actor', atlas_upstream_rt: 'refresh-del-actor' },
     } as unknown as Request;

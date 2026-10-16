@@ -8,7 +8,10 @@ import * as request from 'supertest';
 import { JwtAuthGuard } from '../src/common/guards/jwt-auth.guard';
 import { RolesGuard } from '../src/common/guards/roles.guard';
 import { PinoLoggerService } from '../src/common/logging/pino-logger.service';
-import { AuthGatewayController } from '../src/modules/auth-gateway/auth-gateway.controller';
+import { AuthDirectoryController } from '../src/modules/auth-gateway/auth-directory.controller';
+import { AuthMerchantController } from '../src/modules/auth-gateway/auth-merchant.controller';
+import { AuthPasswordController } from '../src/modules/auth-gateway/auth-password.controller';
+import { AuthSessionController } from '../src/modules/auth-gateway/auth-session.controller';
 import { AuthGatewayService } from '../src/modules/auth-gateway/auth-gateway.service';
 
 /**
@@ -111,7 +114,12 @@ async function buildApp(
 ) {
   const moduleRef = await Test.createTestingModule({
     imports: [ThrottlerModule.forRoot([{ ttl: 60_000, limit }])],
-    controllers: [AuthGatewayController],
+    controllers: [
+      AuthSessionController,
+      AuthPasswordController,
+      AuthMerchantController,
+      AuthDirectoryController,
+    ],
     providers: [
       PinoLoggerService,
       { provide: AuthGatewayService, useValue: service },

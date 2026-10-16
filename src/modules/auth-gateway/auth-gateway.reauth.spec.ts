@@ -4,7 +4,7 @@ import type { Request, Response } from 'express';
 import { throwError } from 'rxjs';
 import { AtlasPartnerClient } from '../partner-onboarding-gateway/atlas-partner.client';
 import { AtlasIdentityClient } from './atlas-identity.client';
-import { AuthGatewayController } from './auth-gateway.controller';
+import { AuthMerchantController } from './auth-merchant.controller';
 import { merchantReauthenticateSchema } from './auth-gateway.schemas';
 import { AuthGatewayService } from './auth-gateway.service';
 
@@ -28,7 +28,7 @@ describe('Reautenticación del comercio en la pasarela', () => {
   it('el controlador reenvía la contraseña con los tokens upstream y devuelve la prueba', async () => {
     const prueba = { reauthToken: 't', expiresInSeconds: 300, expiresAt: '2026-10-09T10:05:00Z' };
     const service = { merchantReauthenticate: jest.fn().mockResolvedValue({ result: prueba }) };
-    const controller = new AuthGatewayController(service as never);
+    const controller = new AuthMerchantController(service as never);
     const req = {
       cookies: { atlas_upstream_at: 'at', atlas_upstream_rt: 'rt' },
     } as unknown as Request;

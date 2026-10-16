@@ -6,7 +6,10 @@ import { InternalUserMirrorService } from './internal-user-mirror.service';
 import { env } from '../../config/env';
 import { AccessTokenIssuerService } from './access-token-issuer.service';
 import { AtlasIdentityClient } from './atlas-identity.client';
-import { AuthGatewayController } from './auth-gateway.controller';
+import { AuthDirectoryController } from './auth-directory.controller';
+import { AuthMerchantController } from './auth-merchant.controller';
+import { AuthPasswordController } from './auth-password.controller';
+import { AuthSessionController } from './auth-session.controller';
 import { AuthGatewayService } from './auth-gateway.service';
 
 @Module({
@@ -16,7 +19,12 @@ import { AuthGatewayService } from './auth-gateway.service';
       useFactory: () => ({ timeout: env.ATLAS_IDENTITY_TIMEOUT_MS, maxRedirects: 0 }),
     }),
   ],
-  controllers: [AuthGatewayController],
+  controllers: [
+    AuthSessionController,
+    AuthPasswordController,
+    AuthMerchantController,
+    AuthDirectoryController,
+  ],
   providers: [
     AuthGatewayService,
     AtlasIdentityClient,

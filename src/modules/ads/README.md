@@ -7,7 +7,7 @@ Gestiona publicidad externa B2B dentro de ATLAS: anunciantes externos, campañas
 ## Archivos
 
 - `ads.module.ts`: registra controllers, services, repositories y modelos Sequelize.
-- `controllers/admin-ads.controller.ts`: endpoints del portal administrativo interno `/admin/ads/*`.
+- `controllers/admin-ads-*.controller.ts`: nueve controladores por agregado con los endpoints del portal administrativo interno `/admin/ads/*`.
 - `controllers/ads-delivery.controller.ts`: endpoints internos del ad server y motor de eventos `/ads/*`.
 - `services/`: reglas de negocio y transacciones.
 - `repositories/`: acceso a datos con Sequelize.

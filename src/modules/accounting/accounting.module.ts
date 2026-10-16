@@ -7,7 +7,10 @@ import { BillingController } from './billing/controllers/billing.controller';
 import { BusinessPartnersController } from './business-partners/controllers/business-partners.controller';
 import { ClosingController } from './closing/controllers/closing.controller';
 import { ContractsController } from './contracts/controllers/contracts.controller';
-import { FinancialStructureController } from './financial-structure/controllers/financial-structure.controller';
+import { FinancialStructureCalendarController } from './financial-structure/controllers/financial-structure-calendar.controller';
+import { FinancialStructureChartController } from './financial-structure/controllers/financial-structure-chart.controller';
+import { FinancialStructureLegalController } from './financial-structure/controllers/financial-structure-legal.controller';
+import { FinancialStructureMasterDataController } from './financial-structure/controllers/financial-structure-master-data.controller';
 import { ReceiptsController } from './receipts/controllers/receipts.controller';
 import { AccountGroupsService } from './account-groups/services/account-groups.service';
 import { AccountingDocumentQueries } from './documents/services/accounting-document-queries.service';
@@ -60,7 +63,10 @@ import { SupplierPaymentTermsService } from './supplier-payment-terms/supplier-p
     BusinessPartnersController,
     ClosingController,
     ContractsController,
-    FinancialStructureController,
+    FinancialStructureCalendarController,
+    FinancialStructureChartController,
+    FinancialStructureLegalController,
+    FinancialStructureMasterDataController,
     ReceiptsController,
     SupplierPaymentTermsController,
   ],

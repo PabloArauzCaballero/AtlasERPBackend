@@ -11,9 +11,13 @@ Contiene los controllers HTTP del módulo de publicidad externa.
 
 ## Archivos
 
-### admin-ads.controller.ts
+### admin-ads-*.controller.ts
 
-Expone endpoints administrativos para anunciantes, campañas, inventario, moderación, facturación, auditoría y monitoreo.
+La consola administrativa `/admin/ads/*` se reparte por agregado, todos con el mismo prefijo:
+`admin-ads-advertisers` (anunciantes y perfiles de facturación), `admin-ads-campaigns` (campañas y envío a moderación),
+`admin-ads-moderation` (cola y decisiones), `admin-ads-inventory`, `admin-ads-policies`, `admin-ads-billing`
+(cierre de periodo y pagos), `admin-ads-delivery` (monitor y estado facturable de eventos),
+`admin-ads-email` (envío, rastreo y supresiones) y `admin-ads-oversight` (tablero y auditoría).
 
 ### ads-delivery.controller.ts
 

@@ -35,7 +35,7 @@ import type {
 /**
  * Alta de la cadena publicitaria y consulta de su desempeño.
  *
- * Controlador aparte de `AdminAdsController` porque son dos superficies con vidas distintas:
+ * Controlador aparte de los `AdminAds*Controller` de administración porque son dos superficies con vidas distintas:
  * aquélla administra lo que ya existe —moderar, facturar, suspender— y ésta CREA. Mezclarlas
  * habría dejado un archivo de más de quinientas líneas donde la mitad de las rutas son de lectura
  * y encontrar la que crea una campaña exige leerlo entero.
