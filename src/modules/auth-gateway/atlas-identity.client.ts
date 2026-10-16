@@ -106,7 +106,7 @@ export class AtlasIdentityClient {
   private async requestWithCookies<T>(
     method: Method,
     path: string,
-    options: { body?: unknown; accessToken?: string } = {},
+    options: { body?: unknown; headers?: Record<string, string> } = {},
   ): Promise<{ data: T; cookies: Record<string, string> }> {
     try {
       const response = await firstValueFrom(
@@ -114,7 +114,7 @@ export class AtlasIdentityClient {
           method,
           url: `${env.ATLAS_IDENTITY_BASE_URL}/${path.replace(/^\/+/, '')}`,
           data: options.body,
-          headers: options.accessToken ? this.authHeaders(options.accessToken) : this.baseHeaders(),
+          headers: { ...this.baseHeaders(), ...options.headers },
           timeout: env.ATLAS_IDENTITY_TIMEOUT_MS,
         }),
       );
@@ -129,7 +129,7 @@ export class AtlasIdentityClient {
   private async request<T>(
     method: Method,
     path: string,
-    options: { body?: unknown; accessToken?: string } = {},
+    options: { body?: unknown; headers?: Record<string, string> } = {},
   ): Promise<T> {
     const { data } = await this.requestWithCookies<T>(method, path, options);
     return data;
@@ -212,7 +212,7 @@ export class AtlasIdentityClient {
   requestPasswordChange(accessToken: string, currentPassword: string): Promise<AtlasPinChallenge> {
     return this.request('post', 'auth/password/change/request', {
       body: { currentPassword },
-      accessToken,
+      headers: this.authHeaders(accessToken),
     });
   }
 
@@ -221,7 +221,10 @@ export class AtlasIdentityClient {
     accessToken: string,
     body: { challengeToken: string; code: string; newPassword: string },
   ): Promise<{ passwordChanged: boolean }> {
-    return this.request('post', 'auth/password/change/confirm', { body, accessToken });
+    return this.request('post', 'auth/password/change/confirm', {
+      body,
+      headers: this.authHeaders(accessToken),
+    });
   }
 
   logout(refreshToken: string, allDevices: boolean): Promise<{ loggedOut: boolean }> {
@@ -229,19 +232,22 @@ export class AtlasIdentityClient {
   }
 
   me(accessToken: string): Promise<AtlasInternalAccessProfile> {
-    return this.request('get', 'internal/auth/me', { accessToken });
+    return this.request('get', 'internal/auth/me', { headers: this.authHeaders(accessToken) });
   }
 
   listUsers(accessToken: string): Promise<{ items: AtlasInternalUserProfile[] }> {
-    return this.request('get', 'internal/users', { accessToken });
+    return this.request('get', 'internal/users', { headers: this.authHeaders(accessToken) });
   }
 
   getUser(accessToken: string, id: string): Promise<AtlasInternalAccessProfile> {
-    return this.request('get', `internal/users/${id}`, { accessToken });
+    return this.request('get', `internal/users/${id}`, { headers: this.authHeaders(accessToken) });
   }
 
   updateUser(accessToken: string, id: string, body: unknown): Promise<AtlasInternalAccessProfile> {
-    return this.request('patch', `internal/users/${id}`, { body, accessToken });
+    return this.request('patch', `internal/users/${id}`, {
+      body,
+      headers: this.authHeaders(accessToken),
+    });
   }
 
   replaceUserRoles(
@@ -249,19 +255,22 @@ export class AtlasIdentityClient {
     id: string,
     body: unknown,
   ): Promise<AtlasInternalAccessProfile> {
-    return this.request('patch', `internal/users/${id}/roles`, { body, accessToken });
+    return this.request('patch', `internal/users/${id}/roles`, {
+      body,
+      headers: this.authHeaders(accessToken),
+    });
   }
 
   listRoles(accessToken: string): Promise<{ items: AtlasInternalRoleListItem[] }> {
-    return this.request('get', 'internal/roles', { accessToken });
+    return this.request('get', 'internal/roles', { headers: this.authHeaders(accessToken) });
   }
 
   getRole(accessToken: string, id: string): Promise<AtlasInternalRoleListItem> {
-    return this.request('get', `internal/roles/${id}`, { accessToken });
+    return this.request('get', `internal/roles/${id}`, { headers: this.authHeaders(accessToken) });
   }
 
   listPermissions(accessToken: string): Promise<{ items: AtlasInternalPermissionListItem[] }> {
-    return this.request('get', 'internal/permissions', { accessToken });
+    return this.request('get', 'internal/permissions', { headers: this.authHeaders(accessToken) });
   }
   // ---- Canal del comercio afiliado -----------------------------------------------------------
   // Población distinta de la interna: otro endpoint, otro vocabulario de roles y ninguna
@@ -291,12 +300,12 @@ export class AtlasIdentityClient {
   ): Promise<{ reauthToken: string; expiresInSeconds: number; expiresAt: string }> {
     return this.request('post', 'merchant/auth/reauthenticate', {
       body: { password },
-      accessToken,
+      headers: this.authHeaders(accessToken),
     });
   }
 
   merchantMe(accessToken: string): Promise<AtlasMerchantUserProfile> {
-    return this.request('get', 'merchant/auth/me', { accessToken });
+    return this.request('get', 'merchant/auth/me', { headers: this.authHeaders(accessToken) });
   }
 
   /**
@@ -311,7 +320,10 @@ export class AtlasIdentityClient {
     accessToken: string,
     body: AtlasMerchantProvisioningRequestInput,
   ): Promise<AtlasMerchantProvisioningRequest> {
-    return this.request('post', 'merchant/users/provisioning-requests', { body, accessToken });
+    return this.request('post', 'merchant/users/provisioning-requests', {
+      body,
+      headers: this.authHeaders(accessToken),
+    });
   }
 
   /** En qué quedó la petición: `pending`, `provisioned` (con `merchantUserId`) o `rejected`. */
@@ -323,7 +335,7 @@ export class AtlasIdentityClient {
       'get',
       `merchant/users/provisioning-requests/${encodeURIComponent(requestId)}`,
       {
-        accessToken,
+        headers: this.authHeaders(accessToken),
       },
     );
   }
