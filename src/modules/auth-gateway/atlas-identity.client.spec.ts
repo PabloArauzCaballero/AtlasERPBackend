@@ -29,4 +29,15 @@ describe('AtlasIdentityClient · desenvolver la respuesta', () => {
     expect(result.data).toEqual({ ok: true });
     expect(result.cookies).toEqual({ sid: 'abc' });
   });
+
+  it('manda Bearer sólo en las llamadas autenticadas', async () => {
+    const http = { request: jest.fn().mockReturnValue(of({ data: { data: {} }, headers: {} })) };
+    const client = new AtlasIdentityClient(http as unknown as HttpService);
+    await client.me('tok');
+    await client['request']('POST', 'auth/password-reset/request', { body: {} });
+    const [authed, anonymous] = http.request.mock.calls.map(([c]) => c.headers);
+    expect(authed.Authorization).toBe('Bearer tok');
+    expect(anonymous.Authorization).toBeUndefined();
+    expect(anonymous['x-atlas-product']).toBe('erp');
+  });
 });
