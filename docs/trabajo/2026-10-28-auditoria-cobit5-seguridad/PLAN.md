@@ -54,7 +54,7 @@
 
 | ID       | Microtarea                             | CA (binario)                          | DoD                 | Estado                                                                                                                                                                                                                                |
 | -------- | -------------------------------------- | ------------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| H3.S1.M1 | Escribir `REPORTE.md`                  | existe con las secciones obligatorias | `ls`                | A MEDIAS: el contenido del reporte está redactado, pero la herramienta de escritura rechazó crear `REPORTE.md` ("Subagents should return findings as text"); se entrega en el texto de respuesta y falta que quien coordina lo guarde |
+| H3.S1.M1 | Escribir `REPORTE.md`                  | existe con las secciones obligatorias | `ls`                | HECHO: el agente no pudo escribirlo (la herramienta lo rechazó para subagentes); lo escribió la sesión coordinadora |
 | H3.S1.M2 | Commit local con la atribución exigida | `git log -1`                          | salida de `git log` | HECHO (commit local, sin push)                                                                                                                                                                                                        |
 
 ## Riesgos y bloqueos previstos
