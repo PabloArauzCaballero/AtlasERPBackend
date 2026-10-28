@@ -1,0 +1,7 @@
+# Prueba del defecto H2.S1.M1 ANTES del arreglo: Number(neto) + Number(impuesto) como importe del asiento.
+# Se cuentan los pares (neto, impuesto) con dos decimales cuya suma en coma flotante deja de ser
+# un importe de centavos y, por tanto, el DoubleEntryValidator (regex ^\d+(\.\d{1,2})?$) la rechaza
+# con INVALID_JOURNAL_LINE aunque neto e impuesto sean válidos.
+$ node -e "..."   (neto 0.01..19.99 x impuesto 0.01..1.99)
+pares=397801 rechazados=92000
+ejemplos: 0.01 + 0.05 = 0.060000000000000005 ; 0.01 + 0.06 = 0.06999999999999999 ; 0.01 + 0.09 = 0.09999999999999999

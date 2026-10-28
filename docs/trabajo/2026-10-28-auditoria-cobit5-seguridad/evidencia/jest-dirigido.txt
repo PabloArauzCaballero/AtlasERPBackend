@@ -1,0 +1,14 @@
+PASS test/money-exact-ar-receipts.spec.ts (18.5 s)
+PASS test/security-hardening.spec.ts
+PASS test/ar-receipt-patch-immutability.spec.ts
+PASS test/common-jwt-auth.guard.spec.ts
+PASS src/modules/partner-onboarding-gateway/atlas-partner.client.spec.ts
+PASS test/compose-files.spec.ts
+PASS src/modules/accounting/billing/domain/ar-invoice.spec.ts
+
+Test Suites: 7 passed, 7 total
+Tests:       82 passed, 82 total
+Snapshots:   0 total
+Time:        21.597 s, estimated 33 s
+Ran all test suites matching /test\/money-exact-ar-receipts.spec.ts|test\/ar-receipt-patch-immutability.spec.ts|src\/modules\/partner-onboarding-gateway\/atlas-partner.client.spec.ts|test\/security-hardening.spec.ts|test\/compose-files.spec.ts|test\/common-jwt-auth.guard.spec.ts|src\/modules\/accounting\/billing/i.
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?

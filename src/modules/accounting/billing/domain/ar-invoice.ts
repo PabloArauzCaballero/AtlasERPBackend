@@ -3,6 +3,7 @@ import {
   ConflictException,
   UnprocessableEntityException,
 } from '@nestjs/common';
+import { fromMinorUnits, toMinorUnits } from '../../../../common/money/decimal-amount.util';
 import type {
   CreateAccountingDocumentDto,
   IssueArInvoiceDto,
@@ -99,6 +100,18 @@ export function invoiceDeletionBlockers(
     ...(trace.receiptAllocations > 0 ? ['HAS_RECEIPT_ALLOCATIONS'] : []),
     ...(trace.fiscalDocuments > 0 ? ['HAS_FISCAL_DOCUMENT'] : []),
   ];
+}
+
+/**
+ * Importe bruto = neto + impuesto, en centavos exactos.
+ *
+ * Sumar los dos `number` en coma flotante deja `0.01 + 0.05 = 0.060000000000000005`: el validador de
+ * partida doble sólo admite importes de centavos y rechazaba la factura con `INVALID_JOURNAL_LINE`
+ * en cerca de uno de cada cuatro pares válidos. La suma se hace en `bigint` y vuelve a `number` por
+ * su representación decimal más corta, que es la de dos decimales.
+ */
+export function grossFromNetAndTax(netAmount: number | string, taxAmount: number | string): number {
+  return Number(fromMinorUnits(toMinorUnits(netAmount) + toMinorUnits(taxAmount)));
 }
 
 /** Asiento de la factura: CxC por el bruto, ingreso por el neto y, si hay, IVA débito. */

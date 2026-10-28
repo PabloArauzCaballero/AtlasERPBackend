@@ -191,6 +191,22 @@ describe('JwtAuthGuard: un token vale sólo para el propósito con el que se emi
     expect(() => guard.canActivate(context)).toThrow(/Token inválido o expirado/);
   });
 
+  /**
+   * `jsonwebtoken` sólo mira la caducidad si el token trae `exp`: sin ella, una sesión firmada
+   * correctamente (emisor, audiencia, llave) valdría para siempre.
+   */
+  it('rechaza una sesión con emisor y audiencia correctos pero sin caducidad', async () => {
+    jest.resetModules();
+    const guard = await buildGuard();
+    const token = sign({ sub: 'user-1', roles: ['ADMIN'] }, secret, {
+      issuer: 'atlas-erp',
+      audience: 'atlas-erp-api',
+    });
+
+    const { context } = contextWith(token);
+    expect(() => guard.canActivate(context)).toThrow(/Token inválido o expirado/);
+  });
+
   it('rechaza un token sin emisor ni audiencia', async () => {
     jest.resetModules();
     const guard = await buildGuard();

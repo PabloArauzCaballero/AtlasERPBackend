@@ -1,0 +1,6 @@
+INFO: 2 archivo(s) mejoraron. Corre "yarn check:file-size --update-baseline" para fijar el nuevo piso:
+   - src/modules/accounting/receipts/services/receipts.service.ts: 431 -> 422 líneas.
+   - src/modules/auth-gateway/atlas-identity.client.ts: 448 -> 447 líneas.
+WARN: 38 archivo(s) runtime siguen sobre 300 líneas (deuda congelada, pendiente de dividir).
+OK: gate de tamaño: sin archivos runtime nuevos sobre 300 líneas ni crecimiento de la deuda congelada.
+exit=0

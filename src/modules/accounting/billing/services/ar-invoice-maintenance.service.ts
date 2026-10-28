@@ -7,6 +7,7 @@ import { AuthUser } from '../../../../common/types/auth-context.types';
 import { LegalEntityAccessService } from '../../../../common/services/legal-entity-access.service';
 import { BusinessActionLogsService } from '../../../business-action-logs/business-action-logs.service';
 import { invoiceDeletionBlockers, pickEditableInvoiceFields } from '../domain/ar-invoice';
+import { assertInvoicePatchAllowed } from '../../shared/domain/posted-document-patch';
 
 /** Editar los campos permitidos de una factura AR y borrar la que no dejó rastro contable. */
 @Injectable()
@@ -21,7 +22,9 @@ export class ArInvoiceMaintenanceService {
 
   async updateInvoice(id: string, input: Record<string, unknown>, user: AuthUser) {
     const row = await this.findAccessibleInvoice(id, user);
-    await row.update(pickEditableInvoiceFields(input));
+    const changes = pickEditableInvoiceFields(input);
+    assertInvoicePatchAllowed(row, changes);
+    await row.update(changes);
     return row;
   }
 

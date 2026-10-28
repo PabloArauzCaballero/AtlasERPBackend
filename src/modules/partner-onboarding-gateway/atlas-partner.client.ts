@@ -17,6 +17,29 @@ import { firstValueFrom } from 'rxjs';
 import { env } from '../../config/env';
 
 /**
+ * La ruta que se reenvía no puede salirse de su prefijo.
+ *
+ * `encodeURIComponent('..')` devuelve `..`: un identificador de ruta como `..` cruza intacto las
+ * plantillas `partner-onboarding/${id}/status` y, al normalizarse la URL, apunta a otro recurso de
+ * AtlasBackend que el gateway nunca quiso exponer (con el token de quien llama, así que el upstream
+ * vuelve a autorizar; esto cierra la puerta en origen). Se rechaza cualquier segmento `.`/`..`,
+ * también en su forma codificada, y la barra invertida.
+ */
+export function assertPathStaysInsideUpstream(path: string): void {
+  const [pathname = ''] = path.split(/[?#]/, 1);
+  const unsafe = pathname.split('/').some((segment) => {
+    let decoded = segment;
+    try {
+      decoded = decodeURIComponent(segment);
+    } catch {
+      return true;
+    }
+    return decoded === '.' || decoded === '..' || decoded.includes('\\') || decoded.includes('/');
+  });
+  if (unsafe) throw new BadRequestException('Identificador de ruta inválido.');
+}
+
+/**
  * Cliente del expediente del partner, que vive en AtlasBackend.
  *
  * Existe porque **el frontend nunca habla con AtlasBackend de forma directa** (ver `.env.example`):
@@ -52,6 +75,7 @@ export class AtlasPartnerClient {
     if (!input.accessToken) {
       throw new UnauthorizedException('No hay sesión de identidad para operar el expediente.');
     }
+    assertPathStaysInsideUpstream(input.path);
 
     try {
       const response = await firstValueFrom(
@@ -128,6 +152,7 @@ export class AtlasPartnerClient {
     if (!input.accessToken) {
       throw new UnauthorizedException('No hay sesión de identidad para operar el expediente.');
     }
+    assertPathStaysInsideUpstream(input.path);
 
     try {
       const response = await firstValueFrom(

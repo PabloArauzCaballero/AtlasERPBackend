@@ -46,4 +46,28 @@ describe('Compose del ERP', () => {
     expect(yaml).toMatch(/^ {2}worker-outbox:/m);
     expect(commands(yaml)).toContain("['node', 'dist/src/workers/outbox/outbox.worker.js']");
   });
+
+  /**
+   * El bypass de autenticación (`AUTH_DISABLED_FOR_LOCAL_TESTING`) convierte cada petición sin
+   * token en un ADMIN con todos los roles. `config/env.ts` lo prohíbe con `NODE_ENV=production`,
+   * pero los despliegues de DEV/TEST (`Dockerfile.dev`) corren con `NODE_ENV=development` y esa
+   * guarda no los alcanza: la única barrera es que ningún compose de despliegue lo declare. Sólo el
+   * compose de demostración local (`docker-compose.authoff.yml`) puede llevarlo.
+   */
+  it.each([...STACKS, 'docker-compose.linux.yml', 'docker-compose.jaeger.yml'])(
+    '%s no activa el bypass de autenticación',
+    (file) => {
+      const activo = read(file)
+        .split('\n')
+        .filter((line) => !line.trim().startsWith('#'))
+        .some((line) => /AUTH_DISABLED_FOR_LOCAL_TESTING\s*[:=]\s*['"]?true/i.test(line));
+      expect(activo).toBe(false);
+    },
+  );
+
+  it('docker-compose.authoff.yml declara que es sólo para desarrollo', () => {
+    const yaml = read('docker-compose.authoff.yml');
+    expect(yaml).toMatch(/DEV-ONLY/);
+    expect(yaml).toMatch(/Nunca en prod/i);
+  });
 });

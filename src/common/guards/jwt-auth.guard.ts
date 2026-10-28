@@ -17,6 +17,7 @@ interface JwtPayload {
   legalEntityIds?: string[];
   legal_entity_ids?: string[];
   tokenType?: string;
+  exp?: number;
 }
 
 /** Único vocabulario de roles que puede traer un token del plano interno (servicio a servicio). */
@@ -159,6 +160,14 @@ export class JwtAuthGuard implements CanActivate {
         issuer: env.JWT_ACCESS_ISSUER,
         audience: env.JWT_ACCESS_AUDIENCE,
       });
+      /*
+       * `jsonwebtoken` sólo comprueba la caducidad SI el token trae `exp`: uno firmado sin ella no
+       * caduca nunca. La sesión de usuario la emite siempre este backend con `expiresIn`
+       * (`AccessTokenIssuerService`), así que un token de este plano sin `exp` no es nuestro.
+       */
+      if (typeof payload.exp !== 'number') {
+        throw new UnauthorizedException('Token de sesión sin caducidad.');
+      }
       return { payload, plane: 'access' };
     } catch (accessTokenError) {
       try {

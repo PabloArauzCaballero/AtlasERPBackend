@@ -13,6 +13,7 @@ import { BusinessActionLogsService } from '../../../business-action-logs/busines
 import {
   assertFiscalStatusNotClientAsserted,
   buildInvoiceJournalLines,
+  grossFromNetAndTax,
 } from '../domain/ar-invoice';
 import { ArInvoiceFiscalEmission } from './ar-invoice-fiscal-emission.service';
 import { ArInvoicePreparation } from './ar-invoice-preparation.service';
@@ -52,7 +53,7 @@ export class ArInvoiceIssuanceService {
       this.legalEntityAccessService.assertCanAccessLegalEntity(user, rawInput.legalEntityId);
       const input = await this.preparation.resolveDefaults(rawInput, transaction);
       await this.preparation.assertInputsAreSapSafe(input, transaction);
-      const grossAmount = Number(input.netAmount) + Number(input.taxAmount);
+      const grossAmount = grossFromNetAndTax(input.netAmount, input.taxAmount);
 
       // La serie es por entidad legal, que es como la tiene declarada única la propia tabla.
       const invoiceNo = await nextDocumentNumber(

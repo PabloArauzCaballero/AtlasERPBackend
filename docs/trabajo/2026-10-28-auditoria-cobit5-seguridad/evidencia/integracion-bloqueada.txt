@@ -1,0 +1,15 @@
+  console.warn
+    [integración] SALTADA «factura AR y recibo: registro y borrado (PostgreSQL real)»: falta ERP_INTEGRATION_DATABASE_URL (PostgreSQL migrado).
+
+      57 |   }
+      58 |
+    > 59 |   console.warn(
+         |           ^
+      60 |     `[integración] SALTADA «${name}»: falta ERP_INTEGRATION_DATABASE_URL (PostgreSQL migrado).`,
+      61 |   );
+      62 |   describe.skip(`${name} [SALTADA: sin base de integración]`, () => body(''));
+
+      at describeWithDatabase (test/integration/database.ts:59:11)
+      at Object.<anonymous> (test/cobros-registro-y-borrado.integration.spec.ts:15:21)
+
+Test Suites: 1 skipped, 0 of 1 total

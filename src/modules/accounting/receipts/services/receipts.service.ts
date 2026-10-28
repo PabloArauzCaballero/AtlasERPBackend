@@ -1,15 +1,11 @@
 import { nextDocumentNumber } from '../../../../common/numbering/document-numbering';
-import {
-  BadRequestException,
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Transaction } from 'sequelize';
 import { Sequelize } from 'sequelize-typescript';
 import { ArInvoiceModel, ReceiptAllocationModel, ReceiptModel } from '../../../../database/models';
 import { AuthUser } from '../../../../common/types/auth-context.types';
+import { fromMinorUnits, toMinorUnits } from '../../../../common/money/decimal-amount.util';
 import { RecordReceiptDto } from '../../shared/schemas/accounting.schemas';
 import { AccountingDefaultsService } from '../../shared/services/accounting-defaults.service';
 import { AccountingDraftService } from '../../documents/services/accounting-draft.service';
@@ -18,6 +14,8 @@ import { BusinessPartnerRoleValidationService } from '../../business-partners/se
 import { LegalEntityAccessService } from '../../../../common/services/legal-entity-access.service';
 import { PinoLoggerService } from '../../../../common/logger/pino-logger.service';
 import { BusinessActionLogsService } from '../../../business-action-logs/business-action-logs.service';
+import { assertReceiptPatchAllowed } from '../../shared/domain/posted-document-patch';
+import { allocationsByInvoice, money } from '../domain/receipt-allocations';
 
 /**
  * El recibo con lo que el sistema ya sabía resuelto: la cuenta contable del banco, la de control
@@ -69,9 +67,11 @@ export class ReceiptsService {
       throw new NotFoundException({ code: 'RECEIPT_NOT_FOUND', message: 'El recibo no existe.' });
     this.legalEntityAccessService.assertCanAccessLegalEntity(user, row.legalEntityId);
     const allowed = ['receiptDate', 'status', 'bankAccountId'];
-    await row.update(
-      Object.fromEntries(Object.entries(input).filter(([key]) => allowed.includes(key))),
+    const changes = Object.fromEntries(
+      Object.entries(input).filter(([key]) => allowed.includes(key)),
     );
+    assertReceiptPatchAllowed(row, changes);
+    await row.update(changes);
     return row;
   }
 
@@ -313,29 +313,9 @@ export class ReceiptsService {
       transaction,
     );
 
-    const allocationTotal = input.allocations.reduce(
-      (sum, allocation) => sum + Number(allocation.allocatedAmount),
-      0,
-    );
+    const byInvoice = allocationsByInvoice(input);
 
-    if (Math.abs(allocationTotal - Number(input.amount)) > 0.009) {
-      throw new BadRequestException({
-        code: 'RECEIPT_ALLOCATION_TOTAL_MISMATCH',
-        message: 'La suma de asignaciones debe ser igual al monto total del recibo.',
-        details: { amount: input.amount, allocationTotal },
-      });
-    }
-
-    const allocationsByInvoice = new Map<string, number>();
-    for (const allocation of input.allocations) {
-      allocationsByInvoice.set(
-        allocation.arInvoiceId,
-        (allocationsByInvoice.get(allocation.arInvoiceId) ?? 0) +
-          Number(allocation.allocatedAmount),
-      );
-    }
-
-    for (const [arInvoiceId, allocatedAmount] of allocationsByInvoice.entries()) {
+    for (const [arInvoiceId, allocatedAmount] of byInvoice.entries()) {
       await this.assertInvoiceHasOpenBalance(input, arInvoiceId, allocatedAmount, transaction);
     }
   }
@@ -343,7 +323,7 @@ export class ReceiptsService {
   private async assertInvoiceHasOpenBalance(
     input: ResolvedReceipt,
     arInvoiceId: string,
-    allocatedAmount: number,
+    allocatedMinor: bigint,
     transaction: Transaction,
   ): Promise<void> {
     this.logger.debug('Validando saldo abierto de factura AR con lock transaccional.', {
@@ -351,7 +331,7 @@ export class ReceiptsService {
       module: 'receipts',
       action: 'assertInvoiceHasOpenBalance',
       arInvoiceId,
-      allocatedAmount,
+      allocatedAmount: fromMinorUnits(allocatedMinor),
     });
     const invoice = await this.arInvoiceModel.findByPk(arInvoiceId, {
       transaction,
@@ -383,13 +363,18 @@ export class ReceiptsService {
       where: { arInvoiceId },
       transaction,
     });
-    const outstandingAmount = Number(invoice.grossAmount) - Number(alreadyAllocated ?? 0);
+    const outstandingMinor =
+      toMinorUnits(invoice.grossAmount) - toMinorUnits(alreadyAllocated ?? 0);
 
-    if (Number(allocatedAmount) - outstandingAmount > 0.009) {
+    if (allocatedMinor > outstandingMinor) {
       throw new ConflictException({
         code: 'AR_INVOICE_ALLOCATION_EXCEEDS_OPEN_BALANCE',
         message: 'La asignación del cobro excede el saldo abierto de la factura.',
-        details: { arInvoiceId, allocatedAmount, outstandingAmount },
+        details: {
+          arInvoiceId,
+          allocatedAmount: money(allocatedMinor),
+          outstandingAmount: money(outstandingMinor),
+        },
       });
     }
   }
@@ -422,8 +407,9 @@ export class ReceiptsService {
         where: { arInvoiceId },
         transaction,
       });
-      const outstandingAmount = Number(invoice.grossAmount) - Number(allocatedAfterReceipt ?? 0);
-      const status = outstandingAmount <= 0.009 ? 'PAID' : 'PARTIALLY_PAID';
+      const outstandingMinor =
+        toMinorUnits(invoice.grossAmount) - toMinorUnits(allocatedAfterReceipt ?? 0);
+      const status = outstandingMinor <= 0n ? 'PAID' : 'PARTIALLY_PAID';
       await invoice.update({ status }, { transaction });
     }
   }

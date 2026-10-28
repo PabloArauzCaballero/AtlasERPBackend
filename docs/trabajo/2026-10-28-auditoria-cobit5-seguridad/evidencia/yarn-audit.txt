@@ -1,0 +1,106 @@
+moderate | multer | >=2.2.0 <2.4.0 | >=2.4.0 | @nestjs/platform-express>multer
+high | multer | >=2.0.0 <2.5.0 | >=2.5.0 | @nestjs/platform-express>multer
+high | zod | <4.6.6 | >=4.6.6 | zod
+high | browserslist | <=4.28.6 | >=4.28.7 | @nestjs/cli>webpack>browserslist
+high | browserslist | <=4.28.6 | >=4.28.7 | jest>@jest/core>@jest/transform>@babel/core>@babel/helper-compilation-targets>browserslist
+high | browserslist | <=4.28.6 | >=4.28.7 | jest>@jest/core>@jest/reporters>@jest/transform>@babel/core>@babel/helper-compilation-targets>browserslist
+high | browserslist | <=4.28.6 | >=4.28.7 | jest>jest-cli>@jest/core>@jest/reporters>@jest/transform>@babel/core>@babel/helper-compilation-targets>browserslist
+high | browserslist | <=4.28.6 | >=4.28.7 | jest>jest-cli>@jest/core>jest-config>babel-jest>@jest/transform>@babel/core>@babel/helper-compilation-targets>browserslist
+high | browserslist | <=4.28.6 | >=4.28.7 | jest>@jest/core>jest-config>jest-circus>@jest/expect>jest-snapshot>@jest/transform>@babel/core>@babel/helper-compilation-targets>browserslist
+high | browserslist | <=4.28.6 | >=4.28.7 | jest>jest-cli>@jest/core>jest-config>jest-circus>@jest/expect>jest-snapshot>@jest/transform>@babel/core>@babel/helper-compilation-targets>browserslist
+high | browserslist | <=4.28.6 | >=4.28.7 | jest>@jest/core>jest-config>jest-circus>jest-runtime>@jest/globals>@jest/expect>jest-snapshot>@jest/transform>@babel/core>@babel/helper-compilation-targets>browserslist
+high | browserslist | <=4.28.6 | >=4.28.7 | jest>jest-cli>@jest/core>jest-config>jest-circus>jest-runtime>@jest/globals>@jest/expect>jest-snapshot>@jest/transform>@babel/core>@babel/helper-compilation-targets>browserslist
+high | browserslist | <=4.28.6 | >=4.28.7 | jest>@jest/core>jest-config>jest-circus>jest-runtime>@jest/globals>@jest/expect>jest-snapshot>@jest/transform>babel-plugin-istanbul>istanbul-lib-instrument>@babel/core>@babel/helper-compilation-targets>browserslist
+high | browserslist | <=4.28.6 | >=4.28.7 | jest>jest-cli>@jest/core>jest-config>jest-circus>jest-runtime>@jest/globals>@jest/expect>jest-snapshot>@jest/transform>babel-plugin-istanbul>istanbul-lib-instrument>@babel/core>@babel/helper-compilation-targets>browserslist
+high | browserslist | <=4.28.6 | >=4.28.7 | @nestjs/cli>webpack>browserslist
+high | browserslist | <=4.28.6 | >=4.28.7 | jest>@jest/core>@jest/transform>@babel/core>@babel/helper-compilation-targets>browserslist
+high | browserslist | <=4.28.6 | >=4.28.7 | jest>@jest/core>@jest/reporters>@jest/transform>@babel/core>@babel/helper-compilation-targets>browserslist
+high | browserslist | <=4.28.6 | >=4.28.7 | jest>jest-cli>@jest/core>@jest/reporters>@jest/transform>@babel/core>@babel/helper-compilation-targets>browserslist
+high | browserslist | <=4.28.6 | >=4.28.7 | jest>jest-cli>@jest/core>jest-config>babel-jest>@jest/transform>@babel/core>@babel/helper-compilation-targets>browserslist
+high | browserslist | <=4.28.6 | >=4.28.7 | jest>@jest/core>jest-config>jest-circus>@jest/expect>jest-snapshot>@jest/transform>@babel/core>@babel/helper-compilation-targets>browserslist
+high | browserslist | <=4.28.6 | >=4.28.7 | jest>jest-cli>@jest/core>jest-config>jest-circus>@jest/expect>jest-snapshot>@jest/transform>@babel/core>@babel/helper-compilation-targets>browserslist
+high | browserslist | <=4.28.6 | >=4.28.7 | jest>@jest/core>jest-config>jest-circus>jest-runtime>@jest/globals>@jest/expect>jest-snapshot>@jest/transform>@babel/core>@babel/helper-compilation-targets>browserslist
+high | browserslist | <=4.28.6 | >=4.28.7 | jest>jest-cli>@jest/core>jest-config>jest-circus>jest-runtime>@jest/globals>@jest/expect>jest-snapshot>@jest/transform>@babel/core>@babel/helper-compilation-targets>browserslist
+high | browserslist | <=4.28.6 | >=4.28.7 | jest>@jest/core>jest-config>jest-circus>jest-runtime>@jest/globals>@jest/expect>jest-snapshot>@jest/transform>babel-plugin-istanbul>istanbul-lib-instrument>@babel/core>@babel/helper-compilation-targets>browserslist
+high | browserslist | <=4.28.6 | >=4.28.7 | jest>jest-cli>@jest/core>jest-config>jest-circus>jest-runtime>@jest/globals>@jest/expect>jest-snapshot>@jest/transform>babel-plugin-istanbul>istanbul-lib-instrument>@babel/core>@babel/helper-compilation-targets>browserslist
+moderate | qs | >=6.14.2 <=6.15.3 | >=6.16.0 | supertest>superagent>qs
+moderate | qs | >=6.14.2 <=6.15.3 | >=6.16.0 | @nestjs/platform-express>express>body-parser>qs
+moderate | qs | >=2.2.5 <6.16.0 | >=6.16.0 | supertest>superagent>qs
+moderate | qs | >=2.2.5 <6.16.0 | >=6.16.0 | @nestjs/platform-express>express>body-parser>qs
+moderate | qs | >=6.7.0 <=6.16.0 | >=6.16.1 | supertest>superagent>qs
+moderate | qs | >=6.7.0 <=6.16.0 | >=6.16.1 | @nestjs/platform-express>express>body-parser>qs
+high | fast-uri | >=3.1.3 <3.1.6 | >=3.1.6 | @nestjs/cli>@angular-devkit/core>ajv>fast-uri
+high | fast-uri | >=3.1.3 <3.1.6 | >=3.1.6 | @nestjs/cli>@angular-devkit/schematics>@angular-devkit/core>ajv>fast-uri
+high | fast-uri | >=3.1.3 <3.1.6 | >=3.1.6 | @nestjs/cli>@angular-devkit/schematics-cli>@angular-devkit/schematics>@angular-devkit/core>ajv>fast-uri
+high | fast-uri | >=3.1.3 <3.1.6 | >=3.1.6 | @nestjs/cli>@angular-devkit/schematics-cli>@angular-devkit/schematics>@angular-devkit/core>ajv-formats>ajv>fast-uri
+high | fast-uri | >=3.0.0 <3.1.6 | >=3.1.6 | @nestjs/cli>@angular-devkit/core>ajv>fast-uri
+high | fast-uri | >=3.0.0 <3.1.6 | >=3.1.6 | @nestjs/cli>@angular-devkit/schematics>@angular-devkit/core>ajv>fast-uri
+high | fast-uri | >=3.0.0 <3.1.6 | >=3.1.6 | @nestjs/cli>@angular-devkit/schematics-cli>@angular-devkit/schematics>@angular-devkit/core>ajv>fast-uri
+high | fast-uri | >=3.0.0 <3.1.6 | >=3.1.6 | @nestjs/cli>@angular-devkit/schematics-cli>@angular-devkit/schematics>@angular-devkit/core>ajv-formats>ajv>fast-uri
+high | fast-uri | >=3.1.2 <3.1.6 | >=3.1.6 | @nestjs/cli>@angular-devkit/core>ajv>fast-uri
+high | fast-uri | >=3.1.2 <3.1.6 | >=3.1.6 | @nestjs/cli>@angular-devkit/schematics>@angular-devkit/core>ajv>fast-uri
+high | fast-uri | >=3.1.2 <3.1.6 | >=3.1.6 | @nestjs/cli>@angular-devkit/schematics-cli>@angular-devkit/schematics>@angular-devkit/core>ajv>fast-uri
+high | fast-uri | >=3.1.2 <3.1.6 | >=3.1.6 | @nestjs/cli>@angular-devkit/schematics-cli>@angular-devkit/schematics>@angular-devkit/core>ajv-formats>ajv>fast-uri
+high | fast-uri | >=3.0.0 <3.1.6 | >=3.1.6 | @nestjs/cli>@angular-devkit/core>ajv>fast-uri
+high | fast-uri | >=3.0.0 <3.1.6 | >=3.1.6 | @nestjs/cli>@angular-devkit/schematics>@angular-devkit/core>ajv>fast-uri
+high | fast-uri | >=3.0.0 <3.1.6 | >=3.1.6 | @nestjs/cli>@angular-devkit/schematics-cli>@angular-devkit/schematics>@angular-devkit/core>ajv>fast-uri
+high | fast-uri | >=3.0.0 <3.1.6 | >=3.1.6 | @nestjs/cli>@angular-devkit/schematics-cli>@angular-devkit/schematics>@angular-devkit/core>ajv-formats>ajv>fast-uri
+high | fast-uri | >=3.0.0 <3.1.7 | >=3.1.7 | @nestjs/cli>@angular-devkit/core>ajv>fast-uri
+high | fast-uri | >=3.0.0 <3.1.7 | >=3.1.7 | @nestjs/cli>@angular-devkit/schematics>@angular-devkit/core>ajv>fast-uri
+high | fast-uri | >=3.0.0 <3.1.7 | >=3.1.7 | @nestjs/cli>@angular-devkit/schematics-cli>@angular-devkit/schematics>@angular-devkit/core>ajv>fast-uri
+high | fast-uri | >=3.0.0 <3.1.7 | >=3.1.7 | @nestjs/cli>@angular-devkit/schematics-cli>@angular-devkit/schematics>@angular-devkit/core>ajv-formats>ajv>fast-uri
+moderate | fast-uri | >=3.0.0 <3.1.8 | >=3.1.8 | @nestjs/cli>@angular-devkit/core>ajv>fast-uri
+moderate | fast-uri | >=3.0.0 <3.1.8 | >=3.1.8 | @nestjs/cli>@angular-devkit/schematics>@angular-devkit/core>ajv>fast-uri
+moderate | fast-uri | >=3.0.0 <3.1.8 | >=3.1.8 | @nestjs/cli>@angular-devkit/schematics-cli>@angular-devkit/schematics>@angular-devkit/core>ajv>fast-uri
+moderate | fast-uri | >=3.0.0 <3.1.8 | >=3.1.8 | @nestjs/cli>@angular-devkit/schematics-cli>@angular-devkit/schematics>@angular-devkit/core>ajv-formats>ajv>fast-uri
+moderate | fast-uri | >=3.0.0 <3.1.9 | >=3.1.9 | @nestjs/cli>@angular-devkit/core>ajv>fast-uri
+moderate | fast-uri | >=3.0.0 <3.1.9 | >=3.1.9 | @nestjs/cli>@angular-devkit/schematics>@angular-devkit/core>ajv>fast-uri
+moderate | fast-uri | >=3.0.0 <3.1.9 | >=3.1.9 | @nestjs/cli>@angular-devkit/schematics-cli>@angular-devkit/schematics>@angular-devkit/core>ajv>fast-uri
+moderate | fast-uri | >=3.0.0 <3.1.9 | >=3.1.9 | @nestjs/cli>@angular-devkit/schematics-cli>@angular-devkit/schematics>@angular-devkit/core>ajv-formats>ajv>fast-uri
+low | fast-uri | >=3.0.0 <3.1.9 | >=3.1.9 | @nestjs/cli>@angular-devkit/core>ajv>fast-uri
+low | fast-uri | >=3.0.0 <3.1.9 | >=3.1.9 | @nestjs/cli>@angular-devkit/schematics>@angular-devkit/core>ajv>fast-uri
+low | fast-uri | >=3.0.0 <3.1.9 | >=3.1.9 | @nestjs/cli>@angular-devkit/schematics-cli>@angular-devkit/schematics>@angular-devkit/core>ajv>fast-uri
+low | fast-uri | >=3.0.0 <3.1.9 | >=3.1.9 | @nestjs/cli>@angular-devkit/schematics-cli>@angular-devkit/schematics>@angular-devkit/core>ajv-formats>ajv>fast-uri
+moderate | fast-uri | >=3.1.3 <3.1.9 | >=3.1.9 | @nestjs/cli>@angular-devkit/core>ajv>fast-uri
+moderate | fast-uri | >=3.1.3 <3.1.9 | >=3.1.9 | @nestjs/cli>@angular-devkit/schematics>@angular-devkit/core>ajv>fast-uri
+moderate | fast-uri | >=3.1.3 <3.1.9 | >=3.1.9 | @nestjs/cli>@angular-devkit/schematics-cli>@angular-devkit/schematics>@angular-devkit/core>ajv>fast-uri
+moderate | fast-uri | >=3.1.3 <3.1.9 | >=3.1.9 | @nestjs/cli>@angular-devkit/schematics-cli>@angular-devkit/schematics>@angular-devkit/core>ajv-formats>ajv>fast-uri
+low | fast-uri | >=3.0.0 <3.1.9 | >=3.1.9 | @nestjs/cli>@angular-devkit/core>ajv>fast-uri
+low | fast-uri | >=3.0.0 <3.1.9 | >=3.1.9 | @nestjs/cli>@angular-devkit/schematics>@angular-devkit/core>ajv>fast-uri
+low | fast-uri | >=3.0.0 <3.1.9 | >=3.1.9 | @nestjs/cli>@angular-devkit/schematics-cli>@angular-devkit/schematics>@angular-devkit/core>ajv>fast-uri
+low | fast-uri | >=3.0.0 <3.1.9 | >=3.1.9 | @nestjs/cli>@angular-devkit/schematics-cli>@angular-devkit/schematics>@angular-devkit/core>ajv-formats>ajv>fast-uri
+moderate | baseline-browser-mapping | >=2.0.0 <2.11.0 | >=2.11.0 | @nestjs/cli>webpack>browserslist>baseline-browser-mapping
+moderate | baseline-browser-mapping | >=2.0.0 <2.11.0 | >=2.11.0 | jest>@jest/core>@jest/transform>@babel/core>@babel/helper-compilation-targets>browserslist>baseline-browser-mapping
+moderate | baseline-browser-mapping | >=2.0.0 <2.11.0 | >=2.11.0 | jest>@jest/core>@jest/reporters>@jest/transform>@babel/core>@babel/helper-compilation-targets>browserslist>baseline-browser-mapping
+moderate | baseline-browser-mapping | >=2.0.0 <2.11.0 | >=2.11.0 | jest>jest-cli>@jest/core>@jest/reporters>@jest/transform>@babel/core>@babel/helper-compilation-targets>browserslist>baseline-browser-mapping
+moderate | baseline-browser-mapping | >=2.0.0 <2.11.0 | >=2.11.0 | jest>jest-cli>@jest/core>jest-config>babel-jest>@jest/transform>@babel/core>@babel/helper-compilation-targets>browserslist>baseline-browser-mapping
+moderate | baseline-browser-mapping | >=2.0.0 <2.11.0 | >=2.11.0 | jest>@jest/core>jest-config>jest-circus>@jest/expect>jest-snapshot>@jest/transform>@babel/core>@babel/helper-compilation-targets>browserslist>baseline-browser-mapping
+moderate | baseline-browser-mapping | >=2.0.0 <2.11.0 | >=2.11.0 | jest>jest-cli>@jest/core>jest-config>jest-circus>@jest/expect>jest-snapshot>@jest/transform>@babel/core>@babel/helper-compilation-targets>browserslist>baseline-browser-mapping
+moderate | baseline-browser-mapping | >=2.0.0 <2.11.0 | >=2.11.0 | jest>@jest/core>jest-config>jest-circus>jest-runtime>@jest/globals>@jest/expect>jest-snapshot>@jest/transform>@babel/core>@babel/helper-compilation-targets>browserslist>baseline-browser-mapping
+moderate | baseline-browser-mapping | >=2.0.0 <2.11.0 | >=2.11.0 | jest>jest-cli>@jest/core>jest-config>jest-circus>jest-runtime>@jest/globals>@jest/expect>jest-snapshot>@jest/transform>@babel/core>@babel/helper-compilation-targets>browserslist>baseline-browser-mapping
+moderate | baseline-browser-mapping | >=2.0.0 <2.11.0 | >=2.11.0 | jest>@jest/core>jest-config>jest-circus>jest-runtime>@jest/globals>@jest/expect>jest-snapshot>@jest/transform>babel-plugin-istanbul>istanbul-lib-instrument>@babel/core>@babel/helper-compilation-targets>browserslist>baseline-browser-mapping
+moderate | baseline-browser-mapping | >=2.0.0 <2.11.0 | >=2.11.0 | jest>jest-cli>@jest/core>jest-config>jest-circus>jest-runtime>@jest/globals>@jest/expect>jest-snapshot>@jest/transform>babel-plugin-istanbul>istanbul-lib-instrument>@babel/core>@babel/helper-compilation-targets>browserslist>baseline-browser-mapping
+high | js-yaml | >=4.0.0 <4.3.2 | >=4.3.2 | eslint>@eslint/eslintrc>js-yaml
+high | js-yaml | >=4.0.0 <4.3.2 | >=4.3.2 | @nestjs/cli>fork-ts-checker-webpack-plugin>cosmiconfig>js-yaml
+moderate | moment | >=2.29.2 <2.31.0 | >=2.31.0 | sequelize>moment
+moderate | moment | >=2.29.2 <2.31.0 | >=2.31.0 | sequelize>moment-timezone>moment
+moderate | fast-copy | >=4.0.0 <4.1.0 | >=4.1.0 | pino-pretty>fast-copy
+moderate | handlebars | >=4.0.0 <=4.7.9 | >=4.7.10 | ts-jest>handlebars
+critical | handlebars | >=4.0.0 <=4.7.9 | >=4.7.10 | ts-jest>handlebars
+critical | handlebars | >=3.0.0 <=4.7.9 | >=4.7.10 | ts-jest>handlebars
+high | follow-redirects | >=1.16.0 <1.16.1 | >=1.16.1 | axios>follow-redirects
+high | follow-redirects | >=1.16.0 <1.16.1 | >=1.16.1 | axios>follow-redirects
+high | body-parser | >=2.0.0 <2.4.0 | >=2.4.0 | @nestjs/platform-express>express>body-parser
+moderate | uuid | <11.1.1 | >=11.1.1 | sequelize>uuid
+high | js-yaml | >=4.0.0 <4.3.2 | >=4.3.2 | jest>@jest/core>@jest/transform>babel-plugin-istanbul>@istanbuljs/load-nyc-config>js-yaml
+high | js-yaml | >=4.0.0 <4.3.2 | >=4.3.2 | jest>@jest/core>@jest/reporters>@jest/transform>babel-plugin-istanbul>@istanbuljs/load-nyc-config>js-yaml
+high | js-yaml | >=4.0.0 <4.3.2 | >=4.3.2 | jest>jest-cli>@jest/core>@jest/reporters>@jest/transform>babel-plugin-istanbul>@istanbuljs/load-nyc-config>js-yaml
+high | js-yaml | >=4.0.0 <4.3.2 | >=4.3.2 | jest>jest-cli>@jest/core>jest-config>babel-jest>@jest/transform>babel-plugin-istanbul>@istanbuljs/load-nyc-config>js-yaml
+high | js-yaml | >=4.0.0 <4.3.2 | >=4.3.2 | jest>@jest/core>jest-config>jest-circus>@jest/expect>jest-snapshot>@jest/transform>babel-plugin-istanbul>@istanbuljs/load-nyc-config>js-yaml
+high | js-yaml | >=4.0.0 <4.3.2 | >=4.3.2 | jest>jest-cli>@jest/core>jest-config>jest-circus>@jest/expect>jest-snapshot>@jest/transform>babel-plugin-istanbul>@istanbuljs/load-nyc-config>js-yaml
+high | js-yaml | >=4.0.0 <4.3.2 | >=4.3.2 | jest>@jest/core>jest-config>jest-circus>jest-runtime>@jest/globals>@jest/expect>jest-snapshot>@jest/transform>babel-plugin-istanbul>@istanbuljs/load-nyc-config>js-yaml
+high | js-yaml | >=4.0.0 <4.3.2 | >=4.3.2 | jest>jest-cli>@jest/core>jest-config>jest-circus>jest-runtime>@jest/globals>@jest/expect>jest-snapshot>@jest/transform>babel-plugin-istanbul>@istanbuljs/load-nyc-config>js-yaml
+low | deepmerge | >=4.2.0 <=4.3.1 | <0.0.0 | @nestjs/cli>fork-ts-checker-webpack-plugin>deepmerge
+low | deepmerge | >=4.2.0 <=4.3.1 | <0.0.0 | jest>@jest/core>jest-config>deepmerge
+low | deepmerge | >=4.2.0 <=4.3.1 | <0.0.0 | jest>jest-cli>@jest/core>jest-config>deepmerge
+SUMMARY {"vulnerabilities":{"info":0,"low":11,"moderate":35,"high":57,"critical":2},"dependencies":874,"devDependencies":0,"optionalDependencies":0,"totalDependencies":874}

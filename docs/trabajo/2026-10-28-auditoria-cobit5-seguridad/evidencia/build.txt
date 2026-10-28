@@ -1,0 +1,3 @@
+Emit time:        6.90s
+Total time:      29.47s
+exit=0

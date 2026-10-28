@@ -1,0 +1,18 @@
+  ● JwtAuthGuard: un token vale sólo para el propósito con el que se emitió › rechaza una sesión con emisor y audiencia correctos pero sin caducidad
+  ● PATCH de factura AR › inválido › la fecha de una factura emitida no se mueve (fechó el asiento y el documento fiscal)
+  ● PATCH de factura AR › inválido › si el estado es válido pero la fecha no, no se aplica NADA (todo o nada)
+  ● PATCH de factura AR › límite › un borrador tampoco salta a PAID
+  ● PATCH de factura AR › límite › una factura emitida no pasa a CREDITED por PATCH
+  ● PATCH de factura AR › límite › una factura emitida no pasa a DRAFT por PATCH
+  ● PATCH de factura AR › límite › una factura emitida no pasa a PAID por PATCH
+  ● PATCH de factura AR › límite › una factura emitida no pasa a PARTIALLY_PAID por PATCH
+  ● PATCH de factura AR › límite › una factura emitida no pasa a VOID por PATCH
+  ● PATCH de recibo › inválido › el banco del recibo contabilizado no se cambia por otro
+  ● PATCH de recibo › inválido › la fecha del recibo contabilizado no se mueve
+  ● PATCH de recibo › límite › un recibo registrado no pasa a DRAFT por PATCH
+  ● PATCH de recibo › límite › un recibo registrado no pasa a POSTED por PATCH
+  ● PATCH de recibo › límite › un recibo registrado no pasa a VOID por PATCH
+FAIL test/ar-receipt-patch-immutability.spec.ts
+FAIL test/money-exact-ar-receipts.spec.ts
+FAIL test/security-hardening.spec.ts
+Tests:       14 failed, 14 passed, 28 total
