@@ -161,4 +161,48 @@ describe('KybVerificationService · el tramo del Motor', () => {
     expect(caso.decisionOutcome).toBe('APROBADO');
     expect(caso.status).toBe('ALTA_PENDIENTE');
   });
+
+  it('si el expediente ya se decidió en Atlas (PARTNER_NOT_UNDER_REVIEW) trae el veredicto en vez de dejar el caso OPEN sin salida', async () => {
+    const forward = jest.fn(async ({ method, path }: { method: string; path: string }) => {
+      if (method === 'POST' && path.endsWith('/kyb-review')) {
+        throw new ConflictException('PARTNER_NOT_UNDER_REVIEW: el expediente está en approved.');
+      }
+      return { profile: { decision: DECISION } };
+    });
+    const { kyb, caso } = build({ forward });
+
+    await kyb.requestKybReview('caso-1', {}, 'tok', ACTOR);
+
+    expect(caso.decisionOutcome).toBe('APROBADO');
+    expect(caso.status).toBe('VERIFICADO');
+  });
+
+  it('PARTNER_NOT_UNDER_REVIEW sin veredicto que traer conserva el 409 original y el caso no se mueve', async () => {
+    const forward = jest.fn(async ({ method, path }: { method: string; path: string }) => {
+      if (method === 'POST' && path.endsWith('/kyb-review')) {
+        throw new ConflictException('PARTNER_NOT_UNDER_REVIEW: el expediente está en draft.');
+      }
+      return { profile: { decision: null } };
+    });
+    const { kyb, caso } = build({ forward });
+
+    await expect(kyb.requestKybReview('caso-1', {}, 'tok', ACTOR)).rejects.toThrow(
+      ConflictException,
+    );
+    expect(caso.status).toBe('OPEN');
+    expect(caso.decisionOutcome).toBeNull();
+  });
+
+  it('otro 409 de Atlas no se confunde con un expediente ya decidido', async () => {
+    const forward = jest.fn(async () => {
+      throw new ConflictException('KYB_REQUISITOS_INCOMPLETOS: faltan documentos.');
+    });
+    const { kyb, caso } = build({ forward });
+
+    await expect(kyb.requestKybReview('caso-1', {}, 'tok', ACTOR)).rejects.toThrow(
+      'KYB_REQUISITOS_INCOMPLETOS',
+    );
+    expect(caso.status).toBe('OPEN');
+    expect(forward).toHaveBeenCalledTimes(1);
+  });
 });

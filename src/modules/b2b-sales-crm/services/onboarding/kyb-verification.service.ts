@@ -30,6 +30,12 @@ interface KybDecision {
   evaluatedAt: string | null;
 }
 
+/** AtlasBackend responde 409 `PARTNER_NOT_UNDER_REVIEW` cuando el expediente ya salió de `under_review`. */
+function esExpedienteYaDecidido(error: unknown): boolean {
+  if (!(error instanceof ConflictException)) return false;
+  return JSON.stringify(error.getResponse()).includes('PARTNER_NOT_UNDER_REVIEW');
+}
+
 /** La verificación del comercio (KYB): enlazar su expediente en Atlas, pedirla y traer el veredicto. */
 @Injectable()
 export class KybVerificationService extends OnboardingUseCase {
@@ -152,6 +158,16 @@ export class KybVerificationService extends OnboardingUseCase {
       // convertía en un callejón sin salida: sin veredicto que sincronizar y sin botón para volver
       // a pedir. El caso vuelve a donde estaba y el error se ve entero; nunca se aprueba solo.
       await caseRecord.update({ status: estadoPrevio });
+      // El expediente ya se decidió en Atlas sin que el ERP lo pidiera (el autoservicio del comercio
+      // disparó el KYB antes y un analista lo resolvió en el Motor). Pedirlo otra vez es imposible
+      // —`PARTNER_NOT_UNDER_REVIEW`— y el caso quedaba `OPEN` sin salida: «Actualizar verificación»
+      // sólo se ofrece EN_VERIFICACION. Lo que el operador quiere es el veredicto, y ese existe.
+      if (esExpedienteYaDecidido(error)) {
+        const traido = await this.syncKybDecision(onboardingCaseId, accessToken);
+        if (traido.changed || traido.decisionOutcome) {
+          return this.caseQuery.getOnboardingCase(onboardingCaseId);
+        }
+      }
       throw explainMissingAtlasPermission(error, 'partner.kyb.request');
     }
 
