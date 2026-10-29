@@ -17,6 +17,43 @@ describe('MerchantActivationService · la compuerta dura', () => {
   });
 });
 
+describe('MerchantActivationService · por qué no hay contrato con el que activar', () => {
+  function sinContrato(futuras: unknown[]) {
+    const built = build({
+      caso: { decisionOutcome: 'APROBADO', checklistItems: [{ status: 'COMPLETED' }] },
+    });
+    built.repository.contractVersions.findAll = jest.fn(async () => futuras as never[]);
+    return built;
+  }
+
+  it('un contrato que aún no entra en vigor lo dice, con la fecha', async () => {
+    const { activation } = sinContrato([{ validFrom: '2099-01-01' }]);
+    await expect(activation.activateOnboardingCase('caso-1')).rejects.toThrow(
+      /aún no entra en vigor \(desde 2099-01-01\)/,
+    );
+  });
+
+  it('sin ningún contrato conserva el mensaje de siempre', async () => {
+    const { activation } = sinContrato([]);
+    await expect(activation.activateOnboardingCase('caso-1')).rejects.toThrow(
+      'No se puede activar comercio sin contrato activo.',
+    );
+  });
+
+  it('un contrato pactado en el caso que no está vigente conserva su mensaje propio', async () => {
+    const built = build({
+      caso: {
+        decisionOutcome: 'APROBADO',
+        contractVersionId: 'cv-9',
+        checklistItems: [{ status: 'COMPLETED' }],
+      },
+    });
+    await expect(built.activation.activateOnboardingCase('caso-1')).rejects.toThrow(
+      /pactado para este alta no está activo ni vigente/,
+    );
+  });
+});
+
 describe('MerchantActivationService · activar el comercio habilita la venta a crédito de sus sucursales', () => {
   function activable() {
     const built = build({

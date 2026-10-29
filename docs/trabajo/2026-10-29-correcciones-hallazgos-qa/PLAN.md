@@ -25,3 +25,12 @@
 | Riesgo | Impacto | Mitigación |
 |---|---|---|
 | Aprobar un caso por un veredicto que no se pidió desde el ERP | Medio | `applyKybDecision` ya valida el desenlace; la compuerta dura de activación sigue exigiendo `APROBADO` del Motor |
+
+## H2 — OBS-6: el mensaje de activación distingue «contrato que aún no entra en vigor»
+**CA:** Dado un comercio cuyo contrato ACTIVE arranca en el futuro, cuando se intenta activar, entonces el error dice desde cuándo rige.
+**DoD:** `yarn jest src/modules/b2b-sales-crm` + `yarn type-check`.
+**Estado:** HECHO
+
+| ID | Microtarea | CA (binario) | DoD | Estado |
+|---|---|---|---|---|
+| H2.S1.M1 | `ActivationContractResolver.explainMissing` + uso en `MerchantActivationService` | mensaje con fecha; sin contrato conserva el texto previo | `yarn jest src/modules/b2b-sales-crm` → 29 suites / 305 pruebas | HECHO |

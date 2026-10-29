@@ -1,4 +1,4 @@
-> **AVANCE: 2 / 3 — 66,7 %.**
+> **AVANCE: 3 / 4 — 75,0 %.**
 
 - Fecha: 2026-10-29 · Plan: [PLAN.md](./PLAN.md) · Rama: `claude/compassionate-franklin-p7u3rw`
 - Peldaño de evidencia alcanzado: `TESTED`.
@@ -8,6 +8,7 @@
 |---|---|---|---|
 | H1.S1.M1 | Si Atlas responde `PARTNER_NOT_UNDER_REVIEW`, el ERP trae el veredicto (`syncKybDecision`) y el caso pasa a VERIFICADO | `yarn jest src/modules/b2b-sales-crm` | PASS (29 suites, 302 pruebas) |
 | H1.S1.M2 | Sin veredicto que traer, se conserva el 409 original y el caso vuelve a su estado; otro 409 no se confunde | misma suite (2 pruebas nuevas) | PASS |
+| H2.S1.M1 | OBS-6: «activar» dice que el contrato aún no entra en vigor y desde cuándo | `yarn jest src/modules/b2b-sales-crm` | PASS (305 pruebas) · type-check exit 0 · lint 0 errores |
 
 ## A medias
 ### H1.S1.M3 — Repetir contra el stack local

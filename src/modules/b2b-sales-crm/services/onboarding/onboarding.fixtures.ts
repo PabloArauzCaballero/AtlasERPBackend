@@ -86,7 +86,7 @@ export function build(
       update: jest.fn(),
     },
     merchantUsers: { findAll: jest.fn(async () => users) },
-    contractVersions: { findOne: jest.fn(async () => null) },
+    contractVersions: { findOne: jest.fn(async () => null), findAll: jest.fn(async () => []) },
     contracts: {},
     checklistItems: {},
     contacts: { count: jest.fn(async () => 1) },

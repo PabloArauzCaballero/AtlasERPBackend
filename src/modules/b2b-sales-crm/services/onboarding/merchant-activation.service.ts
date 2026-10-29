@@ -68,9 +68,7 @@ export class MerchantActivationService extends OnboardingUseCase {
 
       if (!activeVersion) {
         throw new ConflictException(
-          caseRecord.contractVersionId
-            ? 'El contrato pactado para este alta no está activo ni vigente: fírmalo y actívalo, o pacta otro.'
-            : 'No se puede activar comercio sin contrato activo.',
+          await this.activationContract.explainMissing(caseRecord, transaction),
         );
       }
 

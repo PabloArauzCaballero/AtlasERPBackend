@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Transaction } from 'sequelize';
+import { Op, Transaction } from 'sequelize';
 import type { ContractVersionModel } from '../../models/b2b-sales-crm.models';
 import { B2BSalesCrmRepository } from '../../repositories/b2b-sales-crm.repository';
 
@@ -52,5 +52,38 @@ export class ActivationContractResolver {
       ...(transaction ? { transaction } : {}),
     });
     return version && isContractVersionActivatable(version, today) ? version : null;
+  }
+
+  /**
+   * Por qué no hay contrato con el que activar, dicho en lo que el operador puede hacer.
+   *
+   * «Sin contrato activo» era cierto y engañoso a la vez cuando el contrato existía pero arrancaba
+   * en el futuro: mandaba a crear uno que ya estaba. Aquí se distingue ese caso y se da la fecha.
+   */
+  async explainMissing(
+    caseRecord: { accountId: string; contractVersionId: string | null },
+    transaction?: Transaction,
+  ): Promise<string> {
+    if (caseRecord.contractVersionId) {
+      return 'El contrato pactado para este alta no está activo ni vigente: fírmalo y actívalo, o pacta otro.';
+    }
+    const today = new Date().toISOString().slice(0, 10);
+    const futuras = await this.repository.contractVersions.findAll({
+      where: { status: 'ACTIVE', validFrom: { [Op.gt]: today } },
+      include: [
+        {
+          model: this.repository.contracts,
+          required: true,
+          where: { accountId: caseRecord.accountId, status: 'ACTIVE' },
+        },
+      ],
+      order: [['validFrom', 'ASC']],
+      limit: 1,
+      ...(transaction ? { transaction } : {}),
+    });
+    const proxima = futuras[0];
+    return proxima
+      ? `El contrato de esta cuenta aún no entra en vigor (desde ${proxima.validFrom}): espera esa fecha o ajusta la vigencia del contrato.`
+      : 'No se puede activar comercio sin contrato activo.';
   }
 }
