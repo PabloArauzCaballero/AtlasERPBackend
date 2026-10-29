@@ -1,4 +1,4 @@
-> **AVANCE: 3 / 4 — 75,0 %.**
+> **AVANCE: 5 / 6 — 83,3 %.**
 
 - Fecha: 2026-10-29 · Plan: [PLAN.md](./PLAN.md) · Rama: `claude/compassionate-franklin-p7u3rw`
 - Peldaño de evidencia alcanzado: `TESTED`.
@@ -9,6 +9,8 @@
 | H1.S1.M1 | Si Atlas responde `PARTNER_NOT_UNDER_REVIEW`, el ERP trae el veredicto (`syncKybDecision`) y el caso pasa a VERIFICADO | `yarn jest src/modules/b2b-sales-crm` | PASS (29 suites, 302 pruebas) |
 | H1.S1.M2 | Sin veredicto que traer, se conserva el 409 original y el caso vuelve a su estado; otro 409 no se confunde | misma suite (2 pruebas nuevas) | PASS |
 | H2.S1.M1 | OBS-6: «activar» dice que el contrato aún no entra en vigor y desde cuándo | `yarn jest src/modules/b2b-sales-crm` | PASS (305 pruebas) · type-check exit 0 · lint 0 errores |
+| H3.S1.M1 | BUG-6 (hallado en la pasada H4): `setDefaultAccount` usa `upsert` con `conflictFields (business_partner_id, account_purpose)`; antes respondía 409 porque la PK es `id` | `yarn jest src/modules/accounting/business-partners` | PASS (2 pruebas); type-check, lint, check:file-size OK |
+| H3.S1.M2 | BUG-6 repetido en el navegador con `dist` reconstruido: 7 asignaciones de cuenta | script `h4-bp-cuentas.cjs` (scratchpad) | `PUT … 200` ×7; BD: 7 filas con `gl_account_id` (5 existentes actualizadas + 2 insertadas); luego la factura AR a ese socio se emitió (`POST 201`), quedó `PARTIALLY_PAID` tras un recibo |
 
 ## A medias
 ### H1.S1.M3 — Repetir contra el stack local

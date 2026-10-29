@@ -34,3 +34,13 @@
 | ID | Microtarea | CA (binario) | DoD | Estado |
 |---|---|---|---|---|
 | H2.S1.M1 | `ActivationContractResolver.explainMissing` + uso en `MerchantActivationService` | mensaje con fecha; sin contrato conserva el texto previo | `yarn jest src/modules/b2b-sales-crm` → 29 suites / 305 pruebas | HECHO |
+
+## H3 — BUG-6: asignar la cuenta contable por defecto de un socio responde 409
+**CA:** Dado un socio con sus siete cuentas por defecto auto-provisionadas sin cuenta, cuando se asigna una cuenta GL a un propósito, entonces el `PUT default-accounts` actualiza esa fila (200) y no choca con el índice único `(business_partner_id, account_purpose)`.
+**DoD:** `yarn jest business-partners` + `yarn type-check` + repetir el clic en el ERP con `dist` reconstruido.
+**Estado:** HECHO
+
+| ID | Microtarea | CA (binario) | DoD | Estado |
+|---|---|---|---|---|
+| H3.S1.M1 | `upsert` con `conflictFields: ['business_partner_id','account_purpose']` | la llamada lleva `conflictFields` | `yarn jest src/modules/accounting/business-partners` | HECHO |
+| H3.S1.M2 | Repetir en el navegador la asignación de las siete cuentas | `PUT … 200` ×7 y facturar a ese socio deja de dar `PARTNER_DEFAULT_ACCOUNT_NOT_SET` | script `h4-bp-ficha.cjs` | HECHO |

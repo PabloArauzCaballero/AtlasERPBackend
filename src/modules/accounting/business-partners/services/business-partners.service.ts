@@ -99,12 +99,18 @@ export class BusinessPartnersService {
       businessPartnerId: partnerId,
       accountPurpose: input.accountPurpose,
     });
-    const [row] = await this.defaultAccountModel.upsert({
-      businessPartnerId: partnerId,
-      accountPurpose: input.accountPurpose,
-      glAccountId: input.glAccountId,
-      updatedAt: new Date(),
-    });
+    // `conflictFields` es obligatorio: la clave primaria es `id`, así que sin él el upsert siempre
+    // inserta una fila nueva y choca con el índice único (partner, propósito) del slot ya
+    // auto-provisionado al crear el socio (409 UNIQUE_CONSTRAINT_ERROR; QA 2026-10-29, BUG-6).
+    const [row] = await this.defaultAccountModel.upsert(
+      {
+        businessPartnerId: partnerId,
+        accountPurpose: input.accountPurpose,
+        glAccountId: input.glAccountId,
+        updatedAt: new Date(),
+      },
+      { conflictFields: ['business_partner_id', 'account_purpose'] },
+    );
     return row;
   }
 
