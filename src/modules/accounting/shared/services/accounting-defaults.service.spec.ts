@@ -278,5 +278,15 @@ describe('AccountingDefaultsService', () => {
         servicio.resolveBankGlAccountId(EMPRESA, undefined, undefined),
       ).rejects.toMatchObject({ response: { code: 'BANK_GL_ACCOUNT_NOT_RESOLVED' } });
     });
+
+    it('caso error: sin ninguna cuenta bancaria no manda a una pantalla que no existe (OBS-26)', async () => {
+      const servicio = crear({ cuentasBancarias: [] });
+      const error = await servicio
+        .resolveBankGlAccountId(EMPRESA, undefined, undefined)
+        .catch((e: unknown) => e);
+      const mensaje = JSON.stringify((error as { response: unknown }).response);
+      expect(mensaje).toContain('Estructura financiera');
+      expect(mensaje).not.toContain('Tesorería');
+    });
   });
 });

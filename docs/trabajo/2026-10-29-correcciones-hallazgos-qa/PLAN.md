@@ -44,3 +44,12 @@
 |---|---|---|---|---|
 | H3.S1.M1 | `upsert` con `conflictFields: ['business_partner_id','account_purpose']` | la llamada lleva `conflictFields` | `yarn jest src/modules/accounting/business-partners` | HECHO |
 | H3.S1.M2 | Repetir en el navegador la asignación de las siete cuentas | `PUT … 200` ×7 y facturar a ese socio deja de dar `PARTNER_DEFAULT_ACCOUNT_NOT_SET` | script `h4-bp-ficha.cjs` | HECHO |
+
+## H4 — OBS-26: el error de «sin cuenta bancaria» manda a una «Tesorería» que no existe
+**CA:** Dado una empresa sin cuenta bancaria con cuenta contable, cuando se registra un cobro, entonces el error dice dónde se consultan las cuentas (Estructura financiera › Bancos) y quién debe cargarla; no nombra una pantalla inexistente.
+**DoD:** `yarn jest src/modules/accounting/shared` + `yarn type-check` + `yarn lint`.
+**Estado:** HECHO
+
+| ID | Microtarea | CA (binario) | DoD | Estado |
+|---|---|---|---|---|
+| H4.S1.M1 | Reescribir los dos mensajes de `resolveBankGlAccountId` y probar que no dicen «Tesorería» | el texto nombra «Estructura financiera» | `yarn jest accounting-defaults` | HECHO |

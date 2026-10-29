@@ -309,7 +309,7 @@ export class AccountingDefaultsService {
       throw new BadRequestException({
         code: 'BANK_GL_ACCOUNT_NOT_SET',
         message:
-          'La cuenta bancaria elegida no tiene cuenta contable asociada. Asígnasela en Tesorería y vuelve a intentarlo.',
+          'La cuenta bancaria elegida no tiene cuenta contable asociada. Pide a Administración que se la asigne (Contabilidad › Estructura financiera › Bancos es sólo de consulta) y vuelve a intentarlo.',
         details: { bankAccountId },
       });
     }
@@ -333,7 +333,7 @@ export class AccountingDefaultsService {
       code: 'BANK_GL_ACCOUNT_NOT_RESOLVED',
       message: conCuenta.length
         ? 'Esta empresa tiene varias cuentas bancarias y ninguna marcada como cuenta principal. Elige en qué cuenta entró el dinero.'
-        : 'Esta empresa no tiene ninguna cuenta bancaria con cuenta contable asociada. Créala en Tesorería antes de registrar cobros.',
+        : 'Esta empresa no tiene ninguna cuenta bancaria con cuenta contable asociada. Pide a Administración que la cargue (Contabilidad › Estructura financiera › Bancos es sólo de consulta) antes de registrar cobros.',
       details: { legalEntityId, candidatas: conCuenta.length },
     });
   }
