@@ -43,7 +43,10 @@ describe('BusinessPartnersService.setDefaultAccount', () => {
     const { service, defaultAccountModel, businessPartnerModel } = build();
     businessPartnerModel.findByPk.mockResolvedValueOnce(null as never);
     await expect(
-      service.setDefaultAccount('no-existe', { accountPurpose: 'AR_CONTROL', glAccountId: 'gl-1' } as never),
+      service.setDefaultAccount('no-existe', {
+        accountPurpose: 'AR_CONTROL',
+        glAccountId: 'gl-1',
+      } as never),
     ).rejects.toThrow();
     expect(defaultAccountModel.upsert).not.toHaveBeenCalled();
   });
